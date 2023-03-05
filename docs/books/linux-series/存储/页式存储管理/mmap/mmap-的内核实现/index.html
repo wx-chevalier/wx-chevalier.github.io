@@ -1,1449 +1,230 @@
-<!DOCTYPE html><html lang="zh" >
-
-
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  
-  
-  
-    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
-  
-
-  
-  
-
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-  
-  
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  
-
-  
-  
-  
-    
-      
-      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
-    
-  
-
-  
-    <meta name="google-site-verification" content="google69a5cccb61297807" />
-    <meta name="baidu-site-verification" content="cqmZHEleVh" />
-  
-  
-  
-  
-  
-
-  
-
-  
-  
-  
-    
-  
-  <meta name="description" content="mmap 的内核实现 延时分配 参考如下简单的 mmap 使用代码： #include &lt;stdio.h&gt; #include &lt;sys/mman.h&gt; #include &lt;unistd.h&gt; int main(int argc, char *argv[]) { void *p; sleep(5); p = mmap(NULL, 1, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0); if (p == MAP_FAILED) { perror(&#34;mmap&#34;); return -1; } printf(&#34;%p\n&#34;, p); sleep(5); return 0; } 执行该程序，输出 mmap 方法返回的内存地址，同时使用 pmap 命令输出该程序执行 mmap 之" />
-
-  
-  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/mmap/mmap-%E7%9A%84%E5%86%85%E6%A0%B8%E5%AE%9E%E7%8E%B0/" />
-
-  
-  
-  
-    <meta name="theme-color" content="#0a55a7" />
-  
-
-  
-  
-
-  
-
-  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
-
-  
-  
-  
-    
-    
-
-    
-    
-    
-    
-      
-      
-    
-    
-    
-
-    
-    
-    
-      
-    
-    
-      
-      
-        
-          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
-          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
-        
-      
-    
-
-    
-    
-    
-
-    
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
-    
-
-    
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-        
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-  
-
-  
-  
-  
-  
-  
-  <link rel="stylesheet" href="/css/wowchemy.63df6ae9fc2b4cc71b83f1774d780209.css" />
-
-  
-
-
-
-
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
-
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', "G-40NYXJ8823");
-</script>
-
-
-  
-
-
-  
-
-
-  
-
-
-  <script>
-    var _hmt = _hmt || [];
-    (function() {
-      var hm = document.createElement("script");
-      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
-      var s = document.getElementsByTagName("script")[0];
-      s.parentNode.insertBefore(hm, s);
-    })();
-  </script>
-
-
-
-  
-  
-  
-
-  
-
-  
-    <link rel="manifest" href="/manifest.webmanifest" />
-  
-
-  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
-  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
-
-  <link rel="canonical" href="https://ng-tech.icu/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/mmap/mmap-%E7%9A%84%E5%86%85%E6%A0%B8%E5%AE%9E%E7%8E%B0/" />
-
-  
-  
-  
-  
-  
-  
-  
-  
-    
-  
-  
-
-  
-  
-    
-    
-  
-  <meta property="twitter:card" content="summary_large_image" />
-  
-    <meta property="twitter:site" content="@wx-chevalier" />
-    <meta property="twitter:creator" content="@wx-chevalier" />
-  
-  <meta property="og:site_name" content="Next-gen Tech Edu" />
-  <meta property="og:url" content="https://ng-tech.icu/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/mmap/mmap-%E7%9A%84%E5%86%85%E6%A0%B8%E5%AE%9E%E7%8E%B0/" />
-  <meta property="og:title" content="mmap 的内核实现 | Next-gen Tech Edu" />
-  <meta property="og:description" content="mmap 的内核实现 延时分配 参考如下简单的 mmap 使用代码： #include &lt;stdio.h&gt; #include &lt;sys/mman.h&gt; #include &lt;unistd.h&gt; int main(int argc, char *argv[]) { void *p; sleep(5); p = mmap(NULL, 1, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0); if (p == MAP_FAILED) { perror(&#34;mmap&#34;); return -1; } printf(&#34;%p\n&#34;, p); sleep(5); return 0; } 执行该程序，输出 mmap 方法返回的内存地址，同时使用 pmap 命令输出该程序执行 mmap 之" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
-    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
-  
-    
-    
-  
-
-  
-
-
-
-  
-
-  
-
-  
-
-
-
-
-
-  <title>mmap 的内核实现 | Next-gen Tech Edu</title>
-</head>
-
-
-<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="357a49756331aaf641a609985147e73b" >
-  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
-
-  
-
-
-<aside class="search-modal" id="search">
-  <div class="container">
-    <section class="search-header">
-
-      <div class="row no-gutters justify-content-between mb-3">
-        <div class="col-6 search-title">
-          <p>搜索</p>
-        </div>
-        <div class="col-6 col-search-close">
-          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
-        </div>
-      </div>
-
-      <div id="search-box">
-        
-        
-        
-      </div>
-
-      
-      
-
-      
-    </section>
-    <section class="section-search-results">
-
-      <div id="search-hits">
-        
-      </div>
-
-      <div id="search-common-queries">
-        
-      </div>
-
-    </section>
-  </div>
-</aside>
-
-
-
-  <div class="page-header">
-    
-
-
-
-
-
-
-
-
-
-
-
-
-<header class="header--fixed">
-  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
-    <div class="container-xl">
-
-      
-      <div class="d-none d-lg-inline-flex">
-        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
-      </div>
-      
-
-      
-      <button type="button" class="navbar-toggler" data-toggle="collapse"
-              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
-      <span><i class="fas fa-bars"></i></span>
-      </button>
-      
-
-      
-      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
-        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
-      </div>
-      
-
-      
-      
-      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
-
-        
-        <ul class="navbar-nav d-md-inline-flex">
-          
-
-          
-
-          
-          
-          
-            
-          
-
-          
-
-          
-          
-          
-          
-
-          
-            
-              
-              
-            
-            
-          
-
-          <li class="nav-item">
-            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
-          </li>
-
-          
-          
-
-          
-
-          
-          
-          
-            
-          
-
-          
-
-          
-          
-          
-          
-
-          
-            
-              
-              
-            
-            
-              
-              
-              
-                
-              
-              
-            
-          
-
-          <li class="nav-item">
-            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
-          </li>
-
-          
-          
-
-          
-          <style>
-            .dropdown-item{
-              display: inline-flex;
-            }
-          </style>
-          <li class="nav-item dropdown">
-            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
-            </a>
-            <div class="dropdown-menu">
-              
-                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
-              
-                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
-              
-            </div>
-          </li>
-
-          
-          
-
-          
-          <style>
-            .dropdown-item{
-              display: inline-flex;
-            }
-          </style>
-          <li class="nav-item dropdown">
-            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
-            </a>
-            <div class="dropdown-menu">
-              
-                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
-              
-                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
-              
-                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
-              
-            </div>
-          </li>
-
-          
-          
-
-        
-
-          
-        </ul>
-      </div>
-
-      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
-
-        
-        
-        
-        <li class="nav-item">
-          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
-        </li>
-        
-
-        
-        
-        <li class="nav-item">
-            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
-        </li>
-        
-
-        
-        
-        
-
-        
-        
-        
-        <div></div>
-        
-        <style>
-        @media only screen and (max-width: 600px) {
-          .jimmysong-template {
-            display: none!important;
-          }
-        }
-        </style>
-        
-        <li class="jimmysong-template" style="color: white;font-size: 12px;">
-          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
-        </li>
-      </ul>
-
-    </div>
-  </nav>
-</header>
-
-
-  </div>
-
-  <div class="page-body">
-    
-    
-    
-
-    
-
-
-
-
-<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
-<div class="container-xl docs">
-  <div class="row flex-xl-nowrap">
-    <div class="docs-sidebar">
-      <form class="docs-search d-flex align-items-center">
-  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
-    <div class="d-flex">
-      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
-        
-          mmap
-        
-      </span>
-      <span><i class="fas fa-chevron-down"></i></span>
-    </div>
-  </button>
-
-  
-  <button class="form-control sidebar-search js-search d-none d-md-flex">
-    <i class="fas fa-search pr-2"></i>
-    <span class="sidebar-search-text">搜索...</span>
-    <span class="sidebar-search-shortcut">/</span>
-  </button>
-  
-</form>
-
-<nav class="collapse docs-links" id="docs-nav">
-  
-  
-  
-  
-  
-  
-
-  
-  
-    
-
-    
-      
-
-      <ul class="nav docs-sidenav">
-        <li style="display: inline-flex">
-          <a style="cursor: pointer;" onclick="window.history.back()">
-            <i class="fas fa-arrow-left pr-1"></i>
-            Back
-          </a>
-          <span>|</span>
-          <a href="/books/">
-            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
-            Books
-          </a>
-        </li>
-      </ul>
-
-      
-      
-        
-          
-        
-      
-
-
-
-  
-    
-    
-    
-    
-      
-    
-    
-
-    
-    
-    
-    
-    
-    <div class="docs-toc-item has-child">
-    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id722562dd19202c383f8afcb7bf5938ca&#34;)" href="#id722562dd19202c383f8afcb7bf5938ca" aria-expanded="false" aria-controls="id722562dd19202c383f8afcb7bf5938ca" aria-hidden="false" data-toggle="collapse">
-    
-    <a class="d-inline docs-toc-link " href="/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/">页式存储管理</a>
-    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id722562dd19202c383f8afcb7bf5938ca" aria-expanded="false" aria-controls="id722562dd19202c383f8afcb7bf5938ca">
-    
-    <i class="fa-solid fa-angle-down" id="caret-id722562dd19202c383f8afcb7bf5938ca"></i>
-    
-    </a>
-    
-    </div>
-    
-      
-      <ul class="nav docs-sidenav collapse  show " id="id722562dd19202c383f8afcb7bf5938ca">
-      
-
-
-
-  
-    
-    
-    
-    
-      
-    
-    
-
-    
-    
-    
-    
-    
-    <div class="docs-toc-item has-child">
-    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id1ee2aecc5ae7f8bf5b18975fc4b73ac2&#34;)" href="#id1ee2aecc5ae7f8bf5b18975fc4b73ac2" aria-expanded="false" aria-controls="id1ee2aecc5ae7f8bf5b18975fc4b73ac2" aria-hidden="false" data-toggle="collapse">
-    
-    <a class="d-inline docs-toc-link " href="/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/mmap/">mmap</a>
-    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id1ee2aecc5ae7f8bf5b18975fc4b73ac2" aria-expanded="false" aria-controls="id1ee2aecc5ae7f8bf5b18975fc4b73ac2">
-    
-    <i class="fa-solid fa-angle-down" id="caret-id1ee2aecc5ae7f8bf5b18975fc4b73ac2"></i>
-    
-    </a>
-    
-    </div>
-    
-      
-      <ul class="nav docs-sidenav collapse  show " id="id1ee2aecc5ae7f8bf5b18975fc4b73ac2">
-      
-
-
-
-  <li class="child level active"><a href="/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/mmap/mmap-%E7%9A%84%E5%86%85%E6%A0%B8%E5%AE%9E%E7%8E%B0/">mmap 的内核实现</a></li>
-
-      
-        </ul>
-      
-    
-
-    
-      </div>
-    
-
-
-
-
-  
-    
-    
-    
-    
-      
-    
-    
-
-    
-    
-    
-    <div class="docs-toc-item has-child">
-    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id5a9897712f1bee4d5dc5e5a6bd5310ff&#34;)" href="#id5a9897712f1bee4d5dc5e5a6bd5310ff" aria-expanded="false" aria-controls="id5a9897712f1bee4d5dc5e5a6bd5310ff" aria-hidden="false" data-toggle="collapse">
-    
-    <a class="d-inline docs-toc-link " href="/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/%E8%AF%B7%E9%A1%B5%E5%BC%8F%E7%AE%A1%E7%90%86/">请页式管理</a>
-    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id5a9897712f1bee4d5dc5e5a6bd5310ff" aria-expanded="false" aria-controls="id5a9897712f1bee4d5dc5e5a6bd5310ff">
-    
-        <i class="fa-solid fa-angle-right" id="caret-id5a9897712f1bee4d5dc5e5a6bd5310ff"></i>
-    
-    </a>
-    
-    </div>
-    
-      
-      <ul class="nav docs-sidenav collapse  " id="id5a9897712f1bee4d5dc5e5a6bd5310ff">
-      
-
-
-
-  <li class="child level "><a href="/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/%E8%AF%B7%E9%A1%B5%E5%BC%8F%E7%AE%A1%E7%90%86/page-fault/">Page Fault</a></li>
-
-      
-        </ul>
-      
-    
-
-    
-      </div>
-    
-
-
-
-
-  <li class="child level "><a href="/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/%E9%A1%B5%E7%BB%93%E6%9E%84/">页结构</a></li>
-
-
-
-
-  
-    
-    
-    
-    
-      
-    
-    
-
-    
-    
-    
-    <div class="docs-toc-item has-child">
-    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id0588f1ad06299510cb73290278bc870d&#34;)" href="#id0588f1ad06299510cb73290278bc870d" aria-expanded="false" aria-controls="id0588f1ad06299510cb73290278bc870d" aria-hidden="false" data-toggle="collapse">
-    
-    <a class="d-inline docs-toc-link " href="/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/%E9%A2%84%E8%B0%83%E5%BC%8F%E7%AE%A1%E7%90%86/">预调式管理</a>
-    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id0588f1ad06299510cb73290278bc870d" aria-expanded="false" aria-controls="id0588f1ad06299510cb73290278bc870d">
-    
-        <i class="fa-solid fa-angle-right" id="caret-id0588f1ad06299510cb73290278bc870d"></i>
-    
-    </a>
-    
-    </div>
-    
-      
-      <ul class="nav docs-sidenav collapse  " id="id0588f1ad06299510cb73290278bc870d">
-      
-
-
-
-  <li class="child level "><a href="/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/%E9%A2%84%E8%B0%83%E5%BC%8F%E7%AE%A1%E7%90%86/%E9%A1%B5%E7%BC%93%E5%AD%98/">页缓存</a></li>
-
-
-
-
-  <li class="child level "><a href="/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/%E9%A2%84%E8%B0%83%E5%BC%8F%E7%AE%A1%E7%90%86/%E9%A1%B5%E9%9D%A2%E7%BD%AE%E6%8D%A2%E7%AE%97%E6%B3%95/">页面置换算法</a></li>
-
-      
-        </ul>
-      
-    
-
-    
-      </div>
-    
-
-      
-        </ul>
-      
-    
-
-    
-      </div>
-    
-
-    
-  
-</nav>
-
-    </div>
-
-    
-    
-    <div class="d-none d-xl-block col-xl-2 docs-toc">
-      
-     
-      <ul class="nav toc-top">
-        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
-      </ul>
-     
-
-      <nav id="TableOfContents"></nav>
-
-      
-<div class="subscribe-module col-24 mt-1">
-    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
-</div>
-
-
-
-    </div>
-    
-
-    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
-
-      <article class="article">
-
-          
-
-          <h1>mmap 的内核实现</h1>
-
-          <div class="article-style">
-            <h1 id="mmap-的内核实现">mmap 的内核实现</h1>
-<h1 id="延时分配">延时分配</h1>
-<p>参考如下简单的 mmap 使用代码：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/mman.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
-</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="o">*</span><span class="n">p</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="nf">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="n">p</span> <span class="o">=</span> <span class="nf">mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span> <span class="n">MAP_PRIVATE</span> <span class="o">|</span> <span class="n">MAP_ANONYMOUS</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">p</span> <span class="o">==</span> <span class="n">MAP_FAILED</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">perror</span><span class="p">(</span><span class="s">&#34;mmap&#34;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="nf">printf</span><span class="p">(</span><span class="s">&#34;%p</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">p</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="nf">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>执行该程序，输出 mmap 方法返回的内存地址，同时使用 pmap 命令输出该程序执行 mmap 之前以及之后的内存使用情况。mmap 方法返回的内存地址：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">$ ./a.out
-</span></span><span class="line"><span class="cl">0x7f521d667000
-</span></span></code></pre></div><p>pmap 命令的两次输出结果：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">$ pmap -x <span class="k">$(</span>pgrep a.out<span class="k">)</span>
-</span></span><span class="line"><span class="cl">32408:   ./a.out
-</span></span><span class="line"><span class="cl">Address           Kbytes     RSS   Dirty Mode  Mapping
-</span></span><span class="line"><span class="cl">0000555bb0511000       <span class="m">4</span>       <span class="m">4</span>       <span class="m">0</span> r---- a.out
-</span></span><span class="line"><span class="cl">0000555bb0512000       <span class="m">4</span>       <span class="m">4</span>       <span class="m">0</span> r-x-- a.out
-</span></span><span class="line"><span class="cl">0000555bb0513000       <span class="m">4</span>       <span class="m">0</span>       <span class="m">0</span> r---- a.out
-</span></span><span class="line"><span class="cl">0000555bb0514000       <span class="m">4</span>       <span class="m">4</span>       <span class="m">4</span> r---- a.out
-</span></span><span class="line"><span class="cl">0000555bb0515000       <span class="m">4</span>       <span class="m">4</span>       <span class="m">4</span> rw--- a.out
-</span></span><span class="line"><span class="cl">00007f521d45e000     <span class="m">148</span>     <span class="m">140</span>       <span class="m">0</span> r---- libc-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d483000    <span class="m">1320</span>     <span class="m">628</span>       <span class="m">0</span> r-x-- libc-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d5cd000     <span class="m">292</span>      <span class="m">64</span>       <span class="m">0</span> r---- libc-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d616000       <span class="m">4</span>       <span class="m">0</span>       <span class="m">0</span> ----- libc-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d617000      <span class="m">12</span>      <span class="m">12</span>      <span class="m">12</span> r---- libc-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d61a000      <span class="m">12</span>      <span class="m">12</span>      <span class="m">12</span> rw--- libc-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d61d000      <span class="m">24</span>      <span class="m">16</span>      <span class="m">16</span> rw---   <span class="o">[</span> anon <span class="o">]</span>
-</span></span><span class="line"><span class="cl">00007f521d63e000       <span class="m">8</span>       <span class="m">8</span>       <span class="m">0</span> r---- ld-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d640000     <span class="m">124</span>     <span class="m">124</span>       <span class="m">0</span> r-x-- ld-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d65f000      <span class="m">32</span>      <span class="m">32</span>       <span class="m">0</span> r---- ld-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d668000       <span class="m">4</span>       <span class="m">4</span>       <span class="m">4</span> r---- ld-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d669000       <span class="m">4</span>       <span class="m">4</span>       <span class="m">4</span> rw--- ld-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d66a000       <span class="m">4</span>       <span class="m">4</span>       <span class="m">4</span> rw---   <span class="o">[</span> anon <span class="o">]</span>
-</span></span><span class="line"><span class="cl">00007fffd1e55000     <span class="m">132</span>      <span class="m">12</span>      <span class="m">12</span> rw---   <span class="o">[</span> stack <span class="o">]</span>
-</span></span><span class="line"><span class="cl">00007fffd1f04000      <span class="m">12</span>       <span class="m">0</span>       <span class="m">0</span> r----   <span class="o">[</span> anon <span class="o">]</span>
-</span></span><span class="line"><span class="cl">00007fffd1f07000       <span class="m">4</span>       <span class="m">4</span>       <span class="m">0</span> r-x--   <span class="o">[</span> anon <span class="o">]</span>
-</span></span><span class="line"><span class="cl">---------------- ------- ------- -------
-</span></span><span class="line"><span class="cl">total kB            <span class="m">2156</span>    <span class="m">1080</span>      <span class="m">72</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">$ pmap -x <span class="k">$(</span>pgrep a.out<span class="k">)</span>
-</span></span><span class="line"><span class="cl">32408:   ./a.out
-</span></span><span class="line"><span class="cl">Address           Kbytes     RSS   Dirty Mode  Mapping
-</span></span><span class="line"><span class="cl">0000555bb0511000       <span class="m">4</span>       <span class="m">4</span>       <span class="m">0</span> r---- a.out
-</span></span><span class="line"><span class="cl">0000555bb0512000       <span class="m">4</span>       <span class="m">4</span>       <span class="m">0</span> r-x-- a.out
-</span></span><span class="line"><span class="cl">0000555bb0513000       <span class="m">4</span>       <span class="m">4</span>       <span class="m">0</span> r---- a.out
-</span></span><span class="line"><span class="cl">0000555bb0514000       <span class="m">4</span>       <span class="m">4</span>       <span class="m">4</span> r---- a.out
-</span></span><span class="line"><span class="cl">0000555bb0515000       <span class="m">4</span>       <span class="m">4</span>       <span class="m">4</span> rw--- a.out
-</span></span><span class="line"><span class="cl">0000555bb1b7a000     <span class="m">132</span>       <span class="m">4</span>       <span class="m">4</span> rw---   <span class="o">[</span> anon <span class="o">]</span>
-</span></span><span class="line"><span class="cl">00007f521d45e000     <span class="m">148</span>     <span class="m">140</span>       <span class="m">0</span> r---- libc-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d483000    <span class="m">1320</span>     <span class="m">948</span>       <span class="m">0</span> r-x-- libc-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d5cd000     <span class="m">292</span>     <span class="m">128</span>       <span class="m">0</span> r---- libc-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d616000       <span class="m">4</span>       <span class="m">0</span>       <span class="m">0</span> ----- libc-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d617000      <span class="m">12</span>      <span class="m">12</span>      <span class="m">12</span> r---- libc-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d61a000      <span class="m">12</span>      <span class="m">12</span>      <span class="m">12</span> rw--- libc-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d61d000      <span class="m">24</span>      <span class="m">16</span>      <span class="m">16</span> rw---   <span class="o">[</span> anon <span class="o">]</span>
-</span></span><span class="line"><span class="cl">00007f521d63e000       <span class="m">8</span>       <span class="m">8</span>       <span class="m">0</span> r---- ld-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d640000     <span class="m">124</span>     <span class="m">124</span>       <span class="m">0</span> r-x-- ld-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d65f000      <span class="m">32</span>      <span class="m">32</span>       <span class="m">0</span> r---- ld-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d667000       <span class="m">4</span>       <span class="m">0</span>       <span class="m">0</span> rw---   <span class="o">[</span> anon <span class="o">]</span>
-</span></span><span class="line"><span class="cl">00007f521d668000       <span class="m">4</span>       <span class="m">4</span>       <span class="m">4</span> r---- ld-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d669000       <span class="m">4</span>       <span class="m">4</span>       <span class="m">4</span> rw--- ld-2.29.so
-</span></span><span class="line"><span class="cl">00007f521d66a000       <span class="m">4</span>       <span class="m">4</span>       <span class="m">4</span> rw---   <span class="o">[</span> anon <span class="o">]</span>
-</span></span><span class="line"><span class="cl">00007fffd1e55000     <span class="m">132</span>      <span class="m">12</span>      <span class="m">12</span> rw---   <span class="o">[</span> stack <span class="o">]</span>
-</span></span><span class="line"><span class="cl">00007fffd1f04000      <span class="m">12</span>       <span class="m">0</span>       <span class="m">0</span> r----   <span class="o">[</span> anon <span class="o">]</span>
-</span></span><span class="line"><span class="cl">00007fffd1f07000       <span class="m">4</span>       <span class="m">4</span>       <span class="m">0</span> r-x--   <span class="o">[</span> anon <span class="o">]</span>
-</span></span><span class="line"><span class="cl">---------------- ------- ------- -------
-</span></span><span class="line"><span class="cl">total kB            <span class="m">2292</span>    <span class="m">1472</span>      <span class="m">76</span>
-</span></span></code></pre></div><p>在 pmap 命令的前后两次输出中，我们可以看到，第二次 pmap 输出多了一个 [anon] 内存段（第 47 行），而该内存段的起始地址正好是上面程序输出的地址。也就是说，该内存段就是操作系统为 mmap 系统调用新分配出来的区域。由 pmap 的输出可以看到，该内存段的大小是 4kb，实际物理内存占用（rss）是 0。</p>
-<p>实际物理内存占用为什么是 0 呢？在我们向操作系统申请内存时，比如用 malloc 或 mmap 等方式，操作系统只是标记了我们拥有一段新的内存区域，如上 pmap 输出，而并没有实际分配给我们物理内存。当我们要使用该段内存时，比如读或写，会先触发 page fault，操作系统内部的 page fault handler 会检查触发 page fault 的地址是否是我们拥有的合法地址，如果是，则在此时真正为我们分配物理内存。</p>
-<h1 id="按页分配">按页分配</h1>
-<p>再看下上面的源码，我们指定的内存长度明明是 1 字节，为什么 pmap 的显示是 4kb 呢？这个在下面的源码分析中会看到原因。看下 mmap 系统调用对应的内核源码：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="c1">// arch/x86/kernel/sys_x86_64.c
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nf">SYSCALL_DEFINE6</span><span class="p">(</span><span class="n">mmap</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span><span class="p">,</span> <span class="n">len</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="kt">unsigned</span> <span class="kt">long</span><span class="p">,</span> <span class="n">prot</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span><span class="p">,</span> <span class="n">flags</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="kt">unsigned</span> <span class="kt">long</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span><span class="p">,</span> <span class="n">off</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="kt">long</span> <span class="n">error</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">error</span> <span class="o">=</span> <span class="o">-</span><span class="n">EINVAL</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">off</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">PAGE_MASK</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="k">goto</span> <span class="n">out</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">error</span> <span class="o">=</span> <span class="nf">ksys_mmap_pgoff</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">len</span><span class="p">,</span> <span class="n">prot</span><span class="p">,</span> <span class="n">flags</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="n">off</span> <span class="o">&gt;&gt;</span> <span class="n">PAGE_SHIFT</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl"><span class="nl">out</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">error</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>该方法调用了 ksys_mmap_pgoff 方法：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="c1">// mm/mmap.c
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="nf">ksys_mmap_pgoff</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">addr</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">len</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                              <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">prot</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">flags</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                              <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">pgoff</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="k">struct</span> <span class="n">file</span> <span class="o">*</span><span class="n">file</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">retval</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">MAP_ANONYMOUS</span><span class="p">))</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="p">...</span>
-</span></span><span class="line"><span class="cl">                <span class="n">file</span> <span class="o">=</span> <span class="nf">fget</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">                <span class="p">...</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
-</span></span><span class="line"><span class="cl">        <span class="p">...</span>
-</span></span><span class="line"><span class="cl">        <span class="n">retval</span> <span class="o">=</span> <span class="nf">vm_mmap_pgoff</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">len</span><span class="p">,</span> <span class="n">prot</span><span class="p">,</span> <span class="n">flags</span><span class="p">,</span> <span class="n">pgoff</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">        <span class="p">...</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">retval</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>该方法又调用了 vm_mmap_pgoff：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="c1">// mm/util.c
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">unsigned</span>  <span class="nf">longvm_mmap_pgoff</span><span class="p">(</span><span class="k">struct</span> <span class="n">file</span> <span class="o">*</span><span class="n">file</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">addr</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">len</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">prot</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">flag</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">pgoff</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">ret</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="k">struct</span> <span class="n">mm_struct</span> <span class="o">*</span><span class="n">mm</span> <span class="o">=</span> <span class="n">current</span><span class="o">-&gt;</span><span class="n">mm</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="p">...</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">ret</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="p">...</span>
-</span></span><span class="line"><span class="cl">                <span class="n">ret</span> <span class="o">=</span> <span class="nf">do_mmap_pgoff</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">len</span><span class="p">,</span> <span class="n">prot</span><span class="p">,</span> <span class="n">flag</span><span class="p">,</span> <span class="n">pgoff</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                                    <span class="o">&amp;</span><span class="n">populate</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">uf</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">                <span class="p">...</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">ret</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>该方法又调用了 do_mmap_pgoff：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="c1">// include/linux/mm.h
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">static</span> <span class="kr">inline</span> <span class="kt">unsigned</span> <span class="kt">long</span>
-</span></span><span class="line"><span class="cl"><span class="nf">do_mmap_pgoff</span><span class="p">(</span><span class="k">struct</span> <span class="n">file</span> <span class="o">*</span><span class="n">file</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">addr</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">len</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">prot</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">flags</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">pgoff</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="o">*</span><span class="n">populate</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="k">struct</span> <span class="n">list_head</span> <span class="o">*</span><span class="n">uf</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nf">do_mmap</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">len</span><span class="p">,</span> <span class="n">prot</span><span class="p">,</span> <span class="n">flags</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">pgoff</span><span class="p">,</span> <span class="n">populate</span><span class="p">,</span> <span class="n">uf</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>该方法又调用了 do_mmap：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="c1">// mm/mmap.c
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="nf">do_mmap</span><span class="p">(</span><span class="k">struct</span> <span class="n">file</span> <span class="o">*</span><span class="n">file</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">addr</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                        <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">len</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">prot</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                        <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">flags</span><span class="p">,</span> <span class="kt">vm_flags_t</span> <span class="n">vm_flags</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                        <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">pgoff</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="o">*</span><span class="n">populate</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                        <span class="k">struct</span> <span class="n">list_head</span> <span class="o">*</span><span class="n">uf</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="k">struct</span> <span class="n">mm_struct</span> <span class="o">*</span><span class="n">mm</span> <span class="o">=</span> <span class="n">current</span><span class="o">-&gt;</span><span class="n">mm</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="p">...</span>
-</span></span><span class="line"><span class="cl">        <span class="n">len</span> <span class="o">=</span> <span class="nf">PAGE_ALIGN</span><span class="p">(</span><span class="n">len</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">        <span class="p">...</span>
-</span></span><span class="line"><span class="cl">        <span class="n">addr</span> <span class="o">=</span> <span class="nf">get_unmapped_area</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">len</span><span class="p">,</span> <span class="n">pgoff</span><span class="p">,</span> <span class="n">flags</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">        <span class="p">...</span>
-</span></span><span class="line"><span class="cl">        <span class="n">addr</span> <span class="o">=</span> <span class="nf">mmap_region</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">len</span><span class="p">,</span> <span class="n">vm_flags</span><span class="p">,</span> <span class="n">pgoff</span><span class="p">,</span> <span class="n">uf</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">        <span class="p">...</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">addr</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>该方法先用宏 PAGE_ALIGN，使 len 大小 page 对齐，在最开始的源码中，我们指定的 len 大小为 1，page 对其后为 4096，即 4kb，这也是为什么 pmap 输出的内存段大小为 4kb。其实，操作系统为进程分配的内存段都是以 page 为单位的。</p>
-<p>之后，该方法又调用了 get_unmapped_area 来获取 mmap 的内存段的起始地址，这个方法就不详细看了。最后，该方法又调用了 mmap_region，继续执行 mmap 操作。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="c1">// mm/mmap.c
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="nf">mmap_region</span><span class="p">(</span><span class="k">struct</span> <span class="n">file</span> <span class="o">*</span><span class="n">file</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">addr</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">len</span><span class="p">,</span> <span class="kt">vm_flags_t</span> <span class="n">vm_flags</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">pgoff</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="k">struct</span> <span class="n">list_head</span> <span class="o">*</span><span class="n">uf</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="k">struct</span> <span class="n">mm_struct</span> <span class="o">*</span><span class="n">mm</span> <span class="o">=</span> <span class="n">current</span><span class="o">-&gt;</span><span class="n">mm</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="k">struct</span> <span class="n">vm_area_struct</span> <span class="o">*</span><span class="n">vma</span><span class="p">,</span> <span class="o">*</span><span class="n">prev</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="p">...</span>
-</span></span><span class="line"><span class="cl">        <span class="n">vma</span> <span class="o">=</span> <span class="nf">vm_area_alloc</span><span class="p">(</span><span class="n">mm</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">        <span class="p">...</span>
-</span></span><span class="line"><span class="cl">        <span class="n">vma</span><span class="o">-&gt;</span><span class="n">vm_start</span> <span class="o">=</span> <span class="n">addr</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">vma</span><span class="o">-&gt;</span><span class="n">vm_end</span> <span class="o">=</span> <span class="n">addr</span> <span class="o">+</span> <span class="n">len</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">vma</span><span class="o">-&gt;</span><span class="n">vm_flags</span> <span class="o">=</span> <span class="n">vm_flags</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">vma</span><span class="o">-&gt;</span><span class="n">vm_page_prot</span> <span class="o">=</span> <span class="nf">vm_get_page_prot</span><span class="p">(</span><span class="n">vm_flags</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">        <span class="n">vma</span><span class="o">-&gt;</span><span class="n">vm_pgoff</span> <span class="o">=</span> <span class="n">pgoff</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="p">...</span>
-</span></span><span class="line"><span class="cl">                <span class="n">vma</span><span class="o">-&gt;</span><span class="n">vm_file</span> <span class="o">=</span> <span class="nf">get_file</span><span class="p">(</span><span class="n">file</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">                <span class="n">error</span> <span class="o">=</span> <span class="nf">call_mmap</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">vma</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">                <span class="p">...</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">vm_flags</span> <span class="o">&amp;</span> <span class="n">VM_SHARED</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="p">...</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="nf">vma_set_anonymous</span><span class="p">(</span><span class="n">vma</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="nf">vma_link</span><span class="p">(</span><span class="n">mm</span><span class="p">,</span> <span class="n">vma</span><span class="p">,</span> <span class="n">prev</span><span class="p">,</span> <span class="n">rb_link</span><span class="p">,</span> <span class="n">rb_parent</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">        <span class="p">...</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">addr</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="p">...</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>该方法先调用 vm_area_alloc，分配一个类型为 struct vm_area_struct 的实例，并赋值给 vma，然后设置 vma 的起始地址、结束地址等信息。这个 vma 里包含的内容，就是上面 pmap 命令输出的内存段。之后，如果我们是想 mmap 一个 file，则调用 call_mmap：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="c1">// include/linux/fs.h
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">static</span> <span class="kr">inline</span> <span class="kt">int</span> <span class="nf">call_mmap</span><span class="p">(</span><span class="k">struct</span> <span class="n">file</span> <span class="o">*</span><span class="n">file</span><span class="p">,</span> <span class="k">struct</span> <span class="n">vm_area_struct</span> <span class="o">*</span><span class="n">vma</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">file</span><span class="o">-&gt;</span><span class="n">f_op</span><span class="o">-&gt;</span><span class="nf">mmap</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">vma</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>该方法又调用了 file-&gt;f_op-&gt;mmap 指针指向的方法，以 ext4 文件系统为例，该方法为 ext4_file_mmap：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="c1">// fs/ext4/file.c
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">static</span> <span class="kt">int</span> <span class="nf">ext4_file_mmap</span><span class="p">(</span><span class="k">struct</span> <span class="n">file</span> <span class="o">*</span><span class="n">file</span><span class="p">,</span> <span class="k">struct</span> <span class="n">vm_area_struct</span> <span class="o">*</span><span class="n">vma</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="p">...</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="nf">IS_DAX</span><span class="p">(</span><span class="nf">file_inode</span><span class="p">(</span><span class="n">file</span><span class="p">)))</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="p">...</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="n">vma</span><span class="o">-&gt;</span><span class="n">vm_ops</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">ext4_file_vm_ops</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>该方法的作用是初始化 vma 的 vm_ops 字段，使其值为 ext4_file_vm_ops。再回到上面的 mmap_region 方法，如果我们 mmap 的是一块 anonymous 的内存区域，则会调用 vma_set_anonymous 方法：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="c1">// include/linux/mm.h
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">static</span> <span class="kr">inline</span> <span class="kt">void</span> <span class="nf">vma_set_anonymous</span><span class="p">(</span><span class="k">struct</span> <span class="n">vm_area_struct</span> <span class="o">*</span><span class="n">vma</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="n">vma</span><span class="o">-&gt;</span><span class="n">vm_ops</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>该方法将 vma-&gt;vm_ops 字段设置为 null，用此来表示，该 vma 代表的内存段为 anonymous 模式。再之后，mmap_region 方法会调用 vma_link 方法将新创建的 vma 链接到 struct mm_struct 的 mmap 字段和 mm_rb 字段，标识该进程拥有 vma 表示的这段内存区域。最后，mmap_region 方法返回该内存段的起始地址给用户。</p>
-
-          </div>
-
-          
-
-
-
-          
-          
-          <div class="article-widget">
-            
-<div class="container-xl row post-nav">
-  
-  
-</div>
-
-          </div>
-          
-
-        <div class="body-footer">
-          <p>最近更新于 0001-01-01</p>
-
-          
-
-
-
-          
-
-
-  
-  
-  
-
-  
-
-  
-  <section id="comments" class="mb-3 pt-0">
-    
-<div id="disqus_thread"></div>
-<script>
-  var disqus_config = function () {
-    
-    
-    
-  };
-  (function() {
-    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
-      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
-      return;
-    }
-    var d = document, s = d.createElement('script'); 
-    s.async = true;
-    
-    s.src = "https://ngte-website.oss-accelerate.aliyuncs.com/disqus/embed.js";
-    s.setAttribute('data-timestamp', +new Date());
-    (d.head || d.body).appendChild(s);
-  })();
-</script>
-<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
-
-
-  </section>
-  
-
-
-
-          
-
-
-        </div>
-
-      </article>
-
-      <footer class="site-footer">
-
-  
-
-
-
-  
-
-  
-  <div class="copyright py-4 bg-footer">
-      <div class="row justify-content-center">
-        <div class="text-center footer-color">
-          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
-        </div>
-    </div>
-  </div>
-
-</footer>
-
-
-    </main>
-  </div>
-</div>
-<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
-<script>
-  const heti = new Heti('.article');
-  heti.autoSpacing();
-</script>
-<script type="text/javascript">
-  window.$crisp = [];
-  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
-  (function () {
-    setTimeout(function() {
-      d = document;
-      s = d.createElement("script");
-      s.src = "https://client.crisp.chat/l.js";
-      s.async = 1;
-      d.getElementsByTagName("head")[0].appendChild(s);
-    }, 2500);
-  })();
-</script>
-  </div>
-
-  <div class="page-footer">
-    
-    
-  </div>
-
-      
-
-    
-    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
-
-    
-    
-    
-      
-
-      
-      
-
-      
-
-      
-        
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
-        
-        
-      
-
-    
-
-    
-    
-    
-
-    
-    
-    
-      
-      <script id="search-hit-algolia-template" type="text/html">
-        <div class="search-hit">
-          <div class="search-hit-content">
-            <div class="search-hit-name">
-              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
-            </div>
-            <div class="article-metadata search-hit-type">{{type}}</div>
-            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
-          </div>
-        </div>
-      </script>
-      
-        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
-      
-      
-    
-
-    
-    
-
-    
-    
-    
-    
-      
-      <script id="dsq-count-scr" src="https://ngte-website.oss-accelerate.aliyuncs.com/disqus/count.js" async></script>
-    
-
-    
-    
-      
-      
-      
-      
-      
-      
-      
-    
-
-    
-    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
-    
-
-    
-    
-    
-    <script id="page-data" type="application/json">{"use_headroom":false}</script>
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
-
-    
-    
-    
-    
-    
-    
-    <script>
-
-var mybutton = document.getElementById("backTopBtn");
-
-
-window.onscroll = function() {scrollFunction()};
-
-function scrollFunction() {
-  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
-    mybutton.style.display = "block";
-  } else {
-    mybutton.style.display = "none";
-  }
-}
-
-
-function topFunction() {
-  document.body.scrollTop = 0;
-  document.documentElement.scrollTop = 0;
-}
-</script>
-
-
-    
-
-    
-    
-    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
-    <script>
-      anchors.add();
-    </script>
-    
-
-    
-    <script>
-
-
-
-(function() {
-  'use strict';
-
-  if(!document.queryCommandSupported('copy')) {
-    return;
-  }
-
-  function flashCopyMessage(el, msg) {
-    el.className = "highlight-copy-btn";
-    el.textContent = msg;
-    setTimeout(function() {
-      el.textContent = "";
-      el.className = "highlight-copy-btn fa fa-copy";
-    }, 1000);
-  }
-
-  function selectText(node) {
-    var selection = window.getSelection();
-    var range = document.createRange();
-    range.selectNodeContents(node);
-    selection.removeAllRanges();
-    selection.addRange(range);
-    return selection;
-  }
-
-  function addCopyButton(containerEl) {
-    var copyBtn = document.createElement("button");
-    copyBtn.className = "highlight-copy-btn fa fa-copy";
-    copyBtn.textContent = "";
-
-    var codeEl = containerEl.firstElementChild;
-    copyBtn.addEventListener('click', function() {
-      try {
-        var selection = selectText(codeEl);
-        document.execCommand('copy');
-        selection.removeAllRanges();
-        
-        flashCopyMessage(copyBtn, '已复制')
-        
-      } catch(e) {
-        console && console.log(e);
-        flashCopyMessage(copyBtn, 'Failed :\'(')
-      }
-    });
-
-    containerEl.appendChild(copyBtn);
-  }
-
-  
-  var highlightBlocks = document.getElementsByClassName('highlight');
-  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
-})();
-</script>
-
-    
-
-
-</body>
-</html>
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="mmap 的内核实现 延时分配 参考如下简单的 mmap 使用代码： #include <stdio.h> #include <sys/mman.h> #include <unistd.h> int main(int argc, char *argv[]) { void *p; sleep(5); p = mmap(NULL, 1, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0); if (p == MAP_FAILED) { perror(&#34;mmap&#34;); return -1; } printf(&#34;%p\n&#34;, p); sleep(5); return 0; } 执行该程序，输出 mmap 方法返回的内存地址，同时使用 pmap 命令输出该程序执行 mmap 之"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/mmap/mmap-%E7%9A%84%E5%86%85%E6%A0%B8%E5%AE%9E%E7%8E%B0/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.63df6ae9fc2b4cc71b83f1774d780209.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/mmap/mmap-%E7%9A%84%E5%86%85%E6%A0%B8%E5%AE%9E%E7%8E%B0/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/mmap/mmap-%E7%9A%84%E5%86%85%E6%A0%B8%E5%AE%9E%E7%8E%B0/"><meta property="og:title" content="mmap 的内核实现 | Next-gen Tech Edu"><meta property="og:description" content="mmap 的内核实现 延时分配 参考如下简单的 mmap 使用代码： #include <stdio.h> #include <sys/mman.h> #include <unistd.h> int main(int argc, char *argv[]) { void *p; sleep(5); p = mmap(NULL, 1, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0); if (p == MAP_FAILED) { perror(&#34;mmap&#34;); return -1; } printf(&#34;%p\n&#34;, p); sleep(5); return 0; } 执行该程序，输出 mmap 方法返回的内存地址，同时使用 pmap 命令输出该程序执行 mmap 之"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>mmap 的内核实现 | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=357a49756331aaf641a609985147e73b><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
+<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
+<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
+<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
+<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
+<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">mmap</span>
+<span><i class="fas fa-chevron-down"></i></span></div></button>
+<button class="form-control sidebar-search js-search d-none d-md-flex">
+<i class="fas fa-search pr-2"></i>
+<span class=sidebar-search-text>搜索...</span>
+<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
+Back</a>
+<span>|</span>
+<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
+Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id722562dd19202c383f8afcb7bf5938ca")' href=#id722562dd19202c383f8afcb7bf5938ca aria-expanded=false aria-controls=id722562dd19202c383f8afcb7bf5938ca aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/>页式存储管理</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id722562dd19202c383f8afcb7bf5938ca aria-expanded=false aria-controls=id722562dd19202c383f8afcb7bf5938ca><i class="fa-solid fa-angle-down" id=caret-id722562dd19202c383f8afcb7bf5938ca></i></a></div><ul class="nav docs-sidenav collapse show" id=id722562dd19202c383f8afcb7bf5938ca><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id1ee2aecc5ae7f8bf5b18975fc4b73ac2")' href=#id1ee2aecc5ae7f8bf5b18975fc4b73ac2 aria-expanded=false aria-controls=id1ee2aecc5ae7f8bf5b18975fc4b73ac2 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/mmap/>mmap</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id1ee2aecc5ae7f8bf5b18975fc4b73ac2 aria-expanded=false aria-controls=id1ee2aecc5ae7f8bf5b18975fc4b73ac2><i class="fa-solid fa-angle-down" id=caret-id1ee2aecc5ae7f8bf5b18975fc4b73ac2></i></a></div><ul class="nav docs-sidenav collapse show" id=id1ee2aecc5ae7f8bf5b18975fc4b73ac2><li class="child level active"><a href=/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/mmap/mmap-%E7%9A%84%E5%86%85%E6%A0%B8%E5%AE%9E%E7%8E%B0/>mmap 的内核实现</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id5a9897712f1bee4d5dc5e5a6bd5310ff")' href=#id5a9897712f1bee4d5dc5e5a6bd5310ff aria-expanded=false aria-controls=id5a9897712f1bee4d5dc5e5a6bd5310ff aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/%E8%AF%B7%E9%A1%B5%E5%BC%8F%E7%AE%A1%E7%90%86/>请页式管理</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id5a9897712f1bee4d5dc5e5a6bd5310ff aria-expanded=false aria-controls=id5a9897712f1bee4d5dc5e5a6bd5310ff><i class="fa-solid fa-angle-right" id=caret-id5a9897712f1bee4d5dc5e5a6bd5310ff></i></a></div><ul class="nav docs-sidenav collapse" id=id5a9897712f1bee4d5dc5e5a6bd5310ff><li class="child level"><a href=/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/%E8%AF%B7%E9%A1%B5%E5%BC%8F%E7%AE%A1%E7%90%86/page-fault/>Page Fault</a></li></ul></div><li class="child level"><a href=/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/%E9%A1%B5%E7%BB%93%E6%9E%84/>页结构</a></li><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id0588f1ad06299510cb73290278bc870d")' href=#id0588f1ad06299510cb73290278bc870d aria-expanded=false aria-controls=id0588f1ad06299510cb73290278bc870d aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/%E9%A2%84%E8%B0%83%E5%BC%8F%E7%AE%A1%E7%90%86/>预调式管理</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id0588f1ad06299510cb73290278bc870d aria-expanded=false aria-controls=id0588f1ad06299510cb73290278bc870d><i class="fa-solid fa-angle-right" id=caret-id0588f1ad06299510cb73290278bc870d></i></a></div><ul class="nav docs-sidenav collapse" id=id0588f1ad06299510cb73290278bc870d><li class="child level"><a href=/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/%E9%A2%84%E8%B0%83%E5%BC%8F%E7%AE%A1%E7%90%86/%E9%A1%B5%E7%BC%93%E5%AD%98/>页缓存</a></li><li class="child level"><a href=/books/linux-series/%E5%AD%98%E5%82%A8/%E9%A1%B5%E5%BC%8F%E5%AD%98%E5%82%A8%E7%AE%A1%E7%90%86/%E9%A2%84%E8%B0%83%E5%BC%8F%E7%AE%A1%E7%90%86/%E9%A1%B5%E9%9D%A2%E7%BD%AE%E6%8D%A2%E7%AE%97%E6%B3%95/>页面置换算法</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>mmap 的内核实现</h1><div class=article-style><h1 id=mmap-的内核实现>mmap 的内核实现</h1><h1 id=延时分配>延时分配</h1><p>参考如下简单的 mmap 使用代码：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-c data-lang=c><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;stdio.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;sys/mman.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;unistd.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=kt>int</span> <span class=nf>main</span><span class=p>(</span><span class=kt>int</span> <span class=n>argc</span><span class=p>,</span> <span class=kt>char</span> <span class=o>*</span><span class=n>argv</span><span class=p>[])</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kt>void</span> <span class=o>*</span><span class=n>p</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>  <span class=nf>sleep</span><span class=p>(</span><span class=mi>5</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=n>p</span> <span class=o>=</span> <span class=nf>mmap</span><span class=p>(</span><span class=nb>NULL</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=n>PROT_READ</span> <span class=o>|</span> <span class=n>PROT_WRITE</span><span class=p>,</span> <span class=n>MAP_PRIVATE</span> <span class=o>|</span> <span class=n>MAP_ANONYMOUS</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=n>p</span> <span class=o>==</span> <span class=n>MAP_FAILED</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nf>perror</span><span class=p>(</span><span class=s>&#34;mmap&#34;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=o>-</span><span class=mi>1</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=nf>printf</span><span class=p>(</span><span class=s>&#34;%p</span><span class=se>\n</span><span class=s>&#34;</span><span class=p>,</span> <span class=n>p</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=nf>sleep</span><span class=p>(</span><span class=mi>5</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=k>return</span> <span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>执行该程序，输出 mmap 方法返回的内存地址，同时使用 pmap 命令输出该程序执行 mmap 之前以及之后的内存使用情况。mmap 方法返回的内存地址：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>$ ./a.out
+</span></span><span class=line><span class=cl>0x7f521d667000
+</span></span></code></pre></div><p>pmap 命令的两次输出结果：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>$ pmap -x <span class=k>$(</span>pgrep a.out<span class=k>)</span>
+</span></span><span class=line><span class=cl>32408:   ./a.out
+</span></span><span class=line><span class=cl>Address           Kbytes     RSS   Dirty Mode  Mapping
+</span></span><span class=line><span class=cl>0000555bb0511000       <span class=m>4</span>       <span class=m>4</span>       <span class=m>0</span> r---- a.out
+</span></span><span class=line><span class=cl>0000555bb0512000       <span class=m>4</span>       <span class=m>4</span>       <span class=m>0</span> r-x-- a.out
+</span></span><span class=line><span class=cl>0000555bb0513000       <span class=m>4</span>       <span class=m>0</span>       <span class=m>0</span> r---- a.out
+</span></span><span class=line><span class=cl>0000555bb0514000       <span class=m>4</span>       <span class=m>4</span>       <span class=m>4</span> r---- a.out
+</span></span><span class=line><span class=cl>0000555bb0515000       <span class=m>4</span>       <span class=m>4</span>       <span class=m>4</span> rw--- a.out
+</span></span><span class=line><span class=cl>00007f521d45e000     <span class=m>148</span>     <span class=m>140</span>       <span class=m>0</span> r---- libc-2.29.so
+</span></span><span class=line><span class=cl>00007f521d483000    <span class=m>1320</span>     <span class=m>628</span>       <span class=m>0</span> r-x-- libc-2.29.so
+</span></span><span class=line><span class=cl>00007f521d5cd000     <span class=m>292</span>      <span class=m>64</span>       <span class=m>0</span> r---- libc-2.29.so
+</span></span><span class=line><span class=cl>00007f521d616000       <span class=m>4</span>       <span class=m>0</span>       <span class=m>0</span> ----- libc-2.29.so
+</span></span><span class=line><span class=cl>00007f521d617000      <span class=m>12</span>      <span class=m>12</span>      <span class=m>12</span> r---- libc-2.29.so
+</span></span><span class=line><span class=cl>00007f521d61a000      <span class=m>12</span>      <span class=m>12</span>      <span class=m>12</span> rw--- libc-2.29.so
+</span></span><span class=line><span class=cl>00007f521d61d000      <span class=m>24</span>      <span class=m>16</span>      <span class=m>16</span> rw---   <span class=o>[</span> anon <span class=o>]</span>
+</span></span><span class=line><span class=cl>00007f521d63e000       <span class=m>8</span>       <span class=m>8</span>       <span class=m>0</span> r---- ld-2.29.so
+</span></span><span class=line><span class=cl>00007f521d640000     <span class=m>124</span>     <span class=m>124</span>       <span class=m>0</span> r-x-- ld-2.29.so
+</span></span><span class=line><span class=cl>00007f521d65f000      <span class=m>32</span>      <span class=m>32</span>       <span class=m>0</span> r---- ld-2.29.so
+</span></span><span class=line><span class=cl>00007f521d668000       <span class=m>4</span>       <span class=m>4</span>       <span class=m>4</span> r---- ld-2.29.so
+</span></span><span class=line><span class=cl>00007f521d669000       <span class=m>4</span>       <span class=m>4</span>       <span class=m>4</span> rw--- ld-2.29.so
+</span></span><span class=line><span class=cl>00007f521d66a000       <span class=m>4</span>       <span class=m>4</span>       <span class=m>4</span> rw---   <span class=o>[</span> anon <span class=o>]</span>
+</span></span><span class=line><span class=cl>00007fffd1e55000     <span class=m>132</span>      <span class=m>12</span>      <span class=m>12</span> rw---   <span class=o>[</span> stack <span class=o>]</span>
+</span></span><span class=line><span class=cl>00007fffd1f04000      <span class=m>12</span>       <span class=m>0</span>       <span class=m>0</span> r----   <span class=o>[</span> anon <span class=o>]</span>
+</span></span><span class=line><span class=cl>00007fffd1f07000       <span class=m>4</span>       <span class=m>4</span>       <span class=m>0</span> r-x--   <span class=o>[</span> anon <span class=o>]</span>
+</span></span><span class=line><span class=cl>---------------- ------- ------- -------
+</span></span><span class=line><span class=cl>total kB            <span class=m>2156</span>    <span class=m>1080</span>      <span class=m>72</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>$ pmap -x <span class=k>$(</span>pgrep a.out<span class=k>)</span>
+</span></span><span class=line><span class=cl>32408:   ./a.out
+</span></span><span class=line><span class=cl>Address           Kbytes     RSS   Dirty Mode  Mapping
+</span></span><span class=line><span class=cl>0000555bb0511000       <span class=m>4</span>       <span class=m>4</span>       <span class=m>0</span> r---- a.out
+</span></span><span class=line><span class=cl>0000555bb0512000       <span class=m>4</span>       <span class=m>4</span>       <span class=m>0</span> r-x-- a.out
+</span></span><span class=line><span class=cl>0000555bb0513000       <span class=m>4</span>       <span class=m>4</span>       <span class=m>0</span> r---- a.out
+</span></span><span class=line><span class=cl>0000555bb0514000       <span class=m>4</span>       <span class=m>4</span>       <span class=m>4</span> r---- a.out
+</span></span><span class=line><span class=cl>0000555bb0515000       <span class=m>4</span>       <span class=m>4</span>       <span class=m>4</span> rw--- a.out
+</span></span><span class=line><span class=cl>0000555bb1b7a000     <span class=m>132</span>       <span class=m>4</span>       <span class=m>4</span> rw---   <span class=o>[</span> anon <span class=o>]</span>
+</span></span><span class=line><span class=cl>00007f521d45e000     <span class=m>148</span>     <span class=m>140</span>       <span class=m>0</span> r---- libc-2.29.so
+</span></span><span class=line><span class=cl>00007f521d483000    <span class=m>1320</span>     <span class=m>948</span>       <span class=m>0</span> r-x-- libc-2.29.so
+</span></span><span class=line><span class=cl>00007f521d5cd000     <span class=m>292</span>     <span class=m>128</span>       <span class=m>0</span> r---- libc-2.29.so
+</span></span><span class=line><span class=cl>00007f521d616000       <span class=m>4</span>       <span class=m>0</span>       <span class=m>0</span> ----- libc-2.29.so
+</span></span><span class=line><span class=cl>00007f521d617000      <span class=m>12</span>      <span class=m>12</span>      <span class=m>12</span> r---- libc-2.29.so
+</span></span><span class=line><span class=cl>00007f521d61a000      <span class=m>12</span>      <span class=m>12</span>      <span class=m>12</span> rw--- libc-2.29.so
+</span></span><span class=line><span class=cl>00007f521d61d000      <span class=m>24</span>      <span class=m>16</span>      <span class=m>16</span> rw---   <span class=o>[</span> anon <span class=o>]</span>
+</span></span><span class=line><span class=cl>00007f521d63e000       <span class=m>8</span>       <span class=m>8</span>       <span class=m>0</span> r---- ld-2.29.so
+</span></span><span class=line><span class=cl>00007f521d640000     <span class=m>124</span>     <span class=m>124</span>       <span class=m>0</span> r-x-- ld-2.29.so
+</span></span><span class=line><span class=cl>00007f521d65f000      <span class=m>32</span>      <span class=m>32</span>       <span class=m>0</span> r---- ld-2.29.so
+</span></span><span class=line><span class=cl>00007f521d667000       <span class=m>4</span>       <span class=m>0</span>       <span class=m>0</span> rw---   <span class=o>[</span> anon <span class=o>]</span>
+</span></span><span class=line><span class=cl>00007f521d668000       <span class=m>4</span>       <span class=m>4</span>       <span class=m>4</span> r---- ld-2.29.so
+</span></span><span class=line><span class=cl>00007f521d669000       <span class=m>4</span>       <span class=m>4</span>       <span class=m>4</span> rw--- ld-2.29.so
+</span></span><span class=line><span class=cl>00007f521d66a000       <span class=m>4</span>       <span class=m>4</span>       <span class=m>4</span> rw---   <span class=o>[</span> anon <span class=o>]</span>
+</span></span><span class=line><span class=cl>00007fffd1e55000     <span class=m>132</span>      <span class=m>12</span>      <span class=m>12</span> rw---   <span class=o>[</span> stack <span class=o>]</span>
+</span></span><span class=line><span class=cl>00007fffd1f04000      <span class=m>12</span>       <span class=m>0</span>       <span class=m>0</span> r----   <span class=o>[</span> anon <span class=o>]</span>
+</span></span><span class=line><span class=cl>00007fffd1f07000       <span class=m>4</span>       <span class=m>4</span>       <span class=m>0</span> r-x--   <span class=o>[</span> anon <span class=o>]</span>
+</span></span><span class=line><span class=cl>---------------- ------- ------- -------
+</span></span><span class=line><span class=cl>total kB            <span class=m>2292</span>    <span class=m>1472</span>      <span class=m>76</span>
+</span></span></code></pre></div><p>在 pmap 命令的前后两次输出中，我们可以看到，第二次 pmap 输出多了一个 [anon] 内存段（第 47 行），而该内存段的起始地址正好是上面程序输出的地址。也就是说，该内存段就是操作系统为 mmap 系统调用新分配出来的区域。由 pmap 的输出可以看到，该内存段的大小是 4kb，实际物理内存占用（rss）是 0。</p><p>实际物理内存占用为什么是 0 呢？在我们向操作系统申请内存时，比如用 malloc 或 mmap 等方式，操作系统只是标记了我们拥有一段新的内存区域，如上 pmap 输出，而并没有实际分配给我们物理内存。当我们要使用该段内存时，比如读或写，会先触发 page fault，操作系统内部的 page fault handler 会检查触发 page fault 的地址是否是我们拥有的合法地址，如果是，则在此时真正为我们分配物理内存。</p><h1 id=按页分配>按页分配</h1><p>再看下上面的源码，我们指定的内存长度明明是 1 字节，为什么 pmap 的显示是 4kb 呢？这个在下面的源码分析中会看到原因。看下 mmap 系统调用对应的内核源码：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-c data-lang=c><span class=line><span class=cl><span class=c1>// arch/x86/kernel/sys_x86_64.c
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=nf>SYSCALL_DEFINE6</span><span class=p>(</span><span class=n>mmap</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span><span class=p>,</span> <span class=n>addr</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span><span class=p>,</span> <span class=n>len</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=kt>unsigned</span> <span class=kt>long</span><span class=p>,</span> <span class=n>prot</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span><span class=p>,</span> <span class=n>flags</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=kt>unsigned</span> <span class=kt>long</span><span class=p>,</span> <span class=n>fd</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span><span class=p>,</span> <span class=n>off</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=kt>long</span> <span class=n>error</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=n>error</span> <span class=o>=</span> <span class=o>-</span><span class=n>EINVAL</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=n>off</span> <span class=o>&amp;</span> <span class=o>~</span><span class=n>PAGE_MASK</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=k>goto</span> <span class=n>out</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>error</span> <span class=o>=</span> <span class=nf>ksys_mmap_pgoff</span><span class=p>(</span><span class=n>addr</span><span class=p>,</span> <span class=n>len</span><span class=p>,</span> <span class=n>prot</span><span class=p>,</span> <span class=n>flags</span><span class=p>,</span> <span class=n>fd</span><span class=p>,</span> <span class=n>off</span> <span class=o>&gt;&gt;</span> <span class=n>PAGE_SHIFT</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=nl>out</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>error</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>该方法调用了 ksys_mmap_pgoff 方法：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-c data-lang=c><span class=line><span class=cl><span class=c1>// mm/mmap.c
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>unsigned</span> <span class=kt>long</span> <span class=nf>ksys_mmap_pgoff</span><span class=p>(</span><span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>addr</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>len</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                              <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>prot</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>flags</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                              <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>fd</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>pgoff</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=k>struct</span> <span class=n>file</span> <span class=o>*</span><span class=n>file</span> <span class=o>=</span> <span class=nb>NULL</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>retval</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=p>(</span><span class=n>flags</span> <span class=o>&amp;</span> <span class=n>MAP_ANONYMOUS</span><span class=p>))</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=p>...</span>
+</span></span><span class=line><span class=cl>                <span class=n>file</span> <span class=o>=</span> <span class=nf>fget</span><span class=p>(</span><span class=n>fd</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>                <span class=p>...</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>...</span>
+</span></span><span class=line><span class=cl>        <span class=n>retval</span> <span class=o>=</span> <span class=nf>vm_mmap_pgoff</span><span class=p>(</span><span class=n>file</span><span class=p>,</span> <span class=n>addr</span><span class=p>,</span> <span class=n>len</span><span class=p>,</span> <span class=n>prot</span><span class=p>,</span> <span class=n>flags</span><span class=p>,</span> <span class=n>pgoff</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=p>...</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>retval</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>该方法又调用了 vm_mmap_pgoff：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-c data-lang=c><span class=line><span class=cl><span class=c1>// mm/util.c
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>unsigned</span>  <span class=nf>longvm_mmap_pgoff</span><span class=p>(</span><span class=k>struct</span> <span class=n>file</span> <span class=o>*</span><span class=n>file</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>addr</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>len</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>prot</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>flag</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>pgoff</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>ret</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=k>struct</span> <span class=n>mm_struct</span> <span class=o>*</span><span class=n>mm</span> <span class=o>=</span> <span class=n>current</span><span class=o>-&gt;</span><span class=n>mm</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=p>...</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=n>ret</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=p>...</span>
+</span></span><span class=line><span class=cl>                <span class=n>ret</span> <span class=o>=</span> <span class=nf>do_mmap_pgoff</span><span class=p>(</span><span class=n>file</span><span class=p>,</span> <span class=n>addr</span><span class=p>,</span> <span class=n>len</span><span class=p>,</span> <span class=n>prot</span><span class=p>,</span> <span class=n>flag</span><span class=p>,</span> <span class=n>pgoff</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                                    <span class=o>&amp;</span><span class=n>populate</span><span class=p>,</span> <span class=o>&amp;</span><span class=n>uf</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>                <span class=p>...</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>ret</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>该方法又调用了 do_mmap_pgoff：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-c data-lang=c><span class=line><span class=cl><span class=c1>// include/linux/mm.h
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>static</span> <span class=kr>inline</span> <span class=kt>unsigned</span> <span class=kt>long</span>
+</span></span><span class=line><span class=cl><span class=nf>do_mmap_pgoff</span><span class=p>(</span><span class=k>struct</span> <span class=n>file</span> <span class=o>*</span><span class=n>file</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>addr</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>len</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>prot</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>flags</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>pgoff</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span> <span class=o>*</span><span class=n>populate</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=k>struct</span> <span class=n>list_head</span> <span class=o>*</span><span class=n>uf</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nf>do_mmap</span><span class=p>(</span><span class=n>file</span><span class=p>,</span> <span class=n>addr</span><span class=p>,</span> <span class=n>len</span><span class=p>,</span> <span class=n>prot</span><span class=p>,</span> <span class=n>flags</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=n>pgoff</span><span class=p>,</span> <span class=n>populate</span><span class=p>,</span> <span class=n>uf</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>该方法又调用了 do_mmap：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-c data-lang=c><span class=line><span class=cl><span class=c1>// mm/mmap.c
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>unsigned</span> <span class=kt>long</span> <span class=nf>do_mmap</span><span class=p>(</span><span class=k>struct</span> <span class=n>file</span> <span class=o>*</span><span class=n>file</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>addr</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                        <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>len</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>prot</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                        <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>flags</span><span class=p>,</span> <span class=kt>vm_flags_t</span> <span class=n>vm_flags</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                        <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>pgoff</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span> <span class=o>*</span><span class=n>populate</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                        <span class=k>struct</span> <span class=n>list_head</span> <span class=o>*</span><span class=n>uf</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=k>struct</span> <span class=n>mm_struct</span> <span class=o>*</span><span class=n>mm</span> <span class=o>=</span> <span class=n>current</span><span class=o>-&gt;</span><span class=n>mm</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=p>...</span>
+</span></span><span class=line><span class=cl>        <span class=n>len</span> <span class=o>=</span> <span class=nf>PAGE_ALIGN</span><span class=p>(</span><span class=n>len</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=p>...</span>
+</span></span><span class=line><span class=cl>        <span class=n>addr</span> <span class=o>=</span> <span class=nf>get_unmapped_area</span><span class=p>(</span><span class=n>file</span><span class=p>,</span> <span class=n>addr</span><span class=p>,</span> <span class=n>len</span><span class=p>,</span> <span class=n>pgoff</span><span class=p>,</span> <span class=n>flags</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=p>...</span>
+</span></span><span class=line><span class=cl>        <span class=n>addr</span> <span class=o>=</span> <span class=nf>mmap_region</span><span class=p>(</span><span class=n>file</span><span class=p>,</span> <span class=n>addr</span><span class=p>,</span> <span class=n>len</span><span class=p>,</span> <span class=n>vm_flags</span><span class=p>,</span> <span class=n>pgoff</span><span class=p>,</span> <span class=n>uf</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=p>...</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>addr</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>该方法先用宏 PAGE_ALIGN，使 len 大小 page 对齐，在最开始的源码中，我们指定的 len 大小为 1，page 对其后为 4096，即 4kb，这也是为什么 pmap 输出的内存段大小为 4kb。其实，操作系统为进程分配的内存段都是以 page 为单位的。</p><p>之后，该方法又调用了 get_unmapped_area 来获取 mmap 的内存段的起始地址，这个方法就不详细看了。最后，该方法又调用了 mmap_region，继续执行 mmap 操作。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-c data-lang=c><span class=line><span class=cl><span class=c1>// mm/mmap.c
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>unsigned</span> <span class=kt>long</span> <span class=nf>mmap_region</span><span class=p>(</span><span class=k>struct</span> <span class=n>file</span> <span class=o>*</span><span class=n>file</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>addr</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>len</span><span class=p>,</span> <span class=kt>vm_flags_t</span> <span class=n>vm_flags</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>pgoff</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=k>struct</span> <span class=n>list_head</span> <span class=o>*</span><span class=n>uf</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=k>struct</span> <span class=n>mm_struct</span> <span class=o>*</span><span class=n>mm</span> <span class=o>=</span> <span class=n>current</span><span class=o>-&gt;</span><span class=n>mm</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=k>struct</span> <span class=n>vm_area_struct</span> <span class=o>*</span><span class=n>vma</span><span class=p>,</span> <span class=o>*</span><span class=n>prev</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=p>...</span>
+</span></span><span class=line><span class=cl>        <span class=n>vma</span> <span class=o>=</span> <span class=nf>vm_area_alloc</span><span class=p>(</span><span class=n>mm</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=p>...</span>
+</span></span><span class=line><span class=cl>        <span class=n>vma</span><span class=o>-&gt;</span><span class=n>vm_start</span> <span class=o>=</span> <span class=n>addr</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=n>vma</span><span class=o>-&gt;</span><span class=n>vm_end</span> <span class=o>=</span> <span class=n>addr</span> <span class=o>+</span> <span class=n>len</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=n>vma</span><span class=o>-&gt;</span><span class=n>vm_flags</span> <span class=o>=</span> <span class=n>vm_flags</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=n>vma</span><span class=o>-&gt;</span><span class=n>vm_page_prot</span> <span class=o>=</span> <span class=nf>vm_get_page_prot</span><span class=p>(</span><span class=n>vm_flags</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=n>vma</span><span class=o>-&gt;</span><span class=n>vm_pgoff</span> <span class=o>=</span> <span class=n>pgoff</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=n>file</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=p>...</span>
+</span></span><span class=line><span class=cl>                <span class=n>vma</span><span class=o>-&gt;</span><span class=n>vm_file</span> <span class=o>=</span> <span class=nf>get_file</span><span class=p>(</span><span class=n>file</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>                <span class=n>error</span> <span class=o>=</span> <span class=nf>call_mmap</span><span class=p>(</span><span class=n>file</span><span class=p>,</span> <span class=n>vma</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>                <span class=p>...</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span> <span class=k>else</span> <span class=k>if</span> <span class=p>(</span><span class=n>vm_flags</span> <span class=o>&amp;</span> <span class=n>VM_SHARED</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=p>...</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span> <span class=k>else</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=nf>vma_set_anonymous</span><span class=p>(</span><span class=n>vma</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=nf>vma_link</span><span class=p>(</span><span class=n>mm</span><span class=p>,</span> <span class=n>vma</span><span class=p>,</span> <span class=n>prev</span><span class=p>,</span> <span class=n>rb_link</span><span class=p>,</span> <span class=n>rb_parent</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=p>...</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>addr</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=p>...</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>该方法先调用 vm_area_alloc，分配一个类型为 struct vm_area_struct 的实例，并赋值给 vma，然后设置 vma 的起始地址、结束地址等信息。这个 vma 里包含的内容，就是上面 pmap 命令输出的内存段。之后，如果我们是想 mmap 一个 file，则调用 call_mmap：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-c data-lang=c><span class=line><span class=cl><span class=c1>// include/linux/fs.h
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>static</span> <span class=kr>inline</span> <span class=kt>int</span> <span class=nf>call_mmap</span><span class=p>(</span><span class=k>struct</span> <span class=n>file</span> <span class=o>*</span><span class=n>file</span><span class=p>,</span> <span class=k>struct</span> <span class=n>vm_area_struct</span> <span class=o>*</span><span class=n>vma</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>file</span><span class=o>-&gt;</span><span class=n>f_op</span><span class=o>-&gt;</span><span class=nf>mmap</span><span class=p>(</span><span class=n>file</span><span class=p>,</span> <span class=n>vma</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>该方法又调用了 file->f_op->mmap 指针指向的方法，以 ext4 文件系统为例，该方法为 ext4_file_mmap：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-c data-lang=c><span class=line><span class=cl><span class=c1>// fs/ext4/file.c
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>static</span> <span class=kt>int</span> <span class=nf>ext4_file_mmap</span><span class=p>(</span><span class=k>struct</span> <span class=n>file</span> <span class=o>*</span><span class=n>file</span><span class=p>,</span> <span class=k>struct</span> <span class=n>vm_area_struct</span> <span class=o>*</span><span class=n>vma</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=p>...</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=nf>IS_DAX</span><span class=p>(</span><span class=nf>file_inode</span><span class=p>(</span><span class=n>file</span><span class=p>)))</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=p>...</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span> <span class=k>else</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=n>vma</span><span class=o>-&gt;</span><span class=n>vm_ops</span> <span class=o>=</span> <span class=o>&amp;</span><span class=n>ext4_file_vm_ops</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>该方法的作用是初始化 vma 的 vm_ops 字段，使其值为 ext4_file_vm_ops。再回到上面的 mmap_region 方法，如果我们 mmap 的是一块 anonymous 的内存区域，则会调用 vma_set_anonymous 方法：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-c data-lang=c><span class=line><span class=cl><span class=c1>// include/linux/mm.h
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>static</span> <span class=kr>inline</span> <span class=kt>void</span> <span class=nf>vma_set_anonymous</span><span class=p>(</span><span class=k>struct</span> <span class=n>vm_area_struct</span> <span class=o>*</span><span class=n>vma</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=n>vma</span><span class=o>-&gt;</span><span class=n>vm_ops</span> <span class=o>=</span> <span class=nb>NULL</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>该方法将 vma->vm_ops 字段设置为 null，用此来表示，该 vma 代表的内存段为 anonymous 模式。再之后，mmap_region 方法会调用 vma_link 方法将新创建的 vma 链接到 struct mm_struct 的 mmap 字段和 mm_rb 字段，标识该进程拥有 vma 表示的这段内存区域。最后，mmap_region 方法返回该内存段的起始地址给用户。</p></div><div class=article-widget><div class="container-xl row post-nav"></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte-website.oss-accelerate.aliyuncs.com/disqus/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
+<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
+<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
+<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
+<script id=dsq-count-scr src=https://ngte-website.oss-accelerate.aliyuncs.com/disqus/count.js async></script>
+<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
+<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
+<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
+<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>

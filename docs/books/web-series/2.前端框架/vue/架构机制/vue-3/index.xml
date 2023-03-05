@@ -1,75 +1,35 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
-  <channel>
-    <title>Vue 3 | Next-gen Tech Edu</title>
-    <link>https://ng-tech.icu/books/web-series/2.%E5%89%8D%E7%AB%AF%E6%A1%86%E6%9E%B6/vue/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/vue-3/</link>
-      <atom:link href="https://ng-tech.icu/books/web-series/2.%E5%89%8D%E7%AB%AF%E6%A1%86%E6%9E%B6/vue/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/vue-3/index.xml" rel="self" type="application/rss+xml" />
-    <description>Vue 3</description>
-    <generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language>
-    <image>
-      <url>https://ng-tech.icu/media/sharing.png</url>
-      <title>Vue 3</title>
-      <link>https://ng-tech.icu/books/web-series/2.%E5%89%8D%E7%AB%AF%E6%A1%86%E6%9E%B6/vue/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/vue-3/</link>
-    </image>
-    
-    <item>
-      <title>数据监听</title>
-      <link>https://ng-tech.icu/books/web-series/2.%E5%89%8D%E7%AB%AF%E6%A1%86%E6%9E%B6/vue/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/vue-3/%E6%95%B0%E6%8D%AE%E7%9B%91%E5%90%AC/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      <guid>https://ng-tech.icu/books/web-series/2.%E5%89%8D%E7%AB%AF%E6%A1%86%E6%9E%B6/vue/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/vue-3/%E6%95%B0%E6%8D%AE%E7%9B%91%E5%90%AC/</guid>
-      <description>&lt;h1 id=&#34;vue-3-中数据监听的实现&#34;&gt;Vue 3 中数据监听的实现&lt;/h1&gt;
-&lt;p&gt;众所周知，Vue 2 采用的是 Object.defineProperty()语法来完成针对对象元素的观察监听；而 Vue 3 则采用了别具一格的 Proxy 代理模式来完成对任何复杂数据类型的代理监听。通过对 Vue 两个版本实现数据监听的 api 特性进行对比，我们可以发现：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;Object.defineProperty 由于每次只能监听对象一个键的 get、set，导致需要循环监听，浪费性能，而 vue3 的 Proxy 可以一次性监听到所有属性&lt;/li&gt;
-&lt;li&gt;Object.defineProperty 无法监听数组，必须通过增强并替换原型链方法的方式处理数组监听，而 Proxy 则可以直接监听数组变化&lt;/li&gt;
-&lt;li&gt;由于 Object.defineProperty 只能监听对象，导致 vue2 的 data 属性必须通过一个返回对象的函数方式初始化，而 vue3 则更加多元化，可以监听任意数据&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;在日常开发中，vue3 提供的响应式 api，最常用的便是 reactive、ref、computed 三种。&lt;/p&gt;
-&lt;p&gt;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  &lt;figure  &gt;
-    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
-      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://ngte-superbed.oss-cn-beijing.aliyuncs.com/superbed/2021/08/01/61065f5e5132923bf82b33a4.jpg&#34; alt=&#34;响应式 API&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
-    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;reactive 依托于 Proxy 语法，分别在访问器特性中的 get 中触发 track，set 中触发 trigger 实现数据获取时的依赖收集和数据变化时的触发更新&lt;/li&gt;
-&lt;li&gt;ref 则依托于 RefImpl 实现类中维护 value 属性的 getter 和 setter，使实例在使用 value 属性时分别触发 track 和 trigger 方法，实现依赖收集和触发更新&lt;/li&gt;
-&lt;li&gt;computed 方法依托于 ComputedImpl 实现类，完成对 getter 函数中的数据进行依赖收集，最后通过构造器中 effect 属性，构建一个包含调度器的副作用函数来实现数据更新&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h1 id=&#34;reactivets&#34;&gt;reactive.ts&lt;/h1&gt;
-&lt;p&gt;reactive.ts 为我们提供了 reactive、shallowReactive、readonly、shallowReadOnly、isProxy、toRaw、markRaw 等 vue3 框架导出 api。同时维护了诸如 SKIP、IS_REACTIVE、IS_READONLY、RAW 这些用于标识的私有属性：&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-js&#34; data-lang=&#34;js&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kr&#34;&gt;export&lt;/span&gt; &lt;span class=&#34;kr&#34;&gt;interface&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;Target&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;ReactiveFlags&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;SKIP&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;?:&lt;/span&gt; &lt;span class=&#34;kr&#34;&gt;boolean&lt;/span&gt; &lt;span class=&#34;c1&#34;&gt;// 是否无效标识，用于跳过监听
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;  &lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;ReactiveFlags&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;IS_REACTIVE&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;?:&lt;/span&gt; &lt;span class=&#34;kr&#34;&gt;boolean&lt;/span&gt; &lt;span class=&#34;c1&#34;&gt;// 是否已被reactive相关api处理过
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;  &lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;ReactiveFlags&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;IS_READONLY&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;?:&lt;/span&gt; &lt;span class=&#34;kr&#34;&gt;boolean&lt;/span&gt; &lt;span class=&#34;c1&#34;&gt;// 是否被readonly相关api处理过
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;  &lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;ReactiveFlags&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;RAW&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;?:&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;any&lt;/span&gt; &lt;span class=&#34;c1&#34;&gt;// 当前代理对象的源对象，即target
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;以及四个基于 WeakMap 数据类型的代理缓存弱键仓库，用于提升代码运行时的内存性能：&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-js&#34; data-lang=&#34;js&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kr&#34;&gt;export&lt;/span&gt; &lt;span class=&#34;kr&#34;&gt;const&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;reactiveMap&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;WeakMap&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;Target&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;any&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kr&#34;&gt;export&lt;/span&gt; &lt;span class=&#34;kr&#34;&gt;const&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;shallowReactiveMap&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;WeakMap&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;Target&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;any&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kr&#34;&gt;export&lt;/span&gt; &lt;span class=&#34;kr&#34;&gt;const&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;readonlyMap&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;WeakMap&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;Target&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;any&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kr&#34;&gt;export&lt;/span&gt; &lt;span class=&#34;kr&#34;&gt;const&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;shallowReadonlyMap&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;WeakMap&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;Target&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;any&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;links&#34;&gt;Links&lt;/h1&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&#34;https://mp.weixin.qq.com/s/lI3r-pTP1f-Fh3S4RSG_vA&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;https://mp.weixin.qq.com/s/lI3r-pTP1f-Fh3S4RSG_vA&lt;/a&gt; Vue3 源码解析 — 数据监听篇&lt;/li&gt;
-&lt;/ul&gt;
-</description>
-    </item>
-    
-  </channel>
-</rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Vue 3 | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/web-series/2.%E5%89%8D%E7%AB%AF%E6%A1%86%E6%9E%B6/vue/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/vue-3/</link><atom:link href="https://ng-tech.icu/books/web-series/2.%E5%89%8D%E7%AB%AF%E6%A1%86%E6%9E%B6/vue/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/vue-3/index.xml" rel="self" type="application/rss+xml"/><description>Vue 3</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>Vue 3</title><link>https://ng-tech.icu/books/web-series/2.%E5%89%8D%E7%AB%AF%E6%A1%86%E6%9E%B6/vue/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/vue-3/</link></image><item><title>数据监听</title><link>https://ng-tech.icu/books/web-series/2.%E5%89%8D%E7%AB%AF%E6%A1%86%E6%9E%B6/vue/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/vue-3/%E6%95%B0%E6%8D%AE%E7%9B%91%E5%90%AC/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/web-series/2.%E5%89%8D%E7%AB%AF%E6%A1%86%E6%9E%B6/vue/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/vue-3/%E6%95%B0%E6%8D%AE%E7%9B%91%E5%90%AC/</guid><description>&lt;h1 id="vue-3-中数据监听的实现">Vue 3 中数据监听的实现&lt;/h1>
+&lt;p>众所周知，Vue 2 采用的是 Object.defineProperty()语法来完成针对对象元素的观察监听；而 Vue 3 则采用了别具一格的 Proxy 代理模式来完成对任何复杂数据类型的代理监听。通过对 Vue 两个版本实现数据监听的 api 特性进行对比，我们可以发现：&lt;/p>
+&lt;ul>
+&lt;li>Object.defineProperty 由于每次只能监听对象一个键的 get、set，导致需要循环监听，浪费性能，而 vue3 的 Proxy 可以一次性监听到所有属性&lt;/li>
+&lt;li>Object.defineProperty 无法监听数组，必须通过增强并替换原型链方法的方式处理数组监听，而 Proxy 则可以直接监听数组变化&lt;/li>
+&lt;li>由于 Object.defineProperty 只能监听对象，导致 vue2 的 data 属性必须通过一个返回对象的函数方式初始化，而 vue3 则更加多元化，可以监听任意数据&lt;/li>
+&lt;/ul>
+&lt;p>在日常开发中，vue3 提供的响应式 api，最常用的便是 reactive、ref、computed 三种。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/superbed/2021/08/01/61065f5e5132923bf82b33a4.jpg" alt="响应式 API" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;ul>
+&lt;li>reactive 依托于 Proxy 语法，分别在访问器特性中的 get 中触发 track，set 中触发 trigger 实现数据获取时的依赖收集和数据变化时的触发更新&lt;/li>
+&lt;li>ref 则依托于 RefImpl 实现类中维护 value 属性的 getter 和 setter，使实例在使用 value 属性时分别触发 track 和 trigger 方法，实现依赖收集和触发更新&lt;/li>
+&lt;li>computed 方法依托于 ComputedImpl 实现类，完成对 getter 函数中的数据进行依赖收集，最后通过构造器中 effect 属性，构建一个包含调度器的副作用函数来实现数据更新&lt;/li>
+&lt;/ul>
+&lt;h1 id="reactivets">reactive.ts&lt;/h1>
+&lt;p>reactive.ts 为我们提供了 reactive、shallowReactive、readonly、shallowReadOnly、isProxy、toRaw、markRaw 等 vue3 框架导出 api。同时维护了诸如 SKIP、IS_REACTIVE、IS_READONLY、RAW 这些用于标识的私有属性：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">export&lt;/span> &lt;span class="kr">interface&lt;/span> &lt;span class="nx">Target&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">[&lt;/span>&lt;span class="nx">ReactiveFlags&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">SKIP&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="o">?:&lt;/span> &lt;span class="kr">boolean&lt;/span> &lt;span class="c1">// 是否无效标识，用于跳过监听
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="nx">ReactiveFlags&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">IS_REACTIVE&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="o">?:&lt;/span> &lt;span class="kr">boolean&lt;/span> &lt;span class="c1">// 是否已被reactive相关api处理过
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="nx">ReactiveFlags&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">IS_READONLY&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="o">?:&lt;/span> &lt;span class="kr">boolean&lt;/span> &lt;span class="c1">// 是否被readonly相关api处理过
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="nx">ReactiveFlags&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">RAW&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="o">?:&lt;/span> &lt;span class="nx">any&lt;/span> &lt;span class="c1">// 当前代理对象的源对象，即target
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>以及四个基于 WeakMap 数据类型的代理缓存弱键仓库，用于提升代码运行时的内存性能：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">export&lt;/span> &lt;span class="kr">const&lt;/span> &lt;span class="nx">reactiveMap&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="nx">WeakMap&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="nx">Target&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">any&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">export&lt;/span> &lt;span class="kr">const&lt;/span> &lt;span class="nx">shallowReactiveMap&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="nx">WeakMap&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="nx">Target&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">any&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">export&lt;/span> &lt;span class="kr">const&lt;/span> &lt;span class="nx">readonlyMap&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="nx">WeakMap&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="nx">Target&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">any&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">export&lt;/span> &lt;span class="kr">const&lt;/span> &lt;span class="nx">shallowReadonlyMap&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="nx">WeakMap&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="nx">Target&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">any&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="links">Links&lt;/h1>
+&lt;ul>
+&lt;li>&lt;a href="https://mp.weixin.qq.com/s/lI3r-pTP1f-Fh3S4RSG_vA" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/lI3r-pTP1f-Fh3S4RSG_vA&lt;/a> Vue3 源码解析 — 数据监听篇&lt;/li>
+&lt;/ul></description></item></channel></rss>

