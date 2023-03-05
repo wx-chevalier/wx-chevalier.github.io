@@ -1,0 +1,1550 @@
+<!DOCTYPE html><html lang="zh" >
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  
+  
+    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+
+  
+  
+  
+    
+      
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    
+  
+
+  
+    <meta name="google-site-verification" content="google69a5cccb61297807" />
+    <meta name="baidu-site-verification" content="cqmZHEleVh" />
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+    
+  
+  <meta name="description" content="客户端通信 每个 Redis 客户端(以下简称”Client”)都有多个状态属性，而理解和分析这些属性，对于我们设计 Redis 键空间和运营管理都有帮助。使用 redis client 命令可查看当前 Redis 实例的所有客户端；每行数据对应一个客户端。 127.0.0.1:6390&gt; client" />
+
+  
+  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%AE%A2%E6%88%B7%E7%AB%AF%E9%80%9A%E4%BF%A1/" />
+
+  
+  
+  
+    <meta name="theme-color" content="#0a55a7" />
+  
+
+  
+  
+
+  
+
+  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
+
+  
+  
+  
+    
+    
+
+    
+    
+    
+    
+      
+      
+    
+    
+    
+
+    
+    
+    
+      
+    
+    
+      
+      
+        
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
+        
+      
+    
+
+    
+    
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
+    
+
+    
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+        
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+  
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/wowchemy.63df6ae9fc2b4cc71b83f1774d780209.css" />
+
+  
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', "G-40NYXJ8823");
+</script>
+
+
+  
+
+
+  
+
+
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+  
+  
+  
+
+  
+
+  
+    <link rel="manifest" href="/manifest.webmanifest" />
+  
+
+  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
+  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
+
+  <link rel="canonical" href="https://ng-tech.icu/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%AE%A2%E6%88%B7%E7%AB%AF%E9%80%9A%E4%BF%A1/" />
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+
+  
+  
+    
+    
+  
+  <meta property="twitter:card" content="summary_large_image" />
+  
+    <meta property="twitter:site" content="@wx-chevalier" />
+    <meta property="twitter:creator" content="@wx-chevalier" />
+  
+  <meta property="og:site_name" content="Next-gen Tech Edu" />
+  <meta property="og:url" content="https://ng-tech.icu/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%AE%A2%E6%88%B7%E7%AB%AF%E9%80%9A%E4%BF%A1/" />
+  <meta property="og:title" content="客户端通信 | Next-gen Tech Edu" />
+  <meta property="og:description" content="客户端通信 每个 Redis 客户端(以下简称”Client”)都有多个状态属性，而理解和分析这些属性，对于我们设计 Redis 键空间和运营管理都有帮助。使用 redis client 命令可查看当前 Redis 实例的所有客户端；每行数据对应一个客户端。 127.0.0.1:6390&gt; client" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
+    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
+  
+    
+    
+  
+
+  
+
+
+
+  
+
+  
+
+  
+
+
+
+
+
+  <title>客户端通信 | Next-gen Tech Edu</title>
+</head>
+
+
+<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="f9aa094ac39c17737c38ee56ab479c43" >
+  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
+
+  
+
+
+<aside class="search-modal" id="search">
+  <div class="container">
+    <section class="search-header">
+
+      <div class="row no-gutters justify-content-between mb-3">
+        <div class="col-6 search-title">
+          <p>搜索</p>
+        </div>
+        <div class="col-6 col-search-close">
+          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+      <div id="search-box">
+        
+        
+        
+      </div>
+
+      
+      
+
+      
+    </section>
+    <section class="section-search-results">
+
+      <div id="search-hits">
+        
+      </div>
+
+      <div id="search-common-queries">
+        
+      </div>
+
+    </section>
+  </div>
+</aside>
+
+
+
+  <div class="page-header">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="header--fixed">
+  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
+    <div class="container-xl">
+
+      
+      <div class="d-none d-lg-inline-flex">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      <button type="button" class="navbar-toggler" data-toggle="collapse"
+              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
+      <span><i class="fas fa-bars"></i></span>
+      </button>
+      
+
+      
+      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      
+      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
+
+        
+        <ul class="navbar-nav d-md-inline-flex">
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
+          </li>
+
+          
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+              
+              
+              
+                
+              
+              
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
+              
+                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
+              
+                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+        
+
+          
+        </ul>
+      </div>
+
+      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
+
+        
+        
+        
+        <li class="nav-item">
+          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        <li class="nav-item">
+            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        
+
+        
+        
+        
+        <div></div>
+        
+        <style>
+        @media only screen and (max-width: 600px) {
+          .jimmysong-template {
+            display: none!important;
+          }
+        }
+        </style>
+        
+        <li class="jimmysong-template" style="color: white;font-size: 12px;">
+          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+</header>
+
+
+  </div>
+
+  <div class="page-body">
+    
+    
+    
+
+    
+
+
+
+
+<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
+<div class="container-xl docs">
+  <div class="row flex-xl-nowrap">
+    <div class="docs-sidebar">
+      <form class="docs-search d-flex align-items-center">
+  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    <div class="d-flex">
+      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
+        
+          架构机制
+        
+      </span>
+      <span><i class="fas fa-chevron-down"></i></span>
+    </div>
+  </button>
+
+  
+  <button class="form-control sidebar-search js-search d-none d-md-flex">
+    <i class="fas fa-search pr-2"></i>
+    <span class="sidebar-search-text">搜索...</span>
+    <span class="sidebar-search-shortcut">/</span>
+  </button>
+  
+</form>
+
+<nav class="collapse docs-links" id="docs-nav">
+  
+  
+  
+  
+  
+  
+
+  
+  
+    
+
+    
+      
+
+      <ul class="nav docs-sidenav">
+        <li style="display: inline-flex">
+          <a style="cursor: pointer;" onclick="window.history.back()">
+            <i class="fas fa-arrow-left pr-1"></i>
+            Back
+          </a>
+          <span>|</span>
+          <a href="/books/">
+            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
+            Books
+          </a>
+        </li>
+      </ul>
+
+      
+      
+        
+          
+        
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id316fb9640713755c06a63179552d22c7&#34;)" href="#id316fb9640713755c06a63179552d22c7" aria-expanded="false" aria-controls="id316fb9640713755c06a63179552d22c7" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/">Redis</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id316fb9640713755c06a63179552d22c7" aria-expanded="false" aria-controls="id316fb9640713755c06a63179552d22c7">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id316fb9640713755c06a63179552d22c7"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id316fb9640713755c06a63179552d22c7">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idbc6a20dbea9433d6ab7c8785042ff2b8&#34;)" href="#idbc6a20dbea9433d6ab7c8785042ff2b8" aria-expanded="false" aria-controls="idbc6a20dbea9433d6ab7c8785042ff2b8" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/keydb/">KeyDB</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idbc6a20dbea9433d6ab7c8785042ff2b8" aria-expanded="false" aria-controls="idbc6a20dbea9433d6ab7c8785042ff2b8">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idbc6a20dbea9433d6ab7c8785042ff2b8"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idbc6a20dbea9433d6ab7c8785042ff2b8">
+      
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/keydb/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/">架构机制</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id0cbb3c360be90b56914f53994099f096&#34;)" href="#id0cbb3c360be90b56914f53994099f096" aria-expanded="false" aria-controls="id0cbb3c360be90b56914f53994099f096" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/">工程实践</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id0cbb3c360be90b56914f53994099f096" aria-expanded="false" aria-controls="id0cbb3c360be90b56914f53994099f096">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id0cbb3c360be90b56914f53994099f096"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id0cbb3c360be90b56914f53994099f096">
+      
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/">部署与配置</a></li>
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idcb0c740d9c2acd053878782e9d83603c&#34;)" href="#idcb0c740d9c2acd053878782e9d83603c" aria-expanded="false" aria-controls="idcb0c740d9c2acd053878782e9d83603c" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E6%8C%81%E4%B9%85%E5%8C%96/">持久化</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idcb0c740d9c2acd053878782e9d83603c" aria-expanded="false" aria-controls="idcb0c740d9c2acd053878782e9d83603c">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idcb0c740d9c2acd053878782e9d83603c"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idcb0c740d9c2acd053878782e9d83603c">
+      
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E6%8C%81%E4%B9%85%E5%8C%96/%E6%8C%81%E4%B9%85%E5%8C%96/">持久化</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/">性能优化</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E8%87%AA%E5%AE%9A%E4%B9%89%E8%84%9A%E6%9C%AC/">自定义脚本</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idfa512755bcd986ac0d63ce379166135f&#34;)" href="#idfa512755bcd986ac0d63ce379166135f" aria-expanded="false" aria-controls="idfa512755bcd986ac0d63ce379166135f" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E9%9B%86%E7%BE%A4/">集群</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idfa512755bcd986ac0d63ce379166135f" aria-expanded="false" aria-controls="idfa512755bcd986ac0d63ce379166135f">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idfa512755bcd986ac0d63ce379166135f"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idfa512755bcd986ac0d63ce379166135f">
+      
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E9%9B%86%E7%BE%A4/codis/">Codis</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E9%9B%86%E7%BE%A4/redis-cluster/">Redis Cluster</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E9%9B%86%E7%BE%A4/redis-%E5%88%86%E7%89%87/">Redis 分片</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E9%9B%86%E7%BE%A4/sentinel/">Sentinel</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id6199922da084024169f12f6e556a9210&#34;)" href="#id6199922da084024169f12f6e556a9210" aria-expanded="false" aria-controls="id6199922da084024169f12f6e556a9210" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/">架构机制</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id6199922da084024169f12f6e556a9210" aria-expanded="false" aria-controls="id6199922da084024169f12f6e556a9210">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id6199922da084024169f12f6e556a9210"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id6199922da084024169f12f6e556a9210">
+      
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%8D%95%E7%BA%BF%E7%A8%8B%E6%9E%B6%E6%9E%84/">单线程架构</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%A4%9A%E8%BF%9B%E7%A8%8B%E6%9E%B6%E6%9E%84/">多进程架构</a></li>
+
+
+
+
+  <li class="child level active"><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%AE%A2%E6%88%B7%E7%AB%AF%E9%80%9A%E4%BF%A1/">客户端通信</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C/">命令执行</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E6%B7%B1%E5%85%A5%E4%BA%8B%E4%BB%B6%E5%BE%AA%E7%8E%AF/">深入事件循环</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id0235d52274e28e96bc9ab0ca06ebf7fa&#34;)" href="#id0235d52274e28e96bc9ab0ca06ebf7fa" aria-expanded="false" aria-controls="id0235d52274e28e96bc9ab0ca06ebf7fa" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E6%95%B0%E6%8D%AE%E6%93%8D%E4%BD%9C/">数据操作</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id0235d52274e28e96bc9ab0ca06ebf7fa" aria-expanded="false" aria-controls="id0235d52274e28e96bc9ab0ca06ebf7fa">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id0235d52274e28e96bc9ab0ca06ebf7fa"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id0235d52274e28e96bc9ab0ca06ebf7fa">
+      
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E6%95%B0%E6%8D%AE%E6%93%8D%E4%BD%9C/%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B/">基础类型</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E6%95%B0%E6%8D%AE%E6%93%8D%E4%BD%9C/%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/">集合类型</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E6%95%B0%E6%8D%AE%E6%93%8D%E4%BD%9C/%E9%94%AE%E5%9F%BA%E7%A1%80/">键基础</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E6%95%B0%E6%8D%AE%E6%93%8D%E4%BD%9C/%E5%85%B6%E4%BB%96%E7%B1%BB%E5%9E%8B/">其他类型</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E6%95%B0%E6%8D%AE%E6%93%8D%E4%BD%9C/%E4%BA%8B%E5%8A%A1%E4%B8%8E%E7%AE%A1%E9%81%93/">事务与管道</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E6%95%B0%E6%8D%AE%E6%93%8D%E4%BD%9C/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B%E5%AE%9E%E7%8E%B0/">数据类型实现</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+    
+  
+</nav>
+
+    </div>
+
+    
+    
+    <div class="d-none d-xl-block col-xl-2 docs-toc">
+      
+     
+      <ul class="nav toc-top">
+        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
+      </ul>
+     
+
+      <nav id="TableOfContents">
+  <ul>
+    <li><a href="#buffer">Buffer</a>
+      <ul>
+        <li><a href="#query-buffer">Query Buffer</a></li>
+        <li><a href="#output-buffer">Output Buffer</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+      
+<div class="subscribe-module col-24 mt-1">
+    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
+</div>
+
+
+
+    </div>
+    
+
+    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
+
+      <article class="article">
+
+          
+
+          <h1>客户端通信</h1>
+
+          <div class="article-style">
+            <h1 id="客户端通信">客户端通信</h1>
+<p>每个 Redis 客户端(以下简称”Client”)都有多个状态属性，而理解和分析这些属性，对于我们设计 Redis 键空间和运营管理都有帮助。使用 redis client 命令可查看当前 Redis 实例的所有客户端；每行数据对应一个客户端。</p>
+<pre tabindex="0"><code>127.0.0.1:6390&gt; client list
+id=2 addr=127.0.0.1:53184 fd=8 name= age=33 idle=24 flags=N db=0 sub=0 psub=0 multi=-1 qbuf=0 qbuf-free=0 obl=0 oll=0 omem=0 events=r cmd=client
+id=3 addr=127.0.0.1:53190 fd=7 name= age=2 idle=0 flags=N db=0 sub=0 psub=0 multi=-1 qbuf=0 qbuf-free=32768 obl=0 oll=0 omem=0 events=r cmd=client
+</code></pre><p>以上为两个客户端，每个包含 18 个字段属性；其中属性的基本含义此处简单说明，后文会对重启指标深入分析。</p>
+<pre tabindex="0"><code>id：客户端唯一标识, 每新创建一个连接就自增1；redis重启后重置1。
+addr: 客户端源ip:port;用于分析异常的客户端，定位是由哪个服务器哪个进程引起的；如id=2的客户端 netstat -anp | grep 53184
+fd: socket的文件描述符；数值同lsof的FD字段相同
+name: 客户端的名字，默认不会设置，一般用处不大。可手动执行[clientsetname](http://redis.io/commands/client-setname)
+age: 客户端存活的秒数
+idle: 空闲的秒数；用于回收客户端和分析大量连接时有用
+flages:客户端类型的标志, 共13种，常用的几种：N(普通客户端),M(master),S(slave),O(执行monitor)
+db:客户端当前使用的database序号
+sub/psub: 快订阅的频道/模式数
+multi:当前事务中已执行命令个数
+qbuf: query buffer的字节数         重要
+qbuf-free: query buffer的剩余字节数
+obl:定长Output buffer的使用字节数
+oll:可变大小output buffer的对象个数
+omem:可变大小output buffer的内存使用字节数  重要
+events: 文件描述符事作件(r/w)
+cmd:客户端最近一次执行的命令，不包含参数
+</code></pre><h2 id="buffer">Buffer</h2>
+<h3 id="query-buffer">Query Buffer</h3>
+<p>每个 Client 都有一个 query buffer(查询缓存区或输入缓存区), 它用于保存客户端的发送命令，redis server 从 query buffer 获取命令并执行。每个客户端 query buffer 自动动态调整使用内存大小的，范围在 0~1GB 之间；当某个客户端的 query buffer 使用超过 1GB, server 会立即关闭它，为避免过度使用内存，触发 oom killer。query buffer 的大小限制是硬编码的 1GB,没法控制配置参数修改。</p>
+<pre tabindex="0"><code>server.h#163
+/* Protocol and IO related defines */
+#define PROTO_MAX_QUERYBUF_LEN  (1024*1024*1024) /* 1GB max query buffer. */
+</code></pre><p>用 client list 命令，观察 qbuf 和 qbuf-free 两个字段，就是 client query buffer 使用内存大小。
+如下示例(省去部分字段)：</p>
+<pre tabindex="0"><code>127.0.0.1:6390&gt; client list
+id=169  qbuf=128679888 qbuf-free=425984 obl=0 oll=0 omem=0 events=r cmd=NULL
+id=171  qbuf=128679888 qbuf-free=425984 obl=0 oll=0 omem=0 events=r cmd=NULL
+id=218  qbuf=128679888 qbuf-free=425984 obl=0 oll=0 omem=0 events=r cmd=NULL
+id=151  qbuf=128696272 qbuf-free=425984 obl=0 oll=0 omem=0 events=r cmd=NULL
+</code></pre><h4 id="query-buffer-过载">Query Buffer 过载</h4>
+<p>模拟 100 个客户端，连续写入大小为 500MB(生产建议小于 1KB)的 Key; redis server 设置 maxmemory 为 4gb,但 redis 实际已用内存 43gb(见 used_memory)。结论是 query buffer 使用内存不受 maxmemory 的限制，这 BUG 已经提给官方, 如不能限制 redis 使用的内存量，很易导致 redis 过度使用内存，无法控制出现 oom。</p>
+<pre tabindex="0"><code>127.0.0.1:6390&gt; info memory
+# Memory
+used_memory:46979129016
+used_memory_human:43.75G
+used_memory_rss:49898303488
+used_memory_rss_human:46.47G
+used_memory_peak:54796105584
+used_memory_peak_human:51.03G
+total_system_memory:134911881216
+total_system_memory_human:125.65G
+maxmemory:4294967296
+maxmemory_human:4.00G
+maxmemory_policy:allkeys-random
+mem_fragmentation_ratio:1.06
+mem_allocator:jemalloc-4.0.3
+## 当client断开后，rss会马上释放内存给OS
+</code></pre><p>query buffer 占用内存，会计入 maxmemory, 如果达到 maxmemory 限制，会触发 KEY 的 LRU 淘汰或无法写入新数据。</p>
+<pre tabindex="0"><code>127.0.0.1:6390&gt; set a b
+(error) OOM command not allowed when used memory &gt; &#39;maxmemory&#39;.
+</code></pre><p>我们在程序中要避免 Query Buffer 过度使用，可以参考如下建议：</p>
+<ul>
+<li>禁用大 KEY，尽量保证 key 小于 1KB; 虽 redis 支持 512MB 大小 string。</li>
+<li>监控 redis 内存使用，如果忽高忽低，极有可能 query buffer 引起</li>
+<li>核心 Redis 集群定期收集 client list 并分析 qbuf 的使用量</li>
+<li>建议官方提供 query buffer size 的设置参数，以保证过载保护</li>
+</ul>
+<h3 id="output-buffer">Output Buffer</h3>
+<p>客户端输出缓存区：执行命令所返回的结果会保存到 output buffer，返回给客户端。每个客户端都有 2 个 query buffer：</p>
+<ul>
+<li>静态定长 16KB 的缓存区；主要快速存储返回比较小的结果；如简单的 get 等</li>
+<li>动态大小缓冲区；存储返回较大的结果，如大的集合类型:set/list/hash
+因为静态的 buffer，一般无性能和风险影响，这里简单介绍。</li>
+</ul>
+<pre tabindex="0"><code>#define PROTO_REPLY_CHUNK_BYTES (16*1024) /* 16k output buffer */
+/* With multiplexing we need to take per-client state.
+ * Clients are taken in a linked list. */
+typedef struct client {
+    uint64_t id;            /* Client incremental unique ID. */
+    redisDb *db;            /* Pointer to currently SELECTed DB. */
+    robj *name;             /* As set by CLIENT SETNAME. */
+    sds querybuf;           /* Buffer we use to accumulate client queries. */
+    list *reply;            /* List of reply objects to send to the client. */
+    /* Response buffer */
+    int bufpos;
+    char buf[PROTO_REPLY_CHUNK_BYTES];
+} client;
+</code></pre><p>我们常说的 output buffer 都是指“动态大小的输出缓冲区”。和 qeury buffer 不同，output buffer 提供配置参数”client-output-buffer-limit”设置 buffer 的使用大小。下面是 limit 的设置格式：</p>
+<pre tabindex="0"><code>client-output-buffer-limit normal 10mb 5mb 60
+client-output-buffer-limit slave 256mb 64mb 60
+client-output-buffer-limit pubsub 32mb 8mb 60
+</code></pre><p>redis 对 3 种不同客户端类型，可设置对应的 buffer limit 规则</p>
+<ul>
+<li>normal: 普通的客户端</li>
+<li>slave: 从库复制，连接到主库的客户端</li>
+<li>pubsub: 发布/订阅客户端</li>
+</ul>
+<p>设置的 limit 规则 3 个值: hard limit size, soft limit size, soft limit second;只要客户端使用 output buffer 内存大小超过 hard limit 限制，redis 会立即关闭此客户端；使用 buffer 内存大小超过 soft limit，并且持续 soft limit 秒数，redis 也会立即关闭此客户端。被关闭客户端信息会打印到 redis 日志文件中，格式如下：</p>
+<pre tabindex="0"><code>569:M 18 Jun 21:12:57.775 # Client id=972 addr=127.0.0.1:57934 fd=107 name= age=2 idle=0
+flags=O db=0 sub=0 psub=0 multi=-1 qbuf=0 qbuf-free=0 obl=0 oll=366 omem=10492208 events=rw cmd=monitor
+scheduled to be closed ASAP for overcoming of output buffer limits.
+</code></pre><p>要查看 output buffer 使用，主要查开 client list 的 obl(静态定长 buffer)。omem: 当前客户端使用 output buffer 的内存字节数，如下客户端执行 monitor 命令(cmd=monitor), 已使用 buffer 内存是 10492208，超过 normal 的 hard limit 10mb，所以被 redis 关闭。</p>
+<pre tabindex="0"><code>id=972 addr=127.0.0.1:57934 idle=0 flags=O db=0 qbuf=0 qbuf-free=0 obl=0 oll=366 omem=10492208 events=rw cmd=monitor
+</code></pre><p>另外 output buffer 受 maxmemory 的限制，基本不会超过 maxmemory 设置值。因为 output buffer 是每个客户端都有，如使用不当，每个占用 1mb * 10000 clients 就约使用 10G 内存；
+所以要有效限制程序滥用。</p>
+<ul>
+<li>对于 normal 限制尽量小，可避免程序过度使用 output buffer.</li>
+<li>监控 redis used_memory 如果抖动严重，极有可能</li>
+<li>增加 slave 的 limit 限制，避免 slave 同步线程被杀，导致无限循环同步数据；且 slave 线程和挂载的 slave 个数相同，理论只有几个</li>
+<li>禁止生产环境使用 monitor 命令，在高 QPS 环境下，monitor 很快会产生 output query 使用</li>
+</ul>
+
+          </div>
+
+          
+
+
+
+          
+          
+          <div class="article-widget">
+            
+<div class="container-xl row post-nav">
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">上一页</div>
+    <a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%A4%9A%E8%BF%9B%E7%A8%8B%E6%9E%B6%E6%9E%84/" rel="next">多进程架构</a>
+  </div>
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">下一页</div>
+    <a href="/books/database-series/3.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C/" rel="prev">命令执行</a>
+  </div>
+  
+</div>
+
+          </div>
+          
+
+        <div class="body-footer">
+          <p>最近更新于 0001-01-01</p>
+
+          
+
+
+
+          
+
+
+  
+  
+  
+
+  
+
+  
+  <section id="comments" class="mb-3 pt-0">
+    
+<div id="disqus_thread"></div>
+<script>
+  var disqus_config = function () {
+    
+    
+    
+  };
+  (function() {
+    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+      return;
+    }
+    var d = document, s = d.createElement('script'); 
+    s.async = true;
+    
+    s.src = "https://ngte-website.oss-accelerate.aliyuncs.com/disqus/embed.js";
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </section>
+  
+
+
+
+          
+
+
+        </div>
+
+      </article>
+
+      <footer class="site-footer">
+
+  
+
+
+
+  
+
+  
+  <div class="copyright py-4 bg-footer">
+      <div class="row justify-content-center">
+        <div class="text-center footer-color">
+          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
+        </div>
+    </div>
+  </div>
+
+</footer>
+
+
+    </main>
+  </div>
+</div>
+<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
+<script>
+  const heti = new Heti('.article');
+  heti.autoSpacing();
+</script>
+<script type="text/javascript">
+  window.$crisp = [];
+  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
+  (function () {
+    setTimeout(function() {
+      d = document;
+      s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    }, 2500);
+  })();
+</script>
+  </div>
+
+  <div class="page-footer">
+    
+    
+  </div>
+
+      
+
+    
+    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
+
+    
+    
+    
+      
+
+      
+      
+
+      
+
+      
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
+        
+        
+      
+
+    
+
+    
+    
+    
+
+    
+    
+    
+      
+      <script id="search-hit-algolia-template" type="text/html">
+        <div class="search-hit">
+          <div class="search-hit-content">
+            <div class="search-hit-name">
+              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
+            </div>
+            <div class="article-metadata search-hit-type">{{type}}</div>
+            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
+          </div>
+        </div>
+      </script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
+      
+      
+    
+
+    
+    
+
+    
+    
+    
+    
+      
+      <script id="dsq-count-scr" src="https://ngte-website.oss-accelerate.aliyuncs.com/disqus/count.js" async></script>
+    
+
+    
+    
+      
+      
+      
+      
+      
+      
+      
+    
+
+    
+    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
+    
+
+    
+    
+    
+    <script id="page-data" type="application/json">{"use_headroom":false}</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
+
+    
+    
+    
+    
+    
+    
+    <script>
+
+var mybutton = document.getElementById("backTopBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+}
+</script>
+
+
+    
+
+    
+    
+    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+    <script>
+      anchors.add();
+    </script>
+    
+
+    
+    <script>
+
+
+
+(function() {
+  'use strict';
+
+  if(!document.queryCommandSupported('copy')) {
+    return;
+  }
+
+  function flashCopyMessage(el, msg) {
+    el.className = "highlight-copy-btn";
+    el.textContent = msg;
+    setTimeout(function() {
+      el.textContent = "";
+      el.className = "highlight-copy-btn fa fa-copy";
+    }, 1000);
+  }
+
+  function selectText(node) {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection;
+  }
+
+  function addCopyButton(containerEl) {
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "highlight-copy-btn fa fa-copy";
+    copyBtn.textContent = "";
+
+    var codeEl = containerEl.firstElementChild;
+    copyBtn.addEventListener('click', function() {
+      try {
+        var selection = selectText(codeEl);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        
+        flashCopyMessage(copyBtn, '已复制')
+        
+      } catch(e) {
+        console && console.log(e);
+        flashCopyMessage(copyBtn, 'Failed :\'(')
+      }
+    });
+
+    containerEl.appendChild(copyBtn);
+  }
+
+  
+  var highlightBlocks = document.getElementsByClassName('highlight');
+  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
+})();
+</script>
+
+    
+
+
+</body>
+</html>

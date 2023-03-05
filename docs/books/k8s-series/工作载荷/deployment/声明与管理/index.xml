@@ -1,0 +1,719 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>声明与管理 | Next-gen Tech Edu</title>
+    <link>https://ng-tech.icu/books/k8s-series/%E5%B7%A5%E4%BD%9C%E8%BD%BD%E8%8D%B7/deployment/%E5%A3%B0%E6%98%8E%E4%B8%8E%E7%AE%A1%E7%90%86/</link>
+      <atom:link href="https://ng-tech.icu/books/k8s-series/%E5%B7%A5%E4%BD%9C%E8%BD%BD%E8%8D%B7/deployment/%E5%A3%B0%E6%98%8E%E4%B8%8E%E7%AE%A1%E7%90%86/index.xml" rel="self" type="application/rss+xml" />
+    <description>声明与管理</description>
+    <generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language>
+    <image>
+      <url>https://ng-tech.icu/media/sharing.png</url>
+      <title>声明与管理</title>
+      <link>https://ng-tech.icu/books/k8s-series/%E5%B7%A5%E4%BD%9C%E8%BD%BD%E8%8D%B7/deployment/%E5%A3%B0%E6%98%8E%E4%B8%8E%E7%AE%A1%E7%90%86/</link>
+    </image>
+    
+    <item>
+      <title>DaemonSet</title>
+      <link>https://ng-tech.icu/books/k8s-series/%E5%B7%A5%E4%BD%9C%E8%BD%BD%E8%8D%B7/deployment/%E5%A3%B0%E6%98%8E%E4%B8%8E%E7%AE%A1%E7%90%86/daemonset/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/k8s-series/%E5%B7%A5%E4%BD%9C%E8%BD%BD%E8%8D%B7/deployment/%E5%A3%B0%E6%98%8E%E4%B8%8E%E7%AE%A1%E7%90%86/daemonset/</guid>
+      <description>&lt;h1 id=&#34;daemonset&#34;&gt;DaemonSet&lt;/h1&gt;
+&lt;p&gt;** DaemonSet ** is basically the same as ReplicaSet, with the difference that when you use DaemonSet you do not specify the number of replicas, it will go up one pod per node in your cluster.&lt;/p&gt;
+&lt;p&gt;It is always interesting when creating, using and abusing labels, so you will be able to have better flexibility in the most appropriate distribution of your application.&lt;/p&gt;
+&lt;p&gt;It is very interesting for services that need to run on all nodes in the cluster, such as log collectors and monitoring agents.&lt;/p&gt;
+&lt;p&gt;Let&amp;rsquo;s create our first DaemonSet:&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;I came first daemonset.yaml&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;The content should be as follows:&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;yaml apiVersion: apps / v1 kind: DaemonSet metadata: name: daemon-set-first spec: selector: matchLabels: system: Strigus template: metadata: labels: system: Strigus spec: containers: - name: nginx image: nginx: 1.7.9 ports: - containerPort: 80&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;But first let’s allow all of our nodes to run pods:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl taint nodes --all node-role.kubernetes.io/master-
+
+node / elliot-01 untainted
+taint &amp;#34;node-role.kubernetes.io/master:&amp;#34; not found
+taint &amp;#34;node-role.kubernetes.io/master:&amp;#34; not found
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Now we can create our DaemonSet:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl create -f first-daemonset.yaml
+
+daemonset.extensions / daemon-set-first created
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Let&amp;rsquo;s list our DaemonSet:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl get daemonset
+
+NAME DESIRED CURRENT READY UP-TO-DATE ... AGE
+daemon-set-first 3 3 3 3 30s
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Viewing the DaemonSet details:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl describe ds daemon-set-first
+
+Name: daemon-set-first
+Selector: system = Strigus
+Node-Selector: &amp;lt;none&amp;gt;
+Labels: system = Strigus
+Annotations: &amp;lt;none&amp;gt;
+Desired Number of Nodes Scheduled: 3
+Current Number of Nodes Scheduled: 3
+Number of Nodes Scheduled with Up-to-date Pods: 3
+Number of Nodes Scheduled with Available Pods: 3
+Number of Nodes Misscheduled: 0
+Pods Status: 3 Running / 0 Waiting / 0 Succeeded / 0 Failed
+Pod Template:
+Labels: system = Strigus
+Containers:
+nginx:
+Image: nginx: 1.7.9
+Port: 80 / TCP
+Host Port: 0 / TCP
+Environment: &amp;lt;none&amp;gt;
+Mounts: &amp;lt;none&amp;gt;
+Volumes: &amp;lt;none&amp;gt;
+Events:
+Type Reason Age From Message
+
+---
+
+Normal SuccessfulCreate 41s daemonset-controller Created pod: daemon-set-first-jl6f5
+Normal SuccessfulCreate 412 daemonset-controller Created pod: daemon-set-first-jh2sp
+Normal SuccessfulCreate 412 daemonset-controller Created pod: daemon-set-first-t9rv9
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Viewing pod details:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl get pods -o wide
+
+NAME READY STATUS RESTARTS AGE .. NODE
+daemon-set-first .. 1/1 Running 0 1m elliot-01
+daemon-set-first .. 1/1 Running 0 1m elliot-02
+daemon-set-first .. 1/1 Running 0 1m elliot-03
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;As we can see we have one pod per node running our &lt;code&gt; daemon-set-first&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Let&amp;rsquo;s change the image of this pod directly in DaemonSet, using the command &lt;code&gt; kubectl set&lt;/code&gt;:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl set image ds daemon-set-first nginx = nginx: 1.15.0
+
+daemonset.extensions / daemon-set-first image updated
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Let&amp;rsquo;s confirm that the image has really been changed:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl describe ds daemon-set-first
+
+Name: daemon-set-first
+Selector: system = Strigus
+Node-Selector: &amp;lt;none&amp;gt;
+Labels: system = Strigus
+Annotations: &amp;lt;none&amp;gt;
+Desired Number of Nodes Scheduled: 3
+Current Number of Nodes Scheduled: 3
+Number of Nodes Scheduled with Up-to-date Pods: 0
+Number of Nodes Scheduled with Available Pods: 3
+Number of Nodes Misscheduled: 0
+Pods Status: 3 Running / 0 Waiting / 0 Succeeded / 0 Failed
+Pod Template:
+Labels: system = Strigus
+Containers:
+nginx:
+Image: nginx: 1.15.0
+Port: 80 / TCP
+Host Port: 0 / TCP
+Environment: &amp;lt;none&amp;gt;
+Mounts: &amp;lt;none&amp;gt;
+Volumes: &amp;lt;none&amp;gt;
+Events:
+Type Reason Age From Message
+
+---
+
+Normal SuccessfulCreate 2m daemonset-controller Created pod: daemon-set-first-jl6f5
+Normal SuccessfulCreate 2m daemonset-controller Created pod: daemon-set-first-jh2sp
+Normal SuccessfulCreate 2m daemonset-controller Created pod: daemon-set-first-t9rv9
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Now let&amp;rsquo;s check if the pod images are up to date:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl get pods
+
+NAME READY STATUS RESTARTS AGE
+daemon-set-first-jh2sp 1/1 Running 0 2m
+daemon-set-first-jl6f5 1/1 Running 0 2m
+daemon-set-first-t9rv9 1/1 running 0 2m
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;As we can see, we had no restart on the pods.&lt;/p&gt;
+&lt;p&gt;Let&amp;rsquo;s check the image running on one of the pods:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl describe pod daemon-set-first-jh2sp | grep -i image:
+
+Image: nginx: 1.7.9
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Exactly, we were unable to change information from the running DaemonSet.&lt;/p&gt;
+&lt;p&gt;What if the pod is deleted?&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl delete pod daemon-set-first-jh2sp
+
+pod &amp;#34;daemon-set-first-jh2sp&amp;#34; deleted
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Viewing the pods:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl get pods
+
+NAME READY STATUS RESTARTS AGE
+daemon-set-first-hp4qc 1/1 Running 0 3s
+daemon-set-first-jl6f5 1/1 running 0 10m
+daemon-set-first-t9rv9 1/1 running 0 10m
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Let&amp;rsquo;s list the new Pod that was created, after deleting the old Pod:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl describe pod daemon-set-first-hp4qc | grep -i image:
+
+    Image: nginx: 1.15.0
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Now a Pod that was already running:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl describe pod daemon-set-first-jl6f5 | grep -i image:
+
+    Image: nginx: 1.7.9
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;As we can see, to update all the pods in DaemonSet we need to recreate it or destroy all the pods related to it, but isn&amp;rsquo;t that too bad? Yes, it&amp;rsquo;s really bad. To improve our lives we have the option &lt;code&gt; RollingUpdate&lt;/code&gt; that we will see in the next chapter.&lt;/p&gt;
+&lt;h1 id=&#34;rollouts-and-rollbacks&#34;&gt;Rollouts and Rollbacks&lt;/h1&gt;
+&lt;p&gt;Now let&amp;rsquo;s imagine that our last edition using the command &lt;code&gt; kubectl set&lt;/code&gt; in DaemonSet was not correct and we need to go back to the previous configuration, where the image version was different, how do we do it?&lt;/p&gt;
+&lt;p&gt;It&amp;rsquo;s very simple, for that there is &lt;em&gt;Rollout&lt;/em&gt;. With it you can check what were the changes that happened in your Deployment or DaemonSet, as if it were a version. Look! (With the voice of Nelson Rubens)&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl rollout history ds daemon-set-first
+
+daemonsets &amp;#34;daemon-set-first&amp;#34;
+REVISION CHANGE-CAUSE
+1 &amp;lt;none&amp;gt;
+2 &amp;lt;none&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;It will show two lines, the first which is the original, with the image of &lt;code&gt; nginx: 1.7.9&lt;/code&gt; and the second already with the image &lt;code&gt; nginx: 1.15.0&lt;/code&gt;. The information is not very detailed, do you agree?&lt;/p&gt;
+&lt;p&gt;Here&amp;rsquo;s how to check the details of each of these entries, which are called ** revision **.&lt;/p&gt;
+&lt;p&gt;Viewing revision 1:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl rollout history ds daemon-set-first --revision = 1
+
+daemonsets &amp;#34;daemon-set-first&amp;#34; with revision # 1
+Pod Template:
+Labels: system = DaemonOne
+Containers:
+nginx:
+Image: nginx: 1.7.9
+Port: 80 / TCP
+Host Port: 0 / TCP
+Environment: &amp;lt;none&amp;gt;
+Mounts: &amp;lt;none&amp;gt;
+Volumes: &amp;lt;none&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Viewing revision 2:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl rollout history ds daemon-set-first --revision = 2
+
+daemonsets &amp;#34;daemon-set-first&amp;#34; with revision # 2
+Pod Template:
+Labels: system = DaemonOne
+Containers:
+nginx:
+Image: nginx: 1.15.0
+Port: 80 / TCP
+Host Port: 0 / TCP
+Environment: &amp;lt;none&amp;gt;
+Mounts: &amp;lt;none&amp;gt;
+Volumes: &amp;lt;none&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;To return to the desired revision, simply do the following:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl rollout undo ds daemon-set-first --to-revision = 1
+
+daemonset.extensions / daemon-set-first rolled back
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Notice that we changed the &lt;code&gt; history&lt;/code&gt; for &lt;code&gt; undo&lt;/code&gt; and the &lt;code&gt; revision&lt;/code&gt; for &lt;code&gt; to-revision&lt;/code&gt;, so we will do the ** rollback ** in our DaemonSet, and return the version of the image that we wish. 😃&lt;/p&gt;
+&lt;hr&gt;
+&lt;blockquote&gt;
+&lt;p&gt;NOTE: By default, DaemonSet stores only the last 10 revisions. To change the maximum number of revisions in our Daemonset, run the following command.
+Source: &lt;a href=&#34;https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;hr&gt;
+&lt;p&gt;&lt;code&gt;kubectl edit daemonsets.apps daemon-set-first&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;Change the quantity in the &lt;code&gt; revisionHistoryLimit&lt;/code&gt; parameter:&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;yaml revisionHistoryLimit: 10&lt;/code&gt;&lt;/p&gt;
+&lt;hr&gt;
+&lt;p&gt;Returning to our line of reasoning, to follow the rollout, execute the following command:&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;kubectl rollout status ds daemon-set-first&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;Let&amp;rsquo;s confirm that we are already running the new image and one of our pods:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl describe pod daemon-set-first-hp4qc | grep -i image:
+
+Image: nginx: 1.15.0
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;It didn&amp;rsquo;t work, why? Because we will have to kill the Pod to be recreated with the new settings.&lt;/p&gt;
+&lt;p&gt;Let&amp;rsquo;s fine-tune our DaemonSet, add the RollingUpdate and this guy will automatically update the Pods when there are changes.&lt;/p&gt;
+&lt;p&gt;Come on, first let&amp;rsquo;s remove the &lt;code&gt; DaemonSet&lt;/code&gt;, add two new information to our yaml manifest and then create another DaemonSet instead:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl delete -f first-daemonset.yaml
+
+daemonset.extensions &amp;#34;daemon-set-first&amp;#34; deleted
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Edit the &lt;code&gt; first-daemonset.yaml&lt;/code&gt; file.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;I came first daemonset.yaml&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;The content should be as follows:&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;yaml apiVersion: apps / v1 kind: DaemonSet metadata: name: daemon-set-first spec: selector: matchLabels: system: Strigus template: metadata: labels: system: Strigus spec: containers: - name: nginx image: nginx: 1.7.9 ports: - containerPort: 80 updateStrategy: type: RollingUpdate&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;Create the DaemonSet:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl create -f first-daemonset.yaml
+
+daemonset.extensions / daemon-set-first created
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Success, let&amp;rsquo;s check if our DaemonSet has started up correctly.&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl get daemonset
+
+NAME DESIRED CURRENT READY ... AGE
+daemon-set-first 3 3 3 ... 5m
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Viewing the DaemonSet details:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl describe ds daemon-set-first
+
+Name: daemon-set-first
+Selector: system = DaemonOne
+Node-Selector: &amp;lt;none&amp;gt;
+Labels: system = DaemonOne
+Annotations: &amp;lt;none&amp;gt;
+Desired Number of Nodes Scheduled: 3
+Current Number of Nodes Scheduled: 3
+Number of Nodes Scheduled with Up-to-date Pods: 3
+Number of Nodes Scheduled with Available Pods: 3
+Number of Nodes Misscheduled: 0
+Pods Status: 3 Running / 0 Waiting / 0 Succeeded / 0 Failed
+Pod Template:
+Labels: system = DaemonOne
+Containers:
+nginx:
+Image: nginx: 1.7.9
+Port: 80 / TCP
+Host Port: 0 / TCP
+Environment: &amp;lt;none&amp;gt;
+Mounts: &amp;lt;none&amp;gt;
+Volumes: &amp;lt;none&amp;gt;
+Events:
+Type Reason Age From Message
+
+---
+
+Normal SuccessfulCreate 5m daemonset-controller Created pod: daemon-set-first-52k8k
+Normal SuccessfulCreate 5m daemonset-controller Created pod: daemon-set-first-6sln2
+Normal SuccessfulCreate 5m daemonset-controller Created pod: daemon-set-first-9v2w9
+daemonset-controller Created pod: daemon-set-first-9dktj
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Let&amp;rsquo;s check out our newly added &lt;code&gt; RollingUpdate&lt;/code&gt; configuration:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl get ds daemon-set-first -o yaml | grep -A 2 Strategy
+
+updateStrategy:
+rollingUpdate:
+maxUnavailable: 1
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Now with our DaemonSet already configured, let&amp;rsquo;s change that same &lt;code&gt; nginx&lt;/code&gt; image and see what actually happens:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl set image ds daemon-set-first nginx = nginx: 1.15.0
+
+daemonset.extensions / daemon-set-first image updated
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Let&amp;rsquo;s list the DaemonSet and the Pods to make sure nothing is broken:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl get daemonset
+
+NAME DESIRED CURRENT READY ... AGE
+daemon-set-first 3 3 3 ... 6m
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Viewing the pods:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl get pods -o wide
+
+NAME READY STATUS RESTARTS AGE NODE
+daemon-set-first-7m ... 1/1 Running 0 10s elliot-02
+daemon-set-first-j7 ... 1/1 Running 0 10s elliot-03
+daemon-set-first-v5 ... 1/1 Running 0 10s elliot-01
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;As we can see, our DaemonSet has remained the same, but the Pods have been recreated, we will detail the DaemonSet to see the changes made.&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl describe ds daemon-set-first
+
+Name: daemon-set-first
+Selector: system = DaemonOne
+Node-Selector: &amp;lt;none&amp;gt;
+Labels: system = DaemonOne
+Annotations: &amp;lt;none&amp;gt;
+Desired Number of Nodes Scheduled: 3
+Current Number of Nodes Scheduled: 3
+Number of Nodes Scheduled with Up-to-date Pods: 3
+Number of Nodes Scheduled with Available Pods: 3
+Number of Nodes Misscheduled: 0
+Pods Status: 3 Running / 0 Waiting / 0 Succeeded / 0 Failed
+Pod Template:
+Labels: system = DaemonOne
+Containers:
+nginx:
+Image: nginx: 1.15.0
+Port: 80 / TCP
+Host Port: 0 / TCP
+Environment: &amp;lt;none&amp;gt;
+Mounts: &amp;lt;none&amp;gt;
+Volumes: &amp;lt;none&amp;gt;
+Events:
+Type Reason Age From Message
+
+---
+
+Normal SuccessfulCreate 8m daemonset-controller Created pod: daemon-set-first-52k8k
+Normal SuccessfulCreate 8m daemonset-controller Created pod: daemon-set-first-6sln2
+Normal SuccessfulCreate 8m daemonset-controller Created pod: daemon-set-first-9v2w9
+Normal SuccessfulDelete 10m daemonset-controller Deleted pod: daemon-set-first-6sln2
+Normal SuccessfulCreate 1m daemonset-controller Created pod: daemon-set-first-j788v
+Normal SuccessfulDelete 10m daemonset-controller Deleted pod: daemon-set-first-52k8k
+Normal SuccessfulCreate 1m daemonset-controller Created pod: daemon-set-first-7mpwr
+Normal SuccessfulDelete 10m daemonset-controller Deleted pod: daemon-set-first-9v2w9
+Normal SuccessfulCreate 1m daemonset-controller Created pod: daemon-set-first-v5m47
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Look how cool! If we look at the ** Events ** field we can see that the &lt;code&gt; RollingUpdate&lt;/code&gt; killed the old pods and recreated with the new image that we changed using the &lt;code&gt; kubectl set&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;We can also check in one of the Pods if this change really happened.&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl describe pod daemon-set-first-j788v | grep -i image:
+
+Image: nginx: 1.15.0
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;See? Very sensational this business of &lt;code&gt; RollingUpdate&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Let&amp;rsquo;s check out our change history:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl rollout history ds daemon-set-first
+
+daemonsets &amp;#34;daemon-set-first&amp;#34;
+REVISION CHANGE-CAUSE
+1 &amp;lt;none&amp;gt;
+2 &amp;lt;none&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Yes, we have two changes. Let&amp;rsquo;s drill down to see which is which.&lt;/p&gt;
+&lt;p&gt;Viewing revision 1:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl rollout history ds daemon-set-first --revision = 1
+
+daemonsets &amp;#34;daemon-set-first&amp;#34; with revision # 1
+Pod Template:
+Labels: system = DaemonOne
+Containers:
+nginx:
+Image: nginx: 1.7.9
+Port: 80 / TCP
+Host Port: 0 / TCP
+Environment: &amp;lt;none&amp;gt;
+Mounts: &amp;lt;none&amp;gt;
+Volumes: &amp;lt;none&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Viewing revision 2:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl rollout history ds daemon-set-first --revision = 2
+
+daemonsets &amp;#34;daemon-set-first&amp;#34; with revision # 2
+Pod Template:
+Labels: system = DaemonOne
+Containers:
+nginx:
+Image: nginx: 1.15.0
+Port: 80 / TCP
+Host Port: 0 / TCP
+Environment: &amp;lt;none&amp;gt;
+Mounts: &amp;lt;none&amp;gt;
+Volumes: &amp;lt;none&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Now let&amp;rsquo;s rollback our DaemonSet to revision 1:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl rollout undo ds daemon-set-first --to-revision = 1
+
+daemonset.extensions / daemon-set-first rolled back
+kubectl rollout undo ds daem kubectl rollout undo ds daem
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Viewing the pods:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl get pods
+
+NAME READY STATUS RESTARTS AGE
+daemon-set-first-c2jjk 1/1 Running 0 19s
+daemon-set-first-hrn48 1/1 Running 0 19s
+daemon-set-first-t6mr9 1/1 Running 0 19s
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Viewing pod details:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl describe pod daemon-set-first-c2jjk | grep -i image:
+
+Image: nginx: 1.7.9
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Sensational isn&amp;rsquo;t it?&lt;/p&gt;
+&lt;p&gt;Did it go bad?&lt;/p&gt;
+&lt;p&gt;Just return to the other setting:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl rollout undo ds daemon-set-first --to-revision = 2
+
+daemonset.extensions / daemon-set-first rolled back
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Viewing the rollout status:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl rollout status ds daemon-set-first
+
+daemon set &amp;#34;daemon-set-first&amp;#34; successfully rolled out
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Viewing the pods:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl get pods
+
+NAME READY STATUS RESTARTS AGE
+daemon-set-first-jzck9 1/1 Running 0 32s
+daemon-set-first-td7h5 1/1 Running 0 29s
+daemon-set-first-v5c86 1/1 Running 0 40s
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Viewing pod details:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl describe pod daemon-set-first-jzck9 | grep -i image:
+
+Image: nginx: 1.15.0
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Now let&amp;rsquo;s delete our DaemonSet:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl delete ds daemon-set-first
+
+daemonset.extensions &amp;#34;daemon-set-first&amp;#34; deleted
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
+    
+    <item>
+      <title>Deployment</title>
+      <link>https://ng-tech.icu/books/k8s-series/%E5%B7%A5%E4%BD%9C%E8%BD%BD%E8%8D%B7/deployment/%E5%A3%B0%E6%98%8E%E4%B8%8E%E7%AE%A1%E7%90%86/deployment/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/k8s-series/%E5%B7%A5%E4%BD%9C%E8%BD%BD%E8%8D%B7/deployment/%E5%A3%B0%E6%98%8E%E4%B8%8E%E7%AE%A1%E7%90%86/deployment/</guid>
+      <description>&lt;h1 id=&#34;deployment-操作&#34;&gt;Deployment 操作&lt;/h1&gt;
+&lt;p&gt;当你使用 &lt;code&gt;kubectl create deployment&lt;/code&gt; 时，你正在部署一个名为 Deployment 的对象。与其他对象一样，Deployment 也可以使用 YAML 或 JSON 文件（即 manifests）创建。如果你想改变对象的任何配置，例如 pod，你可以使用 kubectl apply，通过 manifest，甚至通过 kubectl edit。通常情况下，当您对 Deployment 进行更改时，会创建一个新版本的 ReplicaSet，它将成为资产并导致其前身被禁用。较早版本的 ReplicaSets 将被保留，从而在发生故障时可以回滚。&lt;/p&gt;
+&lt;p&gt;标签对于集群的管理是很重要的，因为有了标签就可以搜索或选择集群中的资源，使你能够以小类来组织，从而方便你的搜索和组织你的豆荚和集群资源。标签不是 API 服务器的功能，它们是以键值格式存储在元数据中的。&lt;/p&gt;
+&lt;h1 id=&#34;生命周期管理&#34;&gt;生命周期管理&lt;/h1&gt;
+&lt;h2 id=&#34;创建&#34;&gt;创建&lt;/h2&gt;
+&lt;p&gt;比如一个简单的 Nginx 应用可以定义为：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-yml&#34; data-lang=&#34;yml&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;apiVersion&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;l&#34;&gt;extensions/v1beta1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;kind&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;l&#34;&gt;Deployment&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;metadata&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;name&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;l&#34;&gt;nginx-deployment&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;spec&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;replicas&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;template&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;metadata&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;      &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;labels&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;        &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;app&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;l&#34;&gt;nginx&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;spec&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;      &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;containers&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;        &lt;/span&gt;- &lt;span class=&#34;nt&#34;&gt;name&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;l&#34;&gt;nginx&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;          &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;image&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;l&#34;&gt;nginx:1.7.9&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;          &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;ports&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;            &lt;/span&gt;- &lt;span class=&#34;nt&#34;&gt;containerPort&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;m&#34;&gt;80&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;然后通过如下操作进行创建：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl create -f https://raw.githubusercontent.com/kubernetes-client/python/master/examples/nginx-deployment.yaml --record
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;deployment &lt;span class=&#34;s2&#34;&gt;&amp;#34;nginx-deployment&amp;#34;&lt;/span&gt; created
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl get deployments
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;NAME               DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;nginx-deployment   &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;            &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;           1s
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 等待一段时间&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl get deployments
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;NAME               DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;nginx-deployment   &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;            &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;           18s
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;可以看到 Deployment 已经创建了 3 个 replica，所有的 replica 都已经是最新的了（包含最新的 pod template），可用的（根据 Deployment 中的.spec.minReadySeconds 声明，处于已就绪状态的 pod 的最少个数）。执行 kubectl get rs 和 kubectl get pods 会显示 Replica Set（RS）和 Pod 已创建。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# ReplicaSet 的名字总是&amp;lt;Deployment的名字&amp;gt;-&amp;lt;pod template的hash值&amp;gt;。&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl get rs
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;NAME                          DESIRED   CURRENT   READY   AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;nginx-deployment-2035384211   &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;       18s
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;扩容&#34;&gt;扩容&lt;/h2&gt;
+&lt;p&gt;您可以使用以下命令扩容 Deployment：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl scale deployment nginx-deployment --replicas &lt;span class=&#34;m&#34;&gt;10&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;deployment &lt;span class=&#34;s2&#34;&gt;&amp;#34;nginx-deployment&amp;#34;&lt;/span&gt; scaled
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;假设您的集群中启用了 horizontal pod autoscaling，您可以给 Deployment 设置一个 autoscaler，基于当前 Pod 的 CPU 利用率选择最少和最多的 Pod 数。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl autoscale deployment nginx-deployment --min&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;m&#34;&gt;10&lt;/span&gt; --max&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;m&#34;&gt;15&lt;/span&gt; --cpu-percent&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;m&#34;&gt;80&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;deployment &lt;span class=&#34;s2&#34;&gt;&amp;#34;nginx-deployment&amp;#34;&lt;/span&gt; autoscaled
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;RollingUpdate Deployment 支持同时运行一个应用的多个版本。或者 autoscaler 扩 容 RollingUpdate Deployment 的时候，正在中途的 rollout（进行中或者已经暂停的），为了降低风险，Deployment controller 将会平衡已存在的活动中的 ReplicaSet（有 Pod 的 ReplicaSet）和新加入的 replica。这被称为比例扩容。&lt;/p&gt;
+&lt;p&gt;譬如正在运行中含有 10 个 replica 的 Deployment。maxSurge=3，maxUnavailable=2：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl get deploy
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;NAME                 DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;nginx-deployment     &lt;span class=&#34;m&#34;&gt;10&lt;/span&gt;        &lt;span class=&#34;m&#34;&gt;10&lt;/span&gt;        &lt;span class=&#34;m&#34;&gt;10&lt;/span&gt;           &lt;span class=&#34;m&#34;&gt;10&lt;/span&gt;          50s
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 更新了错误的镜像&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl &lt;span class=&#34;nb&#34;&gt;set&lt;/span&gt; image deploy/nginx-deployment &lt;span class=&#34;nv&#34;&gt;nginx&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;nginx:sometag
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;deployment &lt;span class=&#34;s2&#34;&gt;&amp;#34;nginx-deployment&amp;#34;&lt;/span&gt; image updated
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 启动了一个包含 ReplicaSet nginx-deployment-1989198191 的新的 rollout，但是它被阻塞&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl get rs
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;NAME                          DESIRED   CURRENT   READY     AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;nginx-deployment-1989198191   &lt;span class=&#34;m&#34;&gt;5&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;5&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;         9s
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;nginx-deployment-618515232    &lt;span class=&#34;m&#34;&gt;8&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;8&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;8&lt;/span&gt;         1m
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;autoscaler 将 Deployment 的 repllica 数目增加到了 15 个。Deployment controller 需要判断在哪里增加这 5 个新的 replica。如果我们没有谁用比例扩容，所有的 5 个 replica 都会加到一个新的 ReplicaSet 中。如果使用比例扩容，新添加的 replica 将传播到所有的 ReplicaSet 中。大的部分加入 replica 数最多的 ReplicaSet 中，小的部分加入到 replica 数少的 ReplciaSet 中。0 个 replica 的 ReplicaSet 不会被扩容。在我们上面的例子中，3 个 replica 将添加到旧的 ReplicaSet 中，2 个 replica 将添加到新的 ReplicaSet 中。rollout 进程最终会将所有的 replica 移动到新的 ReplicaSet 中，假设新的 replica 成为健康状态。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl get deploy
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;NAME                 DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;nginx-deployment     &lt;span class=&#34;m&#34;&gt;15&lt;/span&gt;        &lt;span class=&#34;m&#34;&gt;18&lt;/span&gt;        &lt;span class=&#34;m&#34;&gt;7&lt;/span&gt;            &lt;span class=&#34;m&#34;&gt;8&lt;/span&gt;           7m
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl get rs
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;NAME                          DESIRED   CURRENT   READY     AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;nginx-deployment-1989198191   &lt;span class=&#34;m&#34;&gt;7&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;7&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;         7m
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;nginx-deployment-618515232    &lt;span class=&#34;m&#34;&gt;11&lt;/span&gt;        &lt;span class=&#34;m&#34;&gt;11&lt;/span&gt;        &lt;span class=&#34;m&#34;&gt;11&lt;/span&gt;        7m
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;更新&#34;&gt;更新&lt;/h2&gt;
+&lt;p&gt;Kubernetes 提供了多种升级方案，Recreate 即删除所有已存在的 pod,重新创建新的; RollingUpdate 即滚动升级，逐步替换的策略，同时滚动升级时，支持更多的附加参数，例如设置最大不可用 Pod 数量，最小升级间隔时间等等。Deployment 的 rollout 当且仅当 Deployment 的 pod template（例如.spec.template）中的 label 更新或者镜像更改时被触发。其他更新，例如扩容 Deployment 不会触发 rollout。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 让 nginx pod 使用nginx:1.9.1的镜像来代替原来的nginx:1.7.9的镜像&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl &lt;span class=&#34;nb&#34;&gt;set&lt;/span&gt; image deployment/nginx-deployment &lt;span class=&#34;nv&#34;&gt;nginx&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;nginx:1.9.1
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;deployment &lt;span class=&#34;s2&#34;&gt;&amp;#34;nginx-deployment&amp;#34;&lt;/span&gt; image updated
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;我们可以使用 edit 命令来编辑 Deployment，修改 .spec.template.spec.containers[0].image，将 nginx:1.7.9 改写成 nginx:1.9.1。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl edit deployment/nginx-deployment
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;deployment &lt;span class=&#34;s2&#34;&gt;&amp;#34;nginx-deployment&amp;#34;&lt;/span&gt; edited
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 查看 rollout 的状态&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl rollout status deployment/nginx-deployment
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Waiting &lt;span class=&#34;k&#34;&gt;for&lt;/span&gt; rollout to finish: &lt;span class=&#34;m&#34;&gt;2&lt;/span&gt; out of &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt; new replicas have been updated...
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;deployment &lt;span class=&#34;s2&#34;&gt;&amp;#34;nginx-deployment&amp;#34;&lt;/span&gt; successfully rolled out
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 查看关联的 ReplicaSet 信息&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl get rs
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;NAME                          DESIRED   CURRENT   READY   AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;nginx-deployment-1564180365   &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;       6s
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;nginx-deployment-2035384211   &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;       36s
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;我们通过执行 kubectl get rs 可以看到 Deployment 更新了 Pod，通过创建一个新的 ReplicaSet 并扩容了 3 个 replica，同时将原来的 ReplicaSet 缩容到了 0 个 replica。执行 get pods 只会看到当前的新的 pod。&lt;/p&gt;
+&lt;p&gt;Deployment 可以保证在升级时只有一定数量的 Pod 是 down 的。默认的，它会确保至少有比期望的 Pod 数量少一个是 up 状态（最多一个不可用）。Deployment 同时也可以确保只创建出超过期望数量的一定数量的 Pod。默认的，它会确保最多比期望的 Pod 数量多一个的 Pod 是 up 的（最多 1 个 surge）。&lt;/p&gt;
+&lt;h2 id=&#34;回滚&#34;&gt;回滚&lt;/h2&gt;
+&lt;p&gt;有时候您可能想回退一个 Deployment，例如，当 Deployment 不稳定时，比如一直 crash looping。默认情况下，kubernetes 会在系统中保存前两次的 Deployment 的 rollout 历史记录，以便您可以随时回退（您可以修改 revision history limit 来更改保存的 revision 数）。&lt;/p&gt;
+&lt;p&gt;只要 Deployment 的 rollout 被触发就会创建一个 revision。也就是说当且仅当 Deployment 的 Pod template（如.spec.template）被更改，例如更新 template 中的 label 和容器镜像时，就会创建出一个新的 revision。其他的更新，比如扩容 Deployment 不会创建 revision，因此我们可以很方便的手动或者自动扩容。这意味着当您回退到历史 revision 时，只有 Deployment 中的 Pod template 部分才会回退。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 检查下 Deployment 的 revision&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl rollout &lt;span class=&#34;nb&#34;&gt;history&lt;/span&gt; deployment/nginx-deployment
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;deployments &lt;span class=&#34;s2&#34;&gt;&amp;#34;nginx-deployment&amp;#34;&lt;/span&gt;:
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;REVISION    CHANGE-CAUSE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;m&#34;&gt;1&lt;/span&gt;           kubectl create -f https://kubernetes.io/docs/user-guide/nginx-deployment.yaml--record
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;m&#34;&gt;2&lt;/span&gt;           kubectl &lt;span class=&#34;nb&#34;&gt;set&lt;/span&gt; image deployment/nginx-deployment &lt;span class=&#34;nv&#34;&gt;nginx&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;nginx:1.9.1
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;           kubectl &lt;span class=&#34;nb&#34;&gt;set&lt;/span&gt; image deployment/nginx-deployment &lt;span class=&#34;nv&#34;&gt;nginx&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;nginx:1.91
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;因为我们创建 Deployment 的时候使用了&amp;ndash;record 参数可以记录命令，我们可以很方便的查看每次 revision 的变化。查看单个 revision 的详细信息：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl rollout &lt;span class=&#34;nb&#34;&gt;history&lt;/span&gt; deployment/nginx-deployment --revision&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;m&#34;&gt;2&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;deployments &lt;span class=&#34;s2&#34;&gt;&amp;#34;nginx-deployment&amp;#34;&lt;/span&gt; revision &lt;span class=&#34;m&#34;&gt;2&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  Labels:       &lt;span class=&#34;nv&#34;&gt;app&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;nginx
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;          pod-template-hash&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;m&#34;&gt;1159050644&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  Annotations:  kubernetes.io/change-cause&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;kubectl &lt;span class=&#34;nb&#34;&gt;set&lt;/span&gt; image deployment/nginx-deployment &lt;span class=&#34;nv&#34;&gt;nginx&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;nginx:1.9.1
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  Containers:
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   nginx:
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    Image:      nginx:1.9.1
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    Port:       80/TCP
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;     QoS Tier:
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        cpu:      BestEffort
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        memory:   BestEffort
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    Environment Variables:      &amp;lt;none&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  No volumes.
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;同样可以通过 rollout 命令来回退版本：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 回退当前的 rollout 到之前的版本&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl rollout undo deployment/nginx-deployment
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;deployment &lt;span class=&#34;s2&#34;&gt;&amp;#34;nginx-deployment&amp;#34;&lt;/span&gt; rolled back
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 使用 --revision参数指定某个历史版本&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl rollout undo deployment/nginx-deployment --to-revision&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;m&#34;&gt;2&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;deployment &lt;span class=&#34;s2&#34;&gt;&amp;#34;nginx-deployment&amp;#34;&lt;/span&gt; rolled back
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;可以通过设置 &lt;code&gt;.spec.revisonHistoryLimit&lt;/code&gt; 项来指定 deployment 最多保留多少 revision 历史记录。默认的会保留所有的 revision；如果将该项设置为 0，Deployment 就不允许回退了。&lt;/p&gt;
+&lt;h2 id=&#34;暂停和恢复&#34;&gt;暂停和恢复&lt;/h2&gt;
+&lt;p&gt;您可以在发出一次或多次更新前暂停一个 Deployment，然后再恢复它。这样您就能在 Deployment 暂停期间进行多次修复工作，而不会发出不必要的 rollout。例如使用刚刚创建 Deployment：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl get deploy
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;NAME      DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;nginx     &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;            &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;           1m
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;[&lt;/span&gt;mkargaki@dhcp129-211 kubernetes&lt;span class=&#34;o&#34;&gt;]&lt;/span&gt;$ kubectl get rs
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;NAME               DESIRED   CURRENT   READY     AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;nginx-2142116321   &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;         1m
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;使用以下命令暂停 Deployment：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl rollout pause deployment/nginx-deployment
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;deployment &lt;span class=&#34;s2&#34;&gt;&amp;#34;nginx-deployment&amp;#34;&lt;/span&gt; paused
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;然后更新 Deplyment 中的镜像：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl &lt;span class=&#34;nb&#34;&gt;set&lt;/span&gt; image deploy/nginx &lt;span class=&#34;nv&#34;&gt;nginx&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;nginx:1.9.1
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;deployment &lt;span class=&#34;s2&#34;&gt;&amp;#34;nginx-deployment&amp;#34;&lt;/span&gt; image updated
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;注意新的 rollout 启动了：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl rollout &lt;span class=&#34;nb&#34;&gt;history&lt;/span&gt; deploy/nginx
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;deployments &lt;span class=&#34;s2&#34;&gt;&amp;#34;nginx&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;REVISION  CHANGE-CAUSE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;m&#34;&gt;1&lt;/span&gt;   &amp;lt;none&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl get rs
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;NAME               DESIRED   CURRENT   READY     AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;nginx-2142116321   &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;         2m
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;您可以进行任意多次更新，例如更新使用的资源：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl &lt;span class=&#34;nb&#34;&gt;set&lt;/span&gt; resources deployment nginx -c&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;nginx --limits&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;nv&#34;&gt;cpu&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;200m,memory&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;512Mi
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;deployment &lt;span class=&#34;s2&#34;&gt;&amp;#34;nginx&amp;#34;&lt;/span&gt; resource requirements updated
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Deployment 暂停前的初始状态将继续它的功能，而不会对 Deployment 的更新产生任何影响，只要 Deployment是暂停的。
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;最后，恢复这个 Deployment，观察完成更新的 ReplicaSet 已经创建出来了：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl rollout resume deploy nginx
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;deployment &lt;span class=&#34;s2&#34;&gt;&amp;#34;nginx&amp;#34;&lt;/span&gt; resumed
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;过滤与选择&#34;&gt;过滤与选择&lt;/h1&gt;
+&lt;h2 id=&#34;根据标签过滤&#34;&gt;根据标签过滤&lt;/h2&gt;
+&lt;p&gt;当我们创建 Deployments 时，我们添加了以下标签：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;labels&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;run&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;l&#34;&gt;nginx&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;dc&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;l&#34;&gt;UK&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;nn&#34;&gt;---&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;labels&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;run&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;l&#34;&gt;nginx&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;dc&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;l&#34;&gt;Netherlands&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Labels 是用来组织集群的，让我们列出我们的 Pods 寻找 Labels。首先让我们用 dc=UK 和 dc=Netherlands 这两个标签进行搜索。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl get pods -l &lt;span class=&#34;nv&#34;&gt;dc&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;UK
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;NAME                                 READY  STATUS   RESTARTS   AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;primeiro-deployment-68c9dbf8b8-kjqpt 1/1    Running  &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;          3m
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl get pods -l &lt;span class=&#34;nv&#34;&gt;dc&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;Netherlands
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;NAME                                READY STATUS    RESTARTS   AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;segundo-deployment-59db86c584-cf9pp 1/1   Running   &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;          4m
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;如果你想要更个性化的输出，我们可以列举如下：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;kubectl get pod -L dc
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;NAME                         READY STATUS   RESTARTS AGE DC
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;primeiro-deployment-68c9...  1/1   Running  &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;        5m  UK
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;segundo-deployment-59db ...  1/1   Running  &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;        5m  Netherlands
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</description>
+    </item>
+    
+    <item>
+      <title>ReplicaSet</title>
+      <link>https://ng-tech.icu/books/k8s-series/%E5%B7%A5%E4%BD%9C%E8%BD%BD%E8%8D%B7/deployment/%E5%A3%B0%E6%98%8E%E4%B8%8E%E7%AE%A1%E7%90%86/replicaset/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/k8s-series/%E5%B7%A5%E4%BD%9C%E8%BD%BD%E8%8D%B7/deployment/%E5%A3%B0%E6%98%8E%E4%B8%8E%E7%AE%A1%E7%90%86/replicaset/</guid>
+      <description>&lt;h1 id=&#34;replicaset&#34;&gt;ReplicaSet&lt;/h1&gt;
+&lt;p&gt;ReplicaSet 可以保证 Deployment 所需的 pod 和资源数量。一旦创建了部署，ReplicaSet 就会控制运行的 pod 数量，如果有任何 pod 完成，它将检测并请求执行另一个 pod，从而保证请求的复制数量。让我们创建第一个 ReplicaSet：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;l&#34;&gt;vim primeiro-replicaset.yaml&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;apiVersion &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;l&#34;&gt;apps / v1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;kind &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;l&#34;&gt;ReplicaSet&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;metadata &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;   &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;name &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;l&#34;&gt;replica-set-first&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;spec &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;   &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;replicas &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;selector &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;     &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;matchLabels &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;       &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;system &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;l&#34;&gt;Giropops&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;template &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;     &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;metadata &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;       &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;labels &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;         &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;system &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;l&#34;&gt;Giropops&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;spec &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;       &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;containers &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;      &lt;/span&gt;- &lt;span class=&#34;nt&#34;&gt;name &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;l&#34;&gt;nginx&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;        &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;image : nginx&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;m&#34;&gt;1.7.9&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;        &lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;ports &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;        &lt;/span&gt;- &lt;span class=&#34;nt&#34;&gt;containerPort &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;m&#34;&gt;80&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;从 manifest 中创建 ReplicaSet：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl create -f primeiro-replicaset.yaml
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;replicaset.extensions/replica-set-primeiro created
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl get replicaset
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;NAME                   DESIRED   CURRENT   READY    AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;replica-set-primeiro   &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt;         &lt;span class=&#34;m&#34;&gt;1&lt;/span&gt;        2s
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl get pods
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;NAME                         READY     STATUS    RESTARTS   AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;replica-set-primeiro-6drmt   1/1       Running   &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;          12s
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;replica-set-primeiro-7j59w   1/1       Running   &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;          12s
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;replica-set-primeiro-mg8q9   1/1       Running   &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;          12s
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl describe rs replica-set-primeiro
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Name:         replica-set-primeiro
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Namespace:    default
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Selector:     &lt;span class=&#34;nv&#34;&gt;system&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;Giropops
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Labels:       &lt;span class=&#34;nv&#34;&gt;system&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;Giropops
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Annotations:  &amp;lt;none&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Replicas:     &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt; current / &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt; desired
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Pods Status:  &lt;span class=&#34;m&#34;&gt;3&lt;/span&gt; Running / &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt; Waiting / &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt; Succeeded / &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt; Failed
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Pod Template:
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  Labels:  &lt;span class=&#34;nv&#34;&gt;system&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;Giropops
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  Containers:
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   nginx:
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    Image:        nginx:1.7.9
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    Port:         80/TCP
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    Host Port:    0/TCP
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    Environment:  &amp;lt;none&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    Mounts:       &amp;lt;none&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  Volumes:        &amp;lt;none&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Events:
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  Type    Reason            Age   From                   Message
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  ----    ------            ----  ----                   -------
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  Normal  SuccessfulCreate  31s   replicaset-controller  Created pod: replica-set-primeiro-mg8q9
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  Normal  SuccessfulCreate  31s   replicaset-controller  Created pod: replica-set-primeiro-6drmt
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  Normal  SuccessfulCreate  31s   replicaset-controller  Created pod: replica-set-primeiro-7j59w
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;因此，我们可以看到所有与 ReplicaSet 相关联的 Pods，如果我们删除其中一个 Pods，会发生什么？让我们测试一下。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl delete pod replica-set-primeiro-6drmt
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;pod &lt;span class=&#34;s2&#34;&gt;&amp;#34;replica-set-primeiro-6drmt&amp;#34;&lt;/span&gt; deleted
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl get pods -l &lt;span class=&#34;nv&#34;&gt;system&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;Giropops
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;NAME                         READY     STATUS    RESTARTS   AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;replica-set-primeiro-7j59w   1/1       Running   &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;          1m
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;replica-set-primeiro-mg8q9   1/1       Running   &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;          1m
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;replica-set-primeiro-s5dz2   1/1       Running   &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;          15s
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;你有没有注意到他又重新制作了一个 Pod？ReplicaSet 的原因总是有三个 Pod 可用。我们将改为 4 个副本并重新创建 ReplicaSet，为此我们将使用之前的 kubectl edit，这样我们就可以更改已经运行的 ReplicaSet。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl edit rs replica-set-primeiro
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;apiVersion : apps / v1
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;kind : ReplicaSet
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;metadata :
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   creationTimestamp : 2018-07-05T04: 32: 42Z
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  generation : &lt;span class=&#34;m&#34;&gt;2&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  labels :
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;     system : Giropops
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  name : replica-set-first
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  namespace : default
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  resourceVersion : &lt;span class=&#34;s2&#34;&gt;&amp;#34; 471758 &amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   selfLink : / apis / extensions / v1beta1 / namespaces / default / replicasets / replica-set-first
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  uid : 753290c1-800c-11e8-b889-42010a8a0002
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;spec :
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   replicas: &lt;span class=&#34;m&#34;&gt;4&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  selector :
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;     matchLabels :
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;       system : Giropops
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  template :
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;     metadata :
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;       creationTimestamp : null
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      labels :
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;         system : Giropops
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;...
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;replicaset.extensions / replica-set-first edited
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;查看 Pod 详情。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sh&#34; data-lang=&#34;sh&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ kubectl get pods -l &lt;span class=&#34;nv&#34;&gt;system&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;Giropops
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;NAME                         READY     STATUS    RESTARTS   AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;replica-set-primeiro-7j59w   1/1       Running   &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;          2m
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;replica-set-primeiro-96hj7   1/1       Running   &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;          10s
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;replica-set-primeiro-mg8q9   1/1       Running   &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;          2m
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;replica-set-primeiro-s5dz2   1/1       Running   &lt;span class=&#34;m&#34;&gt;0&lt;/span&gt;          1m
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</description>
+    </item>
+    
+  </channel>
+</rss>

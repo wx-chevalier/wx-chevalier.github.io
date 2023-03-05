@@ -1,0 +1,25 @@
+
+---
+title: 5.服务网格
+linktitle: 5.服务网格
+type: book
+commentable: true
+---
+
+![插图](https://s2.ax1x.com/2019/11/02/KLEqv8.jpg)
+
+# 服务网格
+
+Service Mesh 的核心思路与微服务软件架构的思路是一脉相承的，即通过拆分实现解耦：将 SDK 中频繁变更的逻辑与业务逻辑分别放到不同的进程中。从广义上讲，服务网格正如 Red Hat 所描述：`一种控制应用程序内的不同模块相互共享数据的方法`。它是为适应分布式微服务环境的独特特性而构建的。在微服务构建的大型应用中，任何给定服务都可能是运行在本地或云端的多个实例上。这种动态的架构显然很难做到，随时让单个微服务与所需要的其他服务建立通信。服务网格则能够自动地实现微服务的瞬间发现和相应服务的连接。让软件开发人员和单个微服务无需考虑这方面的功能和实现。
+
+![微服务与 Sidecar](https://ww1.sinaimg.cn/large/007rAy9hgy1fz9rs2q0z4j30vi0mp10a.jpg)
+
+我们可以将服务网格的作用类比为 OSI 网络模型中第 7 级的软件定义网络（SDN）。SDN 创建了一个抽象层，使网络管理员不必处理物理网络连接，服务网格则是将应用程序的底层基础设施与软件所交互的抽象体系结构进行了解耦。Mesh，即网格的意思。Service Mesh 就是将服务像网格一样穿在一起，而真正进行网络通信的是网格内与应用程序（绿色的部分）一起部署的 Sidecar（蓝色的部分）。
+
+![Mesh 示意图](https://ngte-superbed.oss-cn-beijing.aliyuncs.com/superbed/2021/07/14/60eeab925132923bf812d675.png)
+
+在 Service Mesh 中，Sidecar 与应用程序部署在不同的进程中，不管 Sidecar 进行何种变化，应用程序对此都是是无感知的。Service Mesh 将原来集成到 SDK 中的服务发现、负载均衡等分布式能力下沉到 Sidecar 中，通过 Sidecar 的流量劫持转发应用程序的请求，所有的服务都通过自己的 Sidecar 进行相互通信。所有的 Sidecar 集合到一起，就组成了 Service Mesh 的数据平面（所有的浅蓝色方块）。数据平面中的 Sidecar 则统一由控制平面进行管理（深蓝色方块）。
+
+![数据平面与控制平面](https://ngte-superbed.oss-cn-beijing.aliyuncs.com/superbed/2021/07/14/60eeabda5132923bf8144fa4.jpg)
+
+    

@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>系统设计 | Next-gen Tech Edu</title>
+    <link>https://ng-tech.icu/books/devops-series/%E6%97%A5%E5%BF%97%E8%81%9A%E5%90%88/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/</link>
+      <atom:link href="https://ng-tech.icu/books/devops-series/%E6%97%A5%E5%BF%97%E8%81%9A%E5%90%88/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/index.xml" rel="self" type="application/rss+xml" />
+    <description>系统设计</description>
+    <generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language>
+    <image>
+      <url>https://ng-tech.icu/media/sharing.png</url>
+      <title>系统设计</title>
+      <link>https://ng-tech.icu/books/devops-series/%E6%97%A5%E5%BF%97%E8%81%9A%E5%90%88/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/</link>
+    </image>
+    
+    <item>
+      <title>采集与调度</title>
+      <link>https://ng-tech.icu/books/devops-series/%E6%97%A5%E5%BF%97%E8%81%9A%E5%90%88/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E9%87%87%E9%9B%86%E4%B8%8E%E8%B0%83%E5%BA%A6/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/devops-series/%E6%97%A5%E5%BF%97%E8%81%9A%E5%90%88/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E9%87%87%E9%9B%86%E4%B8%8E%E8%B0%83%E5%BA%A6/</guid>
+      <description>&lt;h1 id=&#34;采集与调度&#34;&gt;采集与调度&lt;/h1&gt;
+&lt;h1 id=&#34;基于时间片的采集&#34;&gt;基于时间片的采集&lt;/h1&gt;
+&lt;p&gt;业界主流的 Agent 对于每个配置会分配独立的线程/go runtime 来进行数据读取，但是单线程足以完成所有配置的事件处理以及数据读取，数据读取的瓶颈并不在于计算而是磁盘，对于正常的服务器，每秒基本不可能产生超过 100MB 的日志，而 logtail 数据读取线程可完成每秒 200MB 以上的数据读取（SSD 速率可以更高）。单线程的另一个优势是可以使事件处理和数据读取在无锁环境下运行，相对多线程处理性价比较高。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;http://5b0988e595225.cdn.sohucs.com/q_70,c_zoom,w_640/images/20171119/62c74f5dcc96470394f69e00160887bf.webp&#34; alt=&#34;基于时间片的采集&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;h1 id=&#34;多级高低水位反馈队列&#34;&gt;多级高低水位反馈队列&lt;/h1&gt;
+&lt;p&gt;基于时间片的采集调度保证了各个配置的日志在数据读取时得到公平的调度，满足了多租户隔离中基本的公平性，但对于隔离性并未起到帮助作用。例如当部分采集配置因处理复杂或网络异常等原因阻塞时，阻塞配置依然会进行处理，最终会导致队列到达上限而阻塞数据读取线程，影响其他正常配置。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;http://5b0988e595225.cdn.sohucs.com/q_70,c_zoom,w_640/images/20171119/8f741176284d486e9394fd9691e17f56.webp&#34; alt=&#34;多级高低水位反馈队列&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;这里的多级指的是处理过程的多级，即各个处理过程间会有一个这样的队列且相邻队列互相关联&lt;/p&gt;
+&lt;p&gt;例如在 Logtail 的数据读取、处理、发送流程中需要在读取-&amp;gt;解析以及解析-&amp;gt;发送间各自设置一个这样的队列&lt;/p&gt;
+&lt;p&gt;高低水位：&lt;/p&gt;
+&lt;p&gt;单一队列中设置了高低两个水位&lt;/p&gt;
+&lt;p&gt;当队列增长到高水位时，停止非紧急数据写入（例如进程重启时、数据拆分等特殊情况允许写入）&lt;/p&gt;
+&lt;p&gt;当队列从高水位消费到低水位时，再次允许写入&lt;/p&gt;
+&lt;p&gt;反馈：&lt;/p&gt;
+&lt;p&gt;反馈分为同步和异步两种&lt;/p&gt;
+&lt;p&gt;在准备读取当前队列数据时会同步检查下一级队列状态，当下级队列到达高水位时跳过此队列&lt;/p&gt;
+&lt;p&gt;当前队列从高水位消费到低水位时，异步通知关联的前一级队列&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;http://5b0988e595225.cdn.sohucs.com/q_70,c_zoom,w_640/images/20171119/502ceb2c24c540d1ab53762bb2266e54.webp&#34; alt=&#34;&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;由于多个配置存在，所以我们会为每个配置创建一组队列，每个队列使用指针数组实现，每一级中所有配置队列公用一个锁，对于性能以及内存消耗较为友好。Logtail 中的多级高低水位反馈队列结构如下：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;http://5b0988e595225.cdn.sohucs.com/q_70,c_zoom,w_640/images/20171119/17766d48b23947728f5eab578604d91b.webp&#34; alt=&#34;&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;我们以日志解析这个步骤的工作方式来观察多级反馈队列的行为：&lt;/p&gt;
+&lt;p&gt;初始状态下解析线程处理 Wait 状态，当有数据到达或下一级发送线程某一配置的队列从高水位消费到低水位时，进入 FindJob 状态；&lt;/p&gt;
+&lt;p&gt;FindJob 会从上一次处理的队列位置顺序查找当前有数据且下一级队列可以写入的队列，若查找到则进行 Process 状态，否则进行 Wait 状态；&lt;/p&gt;
+&lt;p&gt;Process 对于当前 job 解析完后，判断该 job 所属队列是否从高水位到达低水位，若是则进入 Feedback 状态，否则回到 FindJob 查找下一个有效 job；&lt;/p&gt;
+&lt;p&gt;Feedback 状态会向关联的上一级队列发送信号，参数携带当前队列 ID，用以触发上一级流程运行，信号发送完毕后进入 FindJob 状态；&lt;/p&gt;
+&lt;p&gt;基于多级高低水位反馈队列的处理过程中，当遇到下一级阻塞的队列时直接跳过，防止因阻塞 Job 的处理导致线程阻塞，具有较高的隔离性；FindJob 会记录上一次查找的队列 ID，下次查找时会从该 ID 之后的队列开始，保证了各个配置间调度的公平性。&lt;/p&gt;
+&lt;h1 id=&#34;流控以及阻塞处理&#34;&gt;流控以及阻塞处理&lt;/h1&gt;
+&lt;p&gt;上一节的多级高低水位反馈队列解决了多配置间的隔离性和公平性问题，但对于可控性以及可靠性方面还存在一些问题。例如：&lt;/p&gt;
+&lt;p&gt;无法精确控制每个配置的的采集流量，只能通过删除采集配置停止采集&lt;/p&gt;
+&lt;p&gt;如果某一配置完全阻塞时，当该配置关联日志文件轮转，恢复阻塞时将丢失轮转前的数据&lt;/p&gt;
+&lt;p&gt;这里主要包括三个部分：事件处理、数据读取逻辑以及数据发送控制：&lt;/p&gt;
+&lt;p&gt;事件处理与数据读取无关，即使读取关联的队列满也照常处理，这里的处理主要是更新文件 meta、将轮转文件放入轮转队列，具体可查看上一篇文章；此种方式可保证即使在配置阻塞/暂停的情况下依然保证及时文件轮转也不会丢失数据；&lt;/p&gt;
+&lt;p&gt;当配置关联的解析队列满时，如果将事件重新放回队列尾，则会造成较多的无效调度，使 CPU 空转。因此我们在遇到解析队列满时，将该事件放到一个专门的 blocked 队列中，当解析队列异步反馈时重新将 blocked 队列中的数据放回事件队列；&lt;/p&gt;
+&lt;p&gt;Sender 中每个配置的队列关联一个 SenderInfo，SenderInfo 中记录该配置当前网络是否正常、Quota 是否正常以及最大允许的发送速率。每次 Sender 会根据 SenderInfo 中的状从队列中取数据，这里包括：网络失败重试、Quota 超限重试、状态更新、流控等逻辑&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>多租户隔离</title>
+      <link>https://ng-tech.icu/books/devops-series/%E6%97%A5%E5%BF%97%E8%81%9A%E5%90%88/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%A4%9A%E7%A7%9F%E6%88%B7%E9%9A%94%E7%A6%BB/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/devops-series/%E6%97%A5%E5%BF%97%E8%81%9A%E5%90%88/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%A4%9A%E7%A7%9F%E6%88%B7%E9%9A%94%E7%A6%BB/</guid>
+      <description>&lt;h1 id=&#34;多租户隔离&#34;&gt;多租户隔离&lt;/h1&gt;
+&lt;p&gt;然而日志采集并不仅仅是单一用户/应用需要完成的工作，例如一个典型的服务器上需要采集的日志数据有：资源类 Metric 数据、系统监控日志、Nginx 访问数据、中间件请求数据、安全审计日志、各类应用中各个不同组件的日志等等；如果应用 docker 话，保守估计一个 docker 内的应用有 6-7 类日志，一台物理机运行 50 个 docker，那即使采集 docker 内的日志就有 300 多种配置。&lt;/p&gt;
+&lt;p&gt;多租户隔离技术早在 20 世纪 60 年代的大型主机中就已经开始使用，发展到今天非常多的应用/系统都应用了该技术。在每种不同的应用/系统中对于多租户隔离都有不同的诠释。&lt;/p&gt;
+&lt;p&gt;首先需要搞清楚日志采集场景下的多租户隔离需具备哪些特性，这里我们总结以下 5 点：隔离性、公平性、可靠性、可控性、性价比&lt;/p&gt;
+&lt;p&gt;隔离性：多租户隔离最基本特性，多个采集工作之间互不影响，部分采集配置阻塞不影响其他正常采集
+公平性：保证各个阶段（读取、处理、发送）多个配置之间的公平性，不能因为某个配置下日志写入量大而导致其他配置被处理的概率降低
+可靠性：无论在何种场景，可靠性都至关重要，多租户隔离下，如果部分采集阻塞，agent 可以暂停该配置采集，但恢复时需尽可能保证数据不丢失
+可控性：可控性主要体现在资源和行为的可控，agent 需要具备控制各个配置的资源占用在合理范围，并且具备控制采集速率、暂停/开启等行为
+性价比：以上特性最终方案实现时最需要关注的就是性价比，如何在尽可能少的资源占用情况下实现尽可能优的多租户隔离方案才是技术可行性与适用性的关键&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;logstash&lt;/th&gt;
+&lt;th&gt;fluentd&lt;/th&gt;
+&lt;th&gt;filebeat&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;隔离性&lt;/td&gt;
+&lt;td&gt;每个配置至少 1 个线程，独立的可持久化队列&lt;/td&gt;
+&lt;td&gt;每个配置至少 1 个线程，独立的可持久化队列&lt;/td&gt;
+&lt;td&gt;每个配置若干 go runtime，独立队列&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;公平性&lt;/td&gt;
+&lt;td&gt;各配置间无协调，基于多线程调度&lt;/td&gt;
+&lt;td&gt;各配置间无协调，基于多线程调度&lt;/td&gt;
+&lt;td&gt;各配置间无协调，基于 go runtime 调度&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;可靠性&lt;/td&gt;
+&lt;td&gt;基于可持久化队列缓存保证&lt;/td&gt;
+&lt;td&gt;基于可持久化队列缓存保证&lt;/td&gt;
+&lt;td&gt;队列满后停止采集&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;可控性&lt;/td&gt;
+&lt;td&gt;可控制持久化队列资源，删除配置停采，支持远程配置&lt;/td&gt;
+&lt;td&gt;可控制持久化队列资源，删除配置停采，本地配置&lt;/td&gt;
+&lt;td&gt;可控制队列资源占用，删除配置停采&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;性价比&lt;/td&gt;
+&lt;td&gt;较低&lt;/td&gt;
+&lt;td&gt;较低&lt;/td&gt;
+&lt;td&gt;较高&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;Logstash、Fluentd 和 Filebeat 都属于 pipeline 的架构，根据语言不同，分别使用独立的线程/go runtime 实现了 pipeline 功能，每个 pipeline 内部顺序执行，各个 pipeline 间互相独立运行，此种方式隔离性较好，实现较为简单，在小规模场景下较为适用。然而随着配置数量增长，相应的线程数/go runtime 呈等比上升，在采集配置较多的情况下资源难以控制；而且由于各个 pipeline 间完全依赖底层（操作系统/go runtime）调度，当 CPU 资源无法全部满足时，数据量较高的配置会占用较多的执行时间，导致其他数据较少的配置获取资源的概率降低。&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

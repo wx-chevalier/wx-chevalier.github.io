@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Raft | Next-gen Tech Edu</title>
+    <link>https://ng-tech.icu/books/distributedsystem-series/%E4%B8%80%E8%87%B4%E6%80%A7%E4%B8%8E%E5%85%B1%E8%AF%86/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/raft/</link>
+      <atom:link href="https://ng-tech.icu/books/distributedsystem-series/%E4%B8%80%E8%87%B4%E6%80%A7%E4%B8%8E%E5%85%B1%E8%AF%86/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/raft/index.xml" rel="self" type="application/rss+xml" />
+    <description>Raft</description>
+    <generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language>
+    <image>
+      <url>https://ng-tech.icu/media/sharing.png</url>
+      <title>Raft</title>
+      <link>https://ng-tech.icu/books/distributedsystem-series/%E4%B8%80%E8%87%B4%E6%80%A7%E4%B8%8E%E5%85%B1%E8%AF%86/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/raft/</link>
+    </image>
+    
+    <item>
+      <title>安全性</title>
+      <link>https://ng-tech.icu/books/distributedsystem-series/%E4%B8%80%E8%87%B4%E6%80%A7%E4%B8%8E%E5%85%B1%E8%AF%86/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/raft/%E5%AE%89%E5%85%A8%E6%80%A7/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/distributedsystem-series/%E4%B8%80%E8%87%B4%E6%80%A7%E4%B8%8E%E5%85%B1%E8%AF%86/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/raft/%E5%AE%89%E5%85%A8%E6%80%A7/</guid>
+      <description>&lt;h1 id=&#34;安全性&#34;&gt;安全性&lt;/h1&gt;
+&lt;p&gt;要保证所有的状态机有一样的状态，单凭复制与选举算法还不够。例如有 3 个节点 A、B、C，如果 A 为主节点期间 C 挂了，此时消息被多数节点（A，B）接收，所以 A 会提交这些日志。此时若 A 挂了，而 C 恢复且被选为主节点，则 A 已经提交的日志会被 C 的日志覆盖，从而导致状态机的状态不一致。&lt;/p&gt;
+&lt;p&gt;Raft 增加了如下两条限制以保证安全性：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;拥有最新的已提交的 log entry 的 Follower 才有资格成为 Leader。&lt;/li&gt;
+&lt;li&gt;Leader 只能推进 commit index 来提交当前 term 的已经复制到大多数服务器上的日志，旧 term 日志的提交要等到提交当前 term 的日志来间接提交（log index 小于 commit index 的日志被间接提交）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;选主的限制&#34;&gt;选主的限制&lt;/h1&gt;
+&lt;blockquote&gt;
+&lt;p&gt;拥有最新的已提交的 log entry 的 Follower 才有资格成为 Leader。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;在所有的主从结构的一致性算法中，主节点最终都必须包含所有提交的日志。有些算法在从节点不包含所有已提交日志的情况下，依旧允许它当选为主节点，之后从节点会将这些日志同步到主节点上。但是 Raft 采用了简单的方式，只允许那些包含所有已提交日志的节点当选为主节点。&lt;/p&gt;
+&lt;p&gt;注意到节点当选主节点要求得到多数票，同时一个日志被提交的前提条件是它被多数节点接收，综合这两点，说明选举要产生结果，则至少有一个节点在场，它是包含了当前已经提交的所有日志的。&lt;/p&gt;
+&lt;p&gt;因此，Raft 算法在处理要求选举的 RequestVote 消息时做了限制：消息中会携带 Candidate 的 log 消息，而在投票时，Follower 会判断 Candidate 的消息是不是比自己“更新”（下文定义），如果不如自己“新”，则拒绝为该 Candidate 投票。&lt;/p&gt;
+&lt;p&gt;Raft 会首先判断两个节点最后一个 log entry 的 term，哪个节点的对应的 term 更大则代表该节点的日志“更新”；如果 term 的大小一致，则谁的 log entry 更多谁就“更新”。注意，加了这个限制后，选出的节点不会是“最新的”，即包含所有日志；但会是足够新的，至少比半数节点更新，而这也意味着它所包含的日志都是可以被提交的（但不一定已经提交）。&lt;/p&gt;
+&lt;p&gt;这个保证是在 RequestVote RPC 中做的，Candidate 在发送 RequestVote RPC 时，要带上自己的最后一条日志的 term 和 log index，其他节点收到消息时，如果发现自己的日志比请求中携带的更新，则拒绝投票。日志比较的原则是，如果本地的最后一条 log entry 的 term 更大，则 term 大的更新，如果 term 一样大，则 log index 更大的更新。&lt;/p&gt;
+&lt;h1 id=&#34;提交前一个-term-的日志&#34;&gt;提交前一个 term 的日志&lt;/h1&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Leader 只能推进 commit index 来提交当前 term 的已经复制到大多数服务器上的日志，旧 term 日志的提交要等到提交当前 term 的日志来间接提交（log index 小于 commit index 的日志被间接提交）。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;这里我们要讨论一个特别的情况。我们知道一个主节点如果发现自己任期（term）内的某条日志已经被存储到了多数节点上，主节点就会提交这条日志。但如果主节点在提交之前就挂了，之后的主节点会尝试把前任未提交的这些日志复制到所有子节点上，但与之前不同，仅仅判断这些日志被复制到多数节点，新的主节点并不能立马提交这些日志，下面举一个反例：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://s1.ax1x.com/2020/08/06/ag9dc6.png&#34; alt=&#34;已提交的日志被覆盖&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;在 (a) 时，S1 当选并将日志编号为 2 的日志复制到其它节点上。&lt;/li&gt;
+&lt;li&gt;在 (b) 时，S1 宕机，S5 获得来自 S3 与 S4 的投票，当选为 term 3 的主节点，此时收到来自客户端的消息，写入自己编号为 2 的日志。&lt;/li&gt;
+&lt;li&gt;(c) 期间，S5 宕机而 S1 重启完毕，它重新当选为主节点并继续将自己的日志复制给 S3，此时编号为 2 且 term 为 2 的日志已经被复制到多数节点，但它还不能被提交。&lt;/li&gt;
+&lt;li&gt;如果此时 S1 宕机，如 (d) 所示，此时 S5 获得来自 S2 S3 S4 的投票，当选新的主节点，此时它将用自己的编号为 2，term 为 3 的日志覆盖其它节点的日志。&lt;/li&gt;
+&lt;li&gt;而如果 S1 继续存活，且在自己的任期内将某条日志复制到多数节点，如 (e) 所示，则此时 S5 已经不可能继续当选为主节点，因此该日志之前的所有日志均可被提交（包括前任创建的，编号 2 的日志）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;上例中的 (c) 和 (d) 说明了，即使前任的日志已经被复制到多数节点上，它依然可能被覆盖。因此 Raft 并不通过计算前任日志的复制次数来判断是否提交这些日志，Raft 只对自己任期内的日志计数并在复制到多数节点时进行提交，且在提交这条日志的同时提交之前的所有日志。&lt;/p&gt;
+&lt;p&gt;Raft 算法会出现这个额外的问题，是因为它在复制前任的日志时，会保留前任的 term，而其它一致性算法会为这些日志使用新的 term。Raft 算法的优势在于方便推理日志的形成过程，同时新的主节点需要发送的前任日志数目会更少。&lt;/p&gt;
+&lt;h2 id=&#34;网络分区容忍&#34;&gt;网络分区容忍&lt;/h2&gt;
+&lt;p&gt;根据前文介绍的 Raft 的两大安全性保障，我们能知道 Raft 天然兼容网络分区的情况。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://s1.ax1x.com/2020/08/06/ag18bQ.png&#34; alt=&#34;Raft 网络分区&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;在开始的时候所有节点的 Leader 是 B，而后发生了网络分区情况，独立的三个节点选择了 C 作为新的 Leader。此时有两个客户端分别设置了不同的值 3 和 8，节点 B 因为无法与绝大部分节点通信，因此属于不可提交状态；而新成组的 3 个节点会进行值的设置。&lt;/p&gt;
+&lt;p&gt;在网络分区被修复后，B 接收到了更高的 Electron Term 因此退化为普通的节点，然后根据 Leader 上最新的日志回滚本地未提交的 Entries。&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>日志复制</title>
+      <link>https://ng-tech.icu/books/distributedsystem-series/%E4%B8%80%E8%87%B4%E6%80%A7%E4%B8%8E%E5%85%B1%E8%AF%86/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/raft/%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/distributedsystem-series/%E4%B8%80%E8%87%B4%E6%80%A7%E4%B8%8E%E5%85%B1%E8%AF%86/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/raft/%E6%97%A5%E5%BF%97%E5%A4%8D%E5%88%B6/</guid>
+      <description>&lt;h1 id=&#34;日志复制log-replication&#34;&gt;日志复制（Log Replication）&lt;/h1&gt;
+&lt;p&gt;Leader 选出后，就开始接收客户端的请求。Leader 把请求作为日志条目（Log entries）加入到它的日志中，然后并行的向其他服务器发起 AppendEntries RPC 复制日志条目。当这条日志被复制到大多数服务器上，Leader 将这条日志应用到它的状态机并向客户端返回执行结果。&lt;/p&gt;
+&lt;h2 id=&#34;日志结构&#34;&gt;日志结构&lt;/h2&gt;
+&lt;p&gt;Log Replication 分为两个主要步骤：复制（Replication）和 提交（Commit）。当一个节点被选为主节点后，它开始对外提供服务，收到客户端的 command 后，主节点会首先将 command 添加到自己的日志队列中，然后并行地将消息发送给其它所有的节点，在确保消息被安全地复制（下文解释）后，主节点会将该消息提交到状态机中，并返回状态机执行的结果。如果 Follower 挂了或因为网络原因消息丢失了，主节点会不断重试直到所有从节点最终成功复制该消息。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://s1.ax1x.com/2020/08/03/ad89dU.md.png&#34; alt=&#34;Raft 日志结构示例&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;日志由许多条目（log entry）组成，条目顺序编号。条目包含它生成时节点所在的 term（小方格中上方的数字），以及日志的内容。当一个条目被认为安全地被复制，且提交到状态机时，我们认为它处于“已提交（committed）”状态。&lt;/p&gt;
+&lt;p&gt;是否将一个条目提交到状态机是由主节点决定的。Raft 要保证提交的条目会最终被所有的节点执行。当主节点判断一个条目已经被复制到大多数节点时，就会提交 /Commit 该条目，提交一个条目的同时会提交该条目之前的所有条目，包括那些之前由其它主节点创建的条目（还有些特殊情况下面会提）。主节点会记录当前提交的日志编号 (log index)，并在发送心跳时带上该信息，这样其它节点最终会同步提交日志。&lt;/p&gt;
+&lt;h2 id=&#34;日志同步&#34;&gt;日志同步&lt;/h2&gt;
+&lt;p&gt;上面说的是“提交”，那么“复制”是如何进行的？在现实情况下，主从节点的日志可能不一致（例如在消息到达从节点前主节点挂了，而从节点被选为了新的主节点，此时主从节点的日志不一致）。Raft 算法中，主节点需要处理不一致的情况，它要求所有的从节点复制自己的所有日志。&lt;/p&gt;
+&lt;p&gt;要复制所有日志，就要先找到日志开始不一致的位置，如何做到呢？Raft 当主节点接收到新的 command 时，会发送 AppendEntries 让从节点复制日志，不一致的情况也会在这时被处理（AppendEntries 消息同时还兼职作为心跳信息）。某些 Followers 可能没有成功的复制日志，Leader 会无限的重试 AppendEntries RPC 直到所有的 Followers 最终存储了所有的日志条目。下面是日志不一致的示例：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://s1.ax1x.com/2020/08/05/ase0aD.png&#34; alt=&#34;Raft 日志&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;主节点需要为每个从节点记录一个 nextIndex，作为该从节点下一条要发送的日志的编号。当一个节点刚被选为主节点时，为所有从节点的 nextIndex 初始化自己最大日志编号加 1（如上图示例则为 11）。接着主节点发送 AppendEntries 给从节点，此时从节点会进行一致性检查（Consistency Check）。&lt;/p&gt;
+&lt;p&gt;所谓一致性检查，指的是当主节点发送 AppendEntries 消息通知从节点添加条目时，需要将新条目 A 之前的那个条目 B 的 log index 和 term，这样，当从节点收到消息时，就可以判断自己第 log index 条日志的 term 是否与 B 的 term 相同，如果不相同则拒绝该消息，如果相同则添加条目 A。&lt;/p&gt;
+&lt;p&gt;主节点的消息被某个从节点拒绝后，主节点会将该从节点的 nextIndex 减一再重新发送 AppendEntries 消息。不断重试，最终就能找主从节点日志一致的 log index，并用主节点的新日志覆盖从节点的旧日志。当然，如果从节点接收 AppendEntries 消息后，主节点会将 nextIndex 增加一，且如果当前的最新 log index 大于 nextIndex 则会继续发送消息。&lt;/p&gt;
+&lt;h2 id=&#34;同步保证&#34;&gt;同步保证&lt;/h2&gt;
+&lt;p&gt;Raft 日志同步保证如下两点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果不同日志中的两个条目有着相同的索引和任期号，则它们所存储的命令是相同的。&lt;/li&gt;
+&lt;li&gt;如果不同日志中的两个条目有着相同的索引和任期号，则它们之前的所有条目都是完全一样的。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;第一条特性源于 Leader 在一个 term 内在给定的一个 log index 最多创建一条日志条目，同时该条目在日志中的位置也从来不会改变。第二条特性源于 AppendEntries 的一个简单的一致性检查。当发送一个 AppendEntries RPC 时，Leader 会把新日志条目紧接着之前的条目的 log index 和 term 都包含在里面。如果 Follower 没有在它的日志中找到 log index 和 term 都相同的日志，它就会拒绝新的日志条目。&lt;/p&gt;
+&lt;p&gt;一般情况下，Leader 和 Followers 的日志保持一致，因此 AppendEntries 一致性检查通常不会失败。然而，Leader 崩溃可能会导致日志不一致：旧的 Leader 可能没有完全复制完日志中的所有条目。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://s1.ax1x.com/2020/08/06/acvqaR.png&#34; alt=&#34;Leader 和 Followers 上日志不一致&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;上图阐述了一些 Followers 可能和新的 Leader 日志不同的情况。一个 Follower 可能会丢失掉 Leader 上的一些条目，也有可能包含一些 Leader 没有的条目，也有可能两者都会发生。丢失的或者多出来的条目可能会持续多个任期。Leader 通过强制 Followers 复制它的日志来处理日志的不一致，Followers 上的不一致的日志会被 Leader 的日志覆盖。&lt;/p&gt;
+&lt;p&gt;Leader 为了使 Followers 的日志同自己的一致，Leader 需要找到 Followers 同它的日志一致的地方，然后覆盖 Followers 在该位置之后的条目。Leader 会从后往前试，每次 AppendEntries 失败后尝试前一个日志条目，直到成功找到每个 Follower 的日志一致位点，然后向后逐条覆盖 Followers 在该位置之后的条目。&lt;/p&gt;
+&lt;h1 id=&#34;日志压缩&#34;&gt;日志压缩&lt;/h1&gt;
+&lt;p&gt;在实际的系统中，不能让日志无限增长，否则系统重启时需要花很长的时间进行回放，从而影响可用性。Raft 采用对整个系统进行 snapshot 来解决，snapshot 之前的日志都可以丢弃。每个副本独立的对自己的系统状态进行 snapshot，并且只能对已经提交的日志记录进行 snapshot。&lt;/p&gt;
+&lt;p&gt;Snapshot 中包含以下内容：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;日志元数据。最后一条已提交的 log entry 的 log index 和 term。这两个值在 snapshot 之后的第一条 log entry 的 AppendEntries RPC 的完整性检查的时候会被用上。&lt;/li&gt;
+&lt;li&gt;系统当前状态。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;当 Leader 要发给某个日志落后太多的 Follower 的 log entry 被丢弃，Leader 会将 snapshot 发给 Follower。或者当新加进一台机器时，也会发送 snapshot 给它。发送 snapshot 使用 InstalledSnapshot RPC。&lt;/p&gt;
+&lt;p&gt;做 snapshot 既不要做的太频繁，否则消耗磁盘带宽，也不要做的太不频繁，否则一旦节点重启需要回放大量日志，影响可用性。推荐当日志达到某个固定的大小做一次 snapshot。做一次 snapshot 可能耗时过长，会影响正常日志同步。可以通过使用 copy-on-write 技术避免 snapshot 过程影响正常日志同步。&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>选举与成员变更</title>
+      <link>https://ng-tech.icu/books/distributedsystem-series/%E4%B8%80%E8%87%B4%E6%80%A7%E4%B8%8E%E5%85%B1%E8%AF%86/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/raft/%E9%80%89%E4%B8%BE%E4%B8%8E%E6%88%90%E5%91%98%E5%8F%98%E6%9B%B4/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/distributedsystem-series/%E4%B8%80%E8%87%B4%E6%80%A7%E4%B8%8E%E5%85%B1%E8%AF%86/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/raft/%E9%80%89%E4%B8%BE%E4%B8%8E%E6%88%90%E5%91%98%E5%8F%98%E6%9B%B4/</guid>
+      <description>&lt;h1 id=&#34;leader-选举&#34;&gt;Leader 选举&lt;/h1&gt;
+&lt;p&gt;节点启动时，默认处于 Follower 的状态，所以开始时所有节点均是 Follower，那么什么时候触发选主呢？Raft 用“心跳”的方式来保持主从节点的联系，如果长时间没有收到主节点的心跳，则开始选主。这里会涉及到两个时间：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;心跳间隔，主节点隔多长时间发送心跳信息&lt;/li&gt;
+&lt;li&gt;等待时间(election timeout)，如果超过这个时间仍然没有收到心跳，则认为主节点宕机。一般每个节点各自在 150 ～ 300ms 间随机取值。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;当一个节点在等待时间内没有收到主节点的心跳信息，它首先将自己保存的 term 增加 1 并进入 Candidate 状态。此时它会先投票给自己，然后并行发送 RequestVote 消息给其它所有节点，请求这些节点投票给自己。然后等待直到以下 3 种情形之一发生：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;赢得了多数的选票，成功选举为 Leader；Candidate 节点需要收到集群中与自己 term 相同的所有节点中大于一半的票数（当然如果节点 term 比自己大，是不会理睬自己的选举消息的）。节点投票时会采取先到先得的原则，对于某个 term，最多投出一票（后面还会再对投票加一些限制）。这样能保证某个 term 中，最多只会产生一个 leader。当一个 Candidate 变成主节点后，它会向其它所有节点发送心跳信息，这样其它的 Candidate 也会变成 Follower。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;收到了 Leader 的消息，表示有其它服务器已经抢先当选了 Leader；在等待投票的过程中，Candidate 收到其它主节点的心跳信息（只有主节点才会向其它节点发心跳），且信息中包含的 term 大于等于自己的 term，则当前节点放弃竞选，进入 Follower 状态。当然，如前所说，如果心跳中的 term 小于自己，则不予理会。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;没有服务器赢得多数的选票，Leader 选举失败，等待选举时间超时后发起下一次选举。一般发生在多个 Follower 同时触发选举，而各节点的投票被分散了，导致没有 Candidate 能得到多数票。超过投票的等待时间后，节点触发新一轮选举。理论上，选举有可能永远平票，Raft 中由于各个节点的超时时间是随机的，实际上平票不太会永远持续下去。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://s1.ax1x.com/2020/08/03/ad3wx1.png&#34; alt=&#34;Leader 选举过程&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;Leader 后，Leader 通过定期向所有 Followers 发送心跳信息维持其统治。若 Follower 一段时间未收到 Leader 的心跳则认为 Leader 可能已经挂了，再次发起 Leader 选举过程。Raft 保证选举出的 Leader 上一定具有最新的已提交的日志。&lt;/p&gt;
+&lt;h1 id=&#34;成员变更&#34;&gt;成员变更&lt;/h1&gt;
+&lt;p&gt;成员变更是在集群运行过程中副本发生变化，如增加/减少副本数、节点替换等。成员变更也是一个分布式一致性问题，既所有服务器对新成员达成一致。但是成员变更又有其特殊性，因为在成员变更的一致性达成的过程中，参与投票的进程会发生变化。&lt;/p&gt;
+&lt;p&gt;如果将成员变更当成一般的一致性问题，直接向 Leader 发送成员变更请求，Leader 复制成员变更日志，达成多数派之后提交，各服务器提交成员变更日志后从旧成员配置（Cold）切换到新成员配置（Cnew）。&lt;/p&gt;
+&lt;h2 id=&#34;双多数派问题&#34;&gt;双多数派问题&lt;/h2&gt;
+&lt;p&gt;一种方法是先停止所有节点，修改配置增加新的节点，再重启所有节点，但是这样服务起停时就会中断服务，同时也可能增加人为操作失误的风险。另一种方法配置好新的节点直接加入集群，这样也会出问题：在某个时刻使用不同配置的两部分节点可能会各自选出一个主节点。因为各个服务器提交成员变更日志的时刻可能不同，造成各个服务器从旧成员配置（Cold）切换到新成员配置（Cnew）的时刻不同。成员变更不能影响服务的可用性，但是成员变更过程的某一时刻，可能出现在 Cold 和 Cnew 中同时存在两个不相交的多数派，进而可能选出两个 Leader，形成不同的决议，破坏安全性。&lt;/p&gt;
+&lt;p&gt;如下图：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://s1.ax1x.com/2020/08/06/agy7PP.png&#34; alt=&#34;双多数派问题&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;图中绿色为旧的配置，蓝色为新的配置，在中间的某个时刻，Server 1/2/3 可能会选出一个主节点，而 Server 3/4/5 可能会选出另一个，从而破坏了一致性。&lt;/p&gt;
+&lt;h2 id=&#34;两阶段的成员变更&#34;&gt;两阶段的成员变更&lt;/h2&gt;
+&lt;p&gt;由于成员变更的这一特殊性，成员变更不能当成一般的一致性问题去解决。为了解决这一问题，Raft 提出了两阶段的成员变更方法。集群先从旧成员配置 Cold 切换到一个过渡成员配置，称为共同一致（joint consensus），共同一致是旧成员配置 Cold 和新成员配置 Cnew 的组合 Cold U Cnew，一旦共同一致 Cold U Cnew 被提交，系统再切换到新成员配置 Cnew。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://s1.ax1x.com/2020/08/06/ag6JZd.md.png&#34; alt=&#34;两阶段成员变更&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;Raft 两阶段成员变更过程如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Leader 收到成员变更请求从 Cold 切成 Cnew；&lt;/li&gt;
+&lt;li&gt;Leader 在本地生成一个新的 log entry，其内容是 Cold∪Cnew，代表当前时刻新旧成员配置共存，写入本地日志，同时将该 log entry 复制至 Cold∪Cnew 中的所有副本。在此之后新的日志同步需要保证得到 Cold 和 Cnew 两个多数派的确认；&lt;/li&gt;
+&lt;li&gt;Follower 收到 Cold∪Cnew 的 log entry 后更新本地日志，并且此时就以该配置作为自己的成员配置；&lt;/li&gt;
+&lt;li&gt;如果 Cold 和 Cnew 中的两个多数派确认了 Cold U Cnew 这条日志，Leader 就提交这条 log entry；&lt;/li&gt;
+&lt;li&gt;接下来 Leader 生成一条新的 log entry，其内容是新成员配置 Cnew，同样将该 log entry 写入本地日志，同时复制到 Follower 上；&lt;/li&gt;
+&lt;li&gt;Follower 收到新成员配置 Cnew 后，将其写入日志，并且从此刻起，就以该配置作为自己的成员配置，并且如果发现自己不在 Cnew 这个成员配置中会自动退出；&lt;/li&gt;
+&lt;li&gt;Leader 收到 Cnew 的多数派确认后，表示成员变更成功，后续的日志只要得到 Cnew 多数派确认即可。Leader 给客户端回复成员变更执行成功。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;异常分析：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果 Leader 的 Cold U Cnew 尚未推送到 Follower，Leader 就挂了，此后选出的新 Leader 并不包含这条日志，此时新 Leader 依然使用 Cold 作为自己的成员配置。&lt;/li&gt;
+&lt;li&gt;如果 Leader 的 Cold U Cnew 推送到大部分的 Follower 后就挂了，此后选出的新 Leader 可能是 Cold 也可能是 Cnew 中的某个 Follower。&lt;/li&gt;
+&lt;li&gt;如果 Leader 在推送 Cnew 配置的过程中挂了，那么同样，新选出来的 Leader 可能是 Cold 也可能是 Cnew 中的某一个，此后客户端继续执行一次改变配置的命令即可。&lt;/li&gt;
+&lt;li&gt;如果大多数的 Follower 确认了 Cnew 这个消息后，那么接下来即使 Leader 挂了，新选出来的 Leader 肯定位于 Cnew 中。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;两阶段成员变更比较通用且容易理解，但是实现比较复杂，同时两阶段的变更协议也会在一定程度上影响变更过程中的服务可用性，因此我们期望增强成员变更的限制，以简化操作流程。两阶段成员变更，之所以分为两个阶段，是因为对 Cold 与 Cnew 的关系没有做任何假设，为了避免 Cold 和 Cnew 各自形成不相交的多数派选出两个 Leader，才引入了两阶段方案。&lt;/p&gt;
+&lt;p&gt;如果增强成员变更的限制，假设 Cold 与 Cnew 任意的多数派交集不为空，这两个成员配置就无法各自形成多数派，那么成员变更方案就可能简化为一阶段。那么如何限制 Cold 与 Cnew，使之任意的多数派交集不为空呢？方法就是每次成员变更只允许增加或删除一个成员。可从数学上严格证明，只要每次只允许增加或删除一个成员，Cold 与 Cnew 不可能形成两个不相交的多数派。&lt;/p&gt;
+&lt;p&gt;一阶段成员变更：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;成员变更限制每次只能增加或删除一个成员（如果要变更多个成员，连续变更多次）。&lt;/li&gt;
+&lt;li&gt;成员变更由 Leader 发起，Cnew 得到多数派确认后，返回客户端成员变更成功。&lt;/li&gt;
+&lt;li&gt;一次成员变更成功前不允许开始下一次成员变更，因此新任 Leader 在开始提供服务前要将自己本地保存的最新成员配置重新投票形成多数派确认。&lt;/li&gt;
+&lt;li&gt;Leader 只要开始同步新成员配置，即可开始使用新的成员配置进行日志同步。&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

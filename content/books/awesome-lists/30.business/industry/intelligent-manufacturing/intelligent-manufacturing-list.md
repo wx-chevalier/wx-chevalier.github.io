@@ -1,0 +1,13 @@
+
+---
+title: Intelligent-Manufacturing-List
+linktitle: Intelligent-Manufacturing-List
+type: book
+commentable: true
+---
+
+# 工业互联网资料索引
+
+- [2018-腾讯 83 页报告，首次深度解读产业互联网](https://zhuanlan.zhihu.com/p/60991664)
+
+    

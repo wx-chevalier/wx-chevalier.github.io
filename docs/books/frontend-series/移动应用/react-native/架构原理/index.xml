@@ -1,0 +1,489 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>架构原理 | Next-gen Tech Edu</title>
+    <link>https://ng-tech.icu/books/frontend-series/%E7%A7%BB%E5%8A%A8%E5%BA%94%E7%94%A8/react-native/%E6%9E%B6%E6%9E%84%E5%8E%9F%E7%90%86/</link>
+      <atom:link href="https://ng-tech.icu/books/frontend-series/%E7%A7%BB%E5%8A%A8%E5%BA%94%E7%94%A8/react-native/%E6%9E%B6%E6%9E%84%E5%8E%9F%E7%90%86/index.xml" rel="self" type="application/rss+xml" />
+    <description>架构原理</description>
+    <generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language>
+    <image>
+      <url>https://ng-tech.icu/media/sharing.png</url>
+      <title>架构原理</title>
+      <link>https://ng-tech.icu/books/frontend-series/%E7%A7%BB%E5%8A%A8%E5%BA%94%E7%94%A8/react-native/%E6%9E%B6%E6%9E%84%E5%8E%9F%E7%90%86/</link>
+    </image>
+    
+    <item>
+      <title>Bridge</title>
+      <link>https://ng-tech.icu/books/frontend-series/%E7%A7%BB%E5%8A%A8%E5%BA%94%E7%94%A8/react-native/%E6%9E%B6%E6%9E%84%E5%8E%9F%E7%90%86/bridge/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/frontend-series/%E7%A7%BB%E5%8A%A8%E5%BA%94%E7%94%A8/react-native/%E6%9E%B6%E6%9E%84%E5%8E%9F%E7%90%86/bridge/</guid>
+      <description>&lt;h1 id=&#34;bridge&#34;&gt;Bridge&lt;/h1&gt;
+&lt;h1 id=&#34;rctrootview&#34;&gt;RCTRootView&lt;/h1&gt;
+&lt;p&gt;RCTRootView 是 React Native 加载的地方,是万物之源。从这里开始，我们有了 JS Engine, JS 代码被加载进来，对应的原生模块也被加载进来，然后 js loop 开始运行。js loop 的驱动来源是 Timer 和 Event Loop(用户事件). js loop 跑起来以后应用就可以持续不停地跑下去了。&lt;/p&gt;
+&lt;p&gt;如果你要通过调试来理解 RN 底层原理，你也应该是从 RCTRootView 着手，顺藤摸瓜。&lt;/p&gt;
+&lt;p&gt;每个项目的 AppDelegate.m 的- (BOOL)application:didFinishLaunchingWithOptions:里面都可以看到 RCTRootView 的初始化代码，RCTRootView 初始化完成以后，整个 React Native 运行环境就已经初始化好了，JS 代码也加载完毕，所有 React 的绘制都会有这个 RCTRootView 来管理。&lt;/p&gt;
+&lt;p&gt;RCTRootView 做的事情如下:&lt;/p&gt;
+&lt;p&gt;创建并且持有 RCTBridge
+加载 JS Bundle 并且初始化 JS 运行环境.
+初始化 JS 运行环境的时候在 App 里面显示 loadingView, 注意不是屏幕顶部的那个下拉悬浮进度提示条. RN 第一次加载之后每次启动非常快，很少能意识到这个加载过程了。loadingView 默认情况下为空, 也就是默认是没有效果的。loadingView 可以被自定义，直接覆盖 RCTRootView.loadingView 就可以了.开发模式下 RN app 第一次启动因为需要完整打包整个 js 所以可以很明显看到加载的过程，加载第一次以后就看不到很明显的加载过程了，可以执行下面的命令来触发重新打包整个 js 来观察 loadingView 的效果 &lt;code&gt;watchman watch-del-all &amp;amp;&amp;amp; rm -rf node_modules/ &amp;amp;&amp;amp; yarn install &amp;amp;&amp;amp; yarn start – –reset-cache&lt;/code&gt;, 然后杀掉 app 重启你就会看到一个很明显的进度提示.
+JS 运行环境准备好以后把加载视图用 RCTRootContentView 替换加载视图.
+所有准备工作就绪以后调用 AppRegistry.runApplication 正式启动 RN JS 代码，从 Root Component()开始 UI 绘制。
+一个 App 可以有多个 RCTRootView, 初始化的时候需要手动传输 Bridge 做为参数，全局可以有多个 RCTRootView, 但是只能有一个 Bridge.&lt;/p&gt;
+&lt;p&gt;如果你做过 React Native 和原生代码混编，你会发现混编就是把 AppDelegate 里面那段初始化 RCTRootView 的代码移动到需要混编的地方，然后把 RCTRootView 做为一个普通的 subview 来加载到原生的 view 里面去，非常简单。不过这地方也要注意处理好单 Bridge 实例的问题，同时，混编里面要注意 RCTRootView 如果销毁过早可能会引发 JS 回调奔溃的问题。&lt;/p&gt;
+&lt;h1 id=&#34;rctrootcontentview&#34;&gt;RCTRootContentView&lt;/h1&gt;
+&lt;p&gt;RCTRootContentView reactTag 在默认情况下为 1. 在 Xcode view Hierarchy debugger 下可以看到，最顶层为 RCTRootView, 里面嵌套的是 RCTRootContentView, 从 RCTRootContentView 开始，每个 View 都有一个 reactTag.&lt;/p&gt;
+&lt;p&gt;RCTRootView 继承自 UIView, RCTRootView 主要负责初始化 JS Environment 和 React 代码，然后管理整个运行环境的生命周期。RCTRootContentView 继承自 RCTView, RCTView 继承自 UIView, RCTView 封装了 React Component Node 更新和渲染的逻辑，RCTRootContentView 会管理所有 react ui components. RCTRootContentView 同时负责处理所有 touch 事件.&lt;/p&gt;
+&lt;h1 id=&#34;rctbridge&#34;&gt;RCTBridge&lt;/h1&gt;
+&lt;p&gt;这是一个加载和初始化专用类，用于前期 JS 的初始化和原生代码的加载。&lt;/p&gt;
+&lt;p&gt;负责加载各个 Bridge 模块供 JS 调用
+找到并注册所有实现了 RCTBridgeModule protocol 的类, 供 JS 后期使用.
+创建和持有 RCTBatchedBridge
+RCTBatchedBridge
+如果 RCTBridge 是总裁, 那么 RCTBatchedBridge 就是副总裁。前者负责发号施令，后者负责实施落地。&lt;/p&gt;
+&lt;p&gt;负责 Native 和 JS 之间的相互调用(消息通信)
+持有 JSExecutor
+实例化所有在 RCTBridge 里面注册了的 native node_modules
+创建 JS 运行环境, 注入 native hooks 和 modules, 执行 JS bundle script
+管理 JS run loop, 批量把所有 JS 到 native 的调用翻译成 native invocations
+批量管理原生代码到 JS 的调用，把这些调用翻译成 JS 消息发送给 JS executor&lt;/p&gt;
+&lt;h1 id=&#34;rctjavascriptloader&#34;&gt;RCTJavaScriptLoader&lt;/h1&gt;
+&lt;p&gt;这是实现远程代码加载的核心。热更新，开发环境代码加载，静态 jsbundle 加载都离不开这个工具。&lt;/p&gt;
+&lt;p&gt;从指定的地方(bundle, http server)加载 script bundle
+把加载完成的脚本用 string 的形式返回
+处理所有获取代码、打包代码时遇到的错误
+RCTContextExecutor
+封装了基础的 JS 和原生代码互掉和管理逻辑，是 JS 引擎切换的基础。通过不同的 RCTCOntextExecutor 来适配不同的 JS Engine，让我们的 React JS 可以在 iOS、Android、chrome 甚至是自定义的 js engine 里面执行。这也是为何我们能在 chrome 里面直接调试 js 代码的原因。&lt;/p&gt;
+&lt;p&gt;管理和执行所有 N2J 调用&lt;/p&gt;
+&lt;h1 id=&#34;rctmoduledata&#34;&gt;RCTModuleData&lt;/h1&gt;
+&lt;p&gt;加载和管理所有和 JS 有交互的原生代码。把需要和 JS 交互的代码按照一定的规则自动封装成 JS 模块。&lt;/p&gt;
+&lt;p&gt;收集所有桥接模块的信息，供注入到 JS 运行环境&lt;/p&gt;
+&lt;h1 id=&#34;rctmodulemethod&#34;&gt;RCTModuleMethod&lt;/h1&gt;
+&lt;p&gt;记录所有原生代码的导出函数地址(JS 里面是不能直接持有原生对象的)，同时生成对应的字符串映射到该函数地址。JS 调用原生函数的时候会通过 message 的形式调用过来。&lt;/p&gt;
+&lt;p&gt;记录所有的原生代码的函数地址，并且生成对应的字符串映射到该地址
+记录所有的 block 的地址并且映射到唯一的一个 id
+翻译所有 J2N call，然后执行对应的 native 方法。
+如果是原生方法的调用则直接通过方法名调用，MessageQueue 会帮忙把 Method 翻译成 MethodID, 然后转发消息给原生代码，传递函数签名和参数给原生 MessageQueue, 最终给 RCTModuleMethod 解析调用最终的方法
+如果 JS 调用的是一个回调 block，MessageQueue 会把回调对象转化成一个一次性的 block id, 然后传递给 RCTModuleMethod, 最终由 RCTModuleMethod 解析调用。基本上和方法调用一样，只不过生命周期会不一样，block 是动态生成的，要及时销毁，要不然会导致内存泄漏。
+注:&lt;/p&gt;
+&lt;p&gt;实际上是不存在原生 MessageQueue 对象模块的，JS 的 MessageQueue 对应到原生层就是 RCTModuleData &amp;amp; RCTModuleMethod 的组合, MessageQueue 的到原生层的调用先经过 RCTModuleData 和 RCTModuleMethod 翻译成原生代码调用，然后执行.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>启动流程</title>
+      <link>https://ng-tech.icu/books/frontend-series/%E7%A7%BB%E5%8A%A8%E5%BA%94%E7%94%A8/react-native/%E6%9E%B6%E6%9E%84%E5%8E%9F%E7%90%86/%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/frontend-series/%E7%A7%BB%E5%8A%A8%E5%BA%94%E7%94%A8/react-native/%E6%9E%B6%E6%9E%84%E5%8E%9F%E7%90%86/%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/</guid>
+      <description>&lt;h1 id=&#34;react-native-启动流程&#34;&gt;React Native 启动流程&lt;/h1&gt;
+&lt;p&gt;现在，每当启动 React Native 应用程序时，要加载的第一个项目是本机入口点。Native 线程产生 JS VM 线程，该线程运行捆绑的 JS 代码。JS 代码具有应用程序的所有业务逻辑。JS 基础设施初始化. 主要是 require 等基本模块的加载并替换 JS 默认的实现。自定义 require, Warning window, Alert window, fetch 等都是在这里进行的。基础设施初始化好以后就可以开始加载 js 代码了。&lt;/p&gt;
+&lt;p&gt;Native 线程现在通过 RN Bridge 发送消息以启动 JS 应用程序。现在，生成的 Javascript 线程开始通过 RN Bridge 向本机线程发出指令。说明包括要加载的视图，要从硬件检索的信息等。例如，如果 JS 线程想要创建视图和文本，它将把请求批处理为单个消息并将其发送到 用于渲染它们的本机线程。&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;[ [2,3,[2,&amp;#39;Text&amp;#39;,{...}]] [2,3,[3,&amp;#39;View&amp;#39;,{...
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;本机线程将执行这些操作并将结果发送回 JS，以确保已执行操作。&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://postimg.cc/fJBM88jn&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://i.postimg.cc/9QjzFSDM/image.png&#34; alt=&#34;image.png&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h1 id=&#34;原生代码初始化&#34;&gt;原生代码初始化&lt;/h1&gt;
+&lt;p&gt;这里讨论的主要是 RN 相关的原生代码和用户自定义的 RN 模块的原生代码的加载和初始化。原生代码初始化主要分两步：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;静态加载。iOS 没有动态加载原生代码的接口，所有的代码都在编译的初期就已经编译为静态代码并且链接好，程序启动的时候所有的原生代码都会加载好。这是原生代码的静态加载，iOS 里面没有动态加载原生代码的概念，这也是为何没有静态代码热更新的原因。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;RN 模块解析和注入 JS。这是加载的第二步。在 RootView 初始化的时候会遍历所有被标记为 RCTModule 的原生模块，生成一个 json 格式的模块信息，里面包含模块名称和方法名称，然后注入到 JS Engine, 由 MessageQueue 记录下来。原生代码在生成 json 模块信息的时候同时会在原生代码这边维护一个名称字典，用来把模块和方法的名称映射到原生代码的地址上去，用于 JS 调用原生代码的翻译。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;javascript-环境初始化&#34;&gt;Javascript 环境初始化&lt;/h1&gt;
+&lt;p&gt;RN 的初始化是从 RCRootView 开始的，所有的绘制都会在这个 RootView 里面进行(Alert 除外).RootView 做的第一件事情就是初始化一个空的 JS Engine。这个空的 JS Engine 里面包含一些最基础的模块和方法(fetch, require, alert 等), 没有 UI 绘制模块。RN 的工作就是替换这些基础的模块和方法，然后把 RN 的 UI 绘制模块加载并注入到 JS Engine。JS Engine 不直接管理 UI 的绘制。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;所有的绘制由原生控制的 UI 事件和 Timer 触发&lt;/li&gt;
+&lt;li&gt;影响界面刷新的事件发生以后一部分直接由原生控件消化掉，直接更新原生控件。剩下的部分会通过 Bridge 派发给 MessageQueue，然后在 JS 层进行业务逻辑的计算，再由 React 来进行 Virtual Dom 的管理和更新。Virtual Dom 再通过 MessageQueue 发送重绘指令给对应的原生组件进行 UI 更新。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;native-modules-加载&#34;&gt;Native Modules 加载&lt;/h1&gt;
+&lt;p&gt;在 OC 里面，所有 NativeModules 要加载进 JS Engine 都必须遵循一定的协议(protocol)。&lt;/p&gt;
+&lt;p&gt;模块(OC 里面的类)需要声明为&lt;RCTBridgeModule&gt;, 然后在类里面还必须调用宏 RCT_EXPORT_MODULE() 用来定义一个接口告诉 JS 当前模块叫什么名字。这个宏可以接受一个可选的参数，指定模块名，不指定的情况下就取类名。&lt;/p&gt;
+&lt;p&gt;对应的 JS 模块在初始化的时候会调用原生类的[xxx new]方法.&lt;/p&gt;
+&lt;p&gt;模块声明为&lt;RCTBridgeModule&gt;后只是告诉 Native Modules 这有一个原生模块，是一个空的模块。要导出任何方法给 JS 使用都必须手动用宏 RCT_EXPORT_METHOD 来导出方法给 JS 用.&lt;/p&gt;
+&lt;p&gt;所有的原生模块都会注册到 NativeModules 这一个 JS 模块下面去，你如果想要让自己的模块成为一个顶级模块就必须再写一个 JS 文件封装一遍 NativeModules 里面的方法。&lt;/p&gt;
+&lt;p&gt;你如果想自己的方法导出就默认成为顶级方法，那么你需要一个手动去调用 JSC 的接口，这个在前面章节有讲解。不建议这样做，因为这样你会失去跨 JS 引擎的便利性。&lt;/p&gt;
+&lt;p&gt;你可以导出常量到 JS 里面去, 模块初始化的时候会坚持用户是否有实现 constantsToExport 方法, 接受一个常量词典。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-c&#34; data-lang=&#34;c&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;-&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;NSDictionary&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;constantsToExport&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;err&#34;&gt;@&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt; &lt;span class=&#34;err&#34;&gt;@&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;firstDayOfTheWeek&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;err&#34;&gt;@&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;Monday&amp;#34;&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;};&lt;/span&gt;&lt;span class=&#34;c1&#34;&gt;// JS里面可以直接调用 ModuleName.firstDayOfTheWeek获取这个常量
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;常量只会在初始化的时候调用一次，动态修改该方法的返回值无效&lt;/p&gt;
+&lt;p&gt;所有标记为 RCT_EXPORT_MODULE 的模块都会在程序启动的时候自动注册好这些模块，主要是记录模块名和方法名。只是注册，不一定会初始化。&lt;/p&gt;
+&lt;h2 id=&#34;懒加载的模块&#34;&gt;懒加载的模块&lt;/h2&gt;
+&lt;p&gt;React Native 的 NativeModules 是有延迟加载机制的。App 初始化的时候&lt;/p&gt;
+&lt;p&gt;React Native JS 接口兼容(Polyfills)
+fetch 替换
+CommonJS Require
+alert 替换
+console.warning 替换
+console.error 替换&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>实践技巧</title>
+      <link>https://ng-tech.icu/books/frontend-series/%E7%A7%BB%E5%8A%A8%E5%BA%94%E7%94%A8/react-native/%E6%9E%B6%E6%9E%84%E5%8E%9F%E7%90%86/%E5%AE%9E%E8%B7%B5%E6%8A%80%E5%B7%A7/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/frontend-series/%E7%A7%BB%E5%8A%A8%E5%BA%94%E7%94%A8/react-native/%E6%9E%B6%E6%9E%84%E5%8E%9F%E7%90%86/%E5%AE%9E%E8%B7%B5%E6%8A%80%E5%B7%A7/</guid>
+      <description>&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://jairtrejo.mx/blog/2015/09/share-button-react-native&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Adding a native iOS &amp;ldquo;Share&amp;rdquo; button to a React Native app&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;笔者正在开发一个自己的 React Native 应用，其中碰到了一个小的功能点，即添加一个本地的第三方分享的按钮。这是一个非常细节的功能点，因此并没有被容纳到默认的框架中。不过，框架提供了一些列本地的 Objective-C 与上层互相调用的接口，很容易即可实现如下的功能：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;http://jairtrejo.mx/media/images/posts/share-button.gif&#34; alt=&#34;&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;h1 id=&#34;how-it-works-in-iosios-本地的实现&#34;&gt;How it works in iOS(iOS 本地的实现)&lt;/h1&gt;
+&lt;p&gt;iOS 本地端是使用了&lt;a href=&#34;http://nshipster.com/uiactivityviewcontroller/&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;&lt;code&gt;UIActivityViewController&lt;/code&gt;&lt;/a&gt;这个控件，它提供了简单的模态对话框的功能，可以显现在屏幕的底端，进行一些预定义的操作。对于 UIActivityViewController 的用法还是比较简单的，用如下代码即可以构造一个简单的分享弹出框：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-objective-c&#34; data-lang=&#34;objective-c&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;-&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;kt&#34;&gt;IBAction&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;nf&#34;&gt;shareButton:&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;UIBarButtonItem&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;nv&#34;&gt;sender&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;NSString&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;textToShare&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;s&#34;&gt;@&amp;#34;Look at this awesome website for aspiring iOS Developers!&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;NSURL&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;myWebsite&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;NSURL&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;URLWithString&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;@&amp;#34;http://www.codingexplorer.com/&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;NSArray&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;objectsToShare&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;l&#34;&gt;@[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;textToShare&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;myWebsite&lt;/span&gt;&lt;span class=&#34;l&#34;&gt;]&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;UIActivityViewController&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;activityVC&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;[[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;UIActivityViewController&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;alloc&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;initWithActivityItems&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;objectsToShare&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;applicationActivities&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;nil&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;NSArray&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;excludeActivities&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;l&#34;&gt;@[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;UIActivityTypeAirDrop&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;                                   &lt;span class=&#34;n&#34;&gt;UIActivityTypePrint&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;                                   &lt;span class=&#34;n&#34;&gt;UIActivityTypeAssignToContact&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;                                   &lt;span class=&#34;n&#34;&gt;UIActivityTypeSaveToCameraRoll&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;                                   &lt;span class=&#34;n&#34;&gt;UIActivityTypeAddToReadingList&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;                                   &lt;span class=&#34;n&#34;&gt;UIActivityTypePostToFlickr&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;                                   &lt;span class=&#34;n&#34;&gt;UIActivityTypePostToVimeo&lt;/span&gt;&lt;span class=&#34;l&#34;&gt;]&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;activityVC&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;excludedActivityTypes&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;excludeActivities&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;self&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;presentViewController&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;activityVC&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;animated&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;YES&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;completion&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;nil&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;对于如何在本地端构造并且弹出一个分享模态窗口这边不做赘述，但是需要讨论的是，应该以 UIView 的方式弹出还是以切换 UIViewController 的方式弹出该窗口。我的第一反应是去查看 &lt;a href=&#34;https://facebook.github.io/react-native/docs/native-components-ios.html#content&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;React 的官方文档&lt;/a&gt;，这里面他们解释了怎么将一个本地的控件封装为 React 的形式。我的方法也是将分享窗体这个所在的 UIView 显示出来并且以我们需要的方式进行呈现。不过上文中也提及了，这里需要调用的一个 UIViewController 而不是一个 UIView。&lt;/p&gt;
+&lt;h1 id=&#34;how-to-call-the-share-dialog-from-a-native-module&#34;&gt;How to call the Share dialog from a native module&lt;/h1&gt;
+&lt;p&gt;因此还是打算用切换 UIViewController 而不是将某个分享的页面嵌入到 React 元素中的方式，创建一个本地的模块还是非常简单的，就如下图所示：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;http://jairtrejo.mx/media/images/posts/new-native-module.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;初始化代码的模板如下所示：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-objective-c&#34; data-lang=&#34;objective-c&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;//
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;//  RCTShareManager.h
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;//
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;cp&#34;&gt;#import &amp;lt;RCTBridgeModule.h&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;cp&#34;&gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;@interface&lt;/span&gt; &lt;span class=&#34;nc&#34;&gt;RCTShareManager&lt;/span&gt; : &lt;span class=&#34;nc&#34;&gt;NSObject&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;RCTBridgeModule&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;@end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;//
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;//
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;//  RCTShareManager.m
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;//
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;cp&#34;&gt;#import &amp;#34;RCTShareManager.h&amp;#34;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;cp&#34;&gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;@implementation&lt;/span&gt; &lt;span class=&#34;nc&#34;&gt;RCTShareManager&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;RCT_EXPORT_MODULE&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;RCT_EXPORT_METHOD&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;nl&#34;&gt;shareURL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;NSString&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;URLString&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;c1&#34;&gt;// Some native code
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;@end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;最终 shareURL 这个方法的接口是如下方式暴露到了 JavaScript 中：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-js&#34; data-lang=&#34;js&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;var&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;React&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;require&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;react-native&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;var&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;ShareManager&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;React&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;NativeModules&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;ShareManager&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;// Somewhere in your component...
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;function&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;onPress&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nx&#34;&gt;ShareManager&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;shareURL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;someURL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;在本地代码中，可以按照如下方法将 UIActivityViewController 结合进来：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-objective-c&#34; data-lang=&#34;objective-c&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;//
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;//  RCTShareManager.m
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;//
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;cp&#34;&gt;#import &amp;#34;RCTShareManager.h&amp;#34;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;cp&#34;&gt;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;@&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;import&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;UIKit&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;@implementation&lt;/span&gt; &lt;span class=&#34;nc&#34;&gt;RCTShareManager&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;RCT_EXPORT_MODULE&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;RCT_EXPORT_METHOD&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;nl&#34;&gt;shareURL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;NSString&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;URLString&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;NSArray&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;objectsToShare&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;l&#34;&gt;@[&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;NSURL&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;URLWithString&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;URLString&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt;&lt;span class=&#34;l&#34;&gt;]&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;UIActivityViewController&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;activityVC&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;[[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;UIActivityViewController&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;alloc&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;initWithActivityItems&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;objectsToShare&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;applicationActivities&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;nil&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;UIViewController&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;rootController&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;UIApplication&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sharedApplication&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;delegate&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;window&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;rootViewController&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;rootController&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;presentViewController&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;activityVC&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;animated&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;YES&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;completion&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;nil&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;@end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;不过如果按照上面说的这样处理之后，XCode 会报如下错误：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;This application is modifying the autolayout engine from a background thread, which can lead to engine corruption and weird crashes.  This will cause an exception in a future release.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;并且经过较长时间之后，屏幕会如下所示：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;http://jairtrejo.mx/media/images/posts/share-dialog-error.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;这是因为 React Native 是在后台线程执行了代码，而 iOS 默认是只允许主线程进行前端界面的渲染，因此，我们需要将页面渲染这一部分放置到主线程中进行：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-objective-c&#34; data-lang=&#34;objective-c&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;RCT_EXPORT_METHOD&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;nl&#34;&gt;shareURL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;NSString&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;URLString&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;NSArray&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;objectsToShare&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;l&#34;&gt;@[&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;NSURL&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;URLWithString&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;URLString&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt;&lt;span class=&#34;l&#34;&gt;]&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;UIActivityViewController&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;activityVC&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;[[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;UIActivityViewController&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;alloc&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;initWithActivityItems&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;objectsToShare&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;applicationActivities&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;nil&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;UIViewController&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;rootController&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;UIApplication&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sharedApplication&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;delegate&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;window&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;rootViewController&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;dispatch_async&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;dispatch_get_main_queue&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(),&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;^&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;rootController&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;presentViewController&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;activityVC&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;animated&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;YES&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;completion&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;nil&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;});&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;blockquote&gt;
+&lt;p&gt;本文翻译自&lt;a href=&#34;https://blog.jari.io/react-native/&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;React Native: Things I wish I knew before starting out.&lt;/a&gt;，从属于笔者的&lt;a href=&#34;https://github.com/wx-chevalier/web-frontend-practice-handbook#reactnative&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;ReactNative 入门与最佳实践&lt;/a&gt;系列文章。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;a href=&#34;https://facebook.github.io/react-native/&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;React Native&lt;/a&gt; 是个非常优秀的项目，不过鉴于其仍处于不断地演进开发中，我们可能阅读到的很多的教程里的信息还是面向旧版本的。本文就是记录了些根据笔者的日常开发总结而来的你应该格外注意而又没有在文档中强调的细节要点。我会尽可能地在版本迭代之后更新本文的内容，不过还是要强调下本文编写于 React Native v0.33(2016 年 9 月)。&lt;/p&gt;
+&lt;h1 id=&#34;rnpm-link&#34;&gt;rnpm link&lt;/h1&gt;
+&lt;p&gt;rnpm 已经被集成到了 &lt;code&gt;react-native&lt;/code&gt; 命令行工具中，可以直接通过&lt;code&gt;react-native link&lt;/code&gt;命令运行。不要单独的安装 rnpm，它已经被&lt;a href=&#34;https://github.com/rnpm/rnpm#dear-friends&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;弃用&lt;/a&gt;了。很多&lt;a href=&#34;https://github.com/maxs15/react-native-spinkit/tree/v0.1.3#link-the-library-automatically-using-rnpm&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;第三方的插件&lt;/a&gt;乃至于 &lt;a href=&#34;https://facebook.github.io/react-native/releases/0.33/docs/linking-libraries-ios.html#automatic-linking&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;官方文档&lt;/a&gt; 都没有提及这点。&lt;/p&gt;
+&lt;h1 id=&#34;自定义字体你并不需要编辑-androidios-项目&#34;&gt;自定义字体？你并不需要编辑 Android/iOS 项目&lt;/h1&gt;
+&lt;p&gt;这一点好像也没有在文档之中并没有详细提及，不过根据&lt;a href=&#34;https://medium.com/@dabit3/adding-custom-fonts-to-react-native-b266b41bff7f&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;这里&lt;/a&gt;描述的，我们并不需要编辑 Android/iOS 项目来添加自定义字体。我们只需要在项目的根目录下创建新的&lt;code&gt;assets&lt;/code&gt;文件夹，拖入你所需要用的字体文件，然后在你的&lt;code&gt;package.json&lt;/code&gt;中添加如下配置:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;&amp;#34;rnpm&amp;#34;: { &amp;#34;assets&amp;#34;: [&amp;#34;assets&amp;#34;] },
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;然后，执行&lt;code&gt;react-native link&lt;/code&gt;命令，该命令不仅会将第三方模块的原生代码链接入 Android/iOS 项目，还会将字体等文件移动至相应的目录中。然后你就可以通过设置&lt;code&gt;fontFamily&lt;/code&gt;来使用安装好的字体。不过有时候使用&lt;code&gt;react-native link&lt;/code&gt;并不能如人所愿，此时你可以参考下&lt;a href=&#34;https://github.com/react-native-community/react-native-video&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;react-native-video&lt;/a&gt;这里的一些教程。
+另外，需要注意的是目前 RN 中只支持 font-weights 与 styles 为 bold 与 italic，RN 会自动搜索 yourFamilyName_bold.ttf 与 yourFamilyName_italic.ttf。&lt;/p&gt;
+&lt;h1 id=&#34;rn-中集成了不少非标准的-babel-plugins&#34;&gt;RN 中集成了不少非标准的 Babel Plugins&lt;/h1&gt;
+&lt;p&gt;React 与 RN 本身已经集成了不少的 Babel Plugins，你的代码可以直接使用这些 Plugins，不过很多文档中并没有提及这些 Plugins，我觉得了解有哪些 Plugins 还是很有意义的。&lt;/p&gt;
+&lt;h2 id=&#34;flow&#34;&gt;Flow&lt;/h2&gt;
+&lt;p&gt;&lt;a href=&#34;https://flowtype.org/&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Flow&lt;/a&gt;是 Facebook 出品的静态类型的语言，很类似于微软的&lt;a href=&#34;http://typescriptlang.org/&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;TypeScript&lt;/a&gt;。所谓静态类型语言即使当你在初始化某个变量的类型之后你并不能再改变它的类型，类似于熟悉的 C#、Java 等等这些语言，这一特性有助于我们编写安全可控的代码。一个简单的 Flow 的例子如下所示:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;function foo(argument1: string, argument2: number): string {
+    argument1 = 0; // this will fail when running flow
+    argument2 = 0; // but this won&amp;#39;t!return 1; // this however, will - you guessed it - fail.
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Flow 官网上建议在代码的首部添加&lt;code&gt;// @flow&lt;/code&gt;，不过根据测试因为 RN 中已经内置了合适的 Plugins，其可以完成自动的转化。&lt;/p&gt;
+&lt;h2 id=&#34;es7-class-properties&#34;&gt;ES7 Class Properties&lt;/h2&gt;
+&lt;p&gt;RN 内部也已支持&lt;a href=&#34;https://babeljs.io/docs/plugins/transform-class-properties/&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;ES7 Class Properties&lt;/a&gt;，也就意味着你不需要写如下复杂的代码:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;class MyComponent extends Component {
+    constructor(props) {
+        super(props);
+        this.thisIsAField = 1;
+    }
+}
+MyComponent.propTypes = {
+    firstname: React.PropTypes.string,
+    lastname: React.PropTypes.string
+};
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;而可以写成这样:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;class MyClass {
+    thisIsAField = 1;
+    static propTypes = {
+        firstname: React.PropTypes.string,
+        lastname: React.PropTypes.string
+    };
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;object-spread-operator&#34;&gt;Object Spread Operator&lt;/h2&gt;
+&lt;p&gt;&lt;a href=&#34;https://babeljs.io/docs/plugins/transform-object-rest-spread/&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Object Spread Operator&lt;/a&gt;可以使得对象的合并更加方便，类似于 Array Spread Operator，我们可以使用&lt;code&gt;...&lt;/code&gt;来解构某个对象，譬如:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;// Rest propertieslet { x, y, ...z } = { x: 1, y: 2, a: 3, b: 4 };
+console.log(x); // 1
+console.log(y); // 2
+console.log(z); // { a: 3, b: 4 }// Spread propertieslet n = { x, y, ...z };
+console.log(n); // { x: 1, y: 2, a: 3, b: 4 }
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
+    
+    <item>
+      <title>原理与机制</title>
+      <link>https://ng-tech.icu/books/frontend-series/%E7%A7%BB%E5%8A%A8%E5%BA%94%E7%94%A8/react-native/%E6%9E%B6%E6%9E%84%E5%8E%9F%E7%90%86/%E5%8E%9F%E7%90%86%E4%B8%8E%E6%9C%BA%E5%88%B6/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/frontend-series/%E7%A7%BB%E5%8A%A8%E5%BA%94%E7%94%A8/react-native/%E6%9E%B6%E6%9E%84%E5%8E%9F%E7%90%86/%E5%8E%9F%E7%90%86%E4%B8%8E%E6%9C%BA%E5%88%B6/</guid>
+      <description>&lt;h2 id=&#34;application-exploration应用探究&#34;&gt;Application Exploration(应用探究)&lt;/h2&gt;
+&lt;h3 id=&#34;architecture应用架构&#34;&gt;Architecture(应用架构)&lt;/h3&gt;
+&lt;p&gt;当使用 react-native 命令创建新的项目时，调用的即https://github.com/facebook/react-native/blob/master/react-native-cli/index.js这个脚本。当使用&lt;code&gt;react-native init HelloWorld&lt;/code&gt;创建一个新的应用目录时，它会创建一个新的 HelloWorld 的文件夹，包含如下列表：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;HelloWorld.xcodeproj/&lt;/p&gt;
+&lt;p&gt;Podfile&lt;/p&gt;
+&lt;p&gt;iOS/&lt;/p&gt;
+&lt;p&gt;Android/&lt;/p&gt;
+&lt;p&gt;index.ios.js&lt;/p&gt;
+&lt;p&gt;index.android.js&lt;/p&gt;
+&lt;p&gt;node_modules/&lt;/p&gt;
+&lt;p&gt;package.json&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;React Native 最大的卖点在于(1)可以使用 JavaScript 编写 iOS 或者 Android 原生程序。(2)应用可以运行在原生环境下并且提供流畅的 UI 与用户体验。众所周知，iOS 或者 Android 并不能直接运行 JavaScript 代码，而是依靠类似于 UIWebView 这样的原生组件去运行 JavaScript 代码，也就是传统的混合式应用。整个应用运行开始还是自原生开始，不过类似于 Objective-C/Java 这样的原生代码只是负责启动一个 WebView 容器，即没有浏览器界面的浏览器引擎。&lt;/p&gt;
+&lt;p&gt;而对于 React Native 而言，并不需要一个 WebView 容器去执行 Web 方面的代码，而是将所有的 JavaScript 代码运行在一个内嵌的 JavaScriptCore 容器实例中，并最终渲染为高级别的平台相关的组件。这里以 iOS 为例，打开 HelloWorld/AppDelegate.m 文件，可以看到如下的代码：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-objective-c&#34; data-lang=&#34;objective-c&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;.....................&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;RCTRootView&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;rootView&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;[[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;RCTRootView&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;alloc&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nl&#34;&gt;initWithBundleURL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;jsCodeLocation&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nl&#34;&gt;moduleName&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;@&amp;#34;HelloWorld&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nl&#34;&gt;launchOptions&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;launchOptions&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;.....................&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;AppDelegate.m 文件本身是 iOS 程序的入口，相信每一个有 iOS 开发经验的同学都不会陌生，这也是本地的 Objective-C 代码与 React Native 的 JavaScript 代码胶合的地方。而这种胶合的关键就是 RCTRootView 这个组件，可以从 React 声明的组件中加载到 Native 的组件。RCTRootView 组件是一个由 React Native 提供的原生的 Objective-C 类，可以读取 React 的 JavaScript 代码并且执行，除此之外，也允许我们从 JavaScript 代码中调用 iOS UI 的组件。&lt;/p&gt;
+&lt;p&gt;到这里我们可以看出，React Native 并没有将 JavaScript 代码编译转化为原生的 Objective-C 或者 Swift 代码，但是这些在 React 中创建的组件渲染的方式也非常类似于传统的 Objective-C 或者 Swift 创建的基于 UIKit 的组件，并不是类似于 WebView 中网页渲染的结果。&lt;/p&gt;
+&lt;p&gt;这种架构也就很好地解释了为什么可以动态加载我们的应用，当我们仅仅改变了 JS 代码而没有原生的代码改变的时候，不需要去重新编译。RCTRootView 组件会监听&lt;code&gt;Command+R&lt;/code&gt;组合键然后重新执行 JavaScript 代码。&lt;/p&gt;
+&lt;h3 id=&#34;virtual-dom-的扩展&#34;&gt;Virtual Dom 的扩展&lt;/h3&gt;
+&lt;p&gt;Virtual Dom 是 React 的核心机制之一，对于 Virtual Dom 的详细说明可以参考笔者 React 系列文章。在 React 组件被用于原生渲染之前，Clipboard 已经将 React 用于渲染到 HTML 的 Canvas 中，可以查看&lt;a href=&#34;https://github.com/Flipboard/react-canvas&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;render React to the HTML element&lt;/a&gt;这篇文章。对于 React Web 而言，就是将 React 组件渲染为 DOM 节点，而对于 React Natively 而言，就是利用原生的接口把 React 组件渲染为原生的接口，其大概示意图可以如下：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://www.safaribooksonline.com/library/view/learning-react-native/9781491929049/assets/render-targets.png&#34; alt=&#34;React Native behaves much like React, but can render to many different targets.&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;虽然 React 最初是以 Web 的形式呈现，但是 React 声明的组件可以通过&lt;em&gt;bridge&lt;/em&gt;，即不同的桥接器转化器会将同样声明的组件转化为不同的具体的实现。React 在组件的 render 函数中返回具体的平台中应该如何去渲染这些组件。对于 React Native 而言，&lt;code&gt;&amp;lt;View/&amp;gt;&lt;/code&gt;这个组件会被转化为 iOS 中特定的&lt;code&gt;UIView&lt;/code&gt;组件。&lt;/p&gt;
+&lt;h3 id=&#34;载入-javascript-代码&#34;&gt;载入 JavaScript 代码&lt;/h3&gt;
+&lt;p&gt;React Native 提供了非常方便的动态调试机制，具体的表现而言即是允许以一种类似于中间件服务器的方式动态的加载 JS 代码，即&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-objective-c&#34; data-lang=&#34;objective-c&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;jsCodeLocation&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;NSURL&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;URLWithString&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;@&amp;#34;http://localhost:8081/index.ios.bundle&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;另一种发布环境下，可以将 JavaScript 代码打包编译，即&lt;code&gt;npm build&lt;/code&gt;：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-objective-c&#34; data-lang=&#34;objective-c&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;jsCodeLocation&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;[[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;NSBundle&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;mainBundle&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;URLForResource&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;@&amp;#34;main&amp;#34;&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;withExtension&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;@&amp;#34;jsbundle&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;如果在 Xcode 中直接运行程序会自动调用&lt;code&gt;npm start&lt;/code&gt;命令来启动一个动态编译的服务器，如果没有自动启动可以手动的使用&lt;code&gt;npm start&lt;/code&gt;命令，就如定义在 package.json 文件中的，它会启动 node_modules/react-native/packager/packager.sh 这个脚本。&lt;/p&gt;
+&lt;h3 id=&#34;react-native-中的现代-javascript-代码&#34;&gt;React Native 中的现代 JavaScript 代码&lt;/h3&gt;
+&lt;p&gt;从上文中可以看出，React Native 中使用的是所谓的 JSX 以及大量的 ES6 的语法，在打包器打包之前需要将 JavaScript 代码进行一些转换。这是因为 iOS 与 Android 中的 JavaScript 解释器目前主要还是支持到了 ES5 版本，并不能完全识别 React Native 中提供的语法或者关键字。当然，并不是说我们不能使用 ES5 的语法去编写 React Native 程序，只是最新的一些语法细则规范可以辅助我们快速构建高可维护的应用程序。&lt;/p&gt;
+&lt;p&gt;譬如我们以 JSX 的语法编写了如下渲染函数：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-js&#34; data-lang=&#34;js&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nx&#34;&gt;render&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;function&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;View&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;style&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;styles&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;container&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;TextInput&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nx&#34;&gt;style&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;styles&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;nameInput&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nx&#34;&gt;onChange&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;this&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;onNameChanged&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nx&#34;&gt;placeholder&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;Who should be greeted?&amp;#39;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;Text&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;style&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;styles&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;welcome&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nx&#34;&gt;Hello&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;this&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;state&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;name&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;!&amp;lt;&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;/Text&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;Text&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;style&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;styles&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;instructions&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nx&#34;&gt;To&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;get&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;started&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;edit&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;index&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;ios&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;js&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;/Text&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;Text&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;style&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;styles&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;instructions&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nx&#34;&gt;Press&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;Cmd&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;R&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;to&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;reload&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,{&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;\n&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nx&#34;&gt;Cmd&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;Control&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;Z&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;for&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;dev&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;menu&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;/Text&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;/View&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;在 JS 代码载入之前，React 打包器需要首先将 JSX 语法转化为 ES5 的表达式：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-js&#34; data-lang=&#34;js&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nx&#34;&gt;render&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;function&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  	&lt;span class=&#34;nx&#34;&gt;React&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;createElement&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;View&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;style&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;styles&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;container&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;},&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nx&#34;&gt;React&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;createElement&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;TextInput&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nx&#34;&gt;style&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;styles&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;nameInput&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nx&#34;&gt;onChange&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;this&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;onNameChanged&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nx&#34;&gt;placeholder&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;Who should be greeted?&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}),&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nx&#34;&gt;React&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;createElement&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;Text&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;style&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;styles&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;welcome&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;},&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;s2&#34;&gt;&amp;#34;Hello, &amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;this&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;state&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;name&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;!&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;),&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nx&#34;&gt;React&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;createElement&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;Text&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;style&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;styles&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;instructions&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;},&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;s2&#34;&gt;&amp;#34;To get started, edit index.ios.js&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;),&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nx&#34;&gt;React&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;createElement&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;Text&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;style&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;styles&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;instructions&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;},&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;s2&#34;&gt;&amp;#34;Press Cmd+R to reload,&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s1&#34;&gt;&amp;#39;\n&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;s2&#34;&gt;&amp;#34;Cmd+Control+Z for dev menu&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;另一些比较常用的语法转换，一个是模块导入时候的结构器，即我们常常见到模块导入：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-js&#34; data-lang=&#34;js&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;var&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;React&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;require&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;react-native&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;var&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;AppRegistry&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;StyleSheet&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;Text&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;TextInput&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;View&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;React&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;上文中的用法即是所谓的解构赋值，一个简单的例子如下：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-js&#34; data-lang=&#34;js&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;var&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;fruits&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;banana&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;A banana&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;orange&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;An orange&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;apple&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;An apple&amp;#34;&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;};&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;var&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;banana&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;orange&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;apple&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;fruits&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;那么我们在某个组件中进行导出的时候，就可以用如下语法：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-js&#34; data-lang=&#34;js&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nx&#34;&gt;module&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;exports&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;displayName&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;Name&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nx&#34;&gt;module&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;exports&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;Component&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;Component&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;而导入时，即是：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-js&#34; data-lang=&#34;js&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;var&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;Component&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;require&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;component.js&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;另一个常用的 ES6 的语法即是所谓的 Arrow Function，这有点类似于 Lambda 表达式：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-js&#34; data-lang=&#34;js&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nx&#34;&gt;AppRegistry&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;registerComponent&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;HelloWorld&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;()&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;HelloWorld&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;会被转化为：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-js&#34; data-lang=&#34;js&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nx&#34;&gt;AppRegistry&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;nx&#34;&gt;registerComponent&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;HelloWorld&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;function&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;nx&#34;&gt;HelloWorld&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;});&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</description>
+    </item>
+    
+  </channel>
+</rss>

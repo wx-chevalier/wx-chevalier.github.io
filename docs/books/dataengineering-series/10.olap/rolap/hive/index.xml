@@ -1,0 +1,1379 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Hive | Next-gen Tech Edu</title>
+    <link>https://ng-tech.icu/books/dataengineering-series/10.olap/rolap/hive/</link>
+      <atom:link href="https://ng-tech.icu/books/dataengineering-series/10.olap/rolap/hive/index.xml" rel="self" type="application/rss+xml" />
+    <description>Hive</description>
+    <generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language>
+    <image>
+      <url>https://ng-tech.icu/media/sharing.png</url>
+      <title>Hive</title>
+      <link>https://ng-tech.icu/books/dataengineering-series/10.olap/rolap/hive/</link>
+    </image>
+    
+    <item>
+      <title>HiveQL</title>
+      <link>https://ng-tech.icu/books/dataengineering-series/10.olap/rolap/hive/hiveql/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/dataengineering-series/10.olap/rolap/hive/hiveql/</guid>
+      <description>&lt;blockquote&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://blog.csdn.net/lifuxiangcaohui/article/details/40588929&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Hive 四种数据导入方式&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/blockquote&gt;
+&lt;h1 id=&#34;index索引&#34;&gt;Index:索引&lt;/h1&gt;
+&lt;p&gt;Hive 的数据分为表数据和元数据，表数据是 Hive 中表格(table)具有的数据；而元数据是用来存储表的名字，表的列和分区及其属性，表的属性(是否为外部表等)，表的数据所在目录等。下面分别来介绍。&lt;/p&gt;
+&lt;p&gt;索引是标准的数据库技术，hive 0.7 版本之后支持索引。Hive 提供有限的索引功能，这不像传统的关系型数据库那样有“键(key)”的概念，用户可以在某些列上创建索引来加速某些操作，给一个表创建的索引数据被保存在另外的表中。Hive 的索引功能现在还相对较晚，提供的选项还较少。但是，索引被设计为可使用内置的可插拔的 java 代码来定制，用户可以扩展这个功能来满足自己的需求。当然不是说有的查询都会受惠于 Hive 索引。用户可以使用 EXPLAIN 语法来分析 HiveQL 语句是否可以使用索引来提升用户查询的性能。像 RDBMS 中的索引一样，需要评估索引创建的是否合理，毕竟，索引需要更多的磁盘空间，并且创建维护索引也会有一定的代价。用户必须要权衡从索引得到的好处和代价。
+　　下面说说怎么创建索引：
+　　 1、先创建表：&lt;/p&gt;
+&lt;p&gt;1
+2
+3
+4
+hive&amp;gt; create table user( id int, name string)&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;ROW FORMAT DELIMITED&lt;br&gt;
+FIELDS TERMINATED BY &amp;lsquo;\t&amp;rsquo; &amp;gt; STORED AS TEXTFILE;
+　　 2、导入数据：&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;1
+2
+hive&amp;gt; load data local inpath &amp;lsquo;/export1/tmp/wyp/row.txt&amp;rsquo; &amp;gt; overwrite into table user;
+　　 3、创建索引之前测试&lt;/p&gt;
+&lt;p&gt;01
+02
+03
+04
+05
+06
+07
+08
+09
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+hive&amp;gt; select * from user where id =500000;
+Total MapReduce jobs = 1
+Launching Job 1 out of 1
+Number of reduce tasks is set to 0 since there&amp;rsquo;s no reduce operator
+Cannot run job locally: Input Size (= 356888890) is larger than
+hive.exec.mode.local.auto.inputbytes.max (= 134217728)
+Starting Job = job_1384246387966_0247, Tracking URL =&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;http://l-datalogm1.data.cn&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;http://l-datalogm1.data.cn&lt;/a&gt;1:9981/proxy/application_1384246387966_0247/&lt;/p&gt;
+&lt;p&gt;Kill Command=/home/q/hadoop/bin/hadoop job -kill job_1384246387966_0247
+Hadoop job information for Stage-1: number of mappers:2; number of reducers:0
+2013-11-13 15:09:53,336 Stage-1 map = 0%, reduce = 0%
+2013-11-13 15:09:59,500 Stage-1 map=50%,reduce=0%, Cumulative CPU 2.0 sec
+2013-11-13 15:10:00,531 Stage-1 map=100%,reduce=0%, Cumulative CPU 5.63 sec
+2013-11-13 15:10:01,560 Stage-1 map=100%,reduce=0%, Cumulative CPU 5.63 sec
+MapReduce Total cumulative CPU time: 5 seconds 630 msec
+Ended Job = job_1384246387966_0247
+MapReduce Jobs Launched:
+Job 0: Map: 2 Cumulative CPU: 5.63 sec&lt;br&gt;
+HDFS Read: 361084006 HDFS Write: 357 SUCCESS
+Total MapReduce CPU Time Spent: 5 seconds 630 msec
+OK
+500000 wyp.
+Time taken: 14.107 seconds, Fetched: 1 row(s)
+一共用了 14.107s
+　　 4、对 user 创建索引&lt;/p&gt;
+&lt;p&gt;01
+02
+03
+04
+05
+06
+07
+08
+09
+10
+11
+12
+hive&amp;gt; create index user_index on table user(id) &amp;gt; as &amp;lsquo;org.apache.hadoop.hive.ql.index.compact.CompactIndexHandler&amp;rsquo; &amp;gt; with deferred rebuild &amp;gt; IN TABLE user_index_table;
+hive&amp;gt; alter index user_index on user rebuild;
+hive&amp;gt; select * from user_index_table limit 5;
+0 hdfs://mycluster/user/hive/warehouse/table02/000000_0 [0]
+1 hdfs://mycluster/user/hive/warehouse/table02/000000_0 [352]
+2 hdfs://mycluster/user/hive/warehouse/table02/000000_0 [704]
+3 hdfs://mycluster/user/hive/warehouse/table02/000000_0 [1056]
+4 hdfs://mycluster/user/hive/warehouse/table02/000000_0 [1408]
+Time taken: 0.244 seconds, Fetched: 5 row(s)
+这样就对 user 表创建好了一个索引。&lt;/p&gt;
+&lt;p&gt;在 Hive 创建索引还存在 bug：如果表格的模式信息来自 SerDe，Hive 将不能创建索引：
+hive&amp;gt; CREATE INDEX employees_index &amp;gt; ON TABLE employees (country) &amp;gt; AS &amp;lsquo;org.apache.hadoop.hive.ql.index.compact.CompactIndexHandler&amp;rsquo; &amp;gt; WITH DEFERRED REBUILD &amp;gt; IDXPROPERTIES (&amp;lsquo;creator&amp;rsquo; = &amp;lsquo;me&amp;rsquo;,&amp;lsquo;created_at&amp;rsquo; = &amp;lsquo;some_time&amp;rsquo;) &amp;gt; IN TABLE employees_index_table &amp;gt; COMMENT &amp;lsquo;Employees indexed by country and name.&amp;rsquo;;
+FAILED: Error in metadata: java.lang.RuntimeException: &lt;br&gt;
+Check the index columns, they should appear in the table being indexed.
+FAILED: Execution Error, return code 1 from &lt;br&gt;
+org.apache.hadoop.hive.ql.exec.DDLTask
+这个 bug 发生在 Hive0.10.0、0.10.1、0.11.0，在 Hive0.12.0 已经修复了，详情请参见：https://issues.apache.org/jira/browse/HIVE-4251&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://blog.csdn.net/lifuxiangcaohui/article/details/41548433&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Hive 查询进阶&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://blog.csdn.net/lifuxiangcaohui/article/details/41548667&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Hive 中分组取前 N 个值&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.360doc.com/content/14/0107/20/15109633_343417196.shtml&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;某个 Hive 查询实例，理清 Hive 的应用思路&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/blockquote&gt;
+&lt;h1 id=&#34;insert&#34;&gt;Insert&lt;/h1&gt;
+&lt;p&gt;1、insert into 语句
+hive&amp;gt; insert into table userinfos2 select id,age,name from userinfos;&lt;/p&gt;
+&lt;p&gt;2、insert overwrite 语句
+hive&amp;gt; insert overwrite table userinfos2 select id,age,name from userinfos;
+insert overwrite 会覆盖已经存在的数据，我们假设要插入的数据和已经存在的 N 条数据一样，那么插入后只会保留一条数据；
+insert into 只是简单的 copy 插入，不做重复性校验，如果插入前有 N 条数据和要插入的数据一样，那么插入后会有 N+1 条数据；&lt;/p&gt;
+&lt;p&gt;在 Hive0.8 开始支持 Insert into 语句，它的作用是在一个表格里面追加数据。&lt;/p&gt;
+&lt;p&gt;标准语法语法如下：&lt;/p&gt;
+&lt;p&gt;1
+2
+3
+4
+5
+6
+7
+8
+9
+用法一：
+INSERT OVERWRITE TABLE tablename1 [PARTITION &lt;br&gt;
+(partcol1=val1, partcol2=val2 &amp;hellip;) [IF NOT EXISTS]] &lt;br&gt;
+select_statement1 FROM from_statement;&lt;/p&gt;
+&lt;p&gt;用法二：
+INSERT INTO TABLE tablename1 [PARTITION &lt;br&gt;
+(partcol1=val1, partcol2=val2 &amp;hellip;)] &lt;br&gt;
+select_statement1 FROM from_statement;
+注意：上面语句由于太长了，为了页面显示美观，用’&#39;符号换行了。
+举例：&lt;/p&gt;
+&lt;p&gt;1
+2
+hive&amp;gt; insert into table cite
+　　&amp;gt; select * from tt;
+这样就会将 tt 表格里面的数据追加到 cite 表格里面。并且在 cite 数据存放目录生成了一个新的数据文件，这个新文件是经过处理的，列之间的分割是 cite 表格的列分割符，而不是 tt 表格列的分隔符。
+　　(1)、如果两个表格的维度不一样，将会插入错误：&lt;/p&gt;
+&lt;p&gt;1
+2
+3
+4
+5
+6
+hive&amp;gt; insert into table cite &amp;gt; select * from cite_standby;&lt;/p&gt;
+&lt;p&gt;FAILED: SemanticException [Error 10044]: Line 1:18 Cannot insert into
+target table because column number/types are different &amp;lsquo;cite&amp;rsquo;:
+Table insclause-0 has 2 columns, but query has 1 columns.
+从上面错误提示看出，查询的表格 cite_standby 只有一列，而目标表格(也就是需要插入数据的表格)有 2 列，由于列的数目不一样，导致了上面的语句不能成功运行，我们需要保证查询结果列的数目和需要插入数据表格的列数目一致，这样才行。
+　　(2)、在用 extended 关键字创建的表格上插入数据将会影响到其它的表格的数据，因为他们共享一份数据文件。
+　　(3)、如果查询出来的数据类型和插入表格对应的列数据类型不一致，将会进行转换，但是不能保证转换一定成功，比如如果查询出来的数据类型为 int，插入表格对应的列类型为 string，可以通过转换将 int 类型转换为 string 类型；但是如果查询出来的数据类型为 string，插入表格对应的列类型为 int，转换过程可能出现错误，因为字母就不可以转换为 int，转换失败的数据将会为 NULL。
+　　(4)、可以将一个表查询出来的数据插入到原表中：&lt;/p&gt;
+&lt;p&gt;1
+2
+hive&amp;gt; insert into table cite&lt;br&gt;
+　　&amp;gt; select * from cite;
+　　结果就是相当于复制了一份 cite 表格中的数据。
+　　(5)、和 insert overwrite 的区别：&lt;/p&gt;
+&lt;p&gt;1
+2
+hive&amp;gt; insert overwrite table cite&lt;br&gt;
+　　&amp;gt; select * from tt;
+　　上面的语句将会用 tt 表格查询到的数据覆盖 cite 表格已经存在的数据。&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>表操作</title>
+      <link>https://ng-tech.icu/books/dataengineering-series/10.olap/rolap/hive/%E8%A1%A8%E6%93%8D%E4%BD%9C/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/dataengineering-series/10.olap/rolap/hive/%E8%A1%A8%E6%93%8D%E4%BD%9C/</guid>
+      <description>&lt;h1 id=&#34;create表创建&#34;&gt;Create:表创建&lt;/h1&gt;
+&lt;p&gt;Create Table 用于在 Hive 中创建表，其语法如下所示，注意，Hive 中的表名列名不区分大小写：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;CREATE [TEMPORARY] [EXTERNAL] TABLE [IF NOT EXISTS] [db_name.] table_name
+
+[(col_name data_type [COMMENT col_comment], ...)]
+[COMMENT table_comment]
+[ROW FORMAT row_format]
+[STORED AS file_format]
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;譬如当我们希望创建如下的包含 Employee 新的表时，数据格式和域如下:&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Sr.No&lt;/th&gt;
+&lt;th&gt;Field Name&lt;/th&gt;
+&lt;th&gt;Data Type&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;1&lt;/td&gt;
+&lt;td&gt;Eid&lt;/td&gt;
+&lt;td&gt;int&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;2&lt;/td&gt;
+&lt;td&gt;Name&lt;/td&gt;
+&lt;td&gt;String&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;3&lt;/td&gt;
+&lt;td&gt;Salary&lt;/td&gt;
+&lt;td&gt;Float&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;4&lt;/td&gt;
+&lt;td&gt;Designation&lt;/td&gt;
+&lt;td&gt;string&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;然后如下的语句会指定该表的注释、不同的域的分隔符、不同的行的分隔符，以及存储的文件类型:&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;COMMENT ‘Employee details’
+FIELDS TERMINATED BY ‘\t’
+LINES TERMINATED BY ‘\n’
+STORED IN TEXT FILE
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;然后完整的创建语句为:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;hive&amp;gt; CREATE TABLE IF NOT EXISTS employee ( eid int, name String,
+salary String, destination String)
+COMMENT ‘Employee details’
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ‘\t’
+LINES TERMINATED BY ‘\n’
+STORED AS TEXTFILE;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;如果你添加了&lt;code&gt;IF NOT EXISTS&lt;/code&gt;选项，Hive 会在表存在的情况下忽略掉创建，在成功执行该语句之后，你会得到如下的响应:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;OK
+Time taken: 5.905 seconds
+hive&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;java-programming&#34;&gt;Java Programming&lt;/h2&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;import java.sql.SQLException;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.sql.DriverManager;
+
+public class HiveCreateTable {
+   private static String driverName = &amp;#34;org.apache.hadoop.hive.jdbc.HiveDriver&amp;#34;;
+
+   public static void main(String[] args) throws SQLException {
+
+      // Register driver and create driver instance
+      Class.forName(driverName);
+
+      // get connection
+      Connection con = DriverManager.getConnection(&amp;#34;jdbc:hive://localhost:10000/userdb&amp;#34;, &amp;#34;&amp;#34;, &amp;#34;&amp;#34;);
+
+      // create statement
+      Statement stmt = con.createStatement();
+
+      // execute statement
+      stmt.executeQuery(&amp;#34;CREATE TABLE IF NOT EXISTS &amp;#34;
+         +&amp;#34; employee ( eid int, name String, &amp;#34;
+         +&amp;#34; salary String, destignation String)&amp;#34;
+         +&amp;#34; COMMENT ‘Employee details’&amp;#34;
+         +&amp;#34; ROW FORMAT DELIMITED&amp;#34;
+         +&amp;#34; FIELDS TERMINATED BY ‘\t’&amp;#34;
+         +&amp;#34; LINES TERMINATED BY ‘\n’&amp;#34;
+         +&amp;#34; STORED AS TEXTFILE;&amp;#34;);
+
+      System.out.println(“ Table employee created.”);
+      con.close();
+   }
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;内表-vs-外表&#34;&gt;内表 VS 外表&lt;/h2&gt;
+&lt;p&gt;Hive 默认创建的表为内部表，内部表与外部表的区别可以归纳为:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;在导入数据到外部表，数据并没有移动到自己的数据仓库目录下(如果指定了 location 的话)，也就是说外部表中的数据并不是由它自己来管理的！而内部表则不一样；&lt;/li&gt;
+&lt;li&gt;在删除内部表的时候，Hive 将会把属于表的元数据和数据全部删掉；而删除外部表的时候，Hive 仅仅删除外部表的元数据，数据是不会删除的！&lt;/li&gt;
+&lt;li&gt;在创建内部表或外部表时加上 location 的效果是一样的，只不过表目录的位置不同而已，加上 partition 用法也一样，只不过表目录下会有分区目录而已，load data local inpath 直接把本地文件系统的数据上传到 hdfs 上，有 location 上传到 location 指定的位置上，没有的话上传到 hive 默认配置的数据仓库中。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;内表&#34;&gt;内表&lt;/h3&gt;
+&lt;p&gt;(1)创建不带分区的内表
+首先创建一个表，注意，Hive 创建成功的表即使你输入的是大写，也会被转化为小写：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;create table innertable(id int,name string) row format delimited fields terminated by &amp;#39;|&amp;#39;;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;然后我们从 HDFS 上加载数据:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;load data inpath &amp;#39;hdfs://master:9000/user/root/test/innerTable&amp;#39; into table innertable;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;查看 HDFS 上/user/root/test/innerTable,发现文件价 innerTable 还在，但是里面的文件已经不在了。去哪了，去 innertable 表中了。然后删除刚刚创建的表:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;drop table innertable;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;到 HDFS 上看一下 innertable 文件夹及其中的文件都没有了。去哪了，删除表的时候删除了。
+(2)带分区的内表
+使用如下命令创建表:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;create table inner_table_with_p(id int,name string) partitioned by (part_num int);
+&lt;/code&gt;&lt;/pre&gt;&lt;pre&gt;&lt;code&gt;#从HDFS加载数据
+load data inpath &#39;hdfs://master:9000/user/root/test/innerTable/part1&#39; into table inner_table_with_p partition(part_num=1)(文件夹inner_table_with_p出现子文件夹part_num=1，innerTable中 part1消失)；
+load data inpath &#39;hdfs://master:9000/user/root/test/innerTable/part2&#39; into table inner_table_with_p partition(part_num=2)(文件夹inner_table_with_p出现子文件夹part_num=2，innerTable中 part2消失)；
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;load data inpath &amp;lsquo;hdfs://master:9000/user/root/test/innerTable/part3&amp;rsquo; into table inner_table_with_p partition(part_num=3)(文件夹 inner_table_with_p 出现子文件夹 part_num=3，innerTable 中 part3 消失)；#删除分区
+alter table inner_table_with_p drop partition(part_num=1);(part_num=1 对应分区文件夹本删除)&lt;br&gt;
+#删除表
+drop table inner_table_with_p;(HDFS 上 inner_table_with_p 文件夹被删除)&lt;/p&gt;
+&lt;h3 id=&#34;外表&#34;&gt;外表&lt;/h3&gt;
+&lt;p&gt;(1)不带分区的外表
+创建表
+create external table outer_table(id int,name string) row format delimited fields terminated by &amp;lsquo;|&amp;rsquo;; (hive 仓储目录中出现 outer_table)&lt;br&gt;
+加载数据
+load data inpath &amp;lsquo;/user/root/test/outerTable/outer&amp;rsquo; into table outer_table;(outer_table 中出现子文件 outer,outerTable 中 outer 消失)&lt;br&gt;
+删除表
+drop table outer_table; (outer_table 及子文件 outer 依然存在，因为这是外表)
+(2)带分区的外表
+创建表
+create external table outer_table_with_p(id int,name string) partitioned by (part_num int) row format delimited fields terminated by &amp;lsquo;|&amp;rsquo;; (hive 仓储目录中出现 outer_table_with_p)&lt;br&gt;
+加载数据
+load data inpath &amp;lsquo;/user/root/test/outerTable/part1&amp;rsquo; into table outer_table_with_p partiton(part_num=1); (outer_table_with_p 中出现子文件夹 part_num=1)
+load data inpath &amp;lsquo;/user/root/test/outerTable/part2&amp;rsquo; into table outer_table_with_p partition(part_num=2);(outer_table_with_p 中出现子文件夹 part_num=2)
+load data inpath &amp;lsquo;/user/root/test/outerTable/part3&amp;rsquo; into table outer_table_with_p partition(part_num=3);(outer_table_with_p 中出现子文件夹 part_num=3)&lt;br&gt;
+删除分区
+alter table outer_table_with_p drop partition(part_num=1);(HDFS 上分区文件依旧存在)&lt;br&gt;
+删除表&lt;br&gt;
+drop table outer_table_with_p;(HDFS 上对应数据依旧存在)&lt;/p&gt;
+&lt;h1 id=&#34;partition表分区&#34;&gt;Partition:表分区&lt;/h1&gt;
+&lt;p&gt;在 Hive Select 查询中一般会扫描整个表内容，会消耗很多时间做没必要的工作。有时候只需要扫描表中关心的一部分数据，因此建表时引入了 partition 概念。分区表指的是在创建表时指定的 partition 的分区空间。Hive 可以对数据按照某列或者某些列进行分区管理，所谓分区我们可以拿下面的例子进行解释。当前互联网应用每天都要存储大量的日志文件，几 G、几十 G 甚至更大都是有可能。存储日志，其中必然有个属性是日志产生的日期。在产生分区时，就可以按照日志产生的日期列进行划分。把每一天的日志当作一个分区。将数据组织成分区，主要可以提高数据的查询速度。至于用户存储的每一条记录到底放到哪个分区，由用户决定。即用户在加载数据的时候必须显示的指定该部分数据放到哪个分区。创建表分区的语法格式为:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;CREATE [EXTERNAL] TABLE [IF NOT EXISTS] table_name
+[(col_name data_type [COMMENT col_comment], ...)]
+[COMMENT table_comment]
+[PARTITIONED BY (col_name data_type [COMMENT col_comment], ...)]
+[CLUSTERED BY (col_name, col_name, ...) [SORTED BY (col_name [ASC|DESC], ...)] INTO num_buckets BUCKETS]
+[ROW FORMAT row_format]
+[STORED AS file_format]
+[LOCATION hdfs_path]
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;分区创建&#34;&gt;分区创建&lt;/h2&gt;
+&lt;h3 id=&#34;单分区&#34;&gt;单分区&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;创建一个分区表，以 ds 为分区列：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;create table invites (id int, name string) partitioned by (ds string) row format delimited fields terminated by &amp;#39;t&amp;#39; stored as textfile;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;将数据添加到时间为 2013-08-16 这个分区中：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;load data local inpath &amp;#39;/home/hadoop/Desktop/data.txt&amp;#39; overwrite into table invites partition (ds=&amp;#39;2013-08-16&amp;#39;);
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;将数据添加到时间为 2013-08-20 这个分区中：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;load data local inpath &amp;#39;/home/hadoop/Desktop/data.txt&amp;#39; overwrite into table invites partition (ds=&amp;#39;2013-08-20&amp;#39;);
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;从一个分区中查询数据：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;select * from invites where ds =&amp;#39;2013-08-12&amp;#39;;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;往一个分区表的某一个分区中添加数据：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;insert overwrite table invites partition (ds=&amp;#39;2013-08-12&amp;#39;) select id,max(name) from test group by id;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;可以查看分区的具体情况，使用命令：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;hadoop fs -ls /home/hive/warehouse/invites
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;或者：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;show partitions tablename;
+&lt;/code&gt;&lt;/pre&gt;&lt;h1 id=&#34;bucket桶&#34;&gt;Bucket:桶&lt;/h1&gt;
+&lt;p&gt;对于每一个表(table)或者分区，Hive 可以进一步组织成桶，也就是说桶是更为细粒度的数据范围划分。Hive 也是针对某一列进行桶的组织。Hive 采用对列值哈希，然后除以桶的个数求余的方式决定该条记录存放在哪个桶当中。把表(或者分区)组织成桶(Bucket)有两个理由：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;获得更高的查询处理效率。桶为表加上了额外的结 构，Hive 在处理有些查询时能利用这个结构。具体而言，连接两个在(包含连接列的)相同列上划分了桶的表，可以使用 Map 端连接 (Map-side join)高效的实现。比如 JOIN 操作。对于 JOIN 操作两个表有一个相同的列，如果对这两个表都进行了桶操作。那么将保存相同列值的桶进行 JOIN 操 作就可以，可以大大较少 JOIN 的数据量。&lt;/li&gt;
+&lt;li&gt;使取样(sampling)更高效。在处理大规模数据集时，在开发和修改查询的阶段，如果能在数据集的一小部分数据上试运行查询，会带来很多方便。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;多分区&#34;&gt;多分区&lt;/h3&gt;
+&lt;p&gt;双分区建表语句：create table day_hour_table (id int, content string) partitioned by (dt string, hour string);双分区表，按天和小时分区，在表结构中新增加了 dt 和 hour 两列。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;http://static.oschina.net/uploads/img/201308/26230013_wF3Y.gif&#34; alt=&#34;&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;h1 id=&#34;drop表删除&#34;&gt;Drop:表删除&lt;/h1&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>介绍与部署</title>
+      <link>https://ng-tech.icu/books/dataengineering-series/10.olap/rolap/hive/%E4%BB%8B%E7%BB%8D%E4%B8%8E%E9%83%A8%E7%BD%B2/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/dataengineering-series/10.olap/rolap/hive/%E4%BB%8B%E7%BB%8D%E4%B8%8E%E9%83%A8%E7%BD%B2/</guid>
+      <description>&lt;h1 id=&#34;hive&#34;&gt;Hive&lt;/h1&gt;
+&lt;p&gt;Hive 最初是应 Facebook 每天产生的海量新兴社会网络数据进行管理和机器学习的需求而产生和发展的，其介于 Pig 和传统 RDBMS(关系数据库管理系统 Relational DatabaseManagement System)之间，Hive 的设计目的是让精通 SQL 既能的分析师能够在存放在 HDFS 的大规模数据集上运行查询。Hive 在很多方面和传统数据库类似，但是它底层对 HDFS 和 MapReduce 的依赖意味着它的体系结构有别于传统数据库。&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;**Hive **&lt;/th&gt;
+&lt;th&gt;**RDBMS **&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;查询语言&lt;/td&gt;
+&lt;td&gt;HQL&lt;/td&gt;
+&lt;td&gt;SQL&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;数据存储&lt;/td&gt;
+&lt;td&gt;HDFS&lt;/td&gt;
+&lt;td&gt;Raw Device or Local FS&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;执行&lt;/td&gt;
+&lt;td&gt;MapReduce&lt;/td&gt;
+&lt;td&gt;Excutor&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;执行延迟&lt;/td&gt;
+&lt;td&gt;高&lt;/td&gt;
+&lt;td&gt;低&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;处理数据规模&lt;/td&gt;
+&lt;td&gt;大&lt;/td&gt;
+&lt;td&gt;小&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;索引&lt;/td&gt;
+&lt;td&gt;0.8 版本后加入位图索引&lt;/td&gt;
+&lt;td&gt;有复杂的索引&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;Hive 提供了一系列的工具，可用来对数据进行提取/转化/加载(ETL)，是一种可以存储、查询和分析存储在 HDFS(或者 HBase)中的大规模数据的机制。Hive 本身不存储数据，完全依赖于 HDFS 和 MapReduce，Hive 可以将结构化的数据文件映射为一张数据库表，Hive 中表纯逻辑，就是表的元数据。而 HBase 是物理表，定位是 NoSQL。Hive 定义了一种类似 SQL 的查询语言，被称为 HQL，对于熟悉 SQL 的用户可以直接利用 Hive 来查询数据。同时，这个语言也允许熟悉 MapReduce 开发者们开发自定义的 mappers 和 reducers 来处理内建的 mappers 和 reducers 无法完成的复杂的分析工作。Hive 可以允许用户编写自己定义的函数 UDF，来在查询中使用。Hive 中有 3 种 UDF：User Defined Functions(UDF)、User Defined Aggregation Functions(UDAF)、User Defined Table Generating Functions(UDTF)。&lt;/p&gt;
+&lt;h2 id=&#34;architecture&#34;&gt;Architecture&lt;/h2&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;http://www.tutorialspoint.com/hive/images/hive_architecture.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;h2 id=&#34;workflow&#34;&gt;Workflow&lt;/h2&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;http://www.tutorialspoint.com/hive/images/how_hive_works.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;步骤&lt;/th&gt;
+&lt;th&gt;操作&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;1&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;Execute Query&lt;/strong&gt; 类似于 Command Line 或者 Web UI 这样的 Hive 交互工具将用户输入的查询发送到 Driver，JDBC 或者 ODBC&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;2&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;Get Plan&lt;/strong&gt; Diver 利用 Query Compiler 来解析 Query 以检查语法或者需要进行该查询的需求，&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;3&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;Get Metadata&lt;/strong&gt; Compiler 将 Metadata 请求发送到 MetaStore(可以是任意数据库)，&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;4&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;Send Metadata&lt;/strong&gt; Metastore 发送 Metadata 作为回应到 Compiler，&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;5&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;Send Plan&lt;/strong&gt; Compiler 检查下需求然后将 Plan 发送到 Driver，到现在，关于查询的解析与编译就完成了，&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;6&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;Execute Plan&lt;/strong&gt; Driver 将执行方案发送到执行引擎，&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;7&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;Execute Job&lt;/strong&gt; 内部来说，Job 会被当做 MapReduce 任务进行执行。执行引擎将该任务发送给位于 NameNode 的 JobTracker，而后 JobTracker 会将任务分配给位于 DataNode 的 TaskTracker，在这里会具体的执行 MapReduce 任务&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;7.1&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;Metadata Ops&lt;/strong&gt; 执行过程中，执行引擎也能够在 MetaStore 中进行元数据操作，&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;8&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;Fetch Result&lt;/strong&gt; 执行引擎从数据节点抓取到结果&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;9&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;Send Results&lt;/strong&gt; 执行引擎将查询结果返回为 Driver&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;10&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;Send Results&lt;/strong&gt; Driver 将结果发送返回给 Hive 交互界面&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h1 id=&#34;quick-start&#34;&gt;Quick Start&lt;/h1&gt;
+&lt;h2 id=&#34;installation&#34;&gt;Installation&lt;/h2&gt;
+&lt;p&gt;笔者建议使用 Docker 镜像作为快速搭建的工具，可参考本部分最后章节。首先需要安装 Hadoop，详细的安装请参考笔者的&lt;a href=&#34;&#34;&gt;Hadoop 初探与环境搭建&lt;/a&gt;。然后需要在&lt;a href=&#34;http://apache.petsads.us/hive/hive-0.14.0/&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;这里&lt;/a&gt;下载 Hive 的预编译好的版本。下载完毕后可以解压缩该文件:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;$ tar zxvf apache-hive-0.14.0-bin.tar.gz
+$ ls
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;然后需要将文件复制到/user/local/hive 目录下:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;$ su -
+passwd:
+
+# cd /home/user/Download
+# mv apache-hive-0.14.0-bin /usr/local/hive
+# exit
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;然后我们需要将 Hive 的类库与可运行文件添加到环境变量中，可以选择添加到&lt;code&gt;~/.bashrc&lt;/code&gt;文件:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;export HIVE_HOME=/usr/local/hive
+export PATH=$PATH:$HIVE_HOME/bin
+export CLASSPATH=$CLASSPATH:/usr/local/Hadoop/lib/*:.
+export CLASSPATH=$CLASSPATH:/usr/local/hive/lib/*:.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;然后需要激活该文件:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;$ source ~/.bashrc
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;为了配置 Hive 可以与 Hadoop 正常工作，需要配置&lt;code&gt;hive-env.sh&lt;/code&gt;文件，其位于$HIVE_HOME/conf 目录下:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;$ cd $HIVE_HOME/conf
+$ cp hive-env.sh.template hive-env.sh
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;编辑 hive-env.sh 然后添加如下行:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;export HADOOP_HOME=/usr/local/hadoop
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;metastore&#34;&gt;Metastore&lt;/h3&gt;
+&lt;p&gt;我们这里选择 Apache Derby 作为元数据存储的数据库:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;$ cd ~
+$ wget http://archive.apache.org/dist/db/derby/db-derby-10.4.2.0/db-derby-10.4.2.0-bin.tar.gz
+$ tar zxvf db-derby-10.4.2.0-bin.tar.gz
+$ ls
+$ su -
+passwd:
+# cd /home/user
+# mv db-derby-10.4.2.0-bin /usr/local/derby
+# exit
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;下载完毕后需要为 Derby 构建运行环境:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;export DERBY_HOME=/usr/local/derby
+export PATH=$PATH:$DERBY_HOME/bin
+Apache Hive
+18
+export CLASSPATH=$CLASSPATH:$DERBY_HOME/lib/derby.jar:$DERBY_HOME/lib/derbytools.jar
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;然后我们需要创建一个新的目录来存储 Metastore 数据:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;$ mkdir $DERBY_HOME/data
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;接下来我们需要配置 Hive 连接 Derby 的 JDBC 配置:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;$ cd $HIVE_HOME/conf
+$ cp hive-default.xml.template hive-site.xml
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;编辑 hive-site.xml 文件然后添加如下行:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;&amp;lt;property&amp;gt;
+  &amp;lt;name&amp;gt;javax.jdo.option.ConnectionURL&amp;lt;/name&amp;gt;
+  &amp;lt;value&amp;gt;jdbc:derby://localhost:1527/metastore_db;create=true &amp;lt;/value&amp;gt;
+  &amp;lt;description&amp;gt;JDBC connect string for a JDBC metastore &amp;lt;/description&amp;gt;
+&amp;lt;/property&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;创建如下名为 jpox.properties 的配置文件，然后添加如下行:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;javax.jdo.PersistenceManagerFactoryClass =
+
+org.jpox.PersistenceManagerFactoryImpl
+org.jpox.autoCreateSchema = false
+org.jpox.validateTables = false
+org.jpox.validateColumns = false
+org.jpox.validateConstraints = false
+org.jpox.storeManagerType = rdbms
+org.jpox.autoCreateSchema = true
+org.jpox.autoStartMechanismMode = checked
+org.jpox.transactionIsolation = read_committed
+javax.jdo.option.DetachAllOnCommit = true
+javax.jdo.option.NontransactionalRead = true
+javax.jdo.option.ConnectionDriverName = org.apache.derby.jdbc.ClientDriver
+javax.jdo.option.ConnectionURL = jdbc:derby://hadoop1:1527/metastore_db;create = true
+javax.jdo.option.ConnectionUserName = APP
+javax.jdo.option.ConnectionPassword = mine
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;verification&#34;&gt;Verification&lt;/h3&gt;
+&lt;p&gt;在启动 Hive 之前，需要在 HDFS 中创建/tmp 文件夹，这里我们选择 /user/hive/warehouse 文件夹作为数据存储文件，我们需要为该文件夹添加写权限:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;chmod g+w
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;完整的命令如下:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;$ $HADOOP_HOME/bin/hadoop fs -mkdir /tmp
+$ $HADOOP_HOME/bin/hadoop fs -mkdir /user/hive/warehouse
+$ $HADOOP_HOME/bin/hadoop fs -chmod g+w /tmp
+$ $HADOOP_HOME/bin/hadoop fs -chmod g+w /user/hive/warehouse
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;然后我们可以使用如下命令来验证 Hive 是否安装成功:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;$ cd $HIVE_HOME
+$ bin/hive
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;如果你成功地安装了 Hive，那么你会得到如下的提示:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;Logging initialized using configuration in jar:file:/home/hadoop/hive-0.9.0/lib/hive-common-0.9.0.jar!/hive-log4j.properties
+Hive history file=/tmp/hadoop/hive_job_log_hadoop_201312121621_1494929084.txt
+………………….
+hive&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;然后可以使用如下命令来列举所有的表:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;hive&amp;gt; show tables;
+OK
+Time taken: 2.798 seconds
+hive&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;docker&#34;&gt;Docker&lt;/h2&gt;
+&lt;p&gt;笔者基于&lt;code&gt;sequenceiq/hadoop-docker&lt;/code&gt;以及 Postgres 数据库构建了简单的伪分布式模式的 Hive 镜像，&lt;a href=&#34;https://github.com/wx-chevalier/infrastructure-handbook/blob/master/Storage/DataWareHouse/Hive/hive-docker/Dockerfile&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Dockerfile&lt;/a&gt;内容如下:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;# 使用该Hadoop镜像
+FROM sequenceiq/hadoop-docker:2.7.1
+
+MAINTAINER WxChevalier
+
+#Based on Inmobi Hive
+#Builds the InMobi Hive from trunk
+#Configure Postgres DB
+#Starts Hive metastore Server
+#Starts Hive Server2
+
+
+# 安装Postgres作为Hive元数据存储
+RUN apt-get update
+RUN apt-get -yq install vim postgresql-9.3 libpostgresql-jdbc-java
+
+# 创建元数据库 创建Hive用户并且分配权限privileges
+USER postgres
+RUN /etc/init.d/postgresql start &amp;amp;&amp;amp;\
+     psql --command &amp;#34;CREATE DATABASE metastore;&amp;#34; &amp;amp;&amp;amp;\
+     psql --command &amp;#34;CREATE USER hive WITH PASSWORD &amp;#39;hive&amp;#39;;&amp;#34; &amp;amp;&amp;amp; \
+     psql --command &amp;#34;ALTER USER hive WITH SUPERUSER;&amp;#34; &amp;amp;&amp;amp; \
+     psql --command &amp;#34;GRANT ALL PRIVILEGES ON DATABASE metastore TO hive;&amp;#34;
+
+# 切回到默认的root用户
+USER root
+
+# 构建开发工具
+RUN apt-get update
+RUN apt-get install -y git libprotobuf-dev protobuf-compiler
+
+# 安装Maven
+RUN curl -s http://mirror.olnevhost.net/pub/apache/maven/binaries/apache-maven-3.2.1-bin.tar.gz | tar -xz -C /usr/local/
+RUN cd /usr/local &amp;amp;&amp;amp; ln -s apache-maven-3.2.1 maven
+ENV MAVEN_HOME /usr/local/maven
+ENV PATH $MAVEN_HOME/bin:$PATH
+
+
+# 下载并且编译Hive
+ENV HIVE_VERSION 0.13.4-inm-SNAPSHOT
+RUN cd /usr/local &amp;amp;&amp;amp; git clone https://github.com/InMobi/hive.git
+RUN cd /usr/local/hive &amp;amp;&amp;amp; /usr/local/maven/bin/mvn clean install -DskipTests -Phadoop-2,dist
+RUN mkdir /usr/local/hive-dist &amp;amp;&amp;amp; tar -xf /usr/local/hive/packaging/target/apache-hive-${HIVE_VERSION}-bin.tar.gz -C /usr/local/hive-dist
+
+# 设定Hive环境信息
+ENV HIVE_HOME /usr/local/hive-dist/apache-hive-${HIVE_VERSION}-bin
+ENV HIVE_CONF $HIVE_HOME/conf
+ENV PATH $HIVE_HOME/bin:$PATH
+
+# 添加Postgres JDBC连接包
+RUN ln -s /usr/share/java/postgresql-jdbc4.jar $HIVE_HOME/lib/postgresql-jdbc4.jar
+
+# to avoid psql asking password, set PGPASSWORD
+ENV PGPASSWORD hive
+
+# 初始化Hive 元数据库
+RUN /etc/init.d/postgresql start &amp;amp;&amp;amp;\
+cd $HIVE_HOME/scripts/metastore/upgrade/postgres/ &amp;amp;&amp;amp;\
+ 	psql -h localhost -U hive -d metastore -f hive-schema-0.13.0.postgres.sql
+
+# 复制配置文件、SQL以及数据文件
+RUN mkdir /opt/files
+ADD hive-site.xml /opt/files/
+ADD hive-log4j.properties /opt/files/
+ADD hive-site.xml $HIVE_CONF/hive-site.xml
+ADD hive-log4j.properties $HIVE_CONF/hive-log4j.properties
+ADD store_sales.* /opt/files/
+ADD datagen.py /opt/files/
+
+# 为Hive 启动配置设定权限
+ADD hive-bootstrap.sh /etc/hive-bootstrap.sh
+RUN chown root:root /etc/hive-bootstrap.sh
+RUN chmod 700 /etc/hive-bootstrap.sh
+
+# To overcome the bug in AUFS that denies postgres permission to read /etc/ssl/private/ssl-cert-snakeoil.key file.
+# https://github.com/Painted-Fox/docker-postgresql/issues/30
+# https://github.com/docker/docker/issues/783
+# To avoid this issue lets disable ssl in postgres.conf. If we really need ssl to encrypt postgres connections we have to fix permissions to /etc/ssl/private directory everytime until AUFS fixes the issue
+ENV POSTGRESQL_MAIN /var/lib/postgresql/9.3/main/
+ENV POSTGRESQL_CONFIG_FILE $POSTGRESQL_MAIN/postgresql.conf
+ENV POSTGRESQL_BIN /usr/lib/postgresql/9.3/bin/postgres
+ADD postgresql.conf $POSTGRESQL_MAIN
+RUN chown postgres:postgres $POSTGRESQL_CONFIG_FILE
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
+    
+    <item>
+      <title>数据类型</title>
+      <link>https://ng-tech.icu/books/dataengineering-series/10.olap/rolap/hive/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/dataengineering-series/10.olap/rolap/hive/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/</guid>
+      <description>&lt;p&gt;Hive 是基于 Hadoop 分布式文件系统的，它的数据存储在 Hadoop 分布式文件系统中。Hive 本身是没有专门的数据存储格式，也没有为数据建立索引，只需要在创建表的时候告诉 Hive 数据中的列分隔符和行分隔符，Hive 就可以解析数据。所以往 Hive 表里面导入数据只是简单的将数据移动到表所在的目录中(如果数据是在 HDFS 上；但如果数据是在本地文件系统中，那么是将数据复制到表所在的目录中)。&lt;/p&gt;
+&lt;p&gt;Hive 中主要包含以下几种数据模型：Table(表)，External Table(外部表)，Partition(分区)，Bucket(桶)。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;表：Hive 中的表和关系型数据库中的表在概念上很类似，每个表在 HDFS 中都有相应的目录用来存储表的数据，这个目录可以通过${HIVE_HOME}/conf/hive-site.xml 配置文件中的 hive.metastore.warehouse.dir 属性来配置，这个属性默认的值是/user/hive/warehouse(这个目录在 HDFS 上)，我们可以根据实际的情况来修改这个配置。如果我有一个表 wyp，那么在 HDFS 中会创建/user/hive/warehouse/wyp 目录(这里假定 hive.metastore.warehouse.dir 配置为/user/hive/warehouse)；wyp 表所有的数据都存放在这个目录中。这个例外是外部表。&lt;/li&gt;
+&lt;li&gt;外部表：Hive 中的外部表和表很类似，但是其数据不是放在自己表所属的目录中，而是存放到别处，这样的好处是如果你要删除这个外部表，该外部表所指向的数据是不会被删除的，它只会删除外部表对应的元数据；而如果你要删除表，该表对应的所有数据包括元数据都会被删除。&lt;/li&gt;
+&lt;li&gt;分区：在 Hive 中，表的每一个分区对应表下的相应目录，所有分区的数据都是存储在对应的目录中。比如 wyp 表有 dt 和 city 两个分区，则对应 dt=20131218,city=BJ 对应表的目录为/user/hive/warehouse/dt=20131218/city=BJ，所有属于这个分区的数据都存放在这个目录中。&lt;/li&gt;
+&lt;li&gt;桶：对指定的列计算其 hash，根据 hash 值切分数据，目的是为了并行，每一个桶对应一个文件(注意和分区的区别)。比如将 wyp 表 id 列分散至 16 个桶中，首先对 id 列的值计算 hash，对应 hash 值为 0 和 16 的数据存储的 HDFS 目录为：/user/hive/warehouse/wyp/part-00000；而 hash 值为 2 的数据存储的 HDFS 目录为：/user/hive/warehouse/wyp/part-00002。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a href=&#34;http://cms.csdnimg.cn/article/201401/07/52cc1d1ae43c5.jpg&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;http://cms.csdnimg.cn/article/201401/07/52cc1d1ae43c5_middle.jpg?_=62794&#34; alt=&#34;img&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Hive 数据抽象结构图&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;可以看出，表是在数据库下面，而表里面又要分区、桶、倾斜的数据和正常的数据等；分区下面也是可以建立桶的。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Hive 的元数据&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Hive 中的元数据包括表的名字，表的列和分区及其属性，表的属性(是否为外部表等)，表的数据所在目录等。由于 Hive 的元数据需要不断的更新、修改，而 HDFS 系统中的文件是多读少改的，这显然不能将 Hive 的元数据存储在 HDFS 中。目前 Hive 将元数据存储在数据库中，如 Mysql、Derby 中。我们可以通过以下的配置来修改 Hive 元数据的存储方式：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;&amp;lt;property&amp;gt;
+  &amp;lt;name&amp;gt;javax.jdo.option.ConnectionURL&amp;lt;/name&amp;gt;
+  &amp;lt;value&amp;gt;jdbc:mysql://localhost:3306/hive_hdp?characterEncoding=UTF-8
+                    &amp;amp;createDatabaseIfNotExist=true&amp;lt;/value&amp;gt;
+  &amp;lt;description&amp;gt;JDBC connect string for a JDBC metastore&amp;lt;/description&amp;gt;
+&amp;lt;/property&amp;gt;
+
+&amp;lt;property&amp;gt;
+  &amp;lt;name&amp;gt;javax.jdo.option.ConnectionDriverName&amp;lt;/name&amp;gt;
+  &amp;lt;value&amp;gt;com.mysql.jdbc.Driver&amp;lt;/value&amp;gt;
+  &amp;lt;description&amp;gt;Driver class name for a JDBC metastore&amp;lt;/description&amp;gt;
+&amp;lt;/property&amp;gt;
+
+&amp;lt;property&amp;gt;
+  &amp;lt;name&amp;gt;javax.jdo.option.ConnectionUserName&amp;lt;/name&amp;gt;
+  &amp;lt;value&amp;gt;root&amp;lt;/value&amp;gt;
+  &amp;lt;description&amp;gt;username to use against metastore database&amp;lt;/description&amp;gt;
+&amp;lt;/property&amp;gt;
+
+&amp;lt;property&amp;gt;
+  &amp;lt;name&amp;gt;javax.jdo.option.ConnectionPassword&amp;lt;/name&amp;gt;
+  &amp;lt;value&amp;gt;123456&amp;lt;/value&amp;gt;
+  &amp;lt;description&amp;gt;password to use against metastore database&amp;lt;/description&amp;gt;
+&amp;lt;/property&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;当然，你还需要将相应数据库的启动复制到${HIVE_HOME}/lib 目录中，这样才能将元数据存储在对应的数据库中。(责编：周小璐)&lt;/p&gt;
+&lt;h2 id=&#34;column-types&#34;&gt;Column Types&lt;/h2&gt;
+&lt;p&gt;Column type are used as column data types of Hive. They are as follows:&lt;/p&gt;
+&lt;h3 id=&#34;integral-types&#34;&gt;Integral Types&lt;/h3&gt;
+&lt;p&gt;Integer type data can be specified using integral data types, INT. When the data range exceeds the range of INT, you need to use BIGINT and if the data range is smaller than the INT, you use SMALLINT. TINYINT is smaller than SMALLINT.&lt;/p&gt;
+&lt;p&gt;The following table depicts various INT data types:&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Type&lt;/th&gt;
+&lt;th&gt;Postfix&lt;/th&gt;
+&lt;th&gt;Example&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;TINYINT&lt;/td&gt;
+&lt;td&gt;Y&lt;/td&gt;
+&lt;td&gt;10Y&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;SMALLINT&lt;/td&gt;
+&lt;td&gt;S&lt;/td&gt;
+&lt;td&gt;10S&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;INT&lt;/td&gt;
+&lt;td&gt;-&lt;/td&gt;
+&lt;td&gt;10&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;BIGINT&lt;/td&gt;
+&lt;td&gt;L&lt;/td&gt;
+&lt;td&gt;10L&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3 id=&#34;string-types&#34;&gt;String Types&lt;/h3&gt;
+&lt;p&gt;String type data types can be specified using single quotes (&amp;rsquo; &amp;lsquo;) or double quotes (&amp;quot; &amp;ldquo;). It contains two data types: VARCHAR and CHAR. Hive follows C-types escape characters.&lt;/p&gt;
+&lt;p&gt;The following table depicts various CHAR data types:&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Data Type&lt;/th&gt;
+&lt;th&gt;Length&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;VARCHAR&lt;/td&gt;
+&lt;td&gt;1 to 65355&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;CHAR&lt;/td&gt;
+&lt;td&gt;255&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3 id=&#34;timestamp&#34;&gt;Timestamp&lt;/h3&gt;
+&lt;p&gt;It supports traditional UNIX timestamp with optional nanosecond precision. It supports java.sql.Timestamp format “YYYY-MM-DD HH:MM:SS.fffffffff” and format “yyyy-mm-dd hh:mm:ss.ffffffffff”.&lt;/p&gt;
+&lt;h3 id=&#34;dates&#34;&gt;Dates&lt;/h3&gt;
+&lt;p&gt;DATE values are described in year/month/day format in the form {{YYYY-MM-DD}}.&lt;/p&gt;
+&lt;h3 id=&#34;decimals&#34;&gt;Decimals&lt;/h3&gt;
+&lt;p&gt;The DECIMAL type in Hive is as same as Big Decimal format of Java. It is used for representing immutable arbitrary precision. The syntax and example is as follows:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;DECIMAL(precision, scale)
+decimal(10,0)
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;union-types&#34;&gt;Union Types&lt;/h3&gt;
+&lt;p&gt;Union is a collection of heterogeneous data types. You can create an instance using &lt;strong&gt;create union&lt;/strong&gt;. The syntax and example is as follows:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;UNIONTYPE&amp;lt;int, double, array&amp;lt;string&amp;gt;, struct&amp;lt;a:int,b:string&amp;gt;&amp;gt;
+
+{0:1}
+{1:2.0}
+{2:[&amp;#34;three&amp;#34;,&amp;#34;four&amp;#34;]}
+{3:{&amp;#34;a&amp;#34;:5,&amp;#34;b&amp;#34;:&amp;#34;five&amp;#34;}}
+{2:[&amp;#34;six&amp;#34;,&amp;#34;seven&amp;#34;]}
+{3:{&amp;#34;a&amp;#34;:8,&amp;#34;b&amp;#34;:&amp;#34;eight&amp;#34;}}
+{0:9}
+{1:10.0}
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;literals&#34;&gt;Literals&lt;/h2&gt;
+&lt;p&gt;The following literals are used in Hive:&lt;/p&gt;
+&lt;h3 id=&#34;floating-point-types&#34;&gt;Floating Point Types&lt;/h3&gt;
+&lt;p&gt;Floating point types are nothing but numbers with decimal points. Generally, this type of data is composed of DOUBLE data type.&lt;/p&gt;
+&lt;h3 id=&#34;decimal-type&#34;&gt;Decimal Type&lt;/h3&gt;
+&lt;p&gt;Decimal type data is nothing but floating point value with higher range than DOUBLE data type. The range of decimal type is approximately -10&lt;/p&gt;
+&lt;p&gt;-308&lt;/p&gt;
+&lt;p&gt;to 10&lt;/p&gt;
+&lt;p&gt;308&lt;/p&gt;
+&lt;p&gt;.&lt;/p&gt;
+&lt;h2 id=&#34;null-value&#34;&gt;Null Value&lt;/h2&gt;
+&lt;p&gt;Missing values are represented by the special value NULL.&lt;/p&gt;
+&lt;h2 id=&#34;complex-types&#34;&gt;Complex Types&lt;/h2&gt;
+&lt;p&gt;The Hive complex data types are as follows:&lt;/p&gt;
+&lt;h3 id=&#34;arrays&#34;&gt;Arrays&lt;/h3&gt;
+&lt;p&gt;Arrays in Hive are used the same way they are used in Java.&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;Syntax: ARRAY&amp;lt;data_type&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;maps&#34;&gt;Maps&lt;/h3&gt;
+&lt;p&gt;Maps in Hive are similar to Java Maps.&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;Syntax: MAP&amp;lt;primitive_type, data_type&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;structs&#34;&gt;Structs&lt;/h3&gt;
+&lt;p&gt;Structs in Hive is similar to using complex data with comment.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>文件类型与存储格式</title>
+      <link>https://ng-tech.icu/books/dataengineering-series/10.olap/rolap/hive/%E6%96%87%E4%BB%B6%E7%B1%BB%E5%9E%8B%E4%B8%8E%E5%AD%98%E5%82%A8%E6%A0%BC%E5%BC%8F/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/dataengineering-series/10.olap/rolap/hive/%E6%96%87%E4%BB%B6%E7%B1%BB%E5%9E%8B%E4%B8%8E%E5%AD%98%E5%82%A8%E6%A0%BC%E5%BC%8F/</guid>
+      <description>&lt;blockquote&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://yugouai.iteye.com/blog/1851606&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Hive 文件存储格式的测试比较&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Hive 的三种文件格式：TEXTFILE、SEQUENCEFILE、RCFILE 中，TEXTFILE 和 SEQUENCEFILE 的存储格式都是基于行存储的，RCFILE 是基于行列混合的思想，先按行把数据划分成 N 个 row group，在 row group 中对每个列分别进行存储。另：Hive 能支持自定义格式。基于 HDFS 的行存储具备快速数据加载和动态负载的高适应能力，因为行存储保证了相同记录的所有域都在同一个集群节点。但是它不太满足快速的查询响应时间的要 求，因为当查询仅仅针对所有列中的 少数几列时，它就不能跳过不需要的列，直接定位到所需列；同时在存储空间利用上，它也存在一些瓶颈，由于数据表中包含不同类型，不同数据值的列，行存储不 易获得一个较高的压缩比。RCFILE 是基于 SEQUENCEFILE 实现的列存储格式。除了满足快速数据加载和动态负载高适应的需求外，也解决了 SEQUENCEFILE 的一些瓶颈。&lt;/p&gt;
+&lt;h1 id=&#34;textfile&#34;&gt;TextFile&lt;/h1&gt;
+&lt;p&gt;Hive 默认格式，数据不做压缩，磁盘开销大，数据解析开销大。可结合 Gzip、Bzip2、Snappy 等使用(系统自动检查，执行查询时自动解压)，但使用这种方式，hive 不会对数据进行切分，从而无法对数据进行并行操作。&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;create table if not exists textfile_table(
+site string,
+url  string,
+pv   bigint,
+label string)
+row format delimited
+fields terminated by &amp;#39;\t&amp;#39;
+stored as textfile;
+插入数据操作：
+set hive.exec.compress.output=true;
+set mapred.output.compress=true;
+set mapred.output.compression.codec=org.apache.hadoop.io.compress.GzipCodec;
+set io.compression.codecs=org.apache.hadoop.io.compress.GzipCodec;
+insert overwrite table textfile_table select * from textfile_table;
+&lt;/code&gt;&lt;/pre&gt;&lt;h1 id=&#34;sequencefile&#34;&gt;SequenceFile&lt;/h1&gt;
+&lt;p&gt;SequenceFile 是 Hadoop API 提供的一种二进制文件，它将数据以&amp;lt;key,value&amp;gt;的形式序列化到文件中。这种二进制文件内部使用 Hadoop 的标准的 Writable 接口实现序列化和反序列化。它与 Hadoop API 中的 MapFile 是互相兼容的。Hive 中的 SequenceFile 继承自 Hadoop API 的 SequenceFile，不过它的 key 为空，使用 value 存放实际的值，这样是为了避免 MR 在运行 map 阶段的排序过程。
+SequenceFile 的文件结构图：
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;http://dl.iteye.com/upload/attachment/0083/5096/d0399873-2c9e-3923-ab50-93644d9b8138.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;
+Header 通用头文件格式：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;SEQ&lt;/th&gt;
+&lt;th&gt;3BYTE&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;Nun&lt;/td&gt;
+&lt;td&gt;1byte 数字&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;keyClassName&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;ValueClassName&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;compression&lt;/td&gt;
+&lt;td&gt;(boolean)指明了在文件中是否启用压缩&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;blockCompression&lt;/td&gt;
+&lt;td&gt;(boolean，指明是否是 block 压缩)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;compression&lt;/td&gt;
+&lt;td&gt;codec&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Metadata&lt;/td&gt;
+&lt;td&gt;文件元数据&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Sync&lt;/td&gt;
+&lt;td&gt;头文件结束标志&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;Block-Compressed SequenceFile 格式
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;http://dl.iteye.com/upload/attachment/0083/5099/cd8a8be6-a2e4-39c8-a598-357278f1e336.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;create table if not exists seqfile_table(
+site string,
+url  string,
+pv   bigint,
+label string)
+row format delimited
+fields terminated by &amp;#39;\t&amp;#39;
+stored as sequencefile;
+插入数据操作：
+set hive.exec.compress.output=true;
+set mapred.output.compress=true;
+set mapred.output.compression.codec=org.apache.hadoop.io.compress.GzipCodec;
+set io.compression.codecs=org.apache.hadoop.io.compress.GzipCodec;
+SET mapred.output.compression.type=BLOCK;
+insert overwrite table seqfile_table select * from textfile_table;
+&lt;/code&gt;&lt;/pre&gt;&lt;h1 id=&#34;rcfile&#34;&gt;RCFile&lt;/h1&gt;
+&lt;p&gt;RCFile 是 Hive 推出的一种专门面向列的数据格式。它遵循“先按列划分，再垂直划分”的设计理念。当查询过程中，针对它并不关心的列时，它会在 IO 上跳过这些列。需要说明的是，RCFile 在 map 阶段从 远端拷贝仍然是拷贝整个数据块，并且拷贝到本地目录后 RCFile 并不是真正直接跳过不需要的列，并跳到需要读取的列，而是通过扫描每一个 row group 的头部定义来实现的，但是在整个 HDFS Block 级别的头部并没有定义每个列从哪个 row group 起始到哪个 row group 结束。所以在读取所有列的情况下，RCFile 的性能反而没有 SequenceFile 高。
+RCFile 结合行存储查询的快速和列存储节省空间的特点：首先，RCFile 保证同一行的数据位于同一节点，因此元组重构的开销很低；其次，像列存储一样，RCFile 能够利用列维度的数据压缩，并且能跳过不必要的列读取。
+HDFS 块内 RCFile 方式存储的例子：
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;http://dl.iteye.com/upload/attachment/0083/5132/012d26f3-eeab-37d2-a59b-a8073d7476a7.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;create table if not exists rcfile_table(
+site string,
+url  string,
+pv   bigint,
+label string)
+row format delimited
+fields terminated by &amp;#39;\t&amp;#39;
+stored as rcfile;
+插入数据操作：
+set hive.exec.compress.output=true;
+set mapred.output.compress=true;
+set mapred.output.compression.codec=org.apache.hadoop.io.compress.GzipCodec;
+set io.compression.codecs=org.apache.hadoop.io.compress.GzipCodec;
+insert overwrite table rcfile_table select * from textfile_table;
+&lt;/code&gt;&lt;/pre&gt;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;[hadoop@node3 ~]$ hadoop dfs -dus /user/hive/warehouse/*
+hdfs://node1:19000/user/hive/warehouse/hbase_table_1    0
+hdfs://node1:19000/user/hive/warehouse/hbase_table_2    0
+hdfs://node1:19000/user/hive/warehouse/orcfile_table    0
+hdfs://node1:19000/user/hive/warehouse/rcfile_table    102638073
+hdfs://node1:19000/user/hive/warehouse/seqfile_table   112497695
+hdfs://node1:19000/user/hive/warehouse/testfile_table  536799616
+hdfs://node1:19000/user/hive/warehouse/textfile_table  107308067
+[hadoop@node3 ~]$ hadoop dfs -ls /user/hive/warehouse/*/-rw-r--r--   2 hadoop supergroup   51328177 2014-03-20 00:42 /user/hive/warehouse/rcfile_table/000000_0-rw-r--r--   2 hadoop supergroup   51309896 2014-03-20 00:43 /user/hive/warehouse/rcfile_table/000001_0-rw-r--r--   2 hadoop supergroup   56263711 2014-03-20 01:20 /user/hive/warehouse/seqfile_table/000000_0-rw-r--r--   2 hadoop supergroup   56233984 2014-03-20 01:21 /user/hive/warehouse/seqfile_table/000001_0-rw-r--r--   2 hadoop supergroup  536799616 2014-03-19 23:15 /user/hive/warehouse/testfile_table/weibo.txt-rw-r--r--   2 hadoop supergroup   53659758 2014-03-19 23:24 /user/hive/warehouse/textfile_table/000000_0.gz-rw-r--r--   2 hadoop supergroup   53648309 2014-03-19 23:26 /user/hive/warehouse/textfile_table/000001_1.gz
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
+    
+    <item>
+      <title>自定义函数</title>
+      <link>https://ng-tech.icu/books/dataengineering-series/10.olap/rolap/hive/%E8%87%AA%E5%AE%9A%E4%B9%89%E5%87%BD%E6%95%B0/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/dataengineering-series/10.olap/rolap/hive/%E8%87%AA%E5%AE%9A%E4%B9%89%E5%87%BD%E6%95%B0/</guid>
+      <description>&lt;p&gt;为了满足客户个性化的需求，Hive 被设计成一个很开放的系统，很多内容都支持用户定制，包括：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;文件格式：Text File，Sequence File&lt;/li&gt;
+&lt;li&gt;内存中的数据格式: Java Integer/String, Hadoop IntWritable/Text&lt;/li&gt;
+&lt;li&gt;用户提供的 map/reduce 脚本：不管什么语言，利用 stdin/stdout 传输数据&lt;/li&gt;
+&lt;li&gt;用户自定义函数&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;user-defined-function&#34;&gt;User Defined Function&lt;/h1&gt;
+&lt;blockquote&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://blog.csdn.net/bitcarmanlee/article/details/51249260&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;hive udf 开发超详细手把手教程 &lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;用户可以使用‘show functions’ 查看 function list，可以使用&amp;rsquo;describe function function-name&amp;rsquo;查看函数说明。&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;hive&amp;gt; show functions;
+OK
+!
+!=
+......
+Time taken: 0.275 seconds
+hive&amp;gt; desc function substr;
+OK
+substr(str, pos[, len]) - returns the substring of str that starts at pos and is of length len orsubstr(bin, pos[, len]) - returns the slice of byte array that starts at pos and is of length len
+Time taken: 0.095 seconds
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;hive 提供的 build-in 函数包括以下几类：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;关系操作符：包括 =、&amp;lt;&amp;gt;、&amp;lt;=、&amp;gt;=等&lt;/li&gt;
+&lt;li&gt;算数操作符：包括 +、-、*、／等&lt;/li&gt;
+&lt;li&gt;逻辑操作符：包括 AND、&amp;amp;&amp;amp;、OR、|| 等&lt;/li&gt;
+&lt;li&gt;复杂类型构造函数：包括 map、struct、create_union 等&lt;/li&gt;
+&lt;li&gt;复杂类型操作符：包括 A[n]、Map[key]、S.x&lt;/li&gt;
+&lt;li&gt;数学操作符：包括 ln(double a)、sqrt(double a)等&lt;/li&gt;
+&lt;li&gt;集合操作符：包括 size(Array&lt;T&gt;)、sort_array(Array&lt;T&gt;)等&lt;/li&gt;
+&lt;li&gt;类型转换函数: binary(string|binary)、cast(expr as &lt;type&gt;)&lt;/li&gt;
+&lt;li&gt;日期函数：包括 from_unixtime(bigint unixtime[, string format])、unix_timestamp()等 10.条件函数：包括 if(boolean testCondition, T valueTrue, T valueFalseOrNull)等&lt;/li&gt;
+&lt;li&gt;字符串函数：包括 acat(string|binary A, string|binary B&amp;hellip;)等&lt;/li&gt;
+&lt;li&gt;其他：xpath、get_json_objectscii(string str)、con&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;definition&#34;&gt;Definition&lt;/h2&gt;
+&lt;p&gt;编写 Hive UDF 有两种方式：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;extends UDF，重写 evaluate 方法&lt;/li&gt;
+&lt;li&gt;extends GenericUDF，重写 initialize、getDisplayString、evaluate 方法&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id=&#34;extends-udf&#34;&gt;Extends UDF&lt;/h3&gt;
+&lt;p&gt;如下的用法是将大写转化为小写&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;    package test.udf;
+
+    import org.apache.hadoop.hive.ql.exec.UDF;
+    import org.apache.hadoop.io.Text;
+
+    public class ToLowerCase extends UDF {
+        public Text evaluate(final Text s) {
+            if (s == null) { return null; }
+            return new Text(s.toString().toLowerCase());
+        }
+    }
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;extends-genericudf&#34;&gt;Extends GenericUDF&lt;/h3&gt;
+&lt;p&gt;计算 array 中去重后元素个数&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;    package test.udf;
+    import org.apache.hadoop.hive.ql.exec.Description;
+    import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
+    import org.apache.hadoop.hive.ql.exec.UDFArgumentTypeException;
+    import org.apache.hadoop.hive.ql.metadata.HiveException;
+    import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
+    import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
+    import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+    import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
+    import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
+    import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
+    import org.apache.hadoop.io.IntWritable;
+
+    /**
+     * UDF:
+     * Get nubmer of objects with duplicate elements eliminated
+
+     */
+    @Description(name = &amp;#34;array_uniq_element_number&amp;#34;, value = &amp;#34;_FUNC_(array) - Returns nubmer of objects with duplicate elements eliminated.&amp;#34;, extended = &amp;#34;Example:\n&amp;#34;
+                    + &amp;#34;  &amp;gt; SELECT _FUNC_(array(1, 2, 2, 3, 3)) FROM src LIMIT 1;\n&amp;#34; + &amp;#34;  3&amp;#34;)
+    public class UDFArrayUniqElementNumber extends GenericUDF {
+
+            private static final int ARRAY_IDX = 0;
+            private static final int ARG_COUNT = 1; // Number of arguments to this UDF
+            private static final String FUNC_NAME = &amp;#34;ARRAY_UNIQ_ELEMENT_NUMBER&amp;#34;; // External Name
+
+            private ListObjectInspector arrayOI;
+            private ObjectInspector arrayElementOI;
+            private final IntWritable result = new IntWritable(-1);
+
+            public ObjectInspector initialize(ObjectInspector[] arguments)
+                            throws UDFArgumentException {
+
+                    // Check if two arguments were passed
+                    if (arguments.length != ARG_COUNT) {
+                            throw new UDFArgumentException(&amp;#34;The function &amp;#34; + FUNC_NAME
+                                            + &amp;#34; accepts &amp;#34; + ARG_COUNT + &amp;#34; arguments.&amp;#34;);
+                    }
+
+                    // Check if ARRAY_IDX argument is of category LIST
+                    if (!arguments[ARRAY_IDX].getCategory().equals(Category.LIST)) {
+                            throw new UDFArgumentTypeException(ARRAY_IDX, &amp;#34;\&amp;#34;&amp;#34;
+                                            + org.apache.hadoop.hive.serde.Constants.LIST_TYPE_NAME
+                                            + &amp;#34;\&amp;#34; &amp;#34; + &amp;#34;expected at function ARRAY_CONTAINS, but &amp;#34;
+                                            + &amp;#34;\&amp;#34;&amp;#34; + arguments[ARRAY_IDX].getTypeName() + &amp;#34;\&amp;#34; &amp;#34;
+                                            + &amp;#34;is found&amp;#34;);
+                    }
+
+                    arrayOI = (ListObjectInspector) arguments[ARRAY_IDX];
+                    arrayElementOI = arrayOI.getListElementObjectInspector();
+
+                    return PrimitiveObjectInspectorFactory.writableIntObjectInspector;
+            }
+
+            public IntWritable evaluate(DeferredObject[] arguments)
+                            throws HiveException {
+
+                    result.set(0);
+
+                    Object array = arguments[ARRAY_IDX].get();
+                    int arrayLength = arrayOI.getListLength(array);
+                    if (arrayLength &amp;lt;= 1) {
+                            result.set(arrayLength);
+                            return result;
+                    }
+
+                    //element compare; Algorithm complexity: O(N^2)
+                    int num = 1;
+                    int i, j;
+                    for(i = 1; i &amp;lt; arrayLength; i++)
+                    {
+                            Object listElement = arrayOI.getListElement(array, i);
+                            for(j = i - 1; j &amp;gt;= 0; j--)
+                            {
+                                    if (listElement != null) {
+                                            Object tmp = arrayOI.getListElement(array, j);
+                                            if (ObjectInspectorUtils.compare(tmp, arrayElementOI, listElement,
+                                                            arrayElementOI) == 0) {
+                                                    break;
+                                            }
+                                    }
+                            }
+                            if(-1 == j)
+                            {
+                                    num++;
+                            }
+                    }
+
+                    result.set(num);
+                    return result;
+            }
+
+            public String getDisplayString(String[] children) {
+                    assert (children.length == ARG_COUNT);
+                    return &amp;#34;array_uniq_element_number(&amp;#34; + children[ARRAY_IDX]+ &amp;#34;)&amp;#34;;
+            }
+    }
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;usage&#34;&gt;Usage&lt;/h2&gt;
+&lt;h3 id=&#34;临时添加-udf&#34;&gt;临时添加 UDF&lt;/h3&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;hive&amp;gt; select * from test;
+OK
+Hello
+wORLD
+ZXM
+ljz
+Time taken: 13.76 seconds
+hive&amp;gt; add jar /home/work/udf.jar;
+Added /home/work/udf.jar to class path
+Added resource: /home/work/udf.jar
+hive&amp;gt; create temporary function mytest as &amp;#39;test.udf.ToLowerCase&amp;#39;;
+OK
+Time taken: 0.103 seconds
+hive&amp;gt; show functions;
+......
+mytest
+......
+hive&amp;gt; select mytest(test.name) from test;
+......
+OK
+hello
+world
+zxm
+ljz
+Time taken: 38.218 seconds
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;这种方式在会话结束后，函数自动销毁，因此每次打开新的会话，都需要重新 add jar 并且 create temporary function。&lt;/p&gt;
+&lt;h3 id=&#34;进入会话前自动创建&#34;&gt;进入会话前自动创建&lt;/h3&gt;
+&lt;p&gt;使用 hive -i 参数在进入 hive 时自动初始化&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;    $ cat hive_init
+    add jar /home/work/udf.jar;
+    create temporary function mytest as &amp;#39;test.udf.ToLowerCase&amp;#39;;
+    $ hive -i hive_init
+    Logging initialized using configuration in file:/home/work/hive/hive-0.8.1/conf/hive-log4j.properties
+    Hive history file=/tmp/work/hive_job_log_work_201209200147_1951517527.txt
+    hive&amp;gt; show functions;
+    ......
+    mytest
+    ......
+    hive&amp;gt; select mytest(test.name) from test;
+    ......
+    OK
+    hello
+    world
+    zxm
+    ljz
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;方法 2 和方法 1 本质上是相同的，区别在于方法 2 在会话初始化时自动完成&lt;/p&gt;
+&lt;h3 id=&#34;注册为内部函数&#34;&gt;注册为内部函数&lt;/h3&gt;
+&lt;blockquote&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://my.oschina.net/wangjiankui/blog/64230&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;自定义 UDF+重编译 Hive&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;和前两者相比，第三种方式直接将用户的自定义函数作为注册为内置函数，未来使用起来非常简单，但这种方式也非常危险，一旦出错，将是灾难性的，因此，建议如果不是特别通用，并且固化下来的函数，还是使用前两种方式比较靠谱。&lt;/p&gt;
+&lt;h1 id=&#34;udaf&#34;&gt;UDAF&lt;/h1&gt;
+&lt;p&gt;Hive 查询数据时，有些聚类函数在 HQL 没有自带，需要用户自定义实现
+•用户自定义聚合函数: Sum, Average…… n – 1
+•UDAF(User- Defined Aggregation Funcation)
+用法
+•一下两个包是必须的 import org.apache.hadoop.hive.ql.exec.UDAF 和 org.apache.hadoop.hive.ql.exec.UDAFEvaluator
+开发步骤
+•函数类需要继承 UDAF 类，内部类 Evaluator 实 UDAFEvaluator 接口
+•Evaluator 需要实现 init、iterate、terminatePartial、merge、terminate 这几个函数
+a)init 函数实现接口 UDAFEvaluator 的 init 函数。
+b)iterate 接收传入的参数，并进行内部的轮转。其返回类型为 boolean。
+c)terminatePartial 无参数，其为 iterate 函数轮转结束后，返回轮转数据，terminatePartial 类似于 hadoop 的 Combiner。
+d)merge 接收 terminatePartial 的返回结果，进行数据 merge 操作，其返回类型为 boolean。
+e)terminate 返回最终的聚集函数结果。
+执行步骤
+•执行求平均数函数的步骤
+a)将 java 文件编译成 Avg_test.jar。
+b)进入 hive 客户端添加 jar 包：
+hive&amp;gt;add jar /run/jar/Avg_test.jar。
+c)创建临时函数：
+hive&amp;gt;create temporary function avg_test &amp;lsquo;hive.udaf.Avg&amp;rsquo;;
+d)查询语句：
+hive&amp;gt;select avg_test(scores.math) from scores;
+e)销毁临时函数：
+hive&amp;gt;drop temporary function avg_test;&lt;/p&gt;
+&lt;p&gt;UDAF 代码示例
+public class MyAvg extends UDAF {&lt;/p&gt;
+&lt;p&gt;public static class AvgEvaluator implements UDAFEvaluator {
+}
+public void init() {}
+public boolean iterate(Double o) {}
+public AvgState terminatePartial() {}
+public boolean terminatePartial(Double o) { }
+public Double terminate() {}&lt;/p&gt;
+&lt;p&gt;}&lt;/p&gt;
+&lt;h1 id=&#34;udtf&#34;&gt;UDTF&lt;/h1&gt;
+&lt;p&gt;UDTF(User-Defined Table-Generating Functions) 用来解决 输入一行输出多行(On-to-many maping) 的需求。
+开发步骤
+•UDTF 步骤：
+•必须继承 org.apache.Hadoop.hive.ql.udf.generic.GenericUDTF
+•实现 initialize, process, close 三个方法
+•UDTF 首先会
+•调用 initialize 方法，此方法返回 UDTF 的返回行的信息(返回个数，类型)
+初始化完成后，会调用 process 方法，对传入的参数进行处理，可以通过 forword()方法把结果返回
+•最后 close()方法调用，对需要清理的方法进行清理
+使用方法
+•UDTF 有两种使用方法，一种直接放到 select 后面，一种和 lateral view 一起使用
+•直接 select 中使用：select explode&lt;em&gt;map(properties) as (col1,col2) from src;
+•不可以添加其他字段使用：select a, explode_map(properties) as (col1,col2) from src
+•不可以嵌套调用：select explode_map(explode_map(properties)) from src
+•不可以和 group by/cluster by/distribute by/sort by 一起使用：select explode_map(properties) as (col1,col2) from src group by col1, col2
+•和 lateral view 一起使用：select src.id, mytable.col1, mytable.col2 from src lateral view explode_map(properties) mytable as col1, col2;
+此方法更为方便日常使用。执行过程相当于单独执行了两次抽取，然后 union 到一个表里。
+lateral view
+• Lateral View 语法
+•lateralView: LATERAL VIEW udtf(expression) tableAlias AS columnAlias (&amp;rsquo;,&amp;rsquo; columnAlias)&lt;/em&gt; fromClause: FROM baseTable (lateralView)_&lt;/p&gt;
+&lt;p&gt;•Lateral View 用于 UDTF(user-defined table generating functions)中将行转成列，例如 explode().
+•目前 Lateral View 不支持有上而下的优化。如果使用 Where 子句，查询可能将不被编译。解决方法见：
+此时，在查询之前执行 set hive.optimize.ppd=false;
+• 例子
+•pageAds。它有两个列
+string pageid
+Array&lt;int&gt; adid_list
+&amp;quot; front_page&amp;quot;
+[1, 2, 3]
+&amp;ldquo;contact_page &amp;quot;
+[ 3, 4, 5]
+•SELECT pageid, adid FROM pageAds LATERAL VIEW explode(adid_list) adTable AS adid;
+•将输出如下结果
+string pageid int adid
+&amp;ldquo;front_page&amp;rdquo; 1
+…….
+“contact_page&amp;rdquo; 3&lt;/p&gt;
+&lt;p&gt;代码示例
+public class MyUDTF extends GenericUDTF{
+public StructObjectInspector initialize(ObjectInspector[] args) {}
+public void process(Object[] args) throws HiveException { }
+}&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>
