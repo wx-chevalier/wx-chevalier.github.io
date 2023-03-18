@@ -42,8 +42,12 @@ commentable: true
 
 - [2023-scribble-diffusion ![code](https://ng-tech.icu/assets/code.svg) ![star](https://img.shields.io/github/stars/replicate/scribble-diffusion)](https://github.com/replicate/scribble-diffusion): Turn your rough sketch into a refined image using AI.
 
-## APP
+- [2023-stable-diffusion-webui-colab ![code](https://ng-tech.icu/assets/code.svg) ![star](https://img.shields.io/github/stars/camenduru/stable-diffusion-webui-colab)](https://github.com/camenduru/stable-diffusion-webui-colab): stable diffusion webui colab.
+
+## GUI & APP
 
 - [2022-Gauss ![code](https://ng-tech.icu/assets/code.svg) ![star](https://img.shields.io/github/stars/justjake/Gauss)](https://github.com/justjake/Gauss): A Stable Diffusion app for macOS built with SwiftUI and Apple's ml-stable-diffusion CoreML models.
+
+- [2023-ComfyUI ![code](https://ng-tech.icu/assets/code.svg) ![star](https://img.shields.io/github/stars/comfyanonymous/ComfyUI)](https://github.com/comfyanonymous/ComfyUI): A powerful and modular stable diffusion GUI with a graph/nodes interface.
 
     
