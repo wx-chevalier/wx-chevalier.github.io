@@ -8,6 +8,8 @@ commentable: true
 
 # DNS
 
+![ByteByteGO DNS 请求流图](https://assets.ng-tech.icu/item/%E4%BC%81%E4%B8%9A%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_cc3fa478-9da1-477f-b285-89b92bc2f93f.png)
+
 在整个 DNS 过程中有四个重要概念：
 
 - DNS Resolver - 递归解析器，主要是接收客户端发出的域名解析请求，并发送 DNS query 查询请求。对于客户端来说它不需要任何操劳，等待 DNS Resolver 告诉自己域名转 IP 的结果就好。
