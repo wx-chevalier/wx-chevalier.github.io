@@ -13,6 +13,7 @@
 - [ ] 脚本中添加对于 XSS 内容的过滤 https://www.npmjs.com/package/xss-filters
 - [ ] 模拟 https://www.pmbaobao.com/ 实现类似于的网址导航
 - [ ] 添加 https://github.com/Bloggify/github-calendar
+- [ ] 借鉴，https://github.com/lcomplete/huntly，实现一体化桌面应用
 
 # About
 
