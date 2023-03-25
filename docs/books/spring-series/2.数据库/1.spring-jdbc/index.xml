@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>1.Spring JDBC | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/spring-series/2.%E6%95%B0%E6%8D%AE%E5%BA%93/1.spring-jdbc/</link><atom:link href="https://ng-tech.icu/books/spring-series/2.%E6%95%B0%E6%8D%AE%E5%BA%93/1.spring-jdbc/index.xml" rel="self" type="application/rss+xml"/><description>1.Spring JDBC</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>1.Spring JDBC</title><link>https://ng-tech.icu/books/spring-series/2.%E6%95%B0%E6%8D%AE%E5%BA%93/1.spring-jdbc/</link></image><item><title>基础使用</title><link>https://ng-tech.icu/books/spring-series/2.%E6%95%B0%E6%8D%AE%E5%BA%93/1.spring-jdbc/%E5%9F%BA%E7%A1%80%E4%BD%BF%E7%94%A8/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/spring-series/2.%E6%95%B0%E6%8D%AE%E5%BA%93/1.spring-jdbc/%E5%9F%BA%E7%A1%80%E4%BD%BF%E7%94%A8/</guid><description>&lt;p>﻿# Spring JDBC&lt;/p>
+&lt;p>Spring JDBC 框架提供了多种访问数据库的方法，其中最著名的就是使用&lt;code>JdbcTemplate&lt;/code>这个类。这也是主要的用于管理数据库连接与异常处理的类。要使用 Spring JDBC 的话，首先需要在 pom.xml 文件中配置依赖项：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;groupId&amp;gt;&lt;/span>org.springframework&lt;span class="nt">&amp;lt;/groupId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;artifactId&amp;gt;&lt;/span>spring-context&lt;span class="nt">&amp;lt;/artifactId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;version&amp;gt;&lt;/span>${spring.version}&lt;span class="nt">&amp;lt;/version&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;groupId&amp;gt;&lt;/span>mysql&lt;span class="nt">&amp;lt;/groupId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;artifactId&amp;gt;&lt;/span>mysql-connector-java&lt;span class="nt">&amp;lt;/artifactId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;version&amp;gt;&lt;/span>5.1.26&lt;span class="nt">&amp;lt;/version&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="基础使用">基础使用&lt;/h1>
+&lt;h2 id="数据源配置">数据源配置&lt;/h2>
+&lt;p>在我们访问数据库的时候，需要先配置一个数据源，下面分别介绍一下几种不同的数据库配置方式。首先，为了连接数据库需要引入 jdbc 支持，在 pom.xml 中引入如下配置：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;groupId&amp;gt;&lt;/span>org.springframework.boot&lt;span class="nt">&amp;lt;/groupId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;artifactId&amp;gt;&lt;/span>spring-boot-starter-jdbc&lt;span class="nt">&amp;lt;/artifactId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>嵌入式数据库通常用于开发和测试环境，不推荐用于生产环境。Spring Boot 提供自动配置的嵌入式数据库有 H2、HSQL、Derby，你不需要提供任何连接配置就能使用。比如，我们可以在 pom.xml 中引入如下配置使用 HSQL：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;groupId&amp;gt;&lt;/span>org.hsqldb&lt;span class="nt">&amp;lt;/groupId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;artifactId&amp;gt;&lt;/span>hsqldb&lt;span class="nt">&amp;lt;/artifactId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;scope&amp;gt;&lt;/span>runtime&lt;span class="nt">&amp;lt;/scope&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>以 MySQL 数据库为例，先引入 MySQL 连接的依赖包，在 pom.xml 中加入：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;groupId&amp;gt;&lt;/span>mysql&lt;span class="nt">&amp;lt;/groupId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;artifactId&amp;gt;&lt;/span>mysql-connector-java&lt;span class="nt">&amp;lt;/artifactId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在 src/main/resources/application.properties 中配置数据源信息：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yml" data-lang="yml">&lt;span class="line">&lt;span class="cl">&lt;span class="l">spring.datasource.url=jdbc:mysql://localhost:3306/test&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="l">spring.datasource.username=dbuser&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="l">spring.datasource.password=dbpass&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="l">spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>注意：因为 Spring Boot 2.1.x 默认使用了 MySQL 8.0 的驱动，所以这里采用 com.mysql.cj.jdbc.Driver，而不是老的 com.mysql.jdbc.Driver。&lt;/p>
+&lt;h2 id="使用-jdbctemplate-操作数据库">使用 JdbcTemplate 操作数据库&lt;/h2>
+&lt;p>Spring 的 JdbcTemplate 是自动配置的，你可以直接使用@Autowired 或构造函数（推荐）来注入到你自己的 bean 中来使用。先创建 User 表，包含属性 name、age。可以通过执行下面的建表语句：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="k">CREATE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">TABLE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="k">User&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="n">name&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nb">varchar&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">100&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">COLLATE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">utf8mb4_general_ci&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">NOT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">NULL&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="n">age&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nb">int&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">NOT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">NULL&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">ENGINE&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="n">InnoDB&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">DEFAULT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">CHARSET&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="n">utf8mb4&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">COLLATE&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="n">utf8mb4_general_ci&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>根据数据库中创建的 User 表，创建领域对象：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@Data&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@NoArgsConstructor&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">User&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="n">name&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="n">Integer&lt;/span> &lt;span class="n">age&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>然后定义包含有插入、删除、查询的抽象接口 UserService：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">interface&lt;/span> &lt;span class="nc">UserService&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cm">/**
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * 新增一个用户
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> *
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * @param name
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * @param age
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="nf">create&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">name&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">Integer&lt;/span> &lt;span class="n">age&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cm">/**
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * 根据name查询用户
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> *
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * @param name
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * @return
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">List&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">User&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="nf">getByName&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">name&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cm">/**
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * 根据name删除用户
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> *
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * @param name
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="nf">deleteByName&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">name&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cm">/**
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * 获取用户总量
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="nf">getAllUsers&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cm">/**
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * 删除所有用户
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="nf">deleteAllUsers&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>最后通过 JdbcTemplate 实现 UserService 中定义的数据访问操作：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@Service&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">UserServiceImpl&lt;/span> &lt;span class="kd">implements&lt;/span> &lt;span class="n">UserService&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="n">JdbcTemplate&lt;/span> &lt;span class="n">jdbcTemplate&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">UserServiceImpl&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">JdbcTemplate&lt;/span> &lt;span class="n">jdbcTemplate&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">this&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">jdbcTemplate&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">jdbcTemplate&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nd">@Override&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="nf">create&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">name&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">Integer&lt;/span> &lt;span class="n">age&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">jdbcTemplate&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">update&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;insert into USER(NAME, AGE) values(?, ?)&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">name&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">age&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nd">@Override&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="n">List&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">User&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="nf">getByName&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">name&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">List&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">User&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">users&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">jdbcTemplate&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">query&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;select NAME, AGE from USER where NAME = ?&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">resultSet&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">i&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">-&amp;gt;&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">User&lt;/span> &lt;span class="n">user&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">User&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">user&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">setName&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">resultSet&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getString&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;NAME&amp;#34;&lt;/span>&lt;span class="o">));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">user&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">setAge&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">resultSet&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getInt&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;AGE&amp;#34;&lt;/span>&lt;span class="o">));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">user&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">},&lt;/span> &lt;span class="n">name&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">users&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nd">@Override&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="nf">deleteByName&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">name&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">jdbcTemplate&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">update&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;delete from USER where NAME = ?&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">name&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nd">@Override&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="nf">getAllUsers&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">jdbcTemplate&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">queryForObject&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;select count(1) from USER&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">Integer&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">class&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nd">@Override&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="nf">deleteAllUsers&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">jdbcTemplate&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">update&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;delete from USER&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="单元测试">单元测试&lt;/h2>
+&lt;p>创建对 UserService 的单元测试用例，通过创建、删除和查询来验证数据库操作的正确性。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@RunWith&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">SpringRunner&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">class&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@SpringBootTest&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">Chapter31ApplicationTests&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nd">@Autowired&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="n">UserService&lt;/span> &lt;span class="n">userSerivce&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nd">@Before&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">setUp&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 准备，清空user表
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">userSerivce&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">deleteAllUsers&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nd">@Test&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">test&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="kd">throws&lt;/span> &lt;span class="n">Exception&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 插入5个用户
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">userSerivce&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">create&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Tom&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="mi">10&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">userSerivce&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">create&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Mike&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="mi">11&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">userSerivce&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">create&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Didispace&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="mi">30&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">userSerivce&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">create&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Oscar&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="mi">21&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">userSerivce&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">create&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Linda&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="mi">17&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 查询名为Oscar的用户，判断年龄是否匹配
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">List&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">User&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">userList&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">userSerivce&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getByName&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Oscar&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Assert&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">assertEquals&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">21&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">userList&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">get&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">getAge&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">intValue&lt;/span>&lt;span class="o">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 查数据库，应该有5个用户
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">Assert&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">assertEquals&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">5&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">userSerivce&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getAllUsers&lt;/span>&lt;span class="o">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 删除两个用户
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">userSerivce&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">deleteByName&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Tom&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">userSerivce&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">deleteByName&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Mike&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 查数据库，应该有5个用户
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">Assert&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">assertEquals&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">userSerivce&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getAllUsers&lt;/span>&lt;span class="o">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="数据查询">数据查询&lt;/h1>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@SuppressWarnings&lt;/span>&lt;span class="o">({&lt;/span> &lt;span class="s">&amp;#34;unchecked&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;rawtypes&amp;#34;&lt;/span> &lt;span class="o">})&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="n">Employee&lt;/span> &lt;span class="nf">findById&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">id&lt;/span>&lt;span class="o">){&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">String&lt;/span> &lt;span class="n">sql&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s">&amp;#34;SELECT * FROM EMPLOYEE WHERE ID = ?&amp;#34;&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">jdbcTemplate&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">JdbcTemplate&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">dataSource&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Employee&lt;/span> &lt;span class="n">employee&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">Employee&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="n">jdbcTemplate&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">queryForObject&lt;/span>&lt;span class="o">(&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">sql&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">Object&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="o">{&lt;/span> &lt;span class="n">id&lt;/span> &lt;span class="o">},&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">BeanPropertyRowMapper&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">Employee&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">class&lt;/span>&lt;span class="o">));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">employee&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在 query 中，最后需要传入一个继承自 RowMapper 的实现类，有时候方便起见，也可以直接传入一个 Entity。如果是采用的 RowMapper 模式，需要实现如下的映射器类：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@SuppressWarnings&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;rawtypes&amp;#34;&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">EmployeeRowMapper&lt;/span> &lt;span class="kd">implements&lt;/span> &lt;span class="n">RowMapper&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="n">Object&lt;/span> &lt;span class="nf">mapRow&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">ResultSet&lt;/span> &lt;span class="n">rs&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">rowNum&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="kd">throws&lt;/span> &lt;span class="n">SQLException&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Employee&lt;/span> &lt;span class="n">employee&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">Employee&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">employee&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">setId&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">rs&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getInt&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;ID&amp;#34;&lt;/span>&lt;span class="o">));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">employee&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">setName&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">rs&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getString&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;NAME&amp;#34;&lt;/span>&lt;span class="o">));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">employee&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">setAge&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">rs&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getInt&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;AGE&amp;#34;&lt;/span>&lt;span class="o">));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">employee&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>最后在调用的时候，把映射器作为最后一个参数传入：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">Employee&lt;/span> &lt;span class="n">employee&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">Employee&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="n">jdbcTemplate&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">queryForObject&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">sql&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">Object&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="o">{&lt;/span> &lt;span class="n">id&lt;/span> &lt;span class="o">},&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">EmployeeRowMapper&lt;/span>&lt;span class="o">());&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="插入与修改">插入与修改&lt;/h1>
+&lt;h2 id="insert">Insert&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">insert&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">Employee&lt;/span> &lt;span class="n">employee&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">String&lt;/span> &lt;span class="n">sql&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s">&amp;#34;INSERT INTO EMPLOYEE &amp;#34;&lt;/span> &lt;span class="o">+&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s">&amp;#34;(ID, NAME, AGE) VALUES (?, ?, ?)&amp;#34;&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">jdbcTemplate&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">JdbcTemplate&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">dataSource&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">jdbcTemplate&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">update&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">sql&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">Object&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">employee&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getId&lt;/span>&lt;span class="o">(),&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">employee&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getName&lt;/span>&lt;span class="o">(),&lt;/span> &lt;span class="n">employee&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getAge&lt;/span>&lt;span class="o">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">});&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>有时候需要在插入之后，将插入行自动生成的主键返回，可以使用 jdbcTemplate 中提供的 KeyHolder 来实现：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">ExampleDao&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nd">@Autowired&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="n">JdbcTemplate&lt;/span> &lt;span class="n">jdbcTemplate&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">long&lt;/span> &lt;span class="nf">addNew&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="kd">final&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="n">name&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">final&lt;/span> &lt;span class="n">PreparedStatementCreator&lt;/span> &lt;span class="n">psc&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">PreparedStatementCreator&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nd">@Override&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="n">PreparedStatement&lt;/span> &lt;span class="nf">createPreparedStatement&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="kd">final&lt;/span> &lt;span class="n">Connection&lt;/span> &lt;span class="n">connection&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="kd">throws&lt;/span> &lt;span class="n">SQLException&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">final&lt;/span> &lt;span class="n">PreparedStatement&lt;/span> &lt;span class="n">ps&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">connection&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">prepareStatement&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;INSERT INTO `names` (`name`) VALUES (?)&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Statement&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">RETURN_GENERATED_KEYS&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">ps&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">setString&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">name&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">ps&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// The newly generated key will be saved in this object
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="kd">final&lt;/span> &lt;span class="n">KeyHolder&lt;/span> &lt;span class="n">holder&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">GeneratedKeyHolder&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">jdbcTemplate&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">update&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">psc&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">holder&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">final&lt;/span> &lt;span class="kt">long&lt;/span> &lt;span class="n">newNameId&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">holder&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getKey&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">longValue&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">newNameId&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item><item><title>性能优化</title><link>https://ng-tech.icu/books/spring-series/2.%E6%95%B0%E6%8D%AE%E5%BA%93/1.spring-jdbc/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/spring-series/2.%E6%95%B0%E6%8D%AE%E5%BA%93/1.spring-jdbc/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/</guid><description>&lt;h1 id="introduction">Introduction&lt;/h1>
+&lt;p>一个高性能的数据访问层需要很多关于数据库的内部结构、JDBC、JPA、Hibernate 以及很多优化商业应用的技术建议。&lt;/p>
+&lt;h1 id="sql-statement-loggingsql-语句日志">SQL Statement Logging:SQL 语句日志&lt;/h1>
+&lt;p>如果你正在使用譬如 Hibernate 或者 MyBatis 这样的 ORM 框架，那么可以参考&lt;a href="https://vladmihalcea.com/2016/05/03/the-best-way-of-logging-jdbc-statements/" target="_blank" rel="noopener">验证执行语句的效率&lt;/a>。另外推荐一个 &lt;a href="https://vladmihalcea.com/2014/02/01/taming-jpa-with-the-sql-statement-count-validator/" target="_blank" rel="noopener">测试中断言机制&lt;/a> 可以帮你在提交代码之前就发现很多的查询问题。&lt;/p>
+&lt;h1 id="connection-management连接管理">Connection management:连接管理&lt;/h1>
+&lt;p>数据库连接一直是数据库中比较耗时的操作，因此建议是务必使用&lt;a href="https://vladmihalcea.com/2014/04/17/the-anatomy-of-connection-pooling/" target="_blank" rel="noopener">数据库连接池&lt;/a> 机制。另外，数据库连接还受到数据库底层的限制，因此也需要合理有效地释放无用的数据库连接。在性能调优中，我们经常需要测试并且设置合理的连接池大小。这里推荐一个&lt;a href="https://vladmihalcea.com/2014/04/30/professional-connection-pool-sizing/" target="_blank" rel="noopener">FlexyPool&lt;/a>工具可以帮助你选择生产环境下合适的连接池大小。&lt;/p>
+&lt;h1 id="jdbc-batching批量-jdbc-操作">JDBC Batching:批量 JDBC 操作&lt;/h1>
+&lt;p>JDBC Batching 允许在单次数据库连接中发送多个 SQL 语句。&lt;a href="https://leanpub.com/high-performance-java-persistence/read#jdbc-batch-updates" target="_blank" rel="noopener">这篇博客里进行了对比可以看出 Batch 操作的性能提升非常巨大&lt;/a>，无论是在客户端还是数据库端。&lt;code>PreparedStatements&lt;/code> 是不错的用于 Batching 操作的选择，像 Oracle 也仅支持基于 PreparedStatements 的 Batching 操作。
+JDBC 中已经基于&lt;a href="https://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html#addBatch--" target="_blank" rel="noopener">&lt;code>PreparedStataement.addBatch&lt;/code>&lt;/a> 与 &lt;a href="https://docs.oracle.com/javase/8/docs/api/java/sql/Statement.html#executeBatch--" target="_blank" rel="noopener">&lt;code>PreparedStataement.executeBatch&lt;/code>&lt;/a>)提供了 Batching 操作的辅助，不过如果打算手动的构造 Batching 操作，那么在设计阶段就要考虑到是否需要引入 Batching。如果你用的是 Hibernate，那么&lt;a href="https://vladmihalcea.com/2015/03/18/how-to-batch-insert-and-update-statements-with-hibernate/" target="_blank" rel="noopener">可以用简单的配置就开启 Batching&lt;/a>，Hibernate 5.2 提供了 &lt;a href="https://hibernate.atlassian.net/browse/HHH-10431" target="_blank" rel="noopener">Session 级别的 Batching&lt;/a>, 也是非常方便的。&lt;/p>
+&lt;h1 id="statement-caching语句缓存">Statement Caching:语句缓存&lt;/h1>
+&lt;p>Statement Caching 算是最不常用的几种优化手段之一了，你可以利用&lt;code>PreparedStatements&lt;/code>同时在客户端(Driver)或者数据库端同时缓存语句。&lt;/p>
+&lt;h1 id="hibernate-identifiers">Hibernate Identifiers&lt;/h1>
+&lt;p>如果你是使用 Hibernate 作为 ORM 工具，那么&lt;code>IDENTITY&lt;/code>生成器可能会影响到你的性能，因为它会禁止掉 JDBC Batching。&lt;code>Table&lt;/code>生成器也不是啥好选择，它会使用独立的事务上下文进行捕获操作，而导致底层的事务日志承受额外的压力，并且导致了每次连接池中的新的请求都需要一个新的 Identifier。因此笔者还是推荐&lt;code>SEQUENCE&lt;/code>生成器，SQL Server 在 2012 版本之后也开始支持了该生成器。&lt;/p>
+&lt;h1 id="选择合适的列类型">选择合适的列类型&lt;/h1>
+&lt;p>在数据库设计的时候，我们应该尽可能地选用合适的列类型，这样可以让你的数据库以最合适的方式去索引存储你的数据。譬如在 PostgreSQL 中你应该使用&lt;code>inet&lt;/code>来存放 IPv4 的地址，特别是 Hibernate 还允许你&lt;a href="https://vladmihalcea.com/2016/06/20/how-to-map-json-objects-using-generic-hibernate-types/" target="_blank" rel="noopener">自定义数据类型&lt;/a>，这样方面和数据库中的列类型一一对应。&lt;/p>
+&lt;h1 id="relationships映射关联">Relationships:映射关联&lt;/h1>
+&lt;p>Hibernate 提供了很多的关系映射，不过并不是所有的映射都是性能优化的。
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://vladmihalcea.files.wordpress.com/2016/06/relationships.png?w=1326&amp;amp;h=398" alt="" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>
+我们在开发的过程中需要注意避免单向的关系映射，以及&lt;code>@ManyToMany&lt;/code>这种映射。对于集合查询而言，双向的&lt;code>@OneToMany&lt;/code>关系才是值得推荐的。&lt;/p>
+&lt;h1 id="inheritance继承">Inheritance:继承&lt;/h1>
+&lt;p>继承是面向对象的语言中的不可或缺的一部分，但这也是关系型数据库与面向对象的语言之间的不协调最甚的地方。JPA 提供了譬如&lt;code>SINGLE_TABLE&lt;/code>、&lt;code>JOIN&lt;/code>以及&lt;code>TABLE_PER_CLASS&lt;/code>来处理继承映射的问题，而这几个办法都是各有千秋。&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>SINGLE_TABLE&lt;/code>在 SQL 语句中的表现最好，不过不能使用&lt;code>NOT NULL&lt;/code>约束，数据完整性的控制较差。&lt;/li>
+&lt;li>&lt;code>JOIN&lt;/code> 通过更复杂的语句控制来保证了数据的完整性，只要你不使用多态查询或者&lt;code>@OneToMany&lt;/code>关系注解，那一切还好。&lt;/li>
+&lt;li>应该避免使用&lt;code>TABLE_PER_CLASS&lt;/code>，它基本上无法生成高效的 SQL 语句。&lt;/li>
+&lt;/ul>
+&lt;h1 id="persistence-context-size持久化上下文的大小">Persistence Context Size:持久化上下文的大小&lt;/h1>
+&lt;p>在使用 JPA 或者 Hibernate 时候，应该随时注意持久化上下文的大小，避免同时管理过多的实体类。通过限制受管实体类的数量，我们可以更好地进行内存管理，而默认的&lt;a href="https://vladmihalcea.com/2014/08/21/the-anatomy-of-hibernate-dirty-checking/" target="_blank" rel="noopener">脏检测机制&lt;/a>也会有更好的效果。&lt;/p>
+&lt;h1 id="只获取必要的数据">只获取必要的数据&lt;/h1>
+&lt;p>获取过多的冗余数据可能是导致数据访问层性能下降的原因之一，即使是包含了投影等操作，对于实体的查询应该也是排外的，即不会引入冗余数据的。我们应该只获取那些业务逻辑需要到的数据，这里推荐使用 DTO Projections。&lt;a href="https://vladmihalcea.com/2014/12/15/eager-fetching-is-a-code-smell/" target="_blank" rel="noopener">过早的数据获取&lt;/a>以及&lt;a href="https://vladmihalcea.com/2016/05/30/the-open-session-in-view-anti-pattern/" target="_blank" rel="noopener">Open Session In View&lt;/a>这种反模式都是要被避免的。&lt;/p>
+&lt;h1 id="caching缓存">Caching:缓存&lt;/h1>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://vladmihalcea.files.wordpress.com/2016/06/cachelayers.png" alt="" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>
+关系型数据库使用了很多的内存缓冲结构体来避免大量的磁盘访问，但是我们往往忽略了&lt;a href="https://vladmihalcea.com/2015/04/16/things-to-consider-before-jumping-to-enterprise-caching/" target="_blank" rel="noopener">数据库缓存&lt;/a>。我们可以通过调整数据库查询引擎，将更多的内容留于内存中以避免磁盘查询最终明显的减少响应耗时。应用层的缓存则利用高速副本的方式来保证低响应时间。而 Second-Level 缓存能够有效减少读写事务的响应时间，特别是在主从复制架构中。根据不同的应用取钱，Hibernate 提供了 &lt;a href="https://vladmihalcea.com/2015/04/27/how-does-hibernate-read_only-cacheconcurrencystrategy-work/" target="_blank" rel="noopener">READ_ONLY&lt;/a>, &lt;a href="https://vladmihalcea.com/2015/05/18/how-does-hibernate-nonstrict_read_write-cacheconcurrencystrategy-work/" target="_blank" rel="noopener">NONSTRICT_READ_WRITE&lt;/a>, &lt;a href="https://vladmihalcea.com/2015/05/25/how-does-hibernate-read_write-cacheconcurrencystrategy-work/" target="_blank" rel="noopener">READ_WRITE&lt;/a>, 以及 &lt;a href="https://vladmihalcea.com/2015/06/01/how-does-hibernate-transactional-cacheconcurrencystrategy-work/" target="_blank" rel="noopener">TRANSACTIONAL&lt;/a>这几种方式。&lt;/p>
+&lt;h1 id="concurrency-control并发控制">Concurrency Control:并发控制&lt;/h1>
+&lt;p>在考虑性能和数据完整性的时候，&lt;a href="https://vladmihalcea.com/2014/12/23/a-beginners-guide-to-transaction-isolation-levels-in-enterprise-java/" target="_blank" rel="noopener">事务隔离层&lt;/a> 就变得至关重要。对于并发较高的应用，需要避免&lt;a href="https://vladmihalcea.com/2014/09/14/a-beginners-guide-to-database-locking-and-the-lost-update-phenomena/" target="_blank" rel="noopener">更新失败&lt;/a>, 可以使用 &lt;a href="https://vladmihalcea.com/2014/09/22/preventing-lost-updates-in-long-conversations/" target="_blank" rel="noopener">乐观锁或者扩展的持久化上下文&lt;/a>.
+而为了避免 &lt;code>乐观锁中的&lt;/code> false positives, 可以使用 &lt;a href="https://vladmihalcea.com/2014/12/08/the-downside-of-version-less-optimistic-locking/" target="_blank" rel="noopener">无版本的乐观控制&lt;/a>或者&lt;a href="https://vladmihalcea.com/2014/11/10/an-entity-modeling-strategy-for-scaling-optimistic-locking/" target="_blank" rel="noopener">基于写属性集的实体划分&lt;/a>.&lt;/p>
+&lt;h1 id="提高数据库查询能力">提高数据库查询能力&lt;/h1>
+&lt;p>虽然你是用了 JPA 或者 Hibernate，但是你可以用一些原生查询，建议是好好利用&lt;a href="https://vladmihalcea.com/2014/05/12/time-to-break-free-from-the-sql-92-mindset/" target="_blank" rel="noopener">Window Functions&lt;/a>, CTE (Common Table Expressions), &lt;code>CONNECT BY&lt;/code>, &lt;code>PIVOT&lt;/code>等等。这些工具能够避免你一次性传输过多的数据进入应用层，如果你可以把这个操作托付给数据库层进行，那么可以仅关心最终的结果，从而节约了磁盘 IO 与网络带宽。&lt;/p>
+&lt;h1 id="集群扩展">集群扩展&lt;/h1>
+&lt;p>关系型数据库能够方便地进行扩展，像 Facebook、Twitter、Pinterest 这些大公司都扩展了数据库系统：
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://vladmihalcea.files.wordpress.com/2016/06/databaseintegrationpoint.png?w=1326&amp;amp;h=656" alt="" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>
+&lt;a href="http://highscalability.com/blog/2016/5/11/performance-and-scaling-in-enterprise-systems.html" target="_blank" rel="noopener">数据副本与分片&lt;/a>是两种常用的增加吞吐量的扩展方式，你应该合理的组合应用这些方式从而提高你的商业应用的能力。&lt;/p></description></item></channel></rss>

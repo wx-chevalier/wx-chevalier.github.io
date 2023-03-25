@@ -28,4 +28,6 @@ commentable: true
 
 - [2022-Sonic ![code](https://ng-tech.icu/assets/code.svg)](https://github.com/valeriansaliou/sonic): Sonic is a fast, lightweight and schema-less search backend. It ingests search texts and identifier tuples that can then be queried against in a microsecond's time.
 
+- [2023-GerevAI/gerev ![code](https://ng-tech.icu/assets/code.svg) ![star](https://img.shields.io/github/stars/GerevAI/gerev)](https://github.com/GerevAI/gerev): 🧠 Google-like Search engine for your organization. 🔎
+
     
