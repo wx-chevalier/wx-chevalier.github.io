@@ -1,0 +1,956 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>_index | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/k8s-series/999.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/9.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/</link><atom:link href="https://ng-tech.icu/books/k8s-series/999.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/9.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/index.xml" rel="self" type="application/rss+xml"/><description>_index</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>_index</title><link>https://ng-tech.icu/books/k8s-series/999.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/9.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/</link></image><item><title>aggregated-api-server</title><link>https://ng-tech.icu/books/k8s-series/999.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/9.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/aggregated-api-server/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-series/999.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/9.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/aggregated-api-server/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 65
+title: Aggregated API Server
+date: &amp;lsquo;2022-05-21T00:00:00+08:00&amp;rsquo;
+type: book&lt;/h2>
+&lt;p>Aggregated（聚合的）API server 是为了将原来的 API server 这个巨石（monolithic）应用给拆分成，为了方便用户开发自己的 API server 集成进来，而不用直接修改 kubernetes 官方仓库的代码，这样一来也能将 API server 解耦，方便用户使用实验特性。这些 API server 可以跟 core API server 无缝衔接，使用 kubectl 也可以管理它们。&lt;/p>
+&lt;h2 id="架构">架构&lt;/h2>
+&lt;p>我们需要创建一个新的组件，名为 &lt;code>kube-aggregator&lt;/code>，它需要负责以下几件事：&lt;/p>
+&lt;ul>
+&lt;li>提供用于注册 API server 的 API&lt;/li>
+&lt;li>汇总所有的 API server 信息&lt;/li>
+&lt;li>代理所有的客户端到 API server 的请求&lt;/li>
+&lt;/ul>
+&lt;p>&lt;strong>注意&lt;/strong>：这里说的 API server 是一组 “API Server”，而不是说我们安装集群时候的那个 API server，而且这组 API server 是可以横向扩展的。&lt;/p>
+&lt;h2 id="安装配置聚合的-api-server">安装配置聚合的 API server&lt;/h2>
+&lt;p>有两种方式来启用 &lt;code>kube-aggregator&lt;/code>：&lt;/p>
+&lt;ul>
+&lt;li>使用 &lt;strong>test mode/single-user mode&lt;/strong>，作为一个独立的进程来运行&lt;/li>
+&lt;li>使用 &lt;strong>gateway mode&lt;/strong>，&lt;code>kube-apiserver&lt;/code> 将嵌入到 &lt;code>kbe-aggregator&lt;/code> 组件中，它将作为一个集群的 gateway，用来聚合所有 apiserver。&lt;/li>
+&lt;/ul>
+&lt;p>&lt;code>kube-aggregator&lt;/code> 二进制文件已经包含在 Kubernetes release 里面了。&lt;/p></description></item><item><title>apiservice</title><link>https://ng-tech.icu/books/k8s-series/999.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/9.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/apiservice/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-series/999.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/9.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/apiservice/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 66
+title: APIService
+date: &amp;ldquo;2022-05-21T00:00:00+08:00&amp;rdquo;
+type: book&lt;/h2>
+&lt;p>APIService 是用来表示一个特定的 &lt;code>GroupVersion&lt;/code> 的中的 server，它的结构定义位于代码 &lt;code>staging/src/k8s.io/kube-aggregator/pkg/apis/apiregistration/types.go&lt;/code> 中。&lt;/p>
+&lt;p>下面是一个 APIService 的示例配置：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">apiregistration.k8s.io/v1beta1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">APIService&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1alpha1.custom-metrics.metrics.k8s.io&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">insecureSkipTLSVerify&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">group&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">custom-metrics.metrics.k8s.io&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">groupPriorityMinimum&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">1000&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">versionPriority&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">5&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">service&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">api&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">namespace&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">custom-metrics&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1alpha1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="apiservice-详解">APIService 详解&lt;/h2>
+&lt;p>使用 &lt;code>apiregistration.k8s.io/v1beta1&lt;/code> 版本的 APIService，在 metadata.name 中定义该 API 的名字。&lt;/p>
+&lt;p>使用上面的 yaml 的创建 &lt;code>v1alpha1.custom-metrics.metrics.k8s.io&lt;/code> APIService。&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>insecureSkipTLSVerify&lt;/code>：当与该服务通信时，禁用 TLS 证书认证。强加建议不要设置这个参数，默认为 false。应该使用 CABundle 代替。&lt;/li>
+&lt;li>&lt;code>service&lt;/code>：与该 APIService 通信时引用的 service，其中要注明 service 的名字和所属的 namespace，如果为空的话，则所有的服务都会该 API groupversion 将在本地 443 端口处理所有通信。&lt;/li>
+&lt;li>&lt;code>groupPriorityMinimum&lt;/code>：该组 API 的处理优先级，主要排序是基于 &lt;code>groupPriorityMinimum&lt;/code>，该数字越大表明优先级越高，客户端就会与其通信处理请求。次要排序是基于字母表顺序，例如 v1.bar 比 v1.foo 的优先级更高。&lt;/li>
+&lt;li>&lt;code>versionPriority&lt;/code>：VersionPriority 控制其组内的 API 版本的顺序。必须大于零。主要排序基于 VersionPriority，从最高到最低（20 大于 10）排序。次要排序是基于对象名称的字母比较。（v1.foo 在 v1.bar 之前）由于它们都是在一个组内，因此数字可能很小，一般都小于 10。&lt;/li>
+&lt;/ul>
+&lt;p>查看我们使用上面的 yaml 文件创建的 APIService。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl get apiservice v1alpha1.custom-metrics.metrics.k8s.io -o yaml
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">​&lt;span class="sb">``````&lt;/span>yaml
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">apiVersion: apiregistration.k8s.io/v1beta1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">kind: APIService
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">metadata:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> creationTimestamp: 2017-12-14T08:27:35Z
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> name: v1alpha1.custom-metrics.metrics.k8s.io
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> resourceVersion: &lt;span class="s2">&amp;#34;35194598&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> selfLink: /apis/apiregistration.k8s.io/v1beta1/apiservices/v1alpha1.custom-metrics.metrics.k8s.io
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> uid: a31a3412-e0a8-11e7-9fa4-f4e9d49f8ed0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">spec:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> caBundle: null
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> group: custom-metrics.metrics.k8s.io
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> groupPriorityMinimum: &lt;span class="m">1000&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> insecureSkipTLSVerify: &lt;span class="nb">true&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> service:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> name: api
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> namespace: custom-metrics
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> version: v1alpha1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> versionPriority: &lt;span class="m">5&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">status:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> conditions:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> - lastTransitionTime: 2017-12-14T08:27:38Z
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> message: all checks passed
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> reason: Passed
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> status: &lt;span class="s2">&amp;#34;True&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> type: Available
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="查看集群支持的-apiserivce">查看集群支持的 APISerivce&lt;/h2>
+&lt;p>作为 Kubernetes 中的一种资源对象，可以使用 &lt;code>kubectl get apiservice&lt;/code> 来查看。&lt;/p>
+&lt;p>例如查看集群中所有的 APIService：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl get apiservice
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">NAME AGE
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1. 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1.authentication.k8s.io 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1.authorization.k8s.io 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1.autoscaling 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1.batch 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1.monitoring.coreos.com 1d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1.networking.k8s.io 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1.rbac.authorization.k8s.io 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1.storage.k8s.io 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1alpha1.custom-metrics.metrics.k8s.io 2h
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1beta1.apiextensions.k8s.io 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1beta1.apps 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1beta1.authentication.k8s.io 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1beta1.authorization.k8s.io 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1beta1.batch 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1beta1.certificates.k8s.io 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1beta1.extensions 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1beta1.policy 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1beta1.rbac.authorization.k8s.io 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1beta1.storage.k8s.io 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1beta2.apps 2d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v2beta1.autoscaling 2d
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>另外查看当前 kubernetes 集群支持的 API 版本还可以使用&lt;code>kubectl api-versions&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl api-versions
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">apiextensions.k8s.io/v1beta1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">apiregistration.k8s.io/v1beta1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">apps/v1beta1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">apps/v1beta2
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">authentication.k8s.io/v1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">authentication.k8s.io/v1beta1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">authorization.k8s.io/v1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">authorization.k8s.io/v1beta1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">autoscaling/v1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">autoscaling/v2beta1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">batch/v1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">batch/v1beta1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">certificates.k8s.io/v1beta1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">custom-metrics.metrics.k8s.io/v1alpha1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">extensions/v1beta1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">monitoring.coreos.com/v1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">networking.k8s.io/v1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">policy/v1beta1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">rbac.authorization.k8s.io/v1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">rbac.authorization.k8s.io/v1beta1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">storage.k8s.io/v1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">storage.k8s.io/v1beta1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">v1
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item><item><title>crd</title><link>https://ng-tech.icu/books/k8s-series/999.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/9.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/crd/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-series/999.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/9.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/crd/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 64
+title: 使用 CRD 扩展 Kubernetes API
+date: &amp;lsquo;2022-05-21T00:00:00+08:00&amp;rsquo;
+type: book&lt;/h2>
+&lt;p>本文是如何创建 CRD 来扩展 Kubernetes API 的教程。CRD 是用来扩展 Kubernetes 最常用的方式，在 Service Mesh 和 Operator 中也被大量使用。因此读者如果想在 Kubernetes 上做扩展和开发的话，是十分有必要了解 CRD 的。&lt;/p>
+&lt;p>在阅读本文前您需要先了解&lt;a href="../custom-resource">使用自定义资源扩展 API&lt;/a>， 以下内容译自 &lt;a href="https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/" target="_blank" rel="noopener">Kubernetes 官方文档&lt;/a>，有删改，推荐阅读&lt;a href="https://cloudnative.to/blog/kubernetes-crd-quick-start/" target="_blank" rel="noopener">如何从零开始编写一个 Kubernetes CRD&lt;/a>。&lt;/p>
+&lt;h2 id="创建-crdcustomresourcedefinition">创建 CRD（CustomResourceDefinition）&lt;/h2>
+&lt;p>创建新的 CustomResourceDefinition（CRD）时，Kubernetes API Server 会为您指定的每个版本创建新的 RESTful 资源路径。CRD 可以是命名空间的，也可以是集群范围的，可以在 CRD &lt;code>scope&lt;/code> 字段中所指定。与现有的内置对象一样，删除命名空间会删除该命名空间中的所有自定义对象。CustomResourceDefinition 本身是非命名空间的，可供所有命名空间使用。&lt;/p>
+&lt;p>参考下面的 CRD，将其配置保存在 &lt;code>resourcedefinition.yaml&lt;/code> 文件中：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">apiextensions.k8s.io/v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CustomResourceDefinition&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># 名称必须符合下面的格式：&amp;lt;plural&amp;gt;.&amp;lt;group&amp;gt;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontabs.stable.example.com&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># REST API使用的组名称：/apis/&amp;lt;group&amp;gt;/&amp;lt;version&amp;gt;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">group&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">stable.example.com&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># REST API使用的版本号：/apis/&amp;lt;group&amp;gt;/&amp;lt;version&amp;gt;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">versions&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># 可以通过 served 来开关每个 version&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">served&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># 有且仅有一个 version 开启存储&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">storage&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">schema&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">openAPIV3Schema&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">object&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">properties&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">object&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">properties&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">cronSpec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">string&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">string&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">replicas&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">integer&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># Namespaced或Cluster&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">scope&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Namespaced&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">names&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># URL中使用的复数名称: /apis/&amp;lt;group&amp;gt;/&amp;lt;version&amp;gt;/&amp;lt;plural&amp;gt;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">plural&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontabs&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># CLI中使用的单数名称&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">singular&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># CamelCased格式的单数类型。在清单文件中使用&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CronTab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># CLI中使用的资源简称&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">shortNames&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="l">ct&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;blockquote>
+&lt;p>此处使用的 apiVersion 版本是 &lt;code>apiextensions.k8s.io/v1&lt;/code>，跟上一版 &lt;code>apiextensions.k8s.io/v1beta1&lt;/code> 的最主要区别是改用了 &lt;a href="https://kubernetes.io/docs/tasks/access-kubernetes-api/extend-api-custom-resource-definitions/#validation" target="_blank" rel="noopener">OpenAPI v3.0 validation schema&lt;/a>。&lt;/p>
+&lt;/blockquote>
+&lt;p>创建该 CRD：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl create -f resourcedefinition.yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>访问 RESTful API 端点如 &lt;code>http://172.20.0.113:8080&lt;/code> 将看到如下 API 端点已创建：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">/apis/stable.example.com/v1/namespaces/*/crontabs/...
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>然后，此端点 URL 可用于创建和管理自定义对象。上面的 CRD 中定义的类型就是 &lt;code>CronTab&lt;/code>。&lt;/p>
+&lt;p>可能需要几秒钟才能创建端点。您可以监控 CustomResourceDefinition 中 &lt;code>Established&lt;/code> 的状态何时为 true，或者查看 API 资源的发现信息中是否显示了您的资源。&lt;/p>
+&lt;h2 id="创建自定义对象">创建自定义对象&lt;/h2>
+&lt;p>创建 CustomResourceDefinition 对象后，您可以创建自定义对象。自定义对象可包含自定义字段。这些字段可以包含任意 JSON。在以下示例中， &lt;code>cronSpec&lt;/code> 和 &lt;code>image&lt;/code> 自定义字段在自定义对象中设置 &lt;code>CronTab&lt;/code>。&lt;code>CronTab&lt;/code> 类型来自您在上面创建的 CustomResourceDefinition 对象的规范。&lt;/p>
+&lt;p>如果您将以下 YAML 保存到 &lt;code>my-crontab.yaml&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;stable.example.com/v1&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CronTab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-new-cron-object&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">cronSpec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;* * * * */5&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-awesome-cron-image&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>并创建它：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl create -f my-crontab.yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>然后，您可以使用 kubectl 管理 CronTab 对象。例如：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl get crontab
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>应该打印这样的列表：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">NAME AGE
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">my-new-cron-object 6s
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>使用 kubectl 时，资源名称不区分大小写，您可以使用 CRD 中定义的单数或复数形式，以及任何短名称。&lt;/p>
+&lt;p>您还可以查看原始 YAML 数据：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl get ct -o yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>您应该看到它的 yaml 中的自定义 &lt;code>cronSpec&lt;/code> 和 &lt;code>image&lt;/code> 字段：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">items&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>- &lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">stable.example.com/v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CronTab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">clusterName&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">creationTimestamp&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="ld">2017-05-31T12:56:35Z&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">deletionGracePeriodSeconds&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">null&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">deletionTimestamp&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">null&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-new-cron-object&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">namespace&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">default&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">resourceVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;285&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">selfLink&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">/apis/stable.example.com/v1/namespaces/default/crontabs/my-new-cron-object&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">uid&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">9423255b-4600-11e7-af6a-28d2447dc82b&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">cronSpec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;* * * * */5&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-awesome-cron-image&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">List&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">resourceVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">selfLink&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="删除-customresourcedefinition">删除 CustomResourceDefinition&lt;/h2>
+&lt;p>删除 CustomResourceDefinition 时，服务器将删除 RESTful API 端点并&lt;strong>删除存储在其中的所有自定义对象&lt;/strong>。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl delete -f resourcedefinition.yaml
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">kubectl get crontabs
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Error from server &lt;span class="o">(&lt;/span>NotFound&lt;span class="o">)&lt;/span>: Unable to list &lt;span class="s2">&amp;#34;crontabs&amp;#34;&lt;/span>: the server could not find the requested resource &lt;span class="o">(&lt;/span>get crontabs.stable.example.com&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>如果稍后重新创建相同的 CustomResourceDefinition，它将从空开始。&lt;/p>
+&lt;h2 id="高级主题">高级主题&lt;/h2>
+&lt;h3 id="finalizer终结器">Finalizer（终结器）&lt;/h3>
+&lt;p>Finalizer（终结器）允许控制器实现异步预删除 hook。自定义对象支持终结器，就像内置对象一样。&lt;/p>
+&lt;p>您可以将终结器添加到自定义对象，如下所示：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;stable.example.com/v1&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CronTab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">finalizers&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="l">finalizer.stable.example.com&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>终结器是任意字符串值，当存在时确保在资源存在时不可能进行硬删除。&lt;/p>
+&lt;p>对具有终结器的对象的第一个删除请求设置该&lt;code>metadata.deletionTimestamp&lt;/code>字段的值， 但不删除它。设置此值后，&lt;code>finalizer&lt;/code> 只能删除列表中的条目。&lt;/p>
+&lt;p>如果设置了 &lt;code>metadata.deletionTimestamp&lt;/code> 字段，控制器监控对象将执行它们所有的终结器，对该对象轮询更新请求。执行完所有终结器后，将删除该资源。&lt;/p>
+&lt;p>值&lt;code>metadata.deletionGracePeriodSeconds&lt;/code>控制轮询更新之间的间隔。&lt;/p>
+&lt;p>每个控制器都有责任从列表中删除其终结器。&lt;/p>
+&lt;p>如果终结器列表为空，Kubernetes 最终只会删除该对象，这意味着所有终结器都已执行。&lt;/p>
+&lt;h3 id="validation验证">Validation（验证）&lt;/h3>
+&lt;p>&lt;strong>功能状态：&lt;/strong> &lt;code>Kubernetes v1.12&lt;/code> &lt;a href="https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#" target="_blank" rel="noopener">beta&lt;/a>&lt;/p>
+&lt;p>可以通过 &lt;a href="https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#schemaObject" target="_blank" rel="noopener">OpenAPI v3 schema&lt;/a>验证自定义对象是否符合标准 。此外，以下限制适用于 schema：&lt;/p>
+&lt;ul>
+&lt;li>字段&lt;code>default&lt;/code>、&lt;code>nullable&lt;/code>、&lt;code>discriminator&lt;/code>、&lt;code>readOnly&lt;/code>、&lt;code>writeOnly&lt;/code>、&lt;code>xml&lt;/code>、 &lt;code>deprecated&lt;/code> 和 &lt;code>$ref&lt;/code> 不能设置。&lt;/li>
+&lt;li>该字段 &lt;code>uniqueItems&lt;/code> 不能设置为 true。&lt;/li>
+&lt;li>该字段 &lt;code>additionalProperties&lt;/code> 不能设置为 false。&lt;/li>
+&lt;/ul>
+&lt;p>您可以使用 &lt;a href="https://kubernetes.io/docs/admin/kube-apiserver" target="_blank" rel="noopener">kube-apiserver&lt;/a>&lt;code>CustomResourceValidation&lt;/code> 上的功能门（feature gate）禁用此功能：&lt;/p>
+&lt;pre tabindex="0">&lt;code>--feature-gates=CustomResourceValidation=false
+&lt;/code>&lt;/pre>&lt;p>该 schema 在 CustomResourceDefinition 中定义。在以下示例中，CustomResourceDefinition 对自定义对象应用以下验证：&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>spec.cronSpec&lt;/code> 必须是字符串，并且必须是正则表达式描述的形式。&lt;/li>
+&lt;li>&lt;code>spec.replicas&lt;/code> 必须是整数，且最小值必须为 1，最大值为 10。&lt;/li>
+&lt;/ul>
+&lt;p>将 CustomResourceDefinition 保存到 &lt;code>resourcedefinition.yaml&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">apiextensions.k8s.io/v1beta1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CustomResourceDefinition&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontabs.stable.example.com&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">group&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">stable.example.com&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">versions&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">served&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">storage&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">scope&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Namespaced&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">names&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">plural&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontabs&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">singular&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CronTab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">shortNames&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="l">ct&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">validation&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># openAPIV3Schema 适用于验证自定义对象的 schema。&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">openAPIV3Schema&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">properties&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">properties&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">cronSpec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">string&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">pattern&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;^(\d+|\*)(/\d+)?(\s+(\d+|\*)(/\d+)?){4}$&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">replicas&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">integer&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">minimum&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">maximum&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">10&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>并创建它：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl create -f resourcedefinition.yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;code>CronTab&lt;/code> 如果其字段中存在无效值，则将拒绝创建类型的自定义对象的请求。在以下示例中，自定义对象包含具有无效值的字段：&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>spec.cronSpec&lt;/code> 与正则表达式不匹配。&lt;/li>
+&lt;li>&lt;code>spec.replicas&lt;/code> 大于10。&lt;/li>
+&lt;/ul>
+&lt;p>如果您将以下YAML保存到&lt;code>my-crontab.yaml&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;stable.example.com/v1&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CronTab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-new-cron-object&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">cronSpec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;* * * *&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-awesome-cron-image&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">replicas&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">15&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>并创建它：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl create -f my-crontab.yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>你会收到一个错误：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">The CronTab &lt;span class="s2">&amp;#34;my-new-cron-object&amp;#34;&lt;/span> is invalid: &lt;span class="o">[]&lt;/span>: Invalid value: map&lt;span class="o">[&lt;/span>string&lt;span class="o">]&lt;/span>interface &lt;span class="o">{}{&lt;/span>&lt;span class="s2">&amp;#34;apiVersion&amp;#34;&lt;/span>:&lt;span class="s2">&amp;#34;stable.example.com/v1&amp;#34;&lt;/span>, &lt;span class="s2">&amp;#34;kind&amp;#34;&lt;/span>:&lt;span class="s2">&amp;#34;CronTab&amp;#34;&lt;/span>, &lt;span class="s2">&amp;#34;metadata&amp;#34;&lt;/span>:map&lt;span class="o">[&lt;/span>string&lt;span class="o">]&lt;/span>interface &lt;span class="o">{}{&lt;/span>&lt;span class="s2">&amp;#34;name&amp;#34;&lt;/span>:&lt;span class="s2">&amp;#34;my-new-cron-object&amp;#34;&lt;/span>, &lt;span class="s2">&amp;#34;namespace&amp;#34;&lt;/span>:&lt;span class="s2">&amp;#34;default&amp;#34;&lt;/span>, &lt;span class="s2">&amp;#34;deletionTimestamp&amp;#34;&lt;/span>:interface &lt;span class="o">{}(&lt;/span>nil&lt;span class="o">)&lt;/span>, &lt;span class="s2">&amp;#34;deletionGracePeriodSeconds&amp;#34;&lt;/span>:&lt;span class="o">(&lt;/span>*int64&lt;span class="o">)(&lt;/span>nil&lt;span class="o">)&lt;/span>, &lt;span class="s2">&amp;#34;creationTimestamp&amp;#34;&lt;/span>:&lt;span class="s2">&amp;#34;2017-09-05T05:20:07Z&amp;#34;&lt;/span>, &lt;span class="s2">&amp;#34;uid&amp;#34;&lt;/span>:&lt;span class="s2">&amp;#34;e14d79e7-91f9-11e7-a598-f0761cb232d1&amp;#34;&lt;/span>, &lt;span class="s2">&amp;#34;selfLink&amp;#34;&lt;/span>:&lt;span class="s2">&amp;#34;&amp;#34;&lt;/span>, &lt;span class="s2">&amp;#34;clusterName&amp;#34;&lt;/span>:&lt;span class="s2">&amp;#34;&amp;#34;&lt;/span>&lt;span class="o">}&lt;/span>, &lt;span class="s2">&amp;#34;spec&amp;#34;&lt;/span>:map&lt;span class="o">[&lt;/span>string&lt;span class="o">]&lt;/span>interface &lt;span class="o">{}{&lt;/span>&lt;span class="s2">&amp;#34;cronSpec&amp;#34;&lt;/span>:&lt;span class="s2">&amp;#34;* * * *&amp;#34;&lt;/span>, &lt;span class="s2">&amp;#34;image&amp;#34;&lt;/span>:&lt;span class="s2">&amp;#34;my-awesome-cron-image&amp;#34;&lt;/span>, &lt;span class="s2">&amp;#34;replicas&amp;#34;&lt;/span>:15&lt;span class="o">}}&lt;/span>:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">validation failure list:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">spec.cronSpec in body should match &lt;span class="s1">&amp;#39;^(\d+|\*)(/\d+)?(\s+(\d+|\*)(/\d+)?){4}$&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">spec.replicas in body should be less than or equal to &lt;span class="m">10&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>如果字段包含有效值，则接受对象创建请求。&lt;/p>
+&lt;p>将以下 YAML 保存到 &lt;code>my-crontab.yaml&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;stable.example.com/v1&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CronTab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-new-cron-object&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">cronSpec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;* * * * */5&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-awesome-cron-image&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">replicas&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">5&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>并创建它：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl create -f my-crontab.yaml
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">crontab &lt;span class="s2">&amp;#34;my-new-cron-object&amp;#34;&lt;/span> created
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="其他打印列">其他打印列&lt;/h3>
+&lt;p>从 Kubernetes 1.11 开始，kubectl 使用服务器端打印。服务器决定 &lt;code>kubectl get&lt;/code> 命令显示哪些列。您可以使用 CustomResourceDefinition 自定义这些列。下面的示例将输出 &lt;code>Spec&lt;/code>、&lt;code>Replicas&lt;/code> 和 &lt;code>Age&lt;/code> 列。&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>将 CustomResourceDefinition 保存到 &lt;code>resourcedefinition.yaml&lt;/code>。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">apiextensions.k8s.io/v1beta1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CustomResourceDefinition&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontabs.stable.example.com&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">group&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">stable.example.com&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">scope&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Namespaced&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">names&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">plural&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontabs&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">singular&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CronTab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">shortNames&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="l">ct&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">additionalPrinterColumns&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Spec&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">string&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">description&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">The cron spec defining the interval a CronJob is run&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">JSONPath&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">.spec.cronSpec&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Replicas&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">integer&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">description&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">The number of jobs launched by the CronJob&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">JSONPath&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">.spec.replicas&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Age&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">date&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">JSONPath&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">.metadata.creationTimestamp&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>创建 CustomResourceDefinition：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl create -f resourcedefinition.yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>使用上一节中的创建的 &lt;code>my-crontab.yaml&lt;/code> 实例。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>调用服务器端打印：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl get crontab my-new-cron-object
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>请注意 &lt;code>NAME&lt;/code>、&lt;code>SPEC&lt;/code>、&lt;code>REPLICAS&lt;/code> 和 &lt;code>AGE&lt;/code> 在输出列：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl"> NAME SPEC REPLICAS AGE
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> my-new-cron-object * * * * * &lt;span class="m">1&lt;/span> 7s
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
+&lt;/ol>
+&lt;p>&lt;code>NAME&lt;/code> 列是隐含的，不需要在 CustomResourceDefinition 中定义。&lt;/p>
+&lt;h4 id="priority优先级">Priority（优先级）&lt;/h4>
+&lt;p>每列中都包含一个 &lt;code>priority&lt;/code> 字段。目前，优先级区分标准视图或 wide 视图中显示的列（使用 &lt;code>-o wide&lt;/code> 标志）。&lt;/p>
+&lt;ul>
+&lt;li>具有优先级的列 &lt;code>0&lt;/code> 显示在标准视图中。&lt;/li>
+&lt;li>优先级大于 &lt;code>0&lt;/code> 的列仅在 wide 视图中显示。&lt;/li>
+&lt;/ul>
+&lt;h4 id="type类型">Type（类型）&lt;/h4>
+&lt;p>列中的 &lt;code>type&lt;/code> 字段可以是以下任何一种（参考 &lt;a href="https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#dataTypes" target="_blank" rel="noopener">OpenAPI v3 数据类型&lt;/a>）：&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>integer&lt;/code> - 非浮点数&lt;/li>
+&lt;li>&lt;code>number&lt;/code> - 浮点数&lt;/li>
+&lt;li>&lt;code>string&lt;/code> - 字符串&lt;/li>
+&lt;li>&lt;code>boolean&lt;/code> - ture 或 false&lt;/li>
+&lt;li>&lt;code>date&lt;/code> - 自此时间戳以来的时间差异呈现&lt;/li>
+&lt;/ul>
+&lt;p>如果 CustomResource 中的值与为列指定的类型不匹配，则省略该值。使用 CustomResource 验证以确保值类型正确。&lt;/p>
+&lt;h4 id="format格式">Format（格式）&lt;/h4>
+&lt;p>列中的 &lt;code>format&lt;/code> 字段可以是以下任何一个：&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>int32&lt;/code>&lt;/li>
+&lt;li>&lt;code>int64&lt;/code>&lt;/li>
+&lt;li>&lt;code>float&lt;/code>&lt;/li>
+&lt;li>&lt;code>double&lt;/code>&lt;/li>
+&lt;li>&lt;code>byte&lt;/code>&lt;/li>
+&lt;li>&lt;code>date&lt;/code>&lt;/li>
+&lt;li>&lt;code>date-time&lt;/code>&lt;/li>
+&lt;li>&lt;code>password&lt;/code>&lt;/li>
+&lt;/ul>
+&lt;p>该列 &lt;code>format&lt;/code> 控制 &lt;code>kubectl&lt;/code> 打印值时使用的样式。&lt;/p>
+&lt;h3 id="子资源">子资源&lt;/h3>
+&lt;p>&lt;strong>功能状态：&lt;/strong> &lt;code>Kubernetes v1.12&lt;/code> &lt;a href="https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#" target="_blank" rel="noopener">beta&lt;/a>&lt;/p>
+&lt;p>自定义资源支持 &lt;code>/status&lt;/code> 和 &lt;code>/scale&lt;/code> 子资源。&lt;/p>
+&lt;p>您可以使用 &lt;a href="https://kubernetes.io/docs/admin/kube-apiserver" target="_blank" rel="noopener">kube-apiserver&lt;/a> &lt;code>CustomResourceSubresources&lt;/code> 上的功能门（feature gate）禁用此功能：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">--feature-gates&lt;span class="o">=&lt;/span>&lt;span class="nv">CustomResourceSubresources&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="nb">false&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>可以通过在 CustomResourceDefinition 中定义它们来选择性地启用 status 和 scale 子资源。&lt;/p>
+&lt;h4 id="状态子资源">状态子资源&lt;/h4>
+&lt;p>启用状态子资源后，将公开自定义资源的子资源 &lt;code>/status&lt;/code>。&lt;/p>
+&lt;ul>
+&lt;li>状态和规范节分别由自定义资源内的 JSONPath &lt;code>.status&lt;/code> 和 &lt;code>.spec&lt;/code> JSONPath 表示。&lt;/li>
+&lt;li>&lt;code>PUT&lt;/code> &lt;code>/status&lt;/code> 对子资源的请求采用自定义资源对象，并忽略除状态节之外的任何更改。&lt;/li>
+&lt;li>&lt;code>PUT&lt;/code> &lt;code>/status&lt;/code> 对子资源的请求仅验证自定义资源的状态节。&lt;/li>
+&lt;li>&lt;code>PUT&lt;/code>/ &lt;code>POST&lt;/code>/ &lt;code>PATCH&lt;/code> 请求自定义资源忽略更改状态节。&lt;/li>
+&lt;li>对 spec 节的任何更改都会增加 &lt;code>.metadata.generation&lt;/code> 的值。&lt;/li>
+&lt;li>在 CRD OpenAPI 验证模式的根目录中只允许以下构造：
+&lt;ul>
+&lt;li>Description&lt;/li>
+&lt;li>Example&lt;/li>
+&lt;li>ExclusiveMaximum&lt;/li>
+&lt;li>ExclusiveMinimum&lt;/li>
+&lt;li>ExternalDocs&lt;/li>
+&lt;li>Format&lt;/li>
+&lt;li>Items&lt;/li>
+&lt;li>Maximum&lt;/li>
+&lt;li>MaxItems&lt;/li>
+&lt;li>MaxLength&lt;/li>
+&lt;li>Minimum&lt;/li>
+&lt;li>MinItems&lt;/li>
+&lt;li>MinLength&lt;/li>
+&lt;li>MultipleOf&lt;/li>
+&lt;li>Pattern&lt;/li>
+&lt;li>Properties&lt;/li>
+&lt;li>Required&lt;/li>
+&lt;li>Title&lt;/li>
+&lt;li>Type&lt;/li>
+&lt;li>UniqueItems&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;h4 id="扩展子资源">扩展子资源&lt;/h4>
+&lt;p>启用 scale 子资源后，将公开自定义资源的子资源 &lt;code>/scale&lt;/code>。该 &lt;code>autoscaling/v1.Scale&lt;/code> 对象作为有效负载发送 &lt;code>/scale&lt;/code>。&lt;/p>
+&lt;p>要启用 scale 子资源，CustomResourceDefinition 中需要定义以下值。&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>SpecReplicasPath&lt;/code> 在与之对应的自定义资源中定义 JSONPath &lt;code>Scale.Spec.Replicas&lt;/code>。
+&lt;ul>
+&lt;li>这是一个必需的值。&lt;/li>
+&lt;li>&lt;code>.spec&lt;/code> 只允许使用带点符号的 JSONPaths 。&lt;/li>
+&lt;li>如果 &lt;code>SpecReplicasPath&lt;/code> 自定义资源中没有值，则 &lt;code>/scale&lt;/code> 子资源将在GET上返回错误。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>&lt;code>StatusReplicasPath&lt;/code> 在与之对应的自定义资源中定义 JSONPath &lt;code>Scale.Status.Replicas&lt;/code>。
+&lt;ul>
+&lt;li>这是一个必需的值。&lt;/li>
+&lt;li>&lt;code>.stutus&lt;/code> 只允许使用带点符号的 JSONPaths 。&lt;/li>
+&lt;li>如果 &lt;code>StatusReplicasPath&lt;/code> 自定义资源中没有值，则子资源 &lt;code>/scale&lt;/code> 中的状态副本值将默认为 0。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>&lt;code>LabelSelectorPath &lt;/code>在与之对应的自定义资源中定义 JSONPath &lt;code>Scale.Status.Selector&lt;/code>。
+&lt;ul>
+&lt;li>这是一个可选值。&lt;/li>
+&lt;li>必须将其设置为与 HPA 一起使用。&lt;/li>
+&lt;li>&lt;code>.status&lt;/code> 只允许使用带点符号的 JSONPaths 。&lt;/li>
+&lt;li>如果 &lt;code>LabelSelectorPath&lt;/code> 自定义资源中没有值，则子资源 &lt;code>/scale&lt;/code> 中的状态选择器值将默认为空字符串。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;p>在以下示例中，启用了status 和 scale 子资源。&lt;/p>
+&lt;p>将 CustomResourceDefinition 保存到&lt;code>resourcedefinition.yaml&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">apiextensions.k8s.io/v1beta1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CustomResourceDefinition&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontabs.stable.example.com&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">group&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">stable.example.com&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">versions&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">served&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">storage&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">scope&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Namespaced&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">names&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">plural&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontabs&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">singular&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CronTab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">shortNames&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="l">ct&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># subresources describes the subresources for custom resources.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">subresources&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># status enables the status subresource.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">status&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>{}&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># scale enables the scale subresource.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">scale&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># specReplicasPath defines the JSONPath inside of a custom resource that corresponds to Scale.Spec.Replicas.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">specReplicasPath&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">.spec.replicas&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># statusReplicasPath defines the JSONPath inside of a custom resource that corresponds to Scale.Status.Replicas.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">statusReplicasPath&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">.status.replicas&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># labelSelectorPath defines the JSONPath inside of a custom resource that corresponds to Scale.Status.Selector.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">labelSelectorPath&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">.status.labelSelector&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>并创建它：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl create -f resourcedefinition.yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>创建 CustomResourceDefinition 对象后，您可以创建自定义对象。&lt;/p>
+&lt;p>如果您将以下 YAML 保存到 &lt;code>my-crontab.yaml&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;stable.example.com/v1&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CronTab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-new-cron-object&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">cronSpec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;* * * * */5&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-awesome-cron-image&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">replicas&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">3&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>并创建它：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl create -f my-crontab.yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>然后在以下位置创建新的命名空间 RESTful API 端点：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">/apis/stable.example.com/v1/namespaces/*/crontabs/status
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>和&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">/apis/stable.example.com/v1/namespaces/*/crontabs/scale
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>可以使用该 &lt;code>kubectl scale&lt;/code> 命令缩放自定义资源。例如，以上创建的自定义资源的的 &lt;code>.spec.replicas&lt;/code> 设置为 5：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl scale --replicas&lt;span class="o">=&lt;/span>&lt;span class="m">5&lt;/span> crontabs/my-new-cron-object
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">crontabs &lt;span class="s2">&amp;#34;my-new-cron-object&amp;#34;&lt;/span> scaled
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">kubectl get crontabs my-new-cron-object -o &lt;span class="nv">jsonpath&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;{.spec.replicas}&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="m">5&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="category分类">Category（分类）&lt;/h3>
+&lt;p>类别是自定义资源所属的分组资源的列表（例如 &lt;code>all&lt;/code>）。您可以使用 &lt;code>kubectl get &amp;lt;category-name&amp;gt;&lt;/code> 列出属于该类别的资源。此功能是 &lt;strong>beta&lt;/strong>，可用于 v1.10 中的自定义资源。&lt;/p>
+&lt;p>以下示例添加 &lt;code>all&lt;/code> CustomResourceDefinition 中的类别列表，并说明如何使用 &lt;code>kubectl get all&lt;/code> 输出自定义资源 。&lt;/p>
+&lt;p>将以下 CustomResourceDefinition 保存到 &lt;code>resourcedefinition.yaml&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">apiextensions.k8s.io/v1beta1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CustomResourceDefinition&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontabs.stable.example.com&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">group&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">stable.example.com&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">versions&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">served&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">storage&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">scope&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Namespaced&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">names&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">plural&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontabs&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">singular&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CronTab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">shortNames&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="l">ct&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># categories is a list of grouped resources the custom resource belongs to.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">categories&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="l">all&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>并创建它：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl create -f resourcedefinition.yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>创建 CustomResourceDefinition 对象后，您可以创建自定义对象。&lt;/p>
+&lt;p>将以下 YAML 保存到 &lt;code>my-crontab.yaml&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;stable.example.com/v1&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CronTab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-new-cron-object&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">cronSpec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;* * * * */5&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-awesome-cron-image&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>并创建它：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl create -f my-crontab.yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>您可以使用&lt;code>kubectl get&lt;/code>以下方式指定类别：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl get all
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>它将包括种类的自定义资源&lt;code>CronTab&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">NAME AGE
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">crontabs/my-new-cron-object 3s
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="参考">参考&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/" target="_blank" rel="noopener">Extend the Kubernetes API with CustomResourceDefinitions - kubernetes.io&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://cloudnative.to/blog/kubernetes-crd-quick-start/" target="_blank" rel="noopener">如何从零开始编写一个 Kubernetes CRD - cloudnative.to&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>custom-resource</title><link>https://ng-tech.icu/books/k8s-series/999.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/9.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/custom-resource/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-series/999.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/9.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/custom-resource/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 63
+title: 使用自定义资源扩展 API
+date: &amp;lsquo;2022-05-21T00:00:00+08:00&amp;rsquo;
+type: book&lt;/h2>
+&lt;p>自定义资源是对 Kubernetes API 的扩展，Kubernetes 中的每个资源都是一个 API 对象的集合，例如我们在 YAML 文件里定义的那些 spec 都是对 Kubernetes 中的资源对象的定义，所有的自定义资源可以跟 Kubernetes 中内建的资源一样使用 kubectl 操作。&lt;/p>
+&lt;h2 id="自定义资源">自定义资源&lt;/h2>
+&lt;p>Kubernetes 从 1.6 版本开始包含一个内建的资源叫做 TPR（ThirdPartyResource），可以用它来创建自定义资源，但该资源在 Kubernetes 1.7 版本开始已被 CRD（CustomResourceDefinition）取代。&lt;/p>
+&lt;h2 id="扩展-api">扩展 API&lt;/h2>
+&lt;p>自定义资源实际上是为了扩展 Kubernetes 的 API，向 Kubernetes API 中增加新类型，可以使用以下三种方式：&lt;/p>
+&lt;ul>
+&lt;li>修改 Kubernetes 的源码，显然难度比较高，也不太合适&lt;/li>
+&lt;li>创建自定义 API server 并聚合到 API 中&lt;/li>
+&lt;/ul>
+&lt;p>编写自定义资源是扩展 Kubernetes API 的最简单的方式，是否编写自定义资源来扩展 API 请参考 &lt;a href="https://kubernetes.io/docs/concepts/api-extension/custom-resources/" target="_blank" rel="noopener">Should I add a custom resource to my Kubernetes Cluster?&lt;/a>，行动前请先考虑以下几点：&lt;/p>
+&lt;ul>
+&lt;li>你的 API 是否属于 &lt;a href="https://kubernetes.io/docs/concepts/api-extension/custom-resources/#declarative-apis" target="_blank" rel="noopener">声明式的&lt;/a>&lt;/li>
+&lt;li>是否想使用 kubectl 命令来管理&lt;/li>
+&lt;li>是否要作为 Kubernetes 中的对象类型来管理，同时显示在 Kubernetes dashboard 上&lt;/li>
+&lt;li>是否可以遵守 Kubernetes 的 API 规则限制，例如 URL 和 API group、namespace 限制&lt;/li>
+&lt;li>是否可以接受该 API 只能作用于集群或者 namespace 范围&lt;/li>
+&lt;li>想要复用 Kubernetes API 的公共功能，比如 CRUD、watch、内置的认证和授权等&lt;/li>
+&lt;/ul>
+&lt;p>如果这些都不是你想要的，那么你可以开发一个独立的 API。&lt;/p>
+&lt;h3 id="crd">CRD&lt;/h3>
+&lt;p>参考下面的 CRD，resourcedefinition.yaml：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">apiextensions.k8s.io/v1beta1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CustomResourceDefinition&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># 名称必须符合下面的格式：&amp;lt;plural&amp;gt;.&amp;lt;group&amp;gt;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontabs.stable.example.com&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># REST API 使用的组名称：/apis/&amp;lt;group&amp;gt;/&amp;lt;version&amp;gt;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">group&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">stable.example.com&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># REST API 使用的版本号：/apis/&amp;lt;group&amp;gt;/&amp;lt;version&amp;gt;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># Namespaced 或 Cluster&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">scope&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Namespaced&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">names&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># URL 中使用的复数名称: /apis/&amp;lt;group&amp;gt;/&amp;lt;version&amp;gt;/&amp;lt;plural&amp;gt;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">plural&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontabs&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># CLI 中使用的单数名称&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">singular&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># CamelCased 格式的单数类型。在清单文件中使用&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CronTab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># CLI 中使用的资源简称&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">shortNames&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="l">ct&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>创建该 CRD：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl create -f resourcedefinition.yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>访问 RESTful API 端点如 &lt;code>http://172.20.0.113:8080&lt;/code> 将看到如下 API 端点已创建：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">/apis/stable.example.com/v1/namespaces/*/crontabs/...
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;strong>创建自定义对象&lt;/strong>&lt;/p>
+&lt;p>如下所示：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;stable.example.com/v1&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CronTab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-new-cron-object&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">cronSpec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;* * * * /5&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-awesome-cron-image&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>引用该自定义资源的 API 创建对象。&lt;/p>
+&lt;p>&lt;strong>终止器&lt;/strong>&lt;/p>
+&lt;p>可以为自定义对象添加一个终止器，如下所示：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;stable.example.com/v1&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CronTab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">finalizers&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="l">finalizer.stable.example.com&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>删除自定义对象前，异步执行的钩子。对于具有终止器的一个对象，删除请求仅仅是为&lt;code>metadata.deletionTimestamp&lt;/code> 字段设置一个值，而不是删除它，这将触发监控该对象的控制器执行他们所能处理的任意终止器。&lt;/p>
+&lt;p>详情参考：&lt;a href="https://kubernetes.io/docs/tasks/access-kubernetes-api/extend-api-custom-resource-definitions/" target="_blank" rel="noopener">Extend the Kubernetes API with CustomResourceDefinitions&lt;/a>&lt;/p>
+&lt;h2 id="自定义控制器">自定义控制器&lt;/h2>
+&lt;p>单纯设置了自定义资源，并没有什么用，只有跟自定义控制器结合起来，才能将资源对象中的声明式 API 翻译成用户所期望的状态。自定义控制器可以用来管理任何资源类型，但是一般是跟自定义资源结合使用。&lt;/p>
+&lt;p>请参考使用 &lt;a href="https://coreos.com/blog/introducing-operators.html" target="_blank" rel="noopener">Operator&lt;/a> 模式，该模式可以让开发者将自己的领域知识转换成特定的 Kubernetes API 扩展。&lt;/p>
+&lt;h2 id="api-server-聚合">API server 聚合&lt;/h2>
+&lt;p>Aggregated（聚合的）API server 是为了将原来的 API server 这个巨石（monolithic）应用给拆分成，为了方便用户开发自己的 API server 集成进来，而不用直接修改 kubernetes 官方仓库的代码，这样一来也能将 API server 解耦，方便用户使用实验特性。这些 API server 可以跟 core API server 无缝衔接，使用 kubectl 也可以管理它们。&lt;/p>
+&lt;p>详情参考 &lt;a href="../aggregated-api-server">Aggregated API Server&lt;/a>。&lt;/p>
+&lt;h2 id="参考">参考&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://kubernetes.io/docs/concepts/api-extension/custom-resources/" target="_blank" rel="noopener">Custom Resources - kubernetes.io&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://kubernetes.io/docs/tasks/access-kubernetes-api/extend-api-custom-resource-definitions/" target="_blank" rel="noopener">Extend the Kubernetes API with CustomResourceDefinitions - kubernetes.io&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://coreos.com/blog/introducing-operators.html" target="_blank" rel="noopener">Introducing Operators: Putting Operational Knowledge into Software - coreos.com&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>service-catalog</title><link>https://ng-tech.icu/books/k8s-series/999.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/9.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/service-catalog/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-series/999.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/9.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/service-catalog/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 67
+title: 服务目录（Service Catalog）
+date: &amp;ldquo;2022-05-21T00:00:00+08:00&amp;rdquo;
+type: book&lt;/h2>
+&lt;p>服务目录（Service Catalog）是 Kubernetes 的扩展 API，它使运行在 Kubernetes 集群中的应用程序可以轻松使用外部托管软件产品，例如由云提供商提供的数据存储服务。&lt;/p>
+&lt;p>它提供列表清单、提供 (provision) 和绑定 (binding) 来自服务代理（Service Brokers）的外部托管服务，而不需要关心如何创建或管理这些服务的详细情况。&lt;/p>
+&lt;p>由 Open Service Broker API 规范定义的 Service broker 是由第三方提供和维护的一组托管服务的端点 (endpoint)，该第三方可以是 AWS，GCP 或 Azure 等云提供商。&lt;/p>
+&lt;p>托管服务可以是 Microsoft Azure Cloud Queue，Amazon Simple Queue Service 和 Google Cloud Pub/Sub 等，它们可以是应用可以使用的提供的各种软件。&lt;/p>
+&lt;p>通过 Service Catalog，集群运营者可以浏览由 Service Broker 提供的托管服务列表，提供的托管服务实例，并与其绑定，使其可被 Kubernetes 集群中的应用程序所使用。&lt;/p>
+&lt;h2 id="场景样例">场景样例&lt;/h2>
+&lt;p>应用程序开发人员编写基于 Kubernetes 集群的应用程序，他们希望使用消息队列作为其应用程序的一部分。但是，他们不想自己配置和管理这个服务服务。恰好，有一家云提供商通过其服务代理 (Service Broker) 提供消息队列服务。&lt;/p>
+&lt;p>集群运营商可以设置 Service Catalog 并使用它与云提供商的 Service Broker 进行通信，以调配消息排队服务的实例并使其可用于 Kubernetes 集群内的应用程序。因此，应用程序开发人员不需要关心消息队列的实现细节或管理，可以简单地像服务一样使用它。&lt;/p>
+&lt;h2 id="架构">架构&lt;/h2>
+&lt;p>Service Catalog 使用 &lt;a href="https://github.com/openservicebrokerapi/servicebroker" target="_blank" rel="noopener">Open Service Broker API&lt;/a> 与 Service Broker 进行通信，充当 Kubernetes API 服务器的中介，发起供应并返回应用程序使用托管服务所需的凭据。&lt;/p>
+&lt;p>Service Catalog 通过扩展 API 服务器和控制器实现，使用 etcd 进行存储。它还使用 Kubernetes 1.7 + 中提供的聚合层来呈现其 API。&lt;/p>
+&lt;p>
+&lt;figure id="figure-service-catalog-架构">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/book/kubernetes-handbook/service-catalog-architecture.jpg" alt="Service Catalog 架构" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+Service Catalog 架构
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;h3 id="api-资源">API 资源&lt;/h3>
+&lt;p>Service Catalog 安装 servicecatalog.k8s.ioAPI 并提供以以下 Kubernetes 资源：&lt;/p>
+&lt;ul>
+&lt;li>ClusterServiceBroker：作为 service broker 的集群内代理，封装其服务器连接详细信息。这些由集群运营者创建和管理，希望使用 broker 服务在其集群中提供新类型的托管服务。&lt;/li>
+&lt;li>ClusterServiceClass：由特定 service broker 提供的托管服务。将新 ClusterServiceBroker 资源添加到集群时，Service catalog controller 将连接到 service broker 以获取可用托管服务的列表清单。然后它会创建新的 ClusterServiceClass 资源，与每个托管服务相对应。&lt;/li>
+&lt;li>ClusterServicePlan：托管服务的特定产品。例如，托管服务可能有不同的可用套餐，例如免费套餐或付费套餐，或者可能有不同的配置选项，例如使用 SSD 存储或拥有更多资源。同向集群添加 ClusterServiceClass 一样，当添加一个新的 ClusterServiceBroker 时，Service Catalog 会创建一个新的 ClusterServicePlan 资源，与每个托管服务可用的每个服务套餐对应。&lt;/li>
+&lt;li>ServiceInstance：一个提供好的 ClusterServiceClass 实例。这些是由集群运营者创建的托管服务的特定实例，供一个或多个集群内应用程序使用。当创建一个新的 ServiceInstance 资源时，Service Catalog controller 连接到相应的服务代理并指示它提供服务实例。&lt;/li>
+&lt;li>ServiceBinding：访问 ServiceInstance 的凭据。由想让他们的应用利用 ServiceInstance 的集集群运营者创建。创建之后，Service Catalog controller 将创建一个与此服务实例对应的 Kubernetes 的 Secret，包含此服务实例的连接详细信息和凭证 ，可以挂载到 Pod 中。&lt;/li>
+&lt;/ul>
+&lt;h3 id="鉴权认证">鉴权认证&lt;/h3>
+&lt;p>Service Catalog 支持这些认证方法：&lt;/p>
+&lt;ul>
+&lt;li>Basic (username/password)&lt;/li>
+&lt;li>OAuth 2.0 Bearer Token&lt;/li>
+&lt;/ul>
+&lt;h2 id="用法">用法&lt;/h2>
+&lt;p>集群运营者可以使用 Service Catalog API 资源来提供托管服务，并使其在 Kubernetes 集群中可用。涉及的步骤是：&lt;/p>
+&lt;ol>
+&lt;li>列出 Service Broker 提供的托管服务清单和服务套餐。&lt;/li>
+&lt;li>提供托管服务的新实例。&lt;/li>
+&lt;li>绑定到托管服务，该服务返回连接凭证。&lt;/li>
+&lt;li>将连接凭证映射到应用程序中。&lt;/li>
+&lt;/ol>
+&lt;h3 id="列出托管服务和服务组">列出托管服务和服务组&lt;/h3>
+&lt;p>首先，集群运营者必须在 servicecatalog.k8s.io 群组内创建 ClusterServiceBroker 资源。此资源包含访问服务代理端点所需的 URL 和连接详细信息。&lt;/p>
+&lt;p>这是一个 ClusterServiceBroker 资源的例子：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">servicecatalog.k8s.io/v1beta1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">ClusterServiceBroker&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">cloud-broker&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># Points to the endpoint of a service broker. (This example is not a working URL.)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">url&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">https://servicebroker.somecloudprovider.com/v1alpha1/projects/service-catalog/brokers/default&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c">#####&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># Additional values can be added here, which may be used to communicate&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># with the service broker, such as bearer token info or a caBundle for TLS.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c">#####&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>以下是说明从一个 service broker 列出托管服务和套餐所涉及步骤的顺序图：&lt;/p>
+&lt;p>
+&lt;figure id="figure-列出服务">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/book/kubernetes-handbook/service-catalog-list.jpg" alt="列出服务" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+列出服务
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>将 ClusterServiceBroker 资源添加到 Service catalog 中，它会触发对外部 Service Broker 的调用以获取可用服务的清单。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Service Broker 返回可用托管服务的清单和服务套餐的列表，它们分别在本地缓存为 &lt;code>ClusterServiceClass&lt;/code> 资源和 &lt;code>ClusterServicePlan&lt;/code> 资源。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>然后，集群运营者可以使用以下命令获取可用托管服务的清单：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">kubectl get clusterserviceclasses -o&lt;span class="o">=&lt;/span>custom-columns&lt;span class="o">=&lt;/span>SERVICE&lt;span class="se">\ &lt;/span>NAME:.metadata.name,EXTERNAL&lt;span class="se">\ &lt;/span>NAME:.spec.externalName
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>它应该输出一个类似于以下格式的服务名称列表：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl"> SERVICE NAME EXTERNAL NAME
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> 4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468 cloud-provider-service
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> ... ...
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>他们还可以使用以下命令查看可用的服务套餐：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">kubectl get clusterserviceplans -o&lt;span class="o">=&lt;/span>custom-columns&lt;span class="o">=&lt;/span>PLAN&lt;span class="se">\ &lt;/span>NAME:.metadata.name,EXTERNAL&lt;span class="se">\ &lt;/span>NAME:.spec.externalName
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>它应该输出一个类似于以下格式的套餐名称列表：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl"> PLAN NAME EXTERNAL NAME
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> 86064792-7ea2-467b-af93-ac9694d96d52 service-plan-name
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> ... ...
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
+&lt;/ol>
+&lt;h3 id="提供新的实例">提供新的实例&lt;/h3>
+&lt;p>集群运营者可以通过创建 ServiceInstance 资源来启动新实例的供应。&lt;/p>
+&lt;p>如下是一个 ServiceInstance 资源的例子：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">servicecatalog.k8s.io/v1beta1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">ServiceInstance&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">cloud-queue-instance&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">namespace&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">cloud-apps&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># References one of the previously returned services&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">clusterServiceClassExternalName&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">cloud-provider-service&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">clusterServicePlanExternalName&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">service-plan-name&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c">#####&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># Additional parameters can be added here,&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># which may be used by the service broker.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c">#####&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>以下序列图说明了提供一个新的托管服务的实例所涉及的步骤：&lt;/p>
+&lt;p>
+&lt;figure id="figure-启用一个服务">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/book/kubernetes-handbook/service-catalog-provision.jpg" alt="启用一个服务" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+启用一个服务
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;ol>
+&lt;li>当 &lt;code>ServiceInstance&lt;/code> 资源创建后，Service Catalog 发起到外部 service broker 来提供服务的一个实例。&lt;/li>
+&lt;li>service broker 创建托管服务的新实例并返回 HTTP 响应。&lt;/li>
+&lt;li>然后，集群运营者可以检查实例的状态，来确认它是否准备就绪。&lt;/li>
+&lt;/ol>
+&lt;h3 id="绑定到托管服务">绑定到托管服务&lt;/h3>
+&lt;p>在提供新实例后，集群运营者必须绑定到托管服务才能获取到应用程序使用服务所需的连接凭证和服务帐户详细信息。这是通过创建 &lt;code>ServiceBinding&lt;/code> 资源完成的。&lt;/p>
+&lt;p>以下是一个 &lt;code>ServiceBinding&lt;/code> 资源的例子：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">servicecatalog.k8s.io/v1beta1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">ServiceBinding&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">cloud-queue-binding&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">namespace&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">cloud-apps&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">instanceRef&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">cloud-queue-instance&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c">#####&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># Additional information can be added here, such as a secretName or&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c"># service account parameters, which may be used by the service broker.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="c">#####&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>以下序列图说明了绑定到托管服务实例所涉及的步骤：&lt;/p>
+&lt;p>
+&lt;figure id="figure-绑定到托管服务">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/book/kubernetes-handbook/service-catalog-bind.jpg" alt="Bind to a managed service" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+绑定到托管服务
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>在 ServiceBinding 创建后，Service Catalog 给外部 service broker 发一个调用请求，获取与服务实例绑定所需的信息。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>service broker 为相应的服务帐户启用应用程序权限/角色。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>service broker 返回连接和访问托管服务实例所需的信息。根据不同的提供商和不同的服务，返回的信息可能在服务提供商和其管理服务之间有所不同。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h3 id="映射连接凭证">映射连接凭证&lt;/h3>
+&lt;p>绑定后，最后一步是将连接凭证和服务特定的信息映射到应用程序中。这些信息存储在 secret 中，应用程序可以用来访问并与托管服务连接。&lt;/p>
+&lt;p>
+&lt;figure id="figure-映射连接凭证">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/book/kubernetes-handbook/service-catalog-map.jpg" alt="映射连接凭证" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+映射连接凭证
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;h4 id="pod-配置文件">Pod 配置文件&lt;/h4>
+&lt;p>执行此映射的一种方法是使用声明式 Pod 配置文件。&lt;/p>
+&lt;p>以下示例描述了如何将服务帐户凭证映射到应用程序中。被调用的 sa-key 密钥存储在名为 provider-cloud-key 的卷中，并且应用程序将此卷挂载到 /var/secrets/provider/key.json。环境变量 PROVIDER_APPLICATION_CREDENTIALS 是从挂载文件的值映射而来的。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nn">---&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">volumes&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">provider-cloud-key&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">secret&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">secretName&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">sa-key&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">containers&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nn">---&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">volumeMounts&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">provider-cloud-key&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">mountPath&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">/var/secrets/provider&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">env&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">PROVIDER_APPLICATION_CREDENTIALS&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">value&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;/var/secrets/provider/key.json&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>以下示例描述如何将 secret 值映射到应用程序环境变量。在此示例中，消息传递队列 &lt;code>topic&lt;/code> 名称从名为 &lt;code>provider-queue-credentials&lt;/code> 的 secret 的 key topic 值映射到环境变量 &lt;code>TOPIC&lt;/code>。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nn">---&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">env&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;TOPIC&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">valueFrom&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">secretKeyRef&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">provider-queue-credentials&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">key&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">topic&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="下一步">下一步&lt;/h2>
+&lt;ul>
+&lt;li>如果熟悉 Helm Charts ，使用 Helm 将 Service Catalog 安装到 Kubernetes 集群中。或者，可以使用 SC 工具安装服务目录。&lt;/li>
+&lt;li>查看 &lt;a href="https://github.com/openservicebrokerapi/servicebroker/blob/master/gettingStarted.md#sample-service-brokers" target="_blank" rel="noopener">sample service brokers&lt;/a>。&lt;/li>
+&lt;li>探索 &lt;a href="https://github.com/kubernetes-sigs/service-catalog" target="_blank" rel="noopener">kubernetes-incubator/service-catalog&lt;/a> 项目。&lt;/li>
+&lt;/ul>
+&lt;p>以上翻译自&lt;a href="https://kubernetes.io/docs/concepts/extend-kubernetes/service-catalog/" target="_blank" rel="noopener">官方文档&lt;/a>。&lt;/p>
+&lt;h2 id="service-catalog-的安装-利用-helm-和交互">Service Catalog 的安装 (利用 Helm) 和交互&lt;/h2>
+&lt;p>以下翻译自&lt;a href="https://github.com/kubernetes-incubator/service-catalog/blob/master/docs/install.md" target="_blank" rel="noopener">官方项目文档&lt;/a>。与&lt;a href="https://kubernetes.io/docs/tasks/service-catalog/install-service-catalog-using-helm/" target="_blank" rel="noopener">官方网站文档&lt;/a>大致一致。&lt;/p>
+&lt;p>Kubernetes 1.7 或更高版本的集群运行 API Aggregator，它位于 core API Server 前面的专用 proxy 服务器。&lt;/p>
+&lt;p>服务目录 (Service Catalog) 提供了一个位于 API aggregator 后面的 API Server，因此可以用 kubectl 像平常一样与 Service Catalog 进行交互。&lt;/p>
+&lt;p>要了解更多关于 API aggregation 的信息，请参阅 &lt;a href="https://kubernetes.io/docs/concepts/api-extension/apiserver-aggregation/" target="_blank" rel="noopener">Kubernetes 文档&lt;/a>。&lt;/p>
+&lt;p>本文档的其余部分详细介绍了如何：&lt;/p>
+&lt;ul>
+&lt;li>在集群上设置 Service Catalog&lt;/li>
+&lt;li>与 Service Catalog API 进行交互&lt;/li>
+&lt;/ul>
+&lt;h2 id="前提条件">前提条件&lt;/h2>
+&lt;h3 id="kubernetes-版本">Kubernetes 版本&lt;/h3>
+&lt;p>Service Catalog 需要 Kubernetes v1.7 或更高版本。您还需要 在主机上安装 &lt;a href="https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/" target="_blank" rel="noopener">Kubernetes configuration file&lt;/a> 。你需要这个文件，以便可以使用 kubectl 和 helm 与集群通信。许多 Kubernetes 安装工具或云提供商会为你设置此配置文件。有关详细信息，请与您的工具或提供商联系。&lt;/p>
+&lt;h4 id="kubectl-版本">&lt;code>kubectl&lt;/code> 版本&lt;/h4>
+&lt;p>大多数与 Service Catalog 系统的交互都是通过 &lt;code>kubectl&lt;/code> 命令行界面实现的。与集群版本一样，Service Catalog 需要 kubectl 版本 1.7 或更高版本。&lt;/p>
+&lt;p>首先，检查 &lt;code>kubectl&lt;/code> 版本：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl version
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>确保 Kubernetes 版本和 kubectl 版本均为 1.7 或更高。&lt;/p>
+&lt;p>如果需要升级客户端，请按照&lt;a href="https://kubernetes.io/docs/tasks/kubectl/install/" target="_blank" rel="noopener">安装说明&lt;/a> 获取新的 &lt;code>kubectl&lt;/code> 二进制文件。&lt;/p>
+&lt;p>例如，运行以下命令以在 Mac OS 上获取最新的二进制文件：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">curl -LO https://storage.googleapis.com/kubernetes-release/release/&lt;span class="k">$(&lt;/span>curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt&lt;span class="k">)&lt;/span>/bin/darwin/amd64/kubectl
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">chmod +x ./kubectl
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="集群内-dns">集群内 DNS&lt;/h3>
+&lt;p>您需要启用 Kubernetes 集群内的 DNS。大多数常用的安装方法会为您自动配置集群内 DNS：&lt;/p>
+&lt;ul>
+&lt;li>&lt;a href="https://github.com/kubernetes/minikube" target="_blank" rel="noopener">Minikube&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://github.com/kubernetes/kubernetes/blob/master/hack/local-up-cluster.sh" target="_blank" rel="noopener">&lt;code>hack/local-up-cluster.sh&lt;/code>&lt;/a>&lt;/li>
+&lt;li>大多数云提供商&lt;/li>
+&lt;/ul>
+&lt;h3 id="helm">Helm&lt;/h3>
+&lt;p>使用 Helm 安装 Service Catalog ，需要 v2.7.0 或更高版本。请参阅以下步骤进行安装。&lt;/p>
+&lt;h4 id="如果还没有安装-helm">如果还没有安装 Helm&lt;/h4>
+&lt;p>如果尚未安装 Helm，请下载 &lt;a href="https://github.com/kubernetes/helm#install" target="_blank" rel="noopener">&lt;code>helm&lt;/code> CLI&lt;/a>，然后运行 helm init（这会将 Helm 的服务器端组件 Tiller 安装到 Kubernetes 集群中）。&lt;/p>
+&lt;h4 id="如果已经安装了-helm">如果已经安装了 Helm&lt;/h4>
+&lt;p>如果已经安装了 Helm，请运行 helm version 并确保客户端和服务器版本均为 v2.7.0 或更高。&lt;/p>
+&lt;p>如果不是， 请安装&lt;a href="https://github.com/kubernetes/helm#install" target="_blank" rel="noopener">更新版本的 helm CLI&lt;/a> 并运行 &lt;code>helm init --upgrade&lt;/code>。&lt;/p>
+&lt;p>有关安装的更多详细信息，请参阅 Helm 安装说明。&lt;/p>
+&lt;h4 id="tiller-权限">Tiller 权限&lt;/h4>
+&lt;p>Tiller 是 Helm 的服务端组件。默认情况下， helm init 将 Tiller pod 安装到 kube-system 名称空间中，并将 Tiller 配置为使用 default 服务帐户（service account）。&lt;/p>
+&lt;p>需要对 Tiller 进行配置 &lt;code>cluster-admin&lt;/code> 权限，才能正确安装 Service Catalog：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl create clusterrolebinding tiller-cluster-admin &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --clusterrole&lt;span class="o">=&lt;/span>cluster-admin &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --serviceaccount&lt;span class="o">=&lt;/span>kube-system:default
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="helm-repository-设置">Helm Repository 设置&lt;/h3>
+&lt;p>Service Catalog 很容易通过 Helm chart 安装 。&lt;/p>
+&lt;p>此 chart 位于 chart repository 中。将此 repository 添加到本地计算机：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">helm repo add svc-cat https://svc-catalog-charts.storage.googleapis.com
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>然后，确保 repository 已成功添加：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">helm search service-catalog
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>应该看到以下输出：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">NAME VERSION DESCRIPTION
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">svc-cat/catalog x,y.z service-catalog API server and controller-manag...
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="rbac">RBAC&lt;/h3>
+&lt;p>Kubernetes 集群必须启用 &lt;a href="https://kubernetes.io/docs/admin/authorization/rbac/" target="_blank" rel="noopener">RBAC&lt;/a> 才能使用 Service Catalog。&lt;/p>
+&lt;p>与集群内 DNS 一样，许多安装方法都有对应启用 RBAC 的途径。&lt;/p>
+&lt;h4 id="minikube">Minikube&lt;/h4>
+&lt;p>如果您正在使用 Minikube，请使用以下命令启动集群：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">minikube start --extra-config&lt;span class="o">=&lt;/span>apiserver.Authorization.Mode&lt;span class="o">=&lt;/span>RBAC
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h4 id="hacklocal-cluster-upsh">hack/local-cluster-up.sh&lt;/h4>
+&lt;p>如果使用 &lt;a href="https://github.com/kubernetes/kubernetes/blob/master/hack/local-up-cluster.sh" target="_blank" rel="noopener">&lt;code>hack/local-up-cluster.sh&lt;/code>&lt;/a> 脚本，请使用以下命令启动集群：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="nv">AUTHORIZATION_MODE&lt;/span>&lt;span class="o">=&lt;/span>Node,RBAC hack/local-up-cluster.sh -O
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h4 id="云提供商">云提供商&lt;/h4>
+&lt;p>许多云提供商为你启用了 RBAC 的新集群。有关详细信息，请查阅你的提供商的文档。&lt;/p>
+&lt;h2 id="安装-service-catalog">安装 Service Catalog&lt;/h2>
+&lt;p>集群和 Helm 配置正确，安装 Service Catalog 很简单：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">helm install svc-cat/catalog &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --name catalog --namespace catalog
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="安装-service-catalog-cli-客户端">安装 Service Catalog CLI 客户端&lt;/h2>
+&lt;p>按照适用于操作系统的说明安装 svcat。二进制文件可以单独使用，也可以作为 kubectl 插件使用。&lt;/p>
+&lt;h3 id="macos">MacOS&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">curl -sLO https://download.svcat.sh/cli/latest/darwin/amd64/svcat
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">chmod +x ./svcat
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mv ./svcat /usr/local/bin/
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">svcat version --client
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="linux">Linux&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">curl -sLO https://download.svcat.sh/cli/latest/linux/amd64/svcat
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">chmod +x ./svcat
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mv ./svcat /usr/local/bin/
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">svcat version --client
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="windows">Windows&lt;/h3>
+&lt;p>下面的片段仅在当前会话的 PATH 添加一个路径。后续使用需要将它相应的路径永久添加到 PATH 中。&lt;/p>
+&lt;pre tabindex="0">&lt;code>iwr &amp;#39;https://download.svcat.sh/cli/latest/windows/amd64/svcat.exe&amp;#39; -UseBasicParsing -OutFile svcat.exe
+mkdir -f ~\bin
+$env:PATH += &amp;#34;;${pwd}\bin&amp;#34;
+svcat version --client
+&lt;/code>&lt;/pre>&lt;h3 id="手动方式">手动方式&lt;/h3>
+&lt;ol>
+&lt;li>对应操作系统下载相应的二进制文件：
+&lt;ul>
+&lt;li>&lt;a href="https://download.svcat.sh/cli/latest/darwin/amd64/svcat" target="_blank" rel="noopener">macOS&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://download.svcat.sh/cli/latest/windows/amd64/svcat.exe" target="_blank" rel="noopener">Windows&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://download.svcat.sh/cli/latest/linux/amd64/svcat" target="_blank" rel="noopener">Linux&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>使二进制文件可执行。&lt;/li>
+&lt;li>将二进制文件移动到 PATH 相应的目录。&lt;/li>
+&lt;/ol>
+&lt;h3 id="插件方式使用客户端">插件方式使用客户端&lt;/h3>
+&lt;p>要将 svcat 用作插件，请在下载后运行以下命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ ./svcat install plugin
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Plugin has been installed to ~/.kube/plugins/svcat. Run kubectl plugin svcat --help &lt;span class="k">for&lt;/span> &lt;span class="nb">help&lt;/span> using the plugin.
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>当作为插件运行时，这些命令与添加全局 kubectl 配置标志相同。其中一个例外是，在插件模式下运行时不支持布尔标志，所以不要使用 &lt;code>--flag&lt;/code>, 必须指定 &lt;code>--flag=true&lt;/code>。&lt;/p></description></item></channel></rss>

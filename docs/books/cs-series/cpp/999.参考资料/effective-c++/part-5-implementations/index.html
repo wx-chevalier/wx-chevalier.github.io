@@ -395,7 +395,7 @@ template 的具体化和 inlining 无关。如果我们要将一个模板函数�
 </code></pre><p>上述代码使用了 pimpl 方法来实现类，Person 类中只有一个指针成员，编译器只需要给指针分配空间即可。这样的设计之下，Person 的接口就完全和 Date，Address 和 Person 的实现细节进行了分离。这些 class 的任何修改都不需要 Person 重新编译，这就是<strong>接口与实现分离</strong>。</p><hr><p>接口与实现分离的关键在于<strong>以声明依赖替换定义依赖</strong>，这也是编译依赖最小化的本质，即<strong>为每个类单独提供声明文件和定义文件，如果无法实现，就让其依赖其他文件的声明式而非定义式</strong>。最小化编译依赖的设计策略：</p><ol><li><strong>尽可能使用对象引用或者对象指针来替换直接使用对象</strong>。通过一个类型声明式就可以定义出指向该类型的引用和指针，如果定义该类型的对象，就需要访问该类型的定义式。</li><li><strong>用 class 声明式代替 class 定义式</strong>。当我们声明一个函数而它又用到某个 class 时，其并不会用到该 class 的定义式，即使函数是以值传递的方式传递该类型参数或返回值也是一样的。</li></ol><pre tabindex=0><code>    class Date; // class声明式
     Date day(); // 函数返回Date类型对象
     void clearAppointments(Date d); //
-</code></pre><p>上述代码中，声明 today 函数和 clearAppointments 函数不需要 Date 的定义。这是因为如果有人调用上面两个函数，那么 Date 的定义在函数调用前已经且必须被访问到。 3. <strong>为声明式和定义式提供不同的头文件</strong>。即我们需要提供两个头文件，一个用于声明式，一个用于定义式，这些文件必须保持一致。声明式头文件中包含了各个类型的声明，对应的定义分布在不同的定义式头文件中。</p><pre tabindex=0><code>    #include &#34;datefwd.h&#34; // 头文件内声明了class Date
+</code></pre><p>上述代码中，声明 today 函数和 clearAppointments 函数不需要 Date 的定义。这是因为如果有人调用上面两个函数，那么 Date 的定义在函数调用前已经且必须被访问到。3. <strong>为声明式和定义式提供不同的头文件</strong>。即我们需要提供两个头文件，一个用于声明式，一个用于定义式，这些文件必须保持一致。声明式头文件中包含了各个类型的声明，对应的定义分布在不同的定义式头文件中。</p><pre tabindex=0><code>    #include &#34;datefwd.h&#34; // 头文件内声明了class Date
     Date day();
     void clearAppointments(Date d);
 </code></pre><p>我们应该在程序中<code>#include</code>声明式头文件，而不是在文件中重复前置声明多个函数。<code>datefwd.h</code>的命名方式取自 C++标准库头文件的<code>&lt;iosfwd></code>，<code>&lt;iosfwd></code>内包含了 iostream 各个组件的声明式，其对应的定义分布在不同的头文件内，包括<code>&lt;sstream></code>，<code>&lt;streambuf></code>，<code>&lt;fstream></code>和<code>&lt;iostream></code>。
