@@ -60,7 +60,7 @@ Pigz 的作者 Mark Adler，同时也是 Info-ZIP 的 zip 和 unzip、GNU 的 gz
 
 ## ISA-L Acceleration Version
 
-ISA-L 是一套在 IA 架构上加速算法执行的开源函数库，目的在于解决存储系统的计算需求。 ISA-L 使用的是 BSD-3-Clause License ，因此在商业上同样可以使用。
+ISA-L 是一套在 IA 架构上加速算法执行的开源函数库，目的在于解决存储系统的计算需求。ISA-L 使用的是 BSD-3-Clause License ，因此在商业上同样可以使用。
 
 使用过 SPDK（Storage Performance Development Kit ）或者 DPDK（Data Plane Development Kit）应该也听说过 ISA-L ，前者使用了 ISA-L 的 CRC 部分，后者使用了它的压缩优化。ISA-L 通过使用高效的 SIMD （Single Instruction, Multiple Data）指令和专用指令，最大化的利用 CPU 的微架构来加速存储算法的计算过程。ISA-L 底层函数都是使用手工汇编代码编写，并在很多细节上做了调优（现在经常要考虑 ARM 平台，本文中所提及的部分指令在该平台支持度不高甚至是不支持）。
 
@@ -68,7 +68,7 @@ ISA-L 对压缩算法主要做了 CRC、DEFLATE 和 Huffman 编码的优化实�
 
 ## Pzstd
 
-通过 Pigz 的测试，我们就在想，是否 Zstd 这样优秀的算法也可以支持并行呢，在官方的 Repo 中，我们十分惊喜地发现了一个“宝藏”。Pzstd 是 C++11 实现的并行版本的 Zstandard （Zstd 也在这之后加入了多线程的支持），类似于 Pigz 的工具。 它提供了与 Zstandard 格式兼容的压缩和解压缩功能，可以利用多个 CPU 核心。 它将输入分成相等大小的块，并将每个块独立压缩为 Zstandard 帧。 然后将这些帧连接在一起以产生最终的压缩输出。 Pzstd 同样支持文件的并行解压缩。 解压缩使用 Zstandard 压缩的文件时，PZstandard 在一个线程中执行 IO，而在另一个线程中进行解压缩。
+通过 Pigz 的测试，我们就在想，是否 Zstd 这样优秀的算法也可以支持并行呢，在官方的 Repo 中，我们十分惊喜地发现了一个“宝藏”。Pzstd 是 C++11 实现的并行版本的 Zstandard （Zstd 也在这之后加入了多线程的支持），类似于 Pigz 的工具。它提供了与 Zstandard 格式兼容的压缩和解压缩功能，可以利用多个 CPU 核心。它将输入分成相等大小的块，并将每个块独立压缩为 Zstandard 帧。然后将这些帧连接在一起以产生最终的压缩输出。Pzstd 同样支持文件的并行解压缩。解压缩使用 Zstandard 压缩的文件时，PZstandard 在一个线程中执行 IO，而在另一个线程中进行解压缩。
 
 下图是和 Pigz 的压缩和解压缩速度对比，来自官方 Github 仓库（机器配置为：Intel Core i7 @ 3.1 GHz, 4 threads），效果比 Pigz 还要出色，具体对比数据见下文：
 
