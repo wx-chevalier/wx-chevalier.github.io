@@ -283,8 +283,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "Web 调优",
-            repo: "Web-Tunning-Series",
-            previewLink: "/books/Web-Tunning-Series/",
+            repo: "Web-Tuning-Series",
+            previewLink: "/books/Web-Tuning-Series/",
             imageLinks: {
               thumbnail: getCover("Web Series"),
             },

@@ -6333,16 +6333,387 @@ error_page 404 https://test.com/;
 &lt;p>由于内存不足引起的消息换出。消息换出的条件是内存中保存的消息数量 + 等待 ACK 的消息的数量 &amp;gt;Target_RAM_Count。当条件触发时，系统首先会判断如果当前进入等待 ACK 的消息的速度大于进入队列的消息的速度时，会先处理等待 ACK 的消息。步骤基本上 Q1-&amp;gt;Q2 或者 Q3 移动，取决于 Delta 队列是否为空。Q4-&amp;gt;Q3 移动，Q2 和 Q3 向 Delta 移动。&lt;/p>
 &lt;p>为什么 Q3 队列为空即可认定整个队列为空。试想如果 Q3 为空，Delta 不空，则在 Q3 取出最后一条消息时，Delta 上的消息就会被转移到 Q3 上，与 Q3 空矛盾。如果 Q2 不空，则在 Q3 取出最后一条消息，如果 Delta 为空时，会将 Q2 的消息并入 Q3，与 Q3 为空矛盾。如果 Q1 不空，则在 Q3 取出最后一条消息，如果 Delta 和 Q3 均为空时，则将 Q1 的消息转移到 Q4 中，与 Q4 为空矛盾。这也解释了另外一个问题，即为什么 Q3 和 Delta 为空，Q2 就为空。&lt;/p></description></item><item><title>Redis-CheatSheet</title><link>https://ng-tech.icu/books/awesome-cheatsheets/3.system/redis-cheatsheet/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/awesome-cheatsheets/3.system/redis-cheatsheet/</guid><description>&lt;h1 id="redis-cheatsheet">Redis CheatSheet&lt;/h1>
 &lt;p>REmote DIctionary Server(Redis) 是一个由 Salvatore Sanfilippo 写的 key-value 存储系统。Redis 是一个开源的使用 ANSI C 语言编写、遵守 BSD 协议、支持网络、可基于内存亦可持久化的日志型、Key-Value 数据库，并提供多种语言的 API。它通常被称为数据结构服务器，因为值（value）可以是 字符串(String), 哈希(Map), 列表(list), 集合(sets) 和 有序集合(sorted sets)等类型。&lt;/p>
-&lt;h1 id="数据结构与操作">数据结构与操作&lt;/h1>
-&lt;h2 id="命令操作">命令操作&lt;/h2>
-&lt;h3 id="管道">管道&lt;/h3>
-&lt;p>Redis 是一种基于客户端-服务端模型以及请求/响应协议的 TCP 服务。这意味着通常情况下一个请求会遵循以下步骤：客户端向服务端发送一个查询请求，并监听 Socket 返回，通常是以阻塞模式，等待服务端响应；服务端处理命令，并将结果返回给客户端。Redis 管道技术可以在服务端未响应时，客户端可以继续向服务端发送请求，并最终一次性读取所有服务端的响应。&lt;/p>
-&lt;h1 id="数据备份与恢复">数据备份与恢复&lt;/h1>
-&lt;p>由于 RDB 的数据实时性问题，目前用 AOF 比较多了；而持久化恢复也是优先 AOF。&lt;/p>
-&lt;h2 id="rdb">RDB&lt;/h2>
-&lt;h2 id="aof">AOF&lt;/h2>
-&lt;p>RDB 保存的是 key-value 数据内容，即快照模式。&lt;/p>
-&lt;h1 id="内部原理">内部原理&lt;/h1>
+&lt;h2 id="一数据类型">一、数据类型&lt;/h2>
+&lt;p>Redis 5 支持以下多种数据类型：&lt;/p>
+&lt;ul>
+&lt;li>二进制安全的字符串。&lt;/li>
+&lt;li>&lt;strong>Lists (列表)&lt;/strong>：根据插入顺序排序的字符串元素的集合。&lt;/li>
+&lt;li>&lt;strong>Sets (集)&lt;/strong>：未排序的不重复的字符串元素的集合。&lt;/li>
+&lt;li>&lt;strong>Sorted Sets (排序集)&lt;/strong>：类似于集，但每个字符串元素与被称为分数的值相关，元素总是按其分数排序。&lt;/li>
+&lt;li>&lt;strong>Hashes (散列)&lt;/strong> ：由字段 (Field) 和值都是字符串组成的映射的集合。&lt;/li>
+&lt;li>&lt;strong>Bit Arrays (也称 bitmaps 位图)&lt;/strong> ：Bitmaps 本身不是一种数据结构， 实际上它就是字符串，但是它可以对字符串的位进行操作，所以在 Redis 官方的分类当中将其单独归为一类。&lt;/li>
+&lt;li>&lt;strong>HyperLogLogs&lt;/strong>：实际类型为字符串类型 ，它是一种基数算法， 通过 HyperLogLog 可以利用极小的内存空间完成独立总数的统计。&lt;/li>
+&lt;li>&lt;strong>Streams (流)&lt;/strong> ：Stream 是 Redis 5.0 引入的一种新数据类型，用于在生产者和消费者之间建立数据通道。&lt;/li>
+&lt;/ul>
+&lt;h2 id="二常用命令">二、常用命令&lt;/h2>
+&lt;h3 id="21-字符串">2.1 字符串&lt;/h3>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>作用&lt;/th>
+&lt;th>命令格式&lt;/th>
+&lt;th>参数或示例&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>设置值&lt;/td>
+&lt;td>set key value [ex seconds][px milliseconds][nx|xx] setnx setex&lt;/td>
+&lt;td>ex seconds：为键设置秒级过期时间； &lt;br/>px milliseconds：为键设置毫秒级过期时间；&lt;br/>nx： 键不存在时才可以添加成功；&lt;br/>xx： 键存在时才可以修改成功。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>获取值&lt;/td>
+&lt;td>get key&lt;/td>
+&lt;td>如果获取的键不存在 ，则返回 nil&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>批量设置&lt;/td>
+&lt;td>mset key value [key value &amp;hellip;]&lt;/td>
+&lt;td>mset a 1 b 2 c 3 d 4&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>批量获取值&lt;/td>
+&lt;td>mget key [key &amp;hellip;]&lt;/td>
+&lt;td>mget a b c d&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>计数&lt;/td>
+&lt;td>incr key &lt;br/>decr key&lt;br/>incrby key increment（指定数值自增）&lt;br/>decrby key decrement（指定数值自减）&lt;br/>incrbyfloat key increment （浮点数自增）&lt;/td>
+&lt;td>值是整数时返回自增或自减后的结果；&lt;br/>值不是整数时返回错误；&lt;br/>键不存在时自动创建，并按照初始值为 0 进行自增或自减。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>追加值&lt;/td>
+&lt;td>append key value&lt;/td>
+&lt;td>向字符串尾部追加值。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>字符串长度&lt;/td>
+&lt;td>strlen key&lt;/td>
+&lt;td>获取字符串长度，中文占用三个字节&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>设置并返回原值&lt;/td>
+&lt;td>getset key value&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>设置指定位置的字符串&lt;/td>
+&lt;td>setrange key offeset value&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>获取部分字符串&lt;/td>
+&lt;td>getrange key start end&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h3 id="23-哈希">2.3 哈希&lt;/h3>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>作用&lt;/th>
+&lt;th>格式&lt;/th>
+&lt;th>参数或示例&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>设置值&lt;/td>
+&lt;td>hset key field value&lt;/td>
+&lt;td>hset user:1 name tom&lt;br/>hset user:1 age 12&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>获取值&lt;/td>
+&lt;td>hget key field&lt;/td>
+&lt;td>hget user:1 name&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>删除 field&lt;/td>
+&lt;td>hdel key field [field &amp;hellip;]&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>计算 field 个数&lt;/td>
+&lt;td>hlen key&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>批量设置或获取&lt;/td>
+&lt;td>hmget key field [field]&lt;br/>hmset key field value [field value&amp;hellip;]&lt;/td>
+&lt;td>hmset user:1 name mike age 12 city tianjin&lt;br/>hmget user:1 name city&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>判断 field 是否存在&lt;/td>
+&lt;td>hexists key field&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>获取所有 field&lt;/td>
+&lt;td>hkeys key&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>获取所有 value&lt;/td>
+&lt;td>hvals key&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>获取所有的 filed-value&lt;/td>
+&lt;td>hgetall key&lt;/td>
+&lt;td>如果哈希元素个数比较多可能会阻塞 Redis，此时可以使用 hscan 渐进式遍历&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>计数&lt;/td>
+&lt;td>hincrby key field&lt;br/>hincrbyfloat key field&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h3 id="24-列表">2.4 列表&lt;/h3>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>作用&lt;/th>
+&lt;th>格式&lt;/th>
+&lt;th>参数或示例&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>增&lt;/td>
+&lt;td>左侧插入：lpush key value [value &amp;hellip;] &lt;br/>右侧插入：rpush key value [value &amp;hellip;] &lt;br/>某个指定元素前后插入：linsert key before|after pivot value&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>查&lt;/td>
+&lt;td>获取指定范围内的元素列表：lrange key start end &lt;br/>获取列表指定索引下标的元素：lindex key index &lt;br/>获取列表指定长度：llen key&lt;/td>
+&lt;td>lrange listkey 0 -1&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>删&lt;/td>
+&lt;td>从列表左侧弹出元素：lpop key &lt;br/>从列表右侧弹出元素：rpop key &lt;br/>删除指定元素：lrem key count value &lt;br/>截取列表：ltrim key start end&lt;/td>
+&lt;td>count&amp;gt;0：从左到右， 删除最多 count 个元素。&lt;br/>count&amp;lt;0：从右到左， 删除最多 -count 个元素。&lt;br/>count=0： 删除所有&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>改&lt;/td>
+&lt;td>修改指定下标的元素：lset key index newValue&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>阻塞操作&lt;/td>
+&lt;td>blpop key [key &amp;hellip;] timeout &lt;br/>brpop key [key &amp;hellip;] timeout&lt;/td>
+&lt;td>key[key&amp;hellip;]： 多个列表的键。 timeout： 阻塞时间|等待时间（单位秒）&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h3 id="25-集合">2.5 集合&lt;/h3>
+&lt;p>集合（set） 类型也是用来保存多个的字符串元素， 但和列表类型不一样的是， 集合中的元素是无序的， 不允许有重复元素，不能通过下标获取元素。&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>作用&lt;/th>
+&lt;th>格式&lt;/th>
+&lt;th>参数或示例&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>添加元素&lt;/td>
+&lt;td>sadd key element [element &amp;hellip;]&lt;/td>
+&lt;td>返回结果为添加成功的元素个数&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>删除元素&lt;/td>
+&lt;td>srem key element [element &amp;hellip;]&lt;/td>
+&lt;td>返回结果为成功删除的元素个数&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>计算元素个数&lt;/td>
+&lt;td>scard key&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>判断元素是否在集合中&lt;/td>
+&lt;td>sismember key element&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>随机返回&lt;/td>
+&lt;td>srandmember key [count]&lt;/td>
+&lt;td>随机从集合返回指定个数元素，count 默认为 1&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>从集合随机弹出元素&lt;/td>
+&lt;td>spop key&lt;/td>
+&lt;td>srandmember 不会从集合中删除元素，spop 会&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>获取集合中所有元素&lt;/td>
+&lt;td>smembers key&lt;/td>
+&lt;td>可用 sscan 代替&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>&lt;strong>集合间操作&lt;/strong>：&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>作用&lt;/th>
+&lt;th>格式&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>求多个集合的交集&lt;/td>
+&lt;td>sinter key [key &amp;hellip;]&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>求多个集合的并集&lt;/td>
+&lt;td>suinon key [key &amp;hellip;]&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>求多个集合的差集&lt;/td>
+&lt;td>sdiff key [key &amp;hellip;]&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>将交集、并集、差集的结果保存&lt;/td>
+&lt;td>sinterstore destination key [key &amp;hellip;] &lt;br/>suionstore destination key [key &amp;hellip;]&lt;br/>sdiffstore destination key [key &amp;hellip;]&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h3 id="26-有序集合">2.6 有序集合&lt;/h3>
+&lt;p>有序集合中的元素可以排序。它给每个元素设置一个分数（score） 作为排序的依据。&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>作用&lt;/th>
+&lt;th>格式&lt;/th>
+&lt;th>参数或示例&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>添加成员&lt;/td>
+&lt;td>zadd key score member [score member &amp;hellip;]&lt;/td>
+&lt;td>nx： member 不存在时才可设置成功， 用于添加；&lt;br>xx： member 存在时可以设置成功， 用于更新；&lt;br/>ch： 返回此次操作后， 有序集合内元素和分数发生变化的个数；&lt;br/>incr：对 score 做增加， 相当于下面的 zincrby。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>计算成员个数&lt;/td>
+&lt;td>zcard key&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>计算某个成员的分数&lt;/td>
+&lt;td>zscore key member&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>计算某个成员的排名&lt;/td>
+&lt;td>zrank key member zrevrank key member&lt;/td>
+&lt;td>zrank 是从分数从低到高返回排名， zrevrank 反之。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>删除成员&lt;/td>
+&lt;td>zrem key member [member &amp;hellip;]&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>增加成员分数&lt;/td>
+&lt;td>zincrby key increment member&lt;/td>
+&lt;td>zincrby user:ranking 9 tom&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>返回指定排名范围的成员&lt;/td>
+&lt;td>zrange key start end [withscores] &lt;br/>zrevrange key start end [withscores]&lt;/td>
+&lt;td>zrange 是从低到高返回， zrevrange 反之。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>返回指定分数范围内的成员&lt;/td>
+&lt;td>zrangebyscore key min max [withscores][limit offset count] &lt;br/>zrevrangebyscore key max min [withscores][limit offset count]&lt;/td>
+&lt;td>其中 zrangebyscore 按照分数从低到高返回， zrevrangebyscore 反之；&lt;br/> [limit offset count] 选项用于限制输出的起始位置和个数； &lt;br/>min 和 max 代表最小和最大值，支持开闭区间， 也可以使用 -inf 和+inf 代表无限小和无限大。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>删除指定排名内的升序元素&lt;/td>
+&lt;td>zremrangerank key start end&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>删除指定分数范围的成员&lt;/td>
+&lt;td>zremrangebyscore key min max&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>&lt;strong>集合间操作&lt;/strong>：&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>作用&lt;/th>
+&lt;th>格式&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>交集&lt;/td>
+&lt;td>zinterstore destination numkeys key [key &amp;hellip;] [weights weight [weight &amp;hellip;]] [aggregate sum|min|max]&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>并集&lt;/td>
+&lt;td>zunionstore destination numkeys key [key &amp;hellip;] [weights weight [weight &amp;hellip;]] [aggregate sum|min|max]&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;ul>
+&lt;li>&lt;strong>destination&lt;/strong>： 交集计算的结果保存到这个键。&lt;/li>
+&lt;li>&lt;strong>numkeys&lt;/strong>： 需要做交集计算键的个数。&lt;/li>
+&lt;li>&lt;strong>key[key&amp;hellip;]&lt;/strong>： 需要做交集计算的键。&lt;/li>
+&lt;li>&lt;strong>weights weight[weight&amp;hellip;]&lt;/strong>： 每个键的权重， 在做交集计算时， 每个键中的每个 member 会将自己分数乘以这个权重， 每个键的权重默认是 1。&lt;/li>
+&lt;li>&lt;strong>aggregate sum|min|max&lt;/strong>： 计算成员交集后， 分值可以按照 sum（和）、min（最小值）、max（最大值）做汇总， 默认值是 sum 。&lt;/li>
+&lt;/ul>
+&lt;h3 id="27-全局命令">2.7 全局命令&lt;/h3>
+&lt;ol>
+&lt;li>查看所有键： &lt;code>keys *&lt;/code>&lt;/li>
+&lt;li>查看键总数：dbsize&lt;/li>
+&lt;li>检查键是否存在：exists key&lt;/li>
+&lt;li>删除键：del key [key &amp;hellip;]&lt;/li>
+&lt;li>键过期：expire key seconds ，使用 ttl 命令可以查看键剩余的过期时间， 它有以下三种返回值：
+&lt;ul>
+&lt;li>大于等于 0 的整数： 键剩余的过期时间。&lt;/li>
+&lt;li>-1： 键未设置过期时间。&lt;/li>
+&lt;li>-2： 键不存在&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>查看键的数据类型：type key&lt;/li>
+&lt;/ol>
+&lt;h3 id="28-键过期">2.8 键过期&lt;/h3>
+&lt;p>可以使用以下命令完成设置键的过期时间：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>expire key seconds&lt;/strong>： 键在 seconds 秒后过期；&lt;/li>
+&lt;li>&lt;strong>expireat key timestamp&lt;/strong>： 键在秒级时间戳 timestamp 后过期；&lt;/li>
+&lt;li>&lt;strong>pexpire key milliseconds&lt;/strong>： 键在 milliseconds 毫秒后过期；&lt;/li>
+&lt;li>&lt;strong>pexpireat key milliseconds-timestamp&lt;/strong>：键在毫秒级时间戳 timestamp 后过期。&lt;/li>
+&lt;/ul>
+&lt;p>注意事项：&lt;/p>
+&lt;ul>
+&lt;li>如果 expire key 的键不存在， 返回结果为 0；&lt;/li>
+&lt;li>如果设置过期时间为负值， 键会立即被删除， 此时等价于 del 命令；&lt;/li>
+&lt;li>persist key 命令可以将键的过期时间清除，使键变成永久的；&lt;/li>
+&lt;li>需要特别注意对于字符串类型键， 执行 set 命令会清除掉已有的过期时间；&lt;/li>
+&lt;li>Redis 不支持对二级数据结构的内部元素设置过期时间， 例如不能对列表内的某个元素设置过期时间；&lt;/li>
+&lt;li>setex 命令是 set+expire 的组合， 它是一个原子操作。&lt;/li>
+&lt;/ul>
+&lt;h3 id="29-渐进式键遍历">2.9 渐进式键遍历&lt;/h3>
+&lt;p>使用 keys 命令遍历键可能会带来阻塞的风险，因为 Redis 提供了渐进式键遍历命令 scan ，使用格式如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">scan cursor &lt;span class="o">[&lt;/span>match pattern&lt;span class="o">]&lt;/span> &lt;span class="o">[&lt;/span>count number&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ul>
+&lt;li>&lt;strong>cursor&lt;/strong>：游标，第一次遍历从 0 开始， 每次遍历完都会返回当前游标的值， 直到游标值为 0， 表示遍历结束。&lt;/li>
+&lt;li>&lt;strong>match pattern&lt;/strong>：可选参数， 它的作用的是匹配特定模式的键；&lt;/li>
+&lt;li>&lt;strong>count number&lt;/strong>：可选参数， 它的作用是表明每次要遍历的键个数， 默认值是 10。&lt;/li>
+&lt;/ul>
+&lt;h3 id="210-数据库管理">2.10 数据库管理&lt;/h3>
+&lt;p>1.切换数据库：select dbIndex&lt;/p>
+&lt;p>2.清除数据库：flushdb/flushall，flushdb 只清除当前数据库， flushall 会清除所有数据库。&lt;/p>
 &lt;h1 id="links">Links&lt;/h1>
 &lt;ul>
 &lt;li>
