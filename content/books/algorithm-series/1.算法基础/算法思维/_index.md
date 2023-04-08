@@ -35,6 +35,6 @@ commentable: true
 
 贪心算法和动态规划算法都要求问题具有最优子结构性质，这是两类算法的一个共同点。严格地说，用动态规划的问题一般都有前后重叠的，需要用前一阶段的结果局部贪心推出下一个阶段结果。贪心算法一般要得到最优解只能各个阶段没有重叠，以局部最优构造全局最优。
 
-![算法思想对比](https://ngte-superbed.oss-cn-beijing.aliyuncs.com/superbed/2021/08/14/611769955132923bf89cc00a.jpg)
+![算法思想对比](https://assets.ng-tech.icu/superbed/2021/08/14/611769955132923bf89cc00a.jpg)
 
     

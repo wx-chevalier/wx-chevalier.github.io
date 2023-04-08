@@ -1,0 +1,630 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>_index | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/7.%E7%BD%91%E7%BB%9C/</link><atom:link href="https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/7.%E7%BD%91%E7%BB%9C/index.xml" rel="self" type="application/rss+xml"/><description>_index</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>_index</title><link>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/7.%E7%BD%91%E7%BB%9C/</link></image><item><title>calico</title><link>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/7.%E7%BD%91%E7%BB%9C/calico/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/7.%E7%BD%91%E7%BB%9C/calico/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 51
+title: 非 Overlay 扁平网络 Calico
+date: &amp;ldquo;2022-05-21T00:00:00+08:00&amp;rdquo;
+type: book&lt;/h2>
+&lt;p>&lt;a href="https://www.projectcalico.org/" target="_blank" rel="noopener">Calico&lt;/a> 原意为”有斑点的“，如果说一只猫为 calico cat 的话，就是说这是只花猫，也叫三色猫，所以 calico 的 logo 是只三色猫。&lt;/p>
+&lt;p>
+&lt;figure id="figure-calico-logo">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/book/kubernetes-handbook/006tNc79gy1fz65bt7ieej30c90bsgn2.jpg" alt="Calico" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+Calico logo
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;h2 id="概念">概念&lt;/h2>
+&lt;p>Calico 创建和管理一个扁平的三层网络（不需要 overlay），每个容器会分配一个可路由的 IP。由于通信时不需要解包和封包，网络性能损耗小，易于排查，且易于水平扩展。&lt;/p>
+&lt;p>小规模部署时可以通过 BGP client 直接互联，大规模下可通过指定的 BGP Route Reflector 来完成，这样保证所有的数据流量都是通过 IP 路由的方式完成互联的。&lt;/p>
+&lt;p>Calico 基于 iptables 还提供了丰富而灵活的网络 Policy，保证通过各个节点上的 ACL 来提供 Workload 的多租户隔离、安全组以及其他可达性限制等功能。&lt;/p>
+&lt;h2 id="calico-架构">Calico 架构&lt;/h2>
+&lt;p>Calico 由以下组件组成，在部署 Calico 的时候部分组件是可选的。&lt;/p>
+&lt;ul>
+&lt;li>&lt;a href="https://projectcalico.docs.tigera.io/reference/architecture/overview#calico-api-server" target="_blank" rel="noopener">Calico API server&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://projectcalico.docs.tigera.io/reference/architecture/overview#felix" target="_blank" rel="noopener">Felix&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://projectcalico.docs.tigera.io/reference/architecture/overview#bird" target="_blank" rel="noopener">BIRD&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://projectcalico.docs.tigera.io/reference/architecture/overview#confd" target="_blank" rel="noopener">confd&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://projectcalico.docs.tigera.io/reference/architecture/overview#dikastes" target="_blank" rel="noopener">Dikastes&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://projectcalico.docs.tigera.io/reference/architecture/overview#cni-plugin" target="_blank" rel="noopener">CNI 插件&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://projectcalico.docs.tigera.io/reference/architecture/overview#datastore-plugin" target="_blank" rel="noopener">数据存储插件&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://projectcalico.docs.tigera.io/reference/architecture/overview#ipam-plugin" target="_blank" rel="noopener">IPAM 插件&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://projectcalico.docs.tigera.io/reference/architecture/overview#kube-controllers" target="_blank" rel="noopener">kube-controllers&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://projectcalico.docs.tigera.io/reference/architecture/overview#typha" target="_blank" rel="noopener">Typha&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://projectcalico.docs.tigera.io/reference/architecture/overview#calicoctl" target="_blank" rel="noopener">calicoctl&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://projectcalico.docs.tigera.io/reference/architecture/overview#plugins-for-cloud-orchestrators" target="_blank" rel="noopener">云编排器插件&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;p>Calico 的架构图如下所示：&lt;/p>
+&lt;p>
+&lt;figure id="figure-calico-架构图图片来自-calico-官网httpsprojectcalicodocstigeraioreferencearchitectureoverview">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/book/kubernetes-handbook/calico-architecture.png" alt="Calico 架构图" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+Calico 架构图（图片来自 &lt;a href="https://projectcalico.docs.tigera.io/reference/architecture/overview" target="_blank" rel="noopener">Calico 官网&lt;/a>）
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;h3 id="calico-api-server">Calico API Server&lt;/h3>
+&lt;p>可以使用 kubectl 直接管理 Calico。&lt;/p>
+&lt;h3 id="felix">Felix&lt;/h3>
+&lt;p>Felix 以 agent 代理的形式在每台机器端点上运行。对路由和 ACL 以及主机编程，为该主机上的端点提供所需的连接。&lt;/p>
+&lt;p>根据具体的编排器环境，Felix 负责：&lt;/p>
+&lt;p>&lt;strong>接口管理&lt;/strong>&lt;/p>
+&lt;p>将有关接口的信息编入内核，以便内核能够正确处理来自该端点的流量。特别是，确保主机响应来自每个工作负载的 ARP 请求，提供主机的 MAC，并为它所管理的接口启用 IP 转发。它还监控接口，以确保编程在适当的时候应用。&lt;/p>
+&lt;p>&lt;strong>路由编程&lt;/strong>&lt;/p>
+&lt;p>将其主机上的端点的路由编程到 Linux 内核的 FIB（转发信息库）。这可以确保到达主机上的以这些端点为目的地的数据包被相应地转发。&lt;/p>
+&lt;p>&lt;strong>ACL 编程&lt;/strong>&lt;/p>
+&lt;p>在 Linux 内核中编程 ACL，以确保只有有效的流量可以在端点之间发送，并且端点不能规避 Calico 的安全措施。&lt;/p>
+&lt;p>&lt;strong>状态报告&lt;/strong>&lt;/p>
+&lt;p>提供网络健康数据。特别是在配置其主机时报告错误和问题。这些数据被写入数据存储，以便对网络的其他组件和运营商可见。&lt;/p>
+&lt;h3 id="bird">BIRD&lt;/h3>
+&lt;p>BGP Internet Routing Daemon，简称 BIRD。从 Felix 获取路由，并分发到网络上的 BGP peer，用于主机间的路由。在每个 Felix 代理的节点上运行。&lt;/p>
+&lt;p>BGP 客户端负责：&lt;/p>
+&lt;p>&lt;strong>路由分配&lt;/strong>&lt;/p>
+&lt;p>当 Felix 将路由插入 Linux 内核的 FIB 时，BGP 客户端将它们分配给部署中的其他节点。这确保了部署中的有效流量路由。&lt;/p>
+&lt;p>&lt;strong>BGP 路由反射器的配置&lt;/strong>&lt;/p>
+&lt;p>BGP 路由反射器通常是为大型部署而配置的，而不是一个标准的 BGP 客户端。BGP 路由反射器作为连接 BGP 客户端的一个中心点。(标准 BGP 要求每个 BGP 客户端在网状拓扑结构中与其他每个 BGP 客户端连接，这很难维护)。&lt;/p>
+&lt;p>为了实现冗余，你可以无缝部署多个 BGP 路由反射器。BGP 路由反射器只参与网络的控制：没有终端数据通过它们。当 Calico BGP 客户端将其 FIB 中的路由通告给路由反射器时，路由反射器将这些路由通告给部署中的其他节点。&lt;/p>
+&lt;h3 id="confd">confd&lt;/h3>
+&lt;p>开源的、轻量级的配置管理工具。监控 Calico 数据存储对 BGP 配置和全局默认的日志变更，如 AS 号、日志级别和 IPAM 信息。&lt;/p>
+&lt;p>Confd 根据存储中的数据更新，动态生成 BIRD 配置文件。当配置文件发生变化时，confd 会触发 BIRD 加载新的文件。&lt;/p>
+&lt;h3 id="dikastes">Dikastes&lt;/h3>
+&lt;p>执行 Istio 服务网格的网络策略。作为 Istio Envoy 的一个 Sidecar 代理，在集群上运行。&lt;/p>
+&lt;p>Dikastes 是可选的。Calico 在 Linux 内核（使用 iptables，在三、四层）和三到七层使用 Envoy 的 Sidecar 代理 Dikastes 为工作负载执行网络策略，对请求进行加密认证。使用多个执行点可以根据多个标准确定远程端点的身份。即使工作负载 Pod 破坏，Envoy 代理被绕过，主机 Linux 内核的执行也能保护你的工作负载。&lt;/p>
+&lt;h3 id="cni-插件">CNI 插件&lt;/h3>
+&lt;p>为 Kubernetes 集群提供 Calico 网络。&lt;/p>
+&lt;p>向 Kubernetes 展示该 API 的 Calico 二进制文件被称为 CNI 插件，必须安装在 Kubernetes 集群的每个节点上。Calico CNI 插件允许你为任何使用 CNI 网络规范的编排调度器使用 Calico 网络。&lt;/p>
+&lt;h3 id="数据存储插件">数据存储插件&lt;/h3>
+&lt;p>通过减少每个节点对数据存储的影响来增加规模。它是 Calico CNI 的插件之一。&lt;/p>
+&lt;p>&lt;strong>Kubernetes API datastore（kdd）&lt;/strong>&lt;/p>
+&lt;p>在 Calico 中使用 Kubernetes API 数据存储（kdd）的优点是：&lt;/p>
+&lt;ul>
+&lt;li>管理更简单，因为不需要额外的数据存储&lt;/li>
+&lt;li>使用 Kubernetes RBAC 来控制对 Calico 资源的访问&lt;/li>
+&lt;li>使用 Kubernetes 审计日志来生成对 Calico 资源变化的审计日志&lt;/li>
+&lt;/ul>
+&lt;p>&lt;strong>etcd&lt;/strong>&lt;/p>
+&lt;p>etcd 是一个一致的、高可用的分布式键值存储，为 Calico 网络提供数据存储，并用于组件之间的通信。etcd 仅支持保护非集群主机（从 Calico v3.1 开始）。etcd 的优点是：&lt;/p>
+&lt;ul>
+&lt;li>让你在非 Kubernetes 平台上运行 Calico&lt;/li>
+&lt;li>分离 Kubernetes 和 Calico 资源之间的关注点，例如允许你独立地扩展数据存储。&lt;/li>
+&lt;li>让你运行的 Calico 集群不仅仅包含一个 Kubernetes 集群，例如，让带有 Calico 主机保护的裸机服务器与 Kubernetes 集群互通；或者多个 Kubernetes 集群。&lt;/li>
+&lt;/ul>
+&lt;h3 id="ipam-插件">IPAM 插件&lt;/h3>
+&lt;p>使用 Calico 的 IP 池资源来控制如何将 IP 地址分配给集群中的 pod。它是大多数 Calico 安装所使用的默认插件。它是 Calico CNI 插件之一。&lt;/p>
+&lt;h3 id="kube-controller">kube-controller&lt;/h3>
+&lt;p>监控 Kubernetes 的 API，并根据集群状态执行行动。&lt;/p>
+&lt;p>&lt;code>tigera/kube-controllers&lt;/code> 容器包括以下控制器：&lt;/p>
+&lt;ul>
+&lt;li>Policy 控制器&lt;/li>
+&lt;li>Namespace 控制器&lt;/li>
+&lt;li>ServiceAccount 控制器&lt;/li>
+&lt;li>WorkloadEndpoint 控制器&lt;/li>
+&lt;li>Node 控制器&lt;/li>
+&lt;/ul>
+&lt;h3 id="typha">Typha&lt;/h3>
+&lt;p>通过减少每个节点对数据存储的影响来增加规模。作为数据存储和 Felix 实例之间的一个守护程序运行。默认安装，但没有配置。&lt;/p>
+&lt;p>Typha 代表 Felix 和 confd 等所有客户端维护一个单一的数据存储连接。它缓存数据存储的状态，并复制事件，以便它们可以被推广到更多监听器。因为一个 Typha 实例可以支持数百个 Felix 实例，可以将数据存储的负载降低很多。由于 Typha 可以过滤掉与 Felix 无关的更新，它也减少了 Felix 的 CPU 使用。在一个大规模（100 多个节点）的 Kubernetes 集群中，这是至关重要的，因为 API 服务器产生的更新数量随着节点数量的增加而增加。&lt;/p>
+&lt;h3 id="calicoctl">calicoctl&lt;/h3>
+&lt;p>Calicoctl 命令行作为二进制或容器需要单独安装，可以在任何可以通过网络访问 Calico 数据存储的主机上使用。&lt;/p>
+&lt;h2 id="云编排器插件">云编排器插件&lt;/h2>
+&lt;p>将管理网络的编排器 API 翻译成 Calico 的数据模型和数据存储。&lt;/p>
+&lt;p>对于云供应商，Calico 为每个主要的云编排平台提供了一个单独的插件。这使得 Calico 能够与编排器紧密结合，因此用户可以使用他们的编排器工具来管理 Calico 网络。当需要时，编排器插件会将 Calico 网络的反馈信息提供给编排器。例如，提供关于 Felix liveness 的信息，并在网络设置失败时将特定端点标记为失败。&lt;/p>
+&lt;h2 id="参考">参考&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://projectcalico.docs.tigera.io/reference/architecture/overview" target="_blank" rel="noopener">Calico 组件架构 - docs.projectcalico.org&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>cilium</title><link>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/7.%E7%BD%91%E7%BB%9C/cilium/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/7.%E7%BD%91%E7%BB%9C/cilium/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 52
+title: 基于 eBPF 的网络 Cilium
+date: &amp;ldquo;2022-05-21T00:00:00+08:00&amp;rdquo;
+type: book&lt;/h2>
+&lt;p>Cilium 是一款开源软件，也是 CNCF 的孵化项目，目前&lt;a href="https://isovalent.com/" target="_blank" rel="noopener">已有公司&lt;/a>提供商业化支持，还有基于 Cilium 实现的服务网格解决方案。最初它仅是作为一个 Kubernetes 网络组件。Cilium 在 1.7 版本后&lt;a href="https://cilium.io/blog/2019/11/19/announcing-hubble" target="_blank" rel="noopener">推出并开源了 Hubble&lt;/a>，它是专门为网络可视化设计，能够利用 Cilium 提供的 eBPF 数据路径，获得对 Kubernetes 应用和服务的网络流量的深度可视性。这些网络流量信息可以对接 Hubble CLI、UI 工具，可以通过交互式的方式快速进行问题诊断。除了 Hubble 自身的监控工具，还可以对接主流的云原生监控体系——Prometheus 和 Grafana，实现可扩展的监控策略。&lt;/p>
+&lt;p>
+&lt;figure id="figure-cilium-示意图">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/book/kubernetes-handbook/006tNbRwly1fwqi98i51ij30sc0j80zn.jpg" alt="Cilium" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+Cilium 示意图
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;p>本节将带你了解什么是 Cilium 及选择它的原因。&lt;/p>
+&lt;h2 id="cilium-是什么">Cilium 是什么？&lt;/h2>
+&lt;p>Cilium 为基于 Kubernetes 的 Linux 容器管理平台上部署的服务，透明地提供服务间的网络和 API 连接及安全。&lt;/p>
+&lt;p>Cilium 底层是基于 Linux 内核的新技术 eBPF，可以在 Linux 系统中动态注入强大的安全性、可视性和网络控制逻辑。Cilium 基于 eBPF 提供了多集群路由、替代 kube-proxy 实现负载均衡、透明加密以及网络和服务安全等诸多功能。除了提供传统的网络安全之外，eBPF 的灵活性还支持应用协议和 DNS 请求/响应安全。同时，Cilium 与 Envoy 紧密集成，提供了基于 Go 的扩展框架。因为 eBPF 运行在 Linux 内核中，所以应用所有 Cilium 功能，无需对应用程序代码或容器配置进行任何更改。&lt;/p>
+&lt;p>基于微服务的应用程序分为小型独立服务，这些服务使用 &lt;strong>HTTP&lt;/strong>、&lt;strong>gRPC&lt;/strong>、&lt;strong>Kafka&lt;/strong> 等轻量级协议通过 API 相互通信。但是，现有的 Linux 网络安全机制（例如 iptables）仅在网络和传输层（即 IP 地址和端口）上运行，并且缺乏对微服务层的可视性。&lt;/p>
+&lt;p>Cilium 为 Linux 容器框架（如 &lt;a href="https://www.docker.com/" target="_blank" rel="noopener">&lt;strong>Docker&lt;/strong>&lt;/a> 和 &lt;a href="https://kubernetes.io/" target="_blank" rel="noopener">&lt;strong>Kubernetes）&lt;/strong>&lt;/a> 带来了 API 感知网络安全过滤。使用名为 &lt;strong>eBPF&lt;/strong> 的新 Linux 内核技术，Cilium 提供了一种基于容器 / 容器标识定义和实施网络层和应用层安全策略的简单而有效的方法。&lt;/p>
+&lt;p>&lt;strong>注&lt;/strong>：Cilium 中文意思是 “纤毛 “，它十分细小而又无处不在。&lt;/p>
+&lt;blockquote>
+&lt;h2 id="ebpf">eBPF&lt;/h2>
+&lt;p>&lt;strong>扩展的柏克莱封包过滤器&lt;/strong>（extented Berkeley Packet Filter，缩写 eBPF），是 &lt;a href="https://zh.wikipedia.org/wiki/%E7%B1%BBUnix" target="_blank" rel="noopener">类 Unix&lt;/a> 系统上 &lt;a href="https://zh.wikipedia.org/wiki/%E6%95%B0%E6%8D%AE%E9%93%BE%E8%B7%AF%E5%B1%82" target="_blank" rel="noopener">数据链路层&lt;/a> 的一种原始接口，提供原始链路层 &lt;a href="https://zh.wikipedia.org/wiki/%E5%B0%81%E5%8C%85" target="_blank" rel="noopener">封包&lt;/a> 的收发，除此之外，如果网卡驱动支持 &lt;a href="https://zh.wikipedia.org/wiki/%E6%B4%AA%E6%B3%9B" target="_blank" rel="noopener">洪泛&lt;/a> 模式，那么它可以让网卡处于此种模式，这样可以收到 &lt;a href="https://zh.wikipedia.org/wiki/%E7%BD%91%E7%BB%9C" target="_blank" rel="noopener">网络&lt;/a> 上的所有包，不管他们的目的地是不是所在 &lt;a href="https://zh.wikipedia.org/wiki/%E4%B8%BB%E6%A9%9F" target="_blank" rel="noopener">主机&lt;/a>。参考 &lt;a href="https://zh.wikipedia.org/wiki/BPF" target="_blank" rel="noopener">维基百科&lt;/a> 和 &lt;a href="https://www.ibm.com/developerworks/cn/linux/l-lo-eBPF-history/index.html" target="_blank" rel="noopener">eBPF 简史&lt;/a>及&lt;a href="https://www.netronome.com/blog/bpf-ebpf-xdp-and-bpfilter-what-are-these-things-and-what-do-they-mean-enterprise/" target="_blank" rel="noopener">BPF、eBPF、XDP 和 Bpfilter 的区别&lt;/a>。&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="hubble-是什么">Hubble 是什么？&lt;/h2>
+&lt;p>Hubble 是一个完全分布式的网络和安全可观测性平台。它建立在 Cilium 和 eBPF 之上，以完全透明的方式实现对服务的通信和行为以及网络基础设施的深度可视性（visibility）。&lt;/p>
+&lt;p>通过建立在 Cilium 之上，Hubble 可以利用 eBPF 实现可视性。依靠 eBPF，所有的可视性都是可编程的，并允许采用一种动态方法，最大限度地减少开销，同时按照用户的要求提供深入和详细的可视性。Hubble 的创建和专门设计是为了最好地利用 eBPF 的能力。&lt;/p>
+&lt;h2 id="特性">特性&lt;/h2>
+&lt;p>以下是 Cilium 的特性。&lt;/p>
+&lt;p>&lt;strong>基于身份的安全性&lt;/strong>&lt;/p>
+&lt;p>Cilium 可视性和安全策略基于容器编排系统的标识（例如，Kubernetes 中的 Label）。在编写安全策略、审计和故障排查时，再也不用担心网络子网或容器 IP 地址了。&lt;/p>
+&lt;p>&lt;strong>卓越的性能&lt;/strong>&lt;/p>
+&lt;p>eBPF 利用 Linux 底层的强大能力，通过提供 Linux 内核的沙盒可编程性来实现数据路径，从而提供卓越的性能。&lt;/p>
+&lt;p>&lt;strong>API 协议可视性 + 安全性&lt;/strong>&lt;/p>
+&lt;p>传统防火墙仅根据 IP 地址和端口等网络标头查看和过滤数据包。Cilium 也可以这样做，但也可以理解并过滤单个 HTTP、gRPC 和 Kafka 请求，这些请求将微服务拼接在一起。&lt;/p>
+&lt;p>&lt;strong>专为扩展而设计&lt;/strong>&lt;/p>
+&lt;p>Cilium 是为扩展而设计的，在部署新 pod 时不需要节点间交互，并且通过高度可扩展的键值存储进行所有协调。&lt;/p>
+&lt;h2 id="为什么选择-cilium-和-hubble">为什么选择 Cilium 和 Hubble？&lt;/h2>
+&lt;p>现代数据中心应用程序的开发已经转向面向服务的体系结构（SOA），通常称为微服务，其中大型应用程序被分成小型独立服务，这些服务使用 HTTP 等轻量级协议通过 API 相互通信。微服务应用程序往往是高度动态的，作为持续交付的一部分部署的滚动更新期间单个容器启动或销毁，应用程序扩展 / 缩小以适应负载变化。&lt;/p>
+&lt;p>这种向高度动态的微服务的转变过程，给确保微服务之间的连接方面提出了挑战和机遇。传统的 Linux 网络安全方法（例如 iptables）过滤 IP 地址和 TCP/UDP 端口，但 IP 地址经常在动态微服务环境中流失。容器的高度不稳定的生命周期导致这些方法难以与应用程序并排扩展，因为负载均衡表和访问控制列表要不断更新，可能增长成包含数十万条规则。出于安全目的，协议端口（例如，用于 HTTP 流量的 TCP 端口 80）不能再用于区分应用流量，因为该端口用于跨服务的各种消息。&lt;/p>
+&lt;p>另一个挑战是提供准确的可视性，因为传统系统使用 IP 地址作为主要识别工具，其在微服务架构中的寿命可能才仅仅几秒钟，被大大缩短。&lt;/p>
+&lt;p>利用 Linux eBPF，Cilium 保留了透明地插入安全可视性 + 强制执行的能力，但这种方式基于服务 /pod/ 容器标识（与传统系统中的 IP 地址识别相反），并且可以根据应用层进行过滤 （例如 HTTP）。因此，通过将安全性与寻址分离，Cilium 不仅可以在高度动态的环境中应用安全策略，而且除了提供传统的第 3 层和第 4 层分割之外，还可以通过在 HTTP 层运行来提供更强的安全隔离。&lt;/p>
+&lt;p>eBPF 的使用使得 Cilium 能够以高度可扩展的方式实现以上功能，即使对于大规模环境也不例外。&lt;/p>
+&lt;h2 id="功能概述">功能概述&lt;/h2>
+&lt;h3 id="透明的保护-api">透明的保护 API&lt;/h3>
+&lt;p>能够保护现代应用程序协议，如 REST/HTTP、gRPC 和 Kafka。传统防火墙在第 3 层和第 4 层运行，在特定端口上运行的协议要么完全受信任，要么完全被阻止。Cilium 提供了过滤各个应用程序协议请求的功能，例如：&lt;/p>
+&lt;ul>
+&lt;li>允许所有带有方法 &lt;code>GET&lt;/code> 和路径 &lt;code>/public/.*&lt;/code> 的 HTTP 请求。拒绝所有其他请求。&lt;/li>
+&lt;li>允许 &lt;code>service1&lt;/code> 在 Kafka topic 上生成 &lt;code>topic1&lt;/code>，&lt;code>service2&lt;/code> 消费 &lt;code>topic1&lt;/code>。拒绝所有其他 Kafka 消息。&lt;/li>
+&lt;li>要求 HTTP 标头 &lt;code>X-Token: [0-9]+&lt;/code> 出现在所有 REST 调用中。&lt;/li>
+&lt;/ul>
+&lt;p>详情请参考 &lt;a href="http://docs.cilium.io/en/stable/policy/#layer-7" target="_blank" rel="noopener">7 层协议&lt;/a>。&lt;/p>
+&lt;h3 id="基于身份来保护服务间通信">基于身份来保护服务间通信&lt;/h3>
+&lt;p>现代分布式应用程序依赖于诸如容器之类的技术来促进敏捷性并按需扩展。这将导致在短时间内启动大量应用容器。典型的容器防火墙通过过滤源 IP 地址和目标端口来保护工作负载。这就要求不论在集群中的哪个位置启动容器时都要操作所有服务器上的防火墙。&lt;/p>
+&lt;p>为了避免受到规模限制，Cilium 为共享相同安全策略的应用程序容器组分配安全标识。然后，该标识与应用程序容器发出的所有网络数据包相关联，从而允许验证接收节点处的身份。使用键值存储执行安全身份管理。&lt;/p>
+&lt;h3 id="安全访问外部服务">安全访问外部服务&lt;/h3>
+&lt;p>基于标签的安全性是集群内部访问控制的首选工具。为了保护对外部服务的访问，支持入口（ingress）和出口（egress）的传统基于 CIDR 的安全策略。这允许限制对应用程序容器的访问以及对特定 IP 范围的访问。&lt;/p>
+&lt;h3 id="简单网络">简单网络&lt;/h3>
+&lt;p>一个简单的扁平第 3 层网络能够跨越多个集群连接所有应用程序容器。使用主机范围分配器可以简化 IP 分配。这意味着每个主机可以在主机之间没有任何协调的情况下分配 IP。&lt;/p>
+&lt;p>支持以下多节点网络模型：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>&lt;strong>Overlay&lt;/strong>：基于封装的虚拟网络产生所有主机。目前 VXLAN 和 Geneve 已经完成，但可以启用 Linux 支持的所有封装格式。&lt;/p>
+&lt;p>何时使用此模式：此模式具有最小的基础架构和集成要求。它几乎适用于任何网络基础架构，唯一的要求是主机之间可以通过 IP 连接。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;strong>本机路由&lt;/strong>：使用 Linux 主机的常规路由表。网络必须能够路由应用程序容器的 IP 地址。&lt;/p>
+&lt;p>何时使用此模式：此模式适用于高级用户，需要了解底层网络基础结构。此模式适用于：&lt;/p>
+&lt;ul>
+&lt;li>本地 IPv6 网络&lt;/li>
+&lt;li>与云网络路由器配合使用&lt;/li>
+&lt;li>如果您已经在运行路由守护进程&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;h3 id="负载均衡">负载均衡&lt;/h3>
+&lt;p>应用程序容器和外部服务之间的流量的分布式负载均衡。负载均衡使用 eBPF 实现，允许几乎无限的规模，并且如果未在源主机上执行负载均衡操作，则支持直接服务器返回（DSR）。&lt;/p>
+&lt;p>&lt;strong>注意&lt;/strong>：负载均衡需要启用连接跟踪。这是默认值。&lt;/p>
+&lt;h3 id="监控和故障排除">监控和故障排除&lt;/h3>
+&lt;p>可视性和故障排查是任何分布式系统运行的基础。虽然我们喜欢用 &lt;code>tcpdump&lt;/code> 和 &lt;code>ping&lt;/code>，它们很好用，但我们努力为故障排除提供更好的工具。包括以下工具：&lt;/p>
+&lt;ul>
+&lt;li>使用元数据进行事件监控：当数据包被丢弃时，该工具不仅仅报告数据包的源 IP 和目标 IP，该工具还提供发送方和接收方的完整标签信息等。&lt;/li>
+&lt;li>策略决策跟踪：为什么丢弃数据包或拒绝请求。策略跟踪框架允许跟踪运行工作负载和基于任意标签定义的策略决策过程。&lt;/li>
+&lt;li>通过 Prometheus 导出指标：通过 Prometheus 导出关键指标，以便与现有仪表板集成。&lt;/li>
+&lt;/ul>
+&lt;h3 id="集成">集成&lt;/h3>
+&lt;ul>
+&lt;li>网络插件集成：&lt;a href="https://github.com/containernetworking/cni" target="_blank" rel="noopener">CNI&lt;/a>、&lt;a href="https://github.com/docker/libnetwork" target="_blank" rel="noopener">libnetwork&lt;/a>&lt;/li>
+&lt;li>容器运行时：&lt;a href="https://github.com/containerd/containerd" target="_blank" rel="noopener">containerd&lt;/a>&lt;/li>
+&lt;li>Kubernetes：&lt;a href="https://kubernetes.io/docs/concepts/services-networking/network-policies/" target="_blank" rel="noopener">NetworkPolicy&lt;/a>、&lt;a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/" target="_blank" rel="noopener">Label&lt;/a>、&lt;a href="https://kubernetes.io/docs/concepts/services-networking/ingress/" target="_blank" rel="noopener">Ingress&lt;/a>、&lt;a href="https://kubernetes.io/docs/concepts/services-networking/service/" target="_blank" rel="noopener">Service&lt;/a>&lt;/li>
+&lt;li>日志记录：syslog、&lt;a href="http://www.fluentd.org/" target="_blank" rel="noopener">fluentd&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h2 id="概念">概念&lt;/h2>
+&lt;p>Cilium 要求 Linux kernel 版本在 4.8.0 以上，Cilium 官方建议 kernel 版本至少在 4.9.17 以上，高版本的 Ubuntu 发行版中 Linux 内核版本一般在 4.12 以上，如使用 CentOS7 需要升级内核才能运行 Cilium。&lt;/p>
+&lt;p>KV 存储数据库用存储以下状态：&lt;/p>
+&lt;ul>
+&lt;li>策略身份，Label 列表 &amp;lt;=&amp;gt; 服务身份标识&lt;/li>
+&lt;li>全局的服务 ID，与 VIP 相关联（可选）&lt;/li>
+&lt;li>封装的 VTEP（Vxlan Tunnel End Point）映射（可选）&lt;/li>
+&lt;/ul>
+&lt;p>为了简单起见，Cilium 一般跟容器编排调度器使用同一个 KV 存储数据库，例如在 Kubernetes 中使用 etcd 存储。&lt;/p>
+&lt;h2 id="组成">组成&lt;/h2>
+&lt;p>下图是 Cilium 的组件示意图，Cilium 是位于 Linux kernel 与容器编排系统的中间层。向上可以为容器配置网络，向下可以向 Linux 内核生成 BPF 程序来控制容器的安全性和转发行为。&lt;/p>
+&lt;p>
+&lt;figure id="figure-cilium-组件来自-cilium-官网">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/book/kubernetes-handbook/cilium-arch.png" alt="Cilium 组件(来自 Cilium 官网)" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+Cilium 组件(来自 Cilium 官网)
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;p>管理员通过 Cilium CLI 配置策略信息，这些策略信息将存储在 KV 数据库里，Cilium 使用插件（如 CNI）与容器编排调度系统交互，来实现容器间的联网和容器分配 IP 地址分配，同时 Cilium 还可以获得容器的各种元数据和流量信息，提供监控 API。&lt;/p>
+&lt;p>&lt;strong>Cilium Agent&lt;/strong>&lt;/p>
+&lt;p>Cilium Agent 作为守护进程运行在每个节点上，与容器运行时如 Docker，和容器编排系统交互如 Kubernetes。通常是使用插件的形式（如 Docker plugin）或遵从容器编排标准定义的网络接口（如 &lt;a href="https://jimmysong.io/kubernetes-handbook/concepts/cni.html" target="_blank" rel="noopener">CNI&lt;/a>）。&lt;/p>
+&lt;p>Cilium Agent 的功能有：&lt;/p>
+&lt;ul>
+&lt;li>暴露 API 给运维和安全团队，可以配置容器间的通信策略。还可以通过这些 API 获取网络监控数据。&lt;/li>
+&lt;li>收集容器的元数据，例如 Pod 的 Label，可用于 Cilium 安全策略里的 Endpoint 识别，这个跟 Kubernetes 中的 service 里的 Endpoint 类似。&lt;/li>
+&lt;li>与容器管理平台的网络插件交互，实现 IPAM 的功能，用于给容器分配 IP 地址，该功能与 &lt;a href="https://jimmysong.io/kubernetes-handbook/concepts/flannel.html" target="_blank" rel="noopener">flannel&lt;/a>、&lt;a href="https://jimmysong.io/kubernetes-handbook/concepts/calico.html" target="_blank" rel="noopener">calico&lt;/a> 网络插件类似。&lt;/li>
+&lt;li>将其有关容器标识和地址的知识与已配置的安全性和可视性策略相结合，生成高效的 BPF 程序，用于控制容器的网络转发和安全行为。&lt;/li>
+&lt;li>使用 clang/LLVM 将 BPF 程序编译为字节码，在容器的虚拟以太网设备中的所有数据包上执行，并将它们传递给 Linux 内核。&lt;/li>
+&lt;/ul>
+&lt;h2 id="命令行工具">命令行工具&lt;/h2>
+&lt;p>Cilium 提供了管理命令行管理工具，可以与 Cilium Agent API 交互。&lt;code>cilium&lt;/code> 命令使用方式如下。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">Usage:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> cilium &lt;span class="o">[&lt;/span>command&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Available Commands:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> bpf 直接访问本地 BPF map
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> cleanup 重置 agent 状态
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> completion bash 自动补全
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> config Cilium 配置选项
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> debuginfo 从 agent 请求可用的调试信息
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> endpoint 管理 endpoint
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> identity 管理安全身份
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> kvstore 直接访问 kvstore
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> map 访问 BPF map
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> monitor 显示 BPF 程序事件
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> node 管理集群节点
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> policy 管理安全策略
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> prefilter 管理 XDP CIDR filter
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> service 管理 service &lt;span class="p">&amp;amp;&lt;/span> loadbalancer
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> status 显示 daemon 的状态
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> version 打印版本信息
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>详细使用情况请参考 &lt;a href="https://cilium.readthedocs.io/en/stable/cheatsheet/" target="_blank" rel="noopener">Cilium Command Cheatsheet&lt;/a>。&lt;/p>
+&lt;h2 id="策略控制示例">策略控制示例&lt;/h2>
+&lt;p>使用 docker-compose 安装测试，需要先用 vagrant 启动虚拟机，使用的是 Ubuntu-17.10 的 vagrant box。在下面的示例中，Cilium 是使用 docker network plugin 的方式部署的。Cilium 的一项主要功能——为容器创建网络，使用 &lt;code>docker inspect&lt;/code> 来查询使用 Cilium 网络的容器配置，可以看到 Cilium 创建的容器网络示例如下。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-json" data-lang="json">&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;Networks&amp;#34;&lt;/span>&lt;span class="err">:&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;cilium-net&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;IPAMConfig&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="kc">null&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;Links&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="kc">null&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;Aliases&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">[&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;a08e52d13a38&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">],&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;NetworkID&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;c4cc3ac444f3c494beb1355e4a9c4bc474d9a84288ceb2030513e8406cdf4e9b&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;EndpointID&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;2e3e4486525c20fc516d0a9d1c52f84edf9a000f3068803780e23b4c6a1ca3ed&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;Gateway&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;IPAddress&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;10.15.125.240&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;IPPrefixLen&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">32&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;IPv6Gateway&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;f00d::a0f:0:0:1&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;GlobalIPv6Address&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;f00d::a0f:0:0:ed50&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;GlobalIPv6PrefixLen&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">128&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;MacAddress&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;DriverOpts&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="kc">null&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ul>
+&lt;li>&lt;strong>NetworkID&lt;/strong>：每个网络平面的唯一标识&lt;/li>
+&lt;li>&lt;strong>EndpointID&lt;/strong>：每个容器/Pod 的在网络中的唯一标识&lt;/li>
+&lt;/ul>
+&lt;p>在 docker-compose 安装方式的&lt;a href="https://cilium.readthedocs.io/en/stable/gettingstarted/docker/" target="_blank" rel="noopener">快速开始指南&lt;/a>中，演示了如何使用 Label 来选择容器，从而限制两个容器（应用）之间的流量访问权限的。&lt;/p>
+&lt;p>策略使用 JSON 格式配置，例如&lt;a href="https://cilium.readthedocs.io/en/stable/gettingstarted/docker/" target="_blank" rel="noopener">官方示例&lt;/a>使用 Cilium 直接在 L3/L4 层管理容器间访问策略的方式。例如下面的策略配置具有 &lt;code>id=app2&lt;/code> 标签的容器可以使用 TCP 协议、80 端口访问具有标签 &lt;code>id=app1&lt;/code> 标签的容器。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-json" data-lang="json">&lt;span class="line">&lt;span class="cl">&lt;span class="p">[&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;labels&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">[{&lt;/span> &lt;span class="nt">&amp;#34;key&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;name&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nt">&amp;#34;value&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;l3-rule&amp;#34;&lt;/span> &lt;span class="p">}],&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;endpointSelector&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="nt">&amp;#34;matchLabels&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="nt">&amp;#34;id&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;app1&amp;#34;&lt;/span> &lt;span class="p">}&lt;/span> &lt;span class="p">},&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;ingress&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">[&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;fromEndpoints&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">[{&lt;/span> &lt;span class="nt">&amp;#34;matchLabels&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="nt">&amp;#34;id&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;app2&amp;#34;&lt;/span> &lt;span class="p">}&lt;/span> &lt;span class="p">}],&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;toPorts&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">[&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;ports&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">[{&lt;/span> &lt;span class="nt">&amp;#34;port&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;80&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nt">&amp;#34;protocol&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;TCP&amp;#34;&lt;/span> &lt;span class="p">}]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">]&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>将该配置保存成 JSON 文件，在使用 &lt;code>cilium policy import&lt;/code> 命令即可应用到 Cilium 网络中。&lt;/p>
+&lt;p>
+&lt;figure id="figure-cilium-网络配置策略">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/book/kubernetes-handbook/006tNbRwly1fwzreaalj6j30dz0dy3z3.jpg" alt="Cilium 网络配置策略" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+Cilium 网络配置策略
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;p>如图所示，此时 &lt;code>id&lt;/code> 标签为其他值的容器就无法访问 &lt;code>id=app1&lt;/code> 容器，策略配置中的 &lt;code>toPorts&lt;/code> 中还可以配置 HTTP &lt;code>method&lt;/code> 和 &lt;code>path&lt;/code>，实现更细粒度的访问策略控制。&lt;/p>
+&lt;h2 id="参考">参考&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://cilium.io" target="_blank" rel="noopener">Cilium 官方网站 - cilium.io&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.ibm.com/developerworks/cn/linux/l-lo-eBPF-history/index.html" target="_blank" rel="noopener">eBPF 简史 - ibm.com&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://zhuanlan.zhihu.com/p/25672552" target="_blank" rel="noopener">网络层拦截可选项 - zhihu.com&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.netronome.com/blog/bpf-ebpf-xdp-and-bpfilter-what-are-these-things-and-what-do-they-mean-enterprise/" target="_blank" rel="noopener">BPF, eBPF, XDP and Bpfilter… What are These Things and What do They Mean for the Enterprise? - netronome.com&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://docs.cilium.io/en/stable/concepts/" target="_blank" rel="noopener">Cilium Concepts - docs.cilium.io&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://docs.cilium.io/en/v1.11/gettingstarted/#getting-started-guides" target="_blank" rel="noopener">Getting Started Guides - docs.cilium.io&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>flannel</title><link>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/7.%E7%BD%91%E7%BB%9C/flannel/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/7.%E7%BD%91%E7%BB%9C/flannel/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 50
+title: 扁平网络 Flannel
+date: &amp;ldquo;2022-05-21T00:00:00+08:00&amp;rdquo;
+type: book&lt;/h2>
+&lt;p>如果你安装了拥有三个节点的 Kubernetes 集群，节点的状态如下所述。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@node1 ~&lt;span class="o">]&lt;/span>&lt;span class="c1"># kubectl get nodes -o wide&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">NAME STATUS ROLES AGE VERSION EXTERNAL-IP OS-IMAGE KERNEL-VERSION CONTAINER-RUNTIME
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">node1 Ready &amp;lt;none&amp;gt; 2d v1.9.1 &amp;lt;none&amp;gt; CentOS Linux &lt;span class="m">7&lt;/span> &lt;span class="o">(&lt;/span>Core&lt;span class="o">)&lt;/span> 3.10.0-693.11.6.el7.x86_64 docker://1.12.6
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">node2 Ready &amp;lt;none&amp;gt; 2d v1.9.1 &amp;lt;none&amp;gt; CentOS Linux &lt;span class="m">7&lt;/span> &lt;span class="o">(&lt;/span>Core&lt;span class="o">)&lt;/span> 3.10.0-693.11.6.el7.x86_64 docker://1.12.6
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">node3 Ready &amp;lt;none&amp;gt; 2d v1.9.1 &amp;lt;none&amp;gt; CentOS Linux &lt;span class="m">7&lt;/span> &lt;span class="o">(&lt;/span>Core&lt;span class="o">)&lt;/span> 3.10.0-693.11.6.el7.x86_64 docker://1.12.6
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>当前 Kubernetes 集群中运行的所有 Pod 信息：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@node1 ~&lt;span class="o">]&lt;/span>&lt;span class="c1"># kubectl get pods --all-namespaces -o wide&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">NAMESPACE NAME READY STATUS RESTARTS AGE IP NODE
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">kube-system coredns-5984fb8cbb-sjqv9 1/1 Running &lt;span class="m">0&lt;/span> 1h 172.33.68.2 node1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">kube-system coredns-5984fb8cbb-tkfrc 1/1 Running &lt;span class="m">1&lt;/span> 1h 172.33.96.3 node3
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">kube-system heapster-v1.5.0-684c7f9488-z6sdz 4/4 Running &lt;span class="m">0&lt;/span> 1h 172.33.31.3 node2
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">kube-system kubernetes-dashboard-6b66b8b96c-mnm2c 1/1 Running &lt;span class="m">0&lt;/span> 1h 172.33.31.2 node2
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">kube-system monitoring-influxdb-grafana-v4-54b7854697-tw9cd 2/2 Running &lt;span class="m">2&lt;/span> 1h 172.33.96.2 node3
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>当前 etcd 中的注册的宿主机的 pod 地址网段信息：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@node1 ~&lt;span class="o">]&lt;/span>&lt;span class="c1"># etcdctl ls /kube-centos/network/subnets&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">/kube-centos/network/subnets/172.33.68.0-24
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">/kube-centos/network/subnets/172.33.31.0-24
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">/kube-centos/network/subnets/172.33.96.0-24
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>而每个 node 上的 Pod 子网是根据我们在安装 flannel 时配置来划分的，在 etcd 中查看该配置：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@node1 ~&lt;span class="o">]&lt;/span>&lt;span class="c1"># etcdctl get /kube-centos/network/config&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">{&lt;/span>&lt;span class="s2">&amp;#34;Network&amp;#34;&lt;/span>:&lt;span class="s2">&amp;#34;172.33.0.0/16&amp;#34;&lt;/span>,&lt;span class="s2">&amp;#34;SubnetLen&amp;#34;&lt;/span>:24,&lt;span class="s2">&amp;#34;Backend&amp;#34;&lt;/span>:&lt;span class="o">{&lt;/span>&lt;span class="s2">&amp;#34;Type&amp;#34;&lt;/span>:&lt;span class="s2">&amp;#34;host-gw&amp;#34;&lt;/span>&lt;span class="o">}}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>我们知道 Kubernetes 集群内部存在三类 IP，分别是：&lt;/p>
+&lt;ul>
+&lt;li>Node IP：宿主机的 IP 地址&lt;/li>
+&lt;li>Pod IP：使用网络插件创建的 IP（如 flannel），使跨主机的 Pod 可以互通&lt;/li>
+&lt;li>Cluster IP：虚拟 IP，通过 iptables 规则访问服务&lt;/li>
+&lt;/ul>
+&lt;p>在安装 node 节点的时候，节点上的进程是按照 flannel -&amp;gt; docker -&amp;gt; kubelet -&amp;gt; kube-proxy 的顺序启动的，我们下面也会按照该顺序来讲解，flannel 的网络划分和如何与 docker 交互，如何通过 iptables 访问 service。&lt;/p>
+&lt;h2 id="flannel">Flannel&lt;/h2>
+&lt;p>Flannel 是作为一个二进制文件的方式部署在每个 node 上，主要实现两个功能：&lt;/p>
+&lt;ul>
+&lt;li>为每个 node 分配 subnet，容器将自动从该子网中获取 IP 地址&lt;/li>
+&lt;li>当有 node 加入到网络中时，为每个 node 增加路由配置&lt;/li>
+&lt;/ul>
+&lt;p>下面是使用 &lt;code>host-gw&lt;/code> backend 的 flannel 网络架构图：&lt;/p>
+&lt;p>
+&lt;figure id="figure-flannel-网络架构图片来自-openshift">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/book/kubernetes-handbook/flannel-networking.png" alt="flannel 网络架构（图片来自 openshift）" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+flannel 网络架构（图片来自 openshift）
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;p>&lt;strong>注意&lt;/strong>：以上 IP 非本示例中的 IP，但是不影响读者理解。&lt;/p>
+&lt;p>Node1 上的 flannel 配置如下:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@node1 ~&lt;span class="o">]&lt;/span>&lt;span class="c1"># cat /usr/lib/systemd/system/flanneld.service&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>Unit&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">Description&lt;/span>&lt;span class="o">=&lt;/span>Flanneld overlay address etcd agent
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">After&lt;/span>&lt;span class="o">=&lt;/span>network.target
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">After&lt;/span>&lt;span class="o">=&lt;/span>network-online.target
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">Wants&lt;/span>&lt;span class="o">=&lt;/span>network-online.target
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">After&lt;/span>&lt;span class="o">=&lt;/span>etcd.service
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">Before&lt;/span>&lt;span class="o">=&lt;/span>docker.service
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>Service&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">Type&lt;/span>&lt;span class="o">=&lt;/span>notify
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">EnvironmentFile&lt;/span>&lt;span class="o">=&lt;/span>/etc/sysconfig/flanneld
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">EnvironmentFile&lt;/span>&lt;span class="o">=&lt;/span>-/etc/sysconfig/docker-network
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ExecStart&lt;/span>&lt;span class="o">=&lt;/span>/usr/bin/flanneld-start &lt;span class="nv">$FLANNEL_OPTIONS&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ExecStartPost&lt;/span>&lt;span class="o">=&lt;/span>/usr/libexec/flannel/mk-docker-opts.sh -k DOCKER_NETWORK_OPTIONS -d /run/flannel/docker
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">Restart&lt;/span>&lt;span class="o">=&lt;/span>on-failure
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>Install&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">WantedBy&lt;/span>&lt;span class="o">=&lt;/span>multi-user.target
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">RequiredBy&lt;/span>&lt;span class="o">=&lt;/span>docker.service
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>其中有两个环境变量文件的配置如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@node1 ~&lt;span class="o">]&lt;/span>&lt;span class="c1"># cat /etc/sysconfig/flanneld&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Flanneld configuration options&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">FLANNEL_ETCD_ENDPOINTS&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;http://172.17.8.101:2379&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">FLANNEL_ETCD_PREFIX&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;/kube-centos/network&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">FLANNEL_OPTIONS&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;-iface=eth2&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>上面的配置文件仅供 flanneld 使用。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@node1 ~&lt;span class="o">]&lt;/span>&lt;span class="c1"># cat /etc/sysconfig/docker-network&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># /etc/sysconfig/docker-network&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">DOCKER_NETWORK_OPTIONS&lt;/span>&lt;span class="o">=&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>还有一个&lt;code>ExecStartPost=/usr/libexec/flannel/mk-docker-opts.sh -k DOCKER_NETWORK_OPTIONS -d /run/flannel/docker&lt;/code>，其中的&lt;code>/usr/libexec/flannel/mk-docker-opts.sh&lt;/code> 脚本是在 flanneld 启动后运行，将会生成两个环境变量配置文件：&lt;/p>
+&lt;ul>
+&lt;li>/run/flannel/docker&lt;/li>
+&lt;li>/run/flannel/subnet.env&lt;/li>
+&lt;/ul>
+&lt;p>我们再来看下 &lt;code>/run/flannel/docker&lt;/code> 的配置。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@node1 ~&lt;span class="o">]&lt;/span>&lt;span class="c1"># cat /run/flannel/docker&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">DOCKER_OPT_BIP&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;--bip=172.33.68.1/24&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">DOCKER_OPT_IPMASQ&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;--ip-masq=true&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">DOCKER_OPT_MTU&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;--mtu=1500&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">DOCKER_NETWORK_OPTIONS&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;--bip=172.33.68.1/24 --ip-masq=true --mtu=1500&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>如果你使用&lt;code>systemctl&lt;/code> 命令先启动 flannel 后启动 docker 的话，docker 将会读取以上环境变量。&lt;/p>
+&lt;p>我们再来看下 &lt;code>/run/flannel/subnet.env&lt;/code> 的配置。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@node1 ~&lt;span class="o">]&lt;/span>&lt;span class="c1"># cat /run/flannel/subnet.env&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">FLANNEL_NETWORK&lt;/span>&lt;span class="o">=&lt;/span>172.33.0.0/16
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">FLANNEL_SUBNET&lt;/span>&lt;span class="o">=&lt;/span>172.33.68.1/24
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">FLANNEL_MTU&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">1500&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">FLANNEL_IPMASQ&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="nb">false&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>以上环境变量是 flannel 向 etcd 中注册的。&lt;/p>
+&lt;h2 id="docker">Docker&lt;/h2>
+&lt;p>Node1 的 docker 配置如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@node1 ~&lt;span class="o">]&lt;/span>&lt;span class="c1"># cat /usr/lib/systemd/system/docker.service&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>Unit&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">Description&lt;/span>&lt;span class="o">=&lt;/span>Docker Application Container Engine
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">Documentation&lt;/span>&lt;span class="o">=&lt;/span>http://docs.docker.com
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">After&lt;/span>&lt;span class="o">=&lt;/span>network.target rhel-push-plugin.socket registries.service
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">Wants&lt;/span>&lt;span class="o">=&lt;/span>docker-storage-setup.service
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">Requires&lt;/span>&lt;span class="o">=&lt;/span>docker-cleanup.timer
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>Service&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">Type&lt;/span>&lt;span class="o">=&lt;/span>notify
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">NotifyAccess&lt;/span>&lt;span class="o">=&lt;/span>all
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">EnvironmentFile&lt;/span>&lt;span class="o">=&lt;/span>-/run/containers/registries.conf
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">EnvironmentFile&lt;/span>&lt;span class="o">=&lt;/span>-/etc/sysconfig/docker
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">EnvironmentFile&lt;/span>&lt;span class="o">=&lt;/span>-/etc/sysconfig/docker-storage
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">EnvironmentFile&lt;/span>&lt;span class="o">=&lt;/span>-/etc/sysconfig/docker-network
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">Environment&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="nv">GOTRACEBACK&lt;/span>&lt;span class="o">=&lt;/span>crash
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">Environment&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="nv">DOCKER_HTTP_HOST_COMPAT&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">Environment&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="nv">PATH&lt;/span>&lt;span class="o">=&lt;/span>/usr/libexec/docker:/usr/bin:/usr/sbin
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ExecStart&lt;/span>&lt;span class="o">=&lt;/span>/usr/bin/dockerd-current &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --add-runtime docker-runc&lt;span class="o">=&lt;/span>/usr/libexec/docker/docker-runc-current &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --default-runtime&lt;span class="o">=&lt;/span>docker-runc &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --exec-opt native.cgroupdriver&lt;span class="o">=&lt;/span>systemd &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --userland-proxy-path&lt;span class="o">=&lt;/span>/usr/libexec/docker/docker-proxy-current &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> &lt;span class="nv">$OPTIONS&lt;/span> &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> &lt;span class="nv">$DOCKER_STORAGE_OPTIONS&lt;/span> &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> &lt;span class="nv">$DOCKER_NETWORK_OPTIONS&lt;/span> &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> &lt;span class="nv">$ADD_REGISTRY&lt;/span> &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> &lt;span class="nv">$BLOCK_REGISTRY&lt;/span> &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> &lt;span class="nv">$INSECURE_REGISTRY&lt;/span>&lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> &lt;span class="nv">$REGISTRIES&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ExecReload&lt;/span>&lt;span class="o">=&lt;/span>/bin/kill -s HUP &lt;span class="nv">$MAINPID&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">LimitNOFILE&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">1048576&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">LimitNPROC&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">1048576&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">LimitCORE&lt;/span>&lt;span class="o">=&lt;/span>infinity
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">TimeoutStartSec&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">Restart&lt;/span>&lt;span class="o">=&lt;/span>on-abnormal
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">MountFlags&lt;/span>&lt;span class="o">=&lt;/span>slave
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">KillMode&lt;/span>&lt;span class="o">=&lt;/span>process
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>Install&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">WantedBy&lt;/span>&lt;span class="o">=&lt;/span>multi-user.target
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>查看 Node1 上的 docker 启动参数：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@node1 ~&lt;span class="o">]&lt;/span>&lt;span class="c1"># systemctl status -l docker&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">● docker.service - Docker Application Container Engine
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Loaded: loaded &lt;span class="o">(&lt;/span>/usr/lib/systemd/system/docker.service&lt;span class="p">;&lt;/span> enabled&lt;span class="p">;&lt;/span> vendor preset: disabled&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Drop-In: /usr/lib/systemd/system/docker.service.d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> └─flannel.conf
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Active: active &lt;span class="o">(&lt;/span>running&lt;span class="o">)&lt;/span> since Fri 2018-02-02 22:52:43 CST&lt;span class="p">;&lt;/span> 2h 28min ago
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Docs: http://docs.docker.com
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Main PID: &lt;span class="m">4334&lt;/span> &lt;span class="o">(&lt;/span>dockerd-current&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> CGroup: /system.slice/docker.service
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> ‣ &lt;span class="m">4334&lt;/span> /usr/bin/dockerd-current --add-runtime docker-runc&lt;span class="o">=&lt;/span>/usr/libexec/docker/docker-runc-current --default-runtime&lt;span class="o">=&lt;/span>docker-runc --exec-opt native.cgroupdriver&lt;span class="o">=&lt;/span>systemd --userland-proxy-path&lt;span class="o">=&lt;/span>/usr/libexec/docker/docker-proxy-current --selinux-enabled --log-driver&lt;span class="o">=&lt;/span>journald --signature-verification&lt;span class="o">=&lt;/span>&lt;span class="nb">false&lt;/span> --bip&lt;span class="o">=&lt;/span>172.33.68.1/24 --ip-masq&lt;span class="o">=&lt;/span>&lt;span class="nb">true&lt;/span> --mtu&lt;span class="o">=&lt;/span>&lt;span class="m">1500&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>我们可以看到在 docker 在启动时有如下参数：&lt;code>--bip=172.33.68.1/24 --ip-masq=true --mtu=1500&lt;/code>。上述参数 flannel 启动时运行的脚本生成的，通过环境变量传递过来的。&lt;/p>
+&lt;p>我们查看下 node1 宿主机上的网络接口：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@node1 ~&lt;span class="o">]&lt;/span>&lt;span class="c1"># ip addr&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">1: lo: &amp;lt;LOOPBACK,UP,LOWER_UP&amp;gt; mtu &lt;span class="m">65536&lt;/span> qdisc noqueue state UNKNOWN qlen &lt;span class="m">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet 127.0.0.1/8 scope host lo
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft forever preferred_lft forever
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet6 ::1/128 scope host
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft forever preferred_lft forever
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2: eth0: &amp;lt;BROADCAST,MULTICAST,UP,LOWER_UP&amp;gt; mtu &lt;span class="m">1500&lt;/span> qdisc pfifo_fast state UP qlen &lt;span class="m">1000&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> link/ether 52:54:00:00:57:32 brd ff:ff:ff:ff:ff:ff
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet 10.0.2.15/24 brd 10.0.2.255 scope global dynamic eth0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft 85095sec preferred_lft 85095sec
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet6 fe80::5054:ff:fe00:5732/64 scope link
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft forever preferred_lft forever
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">3: eth1: &amp;lt;BROADCAST,MULTICAST,UP,LOWER_UP&amp;gt; mtu &lt;span class="m">1500&lt;/span> qdisc pfifo_fast state UP qlen &lt;span class="m">1000&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> link/ether 08:00:27:7b:0f:b1 brd ff:ff:ff:ff:ff:ff
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet 172.17.8.101/24 brd 172.17.8.255 scope global eth1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft forever preferred_lft forever
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">4: eth2: &amp;lt;BROADCAST,MULTICAST,UP,LOWER_UP&amp;gt; mtu &lt;span class="m">1500&lt;/span> qdisc pfifo_fast state UP qlen &lt;span class="m">1000&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> link/ether 08:00:27:ef:25:06 brd ff:ff:ff:ff:ff:ff
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet 172.30.113.231/21 brd 172.30.119.255 scope global dynamic eth2
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft 85096sec preferred_lft 85096sec
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet6 fe80::a00:27ff:feef:2506/64 scope link
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft forever preferred_lft forever
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">5: docker0: &amp;lt;BROADCAST,MULTICAST,UP,LOWER_UP&amp;gt; mtu &lt;span class="m">1500&lt;/span> qdisc noqueue state UP
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> link/ether 02:42:d0:ae:80:ea brd ff:ff:ff:ff:ff:ff
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet 172.33.68.1/24 scope global docker0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft forever preferred_lft forever
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet6 fe80::42:d0ff:feae:80ea/64 scope link
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft forever preferred_lft forever
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">7: veth295bef2@if6: &amp;lt;BROADCAST,MULTICAST,UP,LOWER_UP&amp;gt; mtu &lt;span class="m">1500&lt;/span> qdisc noqueue master docker0 state UP
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> link/ether 6a:72:d7:9f:29:19 brd ff:ff:ff:ff:ff:ff link-netnsid &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet6 fe80::6872:d7ff:fe9f:2919/64 scope link
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft forever preferred_lft forever
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>我们分类来解释下该虚拟机中的网络接口。&lt;/p>
+&lt;ul>
+&lt;li>lo：回环网络，127.0.0.1&lt;/li>
+&lt;li>eth0：NAT 网络，虚拟机创建时自动分配，仅可以在几台虚拟机之间访问&lt;/li>
+&lt;li>eth1：bridge 网络，使用 vagrant 分配给虚拟机的地址，虚拟机之间和本地电脑都可以访问&lt;/li>
+&lt;li>eth2：bridge 网络，使用 DHCP 分配，用于访问互联网的网卡&lt;/li>
+&lt;li>docker0：bridge 网络，docker 默认使用的网卡，作为该节点上所有容器的虚拟交换机&lt;/li>
+&lt;li>veth295bef2@if6：veth pair，连接 docker0 和 Pod 中的容器。veth pair 可以理解为使用网线连接好的两个接口，把两个端口放到两个 namespace 中，那么这两个 namespace 就能打通。参考 &lt;a href="http://cizixs.com/2017/02/10/network-virtualization-network-namespace" target="_blank" rel="noopener">linux 网络虚拟化： network namespace 简介&lt;/a>。&lt;/li>
+&lt;/ul>
+&lt;p>我们再看下该节点的 docker 上有哪些网络。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@node1 ~&lt;span class="o">]&lt;/span>&lt;span class="c1"># docker network ls&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">NETWORK ID NAME DRIVER SCOPE
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">940bb75e653b bridge bridge &lt;span class="nb">local&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">d94c046e105d host host &lt;span class="nb">local&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2db7597fd546 none null &lt;span class="nb">local&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>再检查下 bridge 网络&lt;code>940bb75e653b&lt;/code>的信息。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@node1 ~&lt;span class="o">]&lt;/span>&lt;span class="c1"># docker network inspect 940bb75e653b&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;Name&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;bridge&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;Id&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;940bb75e653bfa10dab4cce8813c2b3ce17501e4e4935f7dc13805a61b732d2c&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;Scope&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;local&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;Driver&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;bridge&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;EnableIPv6&amp;#34;&lt;/span>: false,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;IPAM&amp;#34;&lt;/span>: &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;Driver&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;default&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;Options&amp;#34;&lt;/span>: null,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;Config&amp;#34;&lt;/span>: &lt;span class="o">[&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;Subnet&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;172.33.68.1/24&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;Gateway&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;172.33.68.1&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;Internal&amp;#34;&lt;/span>: false,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;Containers&amp;#34;&lt;/span>: &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;944d4aa660e30e1be9a18d30c9dcfa3b0504d1e5dbd00f3004b76582f1c9a85b&amp;#34;&lt;/span>: &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;Name&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;k8s_POD_coredns-5984fb8cbb-sjqv9_kube-system_c5a2e959-082a-11e8-b4cd-525400005732_0&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;EndpointID&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;7397d7282e464fc4ec5756d6b328df889cdf46134dbbe3753517e175d3844a85&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;MacAddress&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;02:42:ac:21:44:02&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;IPv4Address&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;172.33.68.2/24&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;IPv6Address&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;Options&amp;#34;&lt;/span>: &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;com.docker.network.bridge.default_bridge&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;true&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;com.docker.network.bridge.enable_icc&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;true&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;com.docker.network.bridge.enable_ip_masquerade&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;true&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;com.docker.network.bridge.host_binding_ipv4&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;0.0.0.0&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;com.docker.network.bridge.name&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;docker0&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;com.docker.network.driver.mtu&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;1500&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;Labels&amp;#34;&lt;/span>: &lt;span class="o">{}}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>我们可以看到该网络中的&lt;code>Config&lt;/code> 与 docker 的启动配置相符。&lt;/p>
+&lt;p>Node1 上运行的容器：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@node1 ~&lt;span class="o">]&lt;/span>&lt;span class="c1"># docker ps&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS NAMES
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">a37407a234dd docker.io/coredns/coredns@sha256:adf2e5b4504ef9ffa43f16010bd064273338759e92f6f616dd159115748799bc &lt;span class="s2">&amp;#34;/coredns -conf /etc/&amp;#34;&lt;/span> About an hour ago Up About an hour k8s_coredns_coredns-5984fb8cbb-sjqv9_kube-system_c5a2e959-082a-11e8-b4cd-525400005732_0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">944d4aa660e3 docker.io/openshift/origin-pod &lt;span class="s2">&amp;#34;/usr/bin/pod&amp;#34;&lt;/span> About an hour ago Up About an hour k8s_POD_coredns-5984fb8cbb-sjqv9_kube-system_c5a2e959-082a-11e8-b4cd-525400005732_0
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>我们可以看到当前已经有 2 个容器在运行。&lt;/p>
+&lt;p>Node1 上的路由信息：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@node1 ~&lt;span class="o">]&lt;/span>&lt;span class="c1"># route -n&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Kernel IP routing table
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Destination Gateway Genmask Flags Metric Ref Use Iface
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">0.0.0.0 10.0.2.2 0.0.0.0 UG &lt;span class="m">100&lt;/span> &lt;span class="m">0&lt;/span> &lt;span class="m">0&lt;/span> eth0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">0.0.0.0 172.30.116.1 0.0.0.0 UG &lt;span class="m">101&lt;/span> &lt;span class="m">0&lt;/span> &lt;span class="m">0&lt;/span> eth2
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">10.0.2.0 0.0.0.0 255.255.255.0 U &lt;span class="m">100&lt;/span> &lt;span class="m">0&lt;/span> &lt;span class="m">0&lt;/span> eth0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">172.17.8.0 0.0.0.0 255.255.255.0 U &lt;span class="m">100&lt;/span> &lt;span class="m">0&lt;/span> &lt;span class="m">0&lt;/span> eth1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">172.30.112.0 0.0.0.0 255.255.248.0 U &lt;span class="m">100&lt;/span> &lt;span class="m">0&lt;/span> &lt;span class="m">0&lt;/span> eth2
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">172.33.68.0 0.0.0.0 255.255.255.0 U &lt;span class="m">0&lt;/span> &lt;span class="m">0&lt;/span> &lt;span class="m">0&lt;/span> docker0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">172.33.96.0 172.30.118.65 255.255.255.0 UG &lt;span class="m">0&lt;/span> &lt;span class="m">0&lt;/span> &lt;span class="m">0&lt;/span> eth2
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>以上路由信息是由 flannel 添加的，当有新的节点加入到 Kubernetes 集群中后，每个节点上的路由表都将增加。&lt;/p>
+&lt;p>我们在 node 上来 &lt;code>traceroute&lt;/code> 下 node3 上的 &lt;code>coredns-5984fb8cbb-tkfrc&lt;/code> 容器，其 IP 地址是 &lt;code>172.33.96.3&lt;/code>，看看其路由信息。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@node1 ~&lt;span class="o">]&lt;/span>&lt;span class="c1"># traceroute 172.33.96.3&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">traceroute to 172.33.96.3 &lt;span class="o">(&lt;/span>172.33.96.3&lt;span class="o">)&lt;/span>, &lt;span class="m">30&lt;/span> hops max, &lt;span class="m">60&lt;/span> byte packets
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="m">1&lt;/span> 172.30.118.65 &lt;span class="o">(&lt;/span>172.30.118.65&lt;span class="o">)&lt;/span> 0.518 ms 0.367 ms 0.398 ms
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="m">2&lt;/span> 172.33.96.3 &lt;span class="o">(&lt;/span>172.33.96.3&lt;span class="o">)&lt;/span> 0.451 ms 0.352 ms 0.223 ms
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>我们看到路由直接经过 node3 的公网 IP 后就到达了 node3 节点上的 Pod。&lt;/p>
+&lt;p>Node1 的 iptables 信息：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@node1 ~&lt;span class="o">]&lt;/span>&lt;span class="c1"># iptables -L&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Chain INPUT &lt;span class="o">(&lt;/span>policy ACCEPT&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">target prot opt &lt;span class="nb">source&lt;/span> destination
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">KUBE-FIREWALL all -- anywhere anywhere
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">KUBE-SERVICES all -- anywhere anywhere /* kubernetes service portals */
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Chain FORWARD &lt;span class="o">(&lt;/span>policy ACCEPT&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">target prot opt &lt;span class="nb">source&lt;/span> destination
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">KUBE-FORWARD all -- anywhere anywhere /* kubernetes forward rules */
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">DOCKER-ISOLATION all -- anywhere anywhere
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">DOCKER all -- anywhere anywhere
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">ACCEPT all -- anywhere anywhere ctstate RELATED,ESTABLISHED
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">ACCEPT all -- anywhere anywhere
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">ACCEPT all -- anywhere anywhere
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Chain OUTPUT &lt;span class="o">(&lt;/span>policy ACCEPT&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">target prot opt &lt;span class="nb">source&lt;/span> destination
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">KUBE-FIREWALL all -- anywhere anywhere
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">KUBE-SERVICES all -- anywhere anywhere /* kubernetes service portals */
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Chain DOCKER &lt;span class="o">(&lt;/span>&lt;span class="m">1&lt;/span> references&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">target prot opt &lt;span class="nb">source&lt;/span> destination
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Chain DOCKER-ISOLATION &lt;span class="o">(&lt;/span>&lt;span class="m">1&lt;/span> references&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">target prot opt &lt;span class="nb">source&lt;/span> destination
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">RETURN all -- anywhere anywhere
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Chain KUBE-FIREWALL &lt;span class="o">(&lt;/span>&lt;span class="m">2&lt;/span> references&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">target prot opt &lt;span class="nb">source&lt;/span> destination
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">DROP all -- anywhere anywhere /* kubernetes firewall &lt;span class="k">for&lt;/span> dropping marked packets */mark match 0x8000/0x8000
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Chain KUBE-FORWARD &lt;span class="o">(&lt;/span>&lt;span class="m">1&lt;/span> references&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">target prot opt &lt;span class="nb">source&lt;/span> destination
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">ACCEPT all -- anywhere anywhere /* kubernetes forwarding rules */mark match 0x4000/0x4000
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">ACCEPT all -- 10.254.0.0/16 anywhere /* kubernetes forwarding conntrack pod &lt;span class="nb">source&lt;/span> rule */ctstate RELATED,ESTABLISHED
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">ACCEPT all -- anywhere 10.254.0.0/16 /* kubernetes forwarding conntrack pod destination rule */ctstate RELATED,ESTABLISHED
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Chain KUBE-SERVICES &lt;span class="o">(&lt;/span>&lt;span class="m">2&lt;/span> references&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">target prot opt &lt;span class="nb">source&lt;/span> destination
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>从上面的 iptables 中可以看到注入了很多 Kuberentes service 的规则。&lt;/p>
+&lt;h2 id="参考">参考&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://github.com/coreos/flannel" target="_blank" rel="noopener">coreos/flannel - github.com&lt;/a>&lt;/li>
+&lt;li>&lt;a href="http://cizixs.com/2017/02/10/network-virtualization-network-namespace" target="_blank" rel="noopener">Linux 网络虚拟化：network namespace 简介 - cizixs.com&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://segmentfault.com/a/1190000009251098" target="_blank" rel="noopener">Linux 虚拟网络设备之 veth - segmentfault.com&lt;/a>&lt;/li>
+&lt;li>&lt;a href="http://hustcat.github.io/flannel-host-gw-network/" target="_blank" rel="noopener">flannel host-gw network - hustcat.github.io&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://docs.openshift.com/container-platform/3.4/architecture/additional_concepts/flannel.html" target="_blank" rel="noopener">flannel - openshift.com&lt;/a>&lt;/li>
+&lt;/ul></description></item></channel></rss>

@@ -1,0 +1,1128 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Think in Java | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/</link><atom:link href="https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/index.xml" rel="self" type="application/rss+xml"/><description>Think in Java</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>Think in Java</title><link>https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/</link></image><item><title>附录A 使用非JAVA代码</title><link>https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/%E9%99%84%E5%BD%95a-%E4%BD%BF%E7%94%A8%E9%9D%9Ejava%E4%BB%A3%E7%A0%81/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/%E9%99%84%E5%BD%95a-%E4%BD%BF%E7%94%A8%E9%9D%9Ejava%E4%BB%A3%E7%A0%81/</guid><description>&lt;h1 id="附录-a-使用非-java-代码">附录 A 使用非 JAVA 代码&lt;/h1>
+&lt;p>JAVA 语言及其标准 API（应用程序编程接口）应付应用程序的编写已绰绰有余。但在某些情况下，还是必须使用非 JAVA 编码。例如，我们有时要访问操作系统的专用特性，与特殊的硬件设备打交道，重复使用现有的非 Java 接口，或者要使用“对时间敏感”的代码段，等等。与非 Java 代码的沟通要求获得编译器和“虚拟机”的专门支持，并需附加的工具将 Java 代码映射成非 Java 代码（也有一个简单方法：在第 15 章的“一个 Web 应用”小节中，有个例子解释了如何利用标准输入输出同非 Java 代码连接）。目前，不同的开发商为我们提供了不同的方案：Java 1.1 有“Java 固有接口”（Java Native Interface，JNI），网景提出了自己的“Java 运行期接口”（Java Runtime Interface）计划，而微软提供了 J/Direct、“本源接口”（Raw Native Interface，RNI）以及 Java/COM 集成方案。&lt;/p>
+&lt;p>各开发商在这个问题上所持的不同态度对程序员是非常不利的。若 Java 应用必须调用固有方法，则程序员或许要实现固有方法的不同版本——具体由应用程序运行的平台决定。程序员也许实际需要不同版本的 Java 代码，以及不同的 Java 虚拟机。
+另一个方案是 CORBA（通用对象请求代理结构），这是由 OMG（对象管理组，一家非赢利性的公司协会）开发的一种集成技术。CORBA 并非任何语言的一部分，只是实现通用通信总线及服务的一种规范。利用它可在由不同语言实现的对象之间实现“相互操作”的能力。这种通信总线的名字叫作 ORB（对象请求代理），是由其他开发商实现的一种产品，但并不属于 Java 语言规范的一部分。
+本附录将对 JNI，J/DIRECT，RNI，JAVA/COM 集成和 CORBA 进行概述。但不会作更深层次的探讨，甚至有时还假定读者已对相关的概念和技术有了一定程度的认识。但到最后，大家应该能够自行比较不同的方法，并根据自己要解决的问题挑选出最恰当的一种。&lt;/p>
+&lt;p>A.1 Java 固有接口&lt;/p>
+&lt;p>JNI 是一种包容极广的编程接口，允许我们从 Java 应用程序里调用固有方法。它是在 Java 1.1 里新增的，维持着与 Java 1.0 的相应特性——“固有方法接口”（NMI）——某种程度的兼容。NMI 设计上一些特点使其未获所有虚拟机的支持。考虑到这个原因，Java 语言将来的版本可能不再提供对 NMI 的支持，这儿也不准备讨论它。&lt;/p>
+&lt;p>目前，JNI 只能与用 C 或 C++写成的固有方法打交道。利用 JNI，我们的固有方法可以：&lt;/p>
+&lt;p>■ 创建、检查及更新 Java 对象（包括数组和字串）&lt;/p>
+&lt;p>■ 调用 Java 方法&lt;/p>
+&lt;p>■ 俘获和丢弃“异常”&lt;/p>
+&lt;p>■ 装载类并获取类信息&lt;/p>
+&lt;p>■ 进行运行期类型检查&lt;/p>
+&lt;p>所以，原来在 Java 中能对类及对象做的几乎所有事情在固有方法中同样可以做到。&lt;/p>
+&lt;p>A.1.1 调用固有方法&lt;/p>
+&lt;p>我们先从一个简单的例子开始：一个 Java 程序调用固有方法，后者再调用 Win32 的 API 函数 MessageBox()，显示出一个图形化的文
+本框。这个例子稍后也会与 J/Direct 一志使用。若您的平台不是 Win32，只需将包含了下述内容的 C 头：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">include&lt;/span> &lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">windows&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">h&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>替换成：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">include&lt;/span> &lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">stdio&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">h&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>并将对 MessageBox()的调用换成调用 printf()即可。&lt;/p>
+&lt;p>第一步是写出对固有方法及它的自变量进行声明的 Java 代码：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">class&lt;/span> &lt;span class="nc">ShowMsgBox&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="o">[]&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">ShowMsgBox&lt;/span> &lt;span class="n">app&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">ShowMsgBox&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">app&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">ShowMessage&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Generated with JNI&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">native&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">ShowMessage&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">msg&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">static&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">loadLibrary&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;MsgImpl&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在固有方法声明的后面，跟随有一个 static 代码块，它会调用 System.loadLibrary()（可在任何时候调用它，但这样做更恰当）System.loadLibrary()将一个 DLL 载入内存，并建立同它的链接。DLL 必须位于您的系统路径，或者在包含了 Java 类文件的目录中。根据具体的平台，JVM 会自动添加适当的文件扩展名。&lt;/p>
+&lt;h5 id="1-c-头文件生成器javah">1. C 头文件生成器：javah&lt;/h5>
+&lt;p>现在编译您的 Java 源文件，并对编译出来的.class 文件运行 javah。javah 是在 1.0 版里提供的，但由于我们要使用 Java 1.1 JNI，所以必须指定-jni 参数：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">javah&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">jni&lt;/span> &lt;span class="n">ShowMsgBox&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>javah 会读入类文件，并为每个固有方法声明在 C 或 C++头文件里生成一个函数原型。下面是输出结果——ShowMsgBox.h 源文件（为符合本书的要求，稍微进行了一下修改）：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="cm">/* DO NOT EDIT THIS FILE
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> - it is machine generated */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">include&lt;/span> &lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">jni&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">h&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm">/* Header for class ShowMsgBox */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">ifndef&lt;/span> &lt;span class="n">_Included_ShowMsgBox&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">define&lt;/span> &lt;span class="n">_Included_ShowMsgBox&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">ifdef&lt;/span> &lt;span class="n">__cplusplus&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">extern&lt;/span> &lt;span class="s">&amp;#34;C&amp;#34;&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">endif&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm">/*
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * Class: ShowMsgBox
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * Method: ShowMessage
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * Signature: (Ljava/lang/String;)V
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">JNIEXPORT&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="n">JNICALL&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">Java_ShowMsgBox_ShowMessage&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">(&lt;/span>&lt;span class="n">JNIEnv&lt;/span> &lt;span class="o">*,&lt;/span> &lt;span class="n">jobject&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">jstring&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">ifdef&lt;/span> &lt;span class="n">__cplusplus&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">endif&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">endif&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>从“#ifdef_cplusplus”这个预处理引导命令可以看出，该文件既可由 C 编译器编译，亦可由 C++编译器编译。第一个#include 命令包括 jni.h——一个头文件，作用之一是定义在文件其余部分用到的类型；JNIEXPORT 和 JNICALL 是一些宏，它们进行了适当的扩充，以便与那些不同平台专用的引导命令配合；JNIEnv，jobject 以及 jstring 则是 JNI 数据类型定义。&lt;/p>
+&lt;h5 id="2-名称管理和函数签名">2. 名称管理和函数签名&lt;/h5>
+&lt;p>JNI 统一了固有方法的命名规则；这一点是非常重要的，因为它属于虚拟机将 Java 调用与固有方法链接起来的机制的一部分。从根本上说，所有固有方法都要以一个“Java”起头，后面跟随 Java 方法的名字；下划线字符则作为分隔符使用。若 Java 固有方法“重载”（即命名重复），那么也把函数签名追加到名字后面。在原型前面的注释里，大家可看到固有的签名。欲了解命名规则和固有方法签名更详细的情况，请参考相应的 JNI 文档。&lt;/p>
+&lt;h5 id="3-实现自己的-dll">3. 实现自己的 DLL&lt;/h5>
+&lt;p>此时，我们要做的全部事情就是写一个 C 或 C++源文件，在其中包含由 javah 生成的头文件；并实现固有方法；然后编译它，生成一个动态链接库。这一部分的工作是与平台有关的，所以我假定读者已经知道如何创建一个 DLL。通过调用一个 Win32 API，下面的代码实现了固有方法。随后，它会编译和链接到一个名为 MsgImpl.dll 的文件里：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">include&lt;/span> &lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">windows&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">h&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">include&lt;/span> &lt;span class="s">&amp;#34;ShowMsgBox.h&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">BOOL&lt;/span> &lt;span class="n">APIENTRY&lt;/span> &lt;span class="nf">DllMain&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">HANDLE&lt;/span> &lt;span class="n">hModule&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">DWORD&lt;/span> &lt;span class="n">dwReason&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kt">void&lt;/span>&lt;span class="o">**&lt;/span> &lt;span class="n">lpReserved&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">TRUE&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">JNIEXPORT&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="n">JNICALL&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">Java_ShowMsgBox_ShowMessage&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">JNIEnv&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="n">jEnv&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">jobject&lt;/span> &lt;span class="k">this&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">jstring&lt;/span> &lt;span class="n">jMsg&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">const&lt;/span> &lt;span class="kt">char&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="n">msg&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">msg&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="o">(*&lt;/span>&lt;span class="n">jEnv&lt;/span>&lt;span class="o">)-&amp;gt;&lt;/span>&lt;span class="n">GetStringUTFChars&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">jEnv&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">jMsg&lt;/span>&lt;span class="o">,&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">MessageBox&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">HWND_DESKTOP&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">msg&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s">&amp;#34;Thinking in Java: JNI&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">MB_OK&lt;/span> &lt;span class="o">|&lt;/span> &lt;span class="n">MB_ICONEXCLAMATION&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">(*&lt;/span>&lt;span class="n">jEnv&lt;/span>&lt;span class="o">)-&amp;gt;&lt;/span>&lt;span class="n">ReleaseStringUTFChars&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">jEnv&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">jMsg&lt;/span>&lt;span class="o">,&lt;/span>&lt;span class="n">msg&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>若对 Win32 没有兴趣，只需跳过 MessageBox()调用；最有趣的部分是它周围的代码。传递到固有方法内部的自变量是返回 Java 的大门。第一个自变量是类型 JNIEnv 的，其中包含了回调 JVM 需要的所有挂钩（下一节再详细讲述）。由于方法的类型不同，第二个自变量也有自己不同的含义。对于象上例那样的非 static 方法（也叫作实例方法），第二个自变量等价于 C++的“this”指针，并类似于 Java 的“this”：都引用了调用固有方法的那个对象。对于 static 方法，它是对特定 Class 对象的一个引用，方法就是在那个 Class 对象里实现的。&lt;/p>
+&lt;p>剩余的自变量代表传递到固有方法调用里的 Java 对象。主类型也是以这种形式传递的，但它们进行的“按值”传递。
+在后面的小节里，我们准备讲述如何从一个固有方法的内部访问和控制 JVM，同时对上述代码进行更详尽的解释。&lt;/p>
+&lt;p>A.1.2 访问 JNI 函数：JNIEnv 自变量&lt;/p>
+&lt;p>利用 JNI 函数，程序员可从一个固有方法的内部与 JVM 打交道。正如大家在前面的例子中看到的那样，每个 JNI 固有方法都会接收一个特殊的自变量作为自己的第一个参数：JNIEnv 自变量——它是指向类型为 JNIEnv_的一个特殊 JNI 数据结构的指针。JNI 数据结构的一个元素是指向由 JVM 生成的一个数组的指针；该数组的每个元素都是指向一个 JNI 函数的指针。可从固有方法的内部发出对 JNI 函数的调用，做法是撤消对这些指针的引用（具体的操作实际很简单）。每种 JVM 都以自己的方式实现了 JNI 函数，但它们的地址肯定位于预先定义好的偏移处。&lt;/p>
+&lt;p>利用 JNIEnv 自变量，程序员可访问一系列函数。这些函数可划分为下述类别：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="err">■获取版本信息&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">■进行类和对象操作&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">■控制对&lt;/span>&lt;span class="n">Java&lt;/span>&lt;span class="err">对象的全局和局部引用&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">■访问实例字段和静态字段&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">■调用实例方法和静态方法&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">■执行字串和数组操作&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">■产生和控制&lt;/span>&lt;span class="n">Java&lt;/span>&lt;span class="err">异常&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>JNI 函数的数量相当多，这里不再详述。相反，我会向大家揭示使用这些函数时背后的一些基本原理。欲了解更详细的情况，请参阅自己所用编译器的 JNI 文档。&lt;/p>
+&lt;p>若观察一下 jni.h 头文件，就会发现在#ifdef &lt;em>cplusplus 预处理器条件的内部，当由 C++编译器编译时，JNIEnv&lt;/em>结构被定义成一个类。这个类包含了大量内嵌函数。通过一种简单而且熟悉的语法，这些函数让我们可以从容访问 JNI 函数。例如，前例包含了下面这行代码：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="o">(*&lt;/span>&lt;span class="n">jEnv&lt;/span>&lt;span class="o">)-&amp;gt;&lt;/span>&lt;span class="n">ReleaseStringUTFChars&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">jEnv&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">jMsg&lt;/span>&lt;span class="o">,&lt;/span>&lt;span class="n">msg&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>它在 C++里可改写成下面这个样子：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">jEnv&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">ReleaseStringUTFChars&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">jMsg&lt;/span>&lt;span class="o">,&lt;/span>&lt;span class="n">msg&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>大家可注意到自己不再需要同时撤消对 jEnv 的两个引用，相同的指针不再作为第一个参数传递给 JNI 函数调用。在这些例子剩下的地方，我会使用 C++风格的代码。&lt;/p>
+&lt;h5 id="1-访问-java-字串">1. 访问 Java 字串&lt;/h5>
+&lt;p>作为访问 JNI 函数的一个例子，请思考上述的代码。在这里，我们利用 JNIEnv 的自变量 jEnv 来访问一个 Java 字串。Java 字串采取的是 Unicode 格式，所以假若收到这样一个字串，并想把它传给一个非 Unicode 函数（如 printf()），首先必须用 JNI 函数 GetStringUTFChars()将其转换成 ASCII 字符。该函数能接收一个 Java 字串，然后把它转换成 UTF-8 字符（用 8 位宽度容纳 ASCII 值，或用 16 位宽度容纳 Unicode；若原始字串的内容完全由 ASCII 构成，那么结果字串也是 ASCII）。
+GetStringUTFChars 是 JNIEnv 间接指向的那个结构里的一个字段，而这个字段又是指向一个函数的指针。为访问 JNI 函数，我们用传统的 C 语法来调用一个函数（通过指针）。利用上述形式可实现对所有 JNI 函数的访问。&lt;/p>
+&lt;p>A.1.3 传递和使用 Java 对象&lt;/p>
+&lt;p>在前例中，我们将一个字串传递给固有方法。事实上，亦可将自己创建的 Java 对象传递给固有方法。
+在我们的固有方法内部，可访问已收到的那些对象的字段及方法。&lt;/p>
+&lt;p>为传递对象，声明固有方法时要采用原始的 Java 语法。如下例所示，MyJavaClass 有一个 public（公共）字段，以及一个 public 方法。UseObjects 类声明了一个固有方法，用于接收 MyJavaClass 类的一个对象。为调查固有方法是否能控制自己的自变量，我们设置了自变量的 public 字段，调用固有方法，然后打印出 public 字段的值。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">class&lt;/span> &lt;span class="nc">MyJavaClass&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">divByTwo&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span> &lt;span class="n">aValue&lt;/span> &lt;span class="o">/=&lt;/span> &lt;span class="mi">2&lt;/span>&lt;span class="o">;&lt;/span> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">aValue&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">UseObjects&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="o">[]&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">UseObjects&lt;/span> &lt;span class="n">app&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">UseObjects&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">MyJavaClass&lt;/span> &lt;span class="n">anObj&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">MyJavaClass&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">anObj&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">aValue&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">2&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">app&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">changeObject&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">anObj&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Java: &amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">anObj&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">aValue&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">native&lt;/span> &lt;span class="kt">void&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">changeObject&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">MyJavaClass&lt;/span> &lt;span class="n">obj&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">static&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">loadLibrary&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;UseObjImpl&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>编译好代码，并将.class 文件传递给 javah 后，就可以实现固有方法。在下面这个例子中，一旦取得字段和方法 ID，就会通过 JNI 函数访问它们。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">JNIEXPORT&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="n">JNICALL&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">Java_UseObjects_changeObject&lt;/span>&lt;span class="o">(&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">JNIEnv&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="n">env&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">jobject&lt;/span> &lt;span class="n">jThis&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">jobject&lt;/span> &lt;span class="n">obj&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">jclass&lt;/span> &lt;span class="n">cls&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">jfieldID&lt;/span> &lt;span class="n">fid&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">jmethodID&lt;/span> &lt;span class="n">mid&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">cls&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">env&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">GetObjectClass&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">obj&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">fid&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">env&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">GetFieldID&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">cls&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s">&amp;#34;aValue&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;I&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">mid&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">env&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">GetMethodID&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">cls&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s">&amp;#34;divByTwo&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;()V&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">value&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">env&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">GetIntField&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">obj&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">fid&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">printf&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Native: %d\n&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">env&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">SetIntField&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">obj&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">fid&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="mi">6&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">env&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">CallVoidMethod&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">obj&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">mid&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">value&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">env&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">GetIntField&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">obj&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">fid&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">printf&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Native: %d\n&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>除第一个自变量外，C++函数会接收一个 jobject，它代表 Java 对象引用“固有”的那一面——那个引用是我们从 Java 代码里传递的。我们简单地读取 aValue，把它打印出来，改变这个值，调用对象的 divByTwo()方法，再将值重新打印一遍。&lt;/p>
+&lt;p>为访问一个字段或方法，首先必须获取它的标识符。利用适当的 JNI 函数，可方便地取得类对象、元素名以及签名信息。这些函数会返回一个标识符，利用它可访问对应的元素。尽管这一方式显得有些曲折，但我们的固有方法确实对 Java 对象的内部布局一无所知。因此，它必须通过由 JVM 返回的索引访问字段和方法。这样一来，不同的 JVM 就可实现不同的内部对象布局，同时不会对固有方法造成影响。&lt;/p>
+&lt;p>若运行 Java 程序，就会发现从 Java 那一侧传来的对象是由我们的固有方法处理的。但传递的到底是什么呢？是指针，还是 Java 引用？而且垃圾收集器在固有方法调用期间又在做什么呢？&lt;/p>
+&lt;p>垃圾收集器会在固有方法执行期间持续运行，但在一次固有方法调用期间，我们的对象可保证不会被当作“垃圾”收集去。为确保这一点，事先创建了“局部引用”，并在固有方法调用之后立即清除。由于它们的“生命期”与调用过程息息相关，所以能够保证对象在固有方法调用期间的有效性。&lt;/p>
+&lt;p>由于这些引用会在每次函数调用的时候创建和破坏，所以不可在 static 变量中制作固有方法的局部副本（本地拷贝）。若希望一个引用在函数存在期间持续有效，就需要一个全局引用。全局引用不是由 JVM 创建的，但通过调用特定的 JNI 函数，程序员可将局部引用扩展为全局引用。创建一个全局引用时，需对引用对象的“生存时间”负责。全局引用（以及它引用的对象）会一直留在内存里，直到用特定的 JNI 函数明确释放了这个引用。它类似于 C 的 malloc()和 free()。&lt;/p>
+&lt;p>A.1.4 JNI 和 Java 异常&lt;/p>
+&lt;p>利用 JNI，可丢弃、捕捉、打印以及重新丢弃 Java 异常，就象在一个 Java 程序里那样。但对程序员来说，需自行调用专用的 JNI 函数，以便对异常进行处理。下面列出用于异常处理的一些 JNI 函数：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="err">■&lt;/span>&lt;span class="n">Throw&lt;/span>&lt;span class="o">()&lt;/span>&lt;span class="err">：丢弃一个现有的异常对象；在固有方法中用于重新丢弃一个异常。&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">■&lt;/span>&lt;span class="n">ThrowNew&lt;/span>&lt;span class="o">()&lt;/span>&lt;span class="err">：生成一个新的异常对象，并将其丢弃。&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">■&lt;/span>&lt;span class="n">ExceptionOccurred&lt;/span>&lt;span class="o">()&lt;/span>&lt;span class="err">：判断一个异常是否已被丢弃，但尚未清除。&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">■&lt;/span>&lt;span class="n">ExceptionDescribe&lt;/span>&lt;span class="o">()&lt;/span>&lt;span class="err">：打印一个异常和栈跟踪信息。&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">■&lt;/span>&lt;span class="n">ExceptionClear&lt;/span>&lt;span class="o">()&lt;/span>&lt;span class="err">：清除一个待决的异常。&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">■&lt;/span>&lt;span class="n">FatalError&lt;/span>&lt;span class="o">()&lt;/span>&lt;span class="err">：造成一个严重错误，不返回。&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在所有这些函数中，最不能忽视的就是 ExceptionOccurred()和 ExceptionClear()。大多数 JNI 函数都能产生异常，而且没有象在 Java 的 try 块内的那种语言特性可供利用。所以在每一次 JNI 函数调用之后，都必须调用 ExceptionOccurred()，了解异常是否已被丢弃。若侦测到一个异常，可选择对其加以控制（可能时还要重新丢弃它）。然而，必须确保异常最终被清除。这可以在自己的函数中用 ExceptionClear()来实现；若异常被重新丢弃，也可能在其他某些函数中进行。但无论如何，这一工作是必不可少的。
+我们必须保证异常被彻底清除。否则，假若在一个异常待决的情况下调用一个 JNI 函数，获得的结果往往是无法预知的。也有少数几个 JNI 函数可在异常时安全调用；当然，它们都是专门的异常控制函数。&lt;/p>
+&lt;p>A.1.5 JNI 和线程处理&lt;/p>
+&lt;p>由于 Java 是一种多线程语言，几个线程可能同时发出对一个固有方法的调用（若另一个线程发出调用，固有方法可能在运行期间暂停）。此时，完全要由程序员来保证固有调用在多线程的环境中安全进行。例如，要防范用一种未进行监视的方法修改共享数据。此时，我们主要有两个选择：将固有方法声明为“同步”，或在固有方法内部采取其他某些策略，确保数据处理正确地并发进行。
+此外，绝对不要通过线程传递 JNIEnv，因为它指向的内部结构是在“每线程”的基础上分配的，而且包含了只对那些特定的线程才有意义的信息。&lt;/p>
+&lt;p>A.1.6 使用现成代码&lt;/p>
+&lt;p>为实现 JNI 固有方法，最简单的方法就是在一个 Java 类里编写固有方法的原型，编译那个类，再通过 javah 运行.class 文件。但假若我们已有一个大型的、早已存在的代码库，而且想从 Java 里调用它们，此时又该如何是好呢？不可将 DLL 中的所有函数更名，使其符合 JNI 命名规则，这种方案是不可行的。最好的方法是在原来的代码库“外面”写一个封装 DLL。Java 代码会调用新 DLL 里的函数，后者再调用原始的 DLL 函数。这个方法并非仅仅是一种解决方案；大多数情况下，我们甚至必须这样做，因为必须面向对象引用调用 JNI 函数，否则无法使用它们。&lt;/p>
+&lt;p>A.2 微软的解决方案&lt;/p>
+&lt;p>到本书完稿时为止，微软仍未提供对 JNI 的支持，只是用自己的专利方法提供了对非 Java 代码调用的支持。这一支持内建到编译器 Microsoft JVM 以及外部工具中。只有程序用 Microsoft Java 编译器编译，而且只有在 Microsoft Java 虚拟机（JVM）上运行的时候，本节讲述的特性才会有效。若计划在因特网上发行自己的应用，或者本单位的内联网建立在不同平台的基础上，就可能成为一个严重的问题。&lt;/p>
+&lt;p>微软与 Win32 代码的接口为我们提供了连接 Win32 的三种途径：&lt;/p>
+&lt;p>(1) J/Direct：方便调用 Win32 DLL 函数的一种途径，具有某些限制。&lt;/p>
+&lt;p>(2) 本原接口（RNI）：可调用 Win32 DLL 函数，但必须自行解决“垃圾收集”问题。&lt;/p>
+&lt;p>(3) Java/COM 集成：可从 Java 里直接揭示或调用 COM 服务。&lt;/p>
+&lt;p>后续的小节将分别探讨这三种技术。&lt;/p>
+&lt;p>写作本书的时候，这些特性均通过了 Microsoft SDK for Java 2.0 beta 2 的支持。可从微软公司的 Web 站点下载这个开发平台（要经历一个痛苦的选择过程，他们叫作“Active Setup”）。Java SDK 是一套命令行工具的集合，但编译引擎可轻易嵌入 Developer Studio 环境，以便我们用 Visual J++ 1.1 来编译 Java 1.1 代码。&lt;/p>
+&lt;p>A.3 J/Direct&lt;/p>
+&lt;p>J/Direct 是调用 Win32 DLL 函数最简单的方式。它的主要设计目标是与 Win32API 打交道，但完全可用它调用其他任何 API。但是，尽管这一特性非常方便，但它同时也造成了某些限制，且降低了性能（与 RNI 相比）。但 J/Direct 也有一些明显的优点。首先，除希望调用的那个 DLL 里的代码之外，没有必要再编写额外的非 Java 代码，换言之，我们不需要一个封装器或者代理／存根 DLL。其次，函数自变量与标准数据类型之间实现了自动转换。若必须传递用户自定义的数据类型，那么 J/Direct 可能不按我们的希望工作。第三，就象下例展示的那样，它非常简单和直接。只需少数几行，这个例子便能调用 Win32 API 函数 MessageBox()，它能弹出一个小的模态窗口，并带有一个标题、一条消息、一个可选的图标以及几个按钮。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">ShowMsgBox&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="o">[])&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">throws&lt;/span> &lt;span class="n">UnsatisfiedLinkError&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">MessageBox&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s">&amp;#34;Created by the MessageBox() Win32 func&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s">&amp;#34;Thinking in Java&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cm">/** @dll.import(&amp;#34;USER32&amp;#34;) */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kd">native&lt;/span> &lt;span class="kt">int&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">MessageBox&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">hwndOwner&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="n">text&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">String&lt;/span> &lt;span class="n">title&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">fuStyle&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>令人震惊的是，这里便是我们利用 J/Direct 调用 Win32 DLL 函数所需的全部代码。其中的关键是位于示范代码底部的 MessageBox()声明之前的@dll.import 引导命令。它表面上看是一条注释，但实际并非如此。它的作用是告诉编译器：引导命令下面的函数是在 USER32 DLL 里实现的，而且应相应地调用。我们要做的全部事情就是提供与 DLL 内实现的函数相符的一个原型，并调用函数。但是毋需在 Java 版本里手工键入需要的每一个 Win32 API 函数，一个 Microsoft Java 包会帮我们做这件事情（很快就会详细解释）。为了让这个例子正常工作，函数必须“按名称”由 DLL 导出。但是，也可以用@dll.import 引导命令“按顺序”链接。举个例子来说，我们可指定函数在 DLL 里的入口位置。稍后还会具体讲述@dll.import 引导命令的特性。&lt;/p>
+&lt;p>用非 Java 代码进行链接的一个重要问题就是函数参数的自动配置。正如大家看到的那样，MessageBox()的 Java 声明采用了两个字串自变量，但原来的 C 方案则采用了两个 char 指针。编译器会帮助我们自动转换标准数据类型，同时遵照本章后一节要讲述的规则。
+最好，大家或许已注意到了 main()声明中的 UnsatisfiedLinkError 异常。在运行期的时候，一旦链接程序不能从非 Java 函数里解析出符号，就会触发这一异常（事件）。这可能是由多方面的原因造成的：.dll 文件未找到；不是一个有效的 DLL；或者 J/Direct 未获您所使用的虚拟机的支持。为了使 DLL 能被找到，它必须位于 Windows 或 Windows\System 目录下，位于由 PATH 环境变量列出的一个目录中，或者位于和.class 文件相同的目录。J/Direct 获得了 Microsoft Java 编译器 1.02.4213 版本及更高版本的支持，也获得了 Microsoft JVM 4.79.2164 及更高版本的支持。为了解自己编译器的版本号，请在命令行下运行 JVC，不要加任何参数。为了解 JVM 的版本号，请找到 msjava.dll 的图标，并利用右键弹出菜单观察它的属性。&lt;/p>
+&lt;p>A.3.1 @dll.import 引导命令&lt;/p>
+&lt;p>作为使用 J/Direct 唯一的途径，@dll.import 引导命令相当灵活。它提供了为数众多的修改符，可用它们自定义同非 Java 代码建立链接关系的方式。它亦可应用于类内的一些方法，或应用于整个类。也就是说，我们在那个类内声明的所有方法都是在相同的 DLL 里实现的。下面让我们具体研究一下这些特性。&lt;/p>
+&lt;h5 id="1-别名处理和按顺序链接">1. 别名处理和按顺序链接&lt;/h5>
+&lt;p>为了使@dll.import 引导命令能象上面显示的那样工作，DLL 内的函数必须按名字导出。然而，我们有时想使用与 DLL 里原始名字不同的一个名字（别名处理），否则函数就可能按编号（比如按顺序）导出，而不是按名字导出。下面这个例子声明了 FinestraDiMessaggio()（用意大利语说的“MessageBox”）。正如大家看到的那样，使用的语法是非常简单的。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">Aliasing&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="o">[])&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">throws&lt;/span> &lt;span class="n">UnsatisfiedLinkError&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">FinestraDiMessaggio&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s">&amp;#34;Created by the MessageBox() Win32 func&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s">&amp;#34;Thinking in Java&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cm">/** @dll.import(&amp;#34;USER32&amp;#34;,
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> entrypoint=&amp;#34;MessageBox&amp;#34;) */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kd">native&lt;/span> &lt;span class="kt">int&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">FinestraDiMessaggio&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">hwndOwner&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="n">text&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">String&lt;/span> &lt;span class="n">title&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">fuStyle&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>下面这个例子展示了如何同 DLL 里并非按名字导出的一个函数建立链接，那个函数事实是按它们在 DLL 里的位置导出的。这个例子假设有一个名为 MYMATH 的 DLL，这个 DLL 在位置编号 3 处包含了一个函数。那个函数获取两个整数作为自变量，并返回两个整数的和。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">ByOrdinal&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="o">[])&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">throws&lt;/span> &lt;span class="n">UnsatisfiedLinkError&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="n">j&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">k&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">9&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Result of DLL function:&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">+&lt;/span> &lt;span class="n">Add&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">j&lt;/span>&lt;span class="o">,&lt;/span>&lt;span class="n">k&lt;/span>&lt;span class="o">));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cm">/** @dll.import(&amp;#34;MYMATH&amp;#34;, entrypoint = &amp;#34;#3&amp;#34;) */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kd">native&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="nf">Add&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">op1&lt;/span>&lt;span class="o">,&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">op2&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>可以看出，唯一的差异就是 entrypoint 自变量的形式。&lt;/p>
+&lt;h5 id="2-将dllimport-应用于整个类">2. 将@dll.import 应用于整个类&lt;/h5>
+&lt;p>@dll.import 引导命令可应用于整个类。也就是说，那个类的所有方法都是在相同的 DLL 里实现的，并具有相同的链接属性。引导命令不会由子类继承；考虑到这个原因，而且由于 DLL 里的函数是自然的 static 函数，所以更佳的设计方案是将 API 函数封装到一个独立的类里，如下所示：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="cm">/** @dll.import(&amp;#34;USER32&amp;#34;) */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">class&lt;/span> &lt;span class="nc">MyUser32Access&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kd">native&lt;/span> &lt;span class="kt">int&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">MessageBox&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">hwndOwner&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="n">text&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">String&lt;/span> &lt;span class="n">title&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">fuStyle&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">native&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">boolean&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">MessageBeep&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">uType&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">WholeClass&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="o">[])&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">throws&lt;/span> &lt;span class="n">UnsatisfiedLinkError&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">MyUser32Access&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">MessageBeep&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">4&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">MyUser32Access&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">MessageBox&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s">&amp;#34;Created by the MessageBox() Win32 func&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s">&amp;#34;Thinking in Java&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>由于 MessageBeep()和 MessageBox()函数已在不同的类里被声明成 static 函数，所以必须在调用它们时规定作用域。大家也许认为必须用上述的方法将所有 Win32 API（函数、常数和数据类型）都映射成 Java 类。但幸运的是，根本不必这样做。&lt;/p>
+&lt;p>A.3.2 com.ms.win32 包&lt;/p>
+&lt;p>Win32 API 的体积相当庞大——包含了数以千计的函数、常数以及数据类型。当然，我们并不想将每个 Win32 API 函数都写成对应 Java 形式。微软考虑到了这个问题，发行了一个 Java 包，可通过 J/Direct 将 Win32 API 映射成 Java 类。这个包的名字叫作 com.ms.win32。安装 Java SDK 2.0 时，若在安装选项中进行了相应的设置，这个包就会安装到我们的类路径中。这个包由大量 Java 类构成，它们完整再现了 Win32 API 的常数、数据类型以及函数。包容能力最大的三个类是 User32.class，Kernel.class 以及 Gdi32.class。它们包含的是 Win32 API 的核心内容。为使用它们，只需在自己的 Java 代码里导入即可。前面的 ShowMsgBox 示例可用 com.ms.win32 改写成下面这个样子（这里也考虑到了用更恰当的方式使用 UnsatisfiedLinkError）：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kn">import&lt;/span> &lt;span class="nn">com.ms.win32.*&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">UseWin32Package&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="o">[])&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">try&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">User32&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">MessageBeep&lt;/span>&lt;span class="o">(&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">winm&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">MB_ICONEXCLAMATION&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">User32&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">MessageBox&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s">&amp;#34;Created by the MessageBox() Win32 func&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s">&amp;#34;Thinking in Java&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">winm&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">MB_OKCANCEL&lt;/span> &lt;span class="o">|&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">winm&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">MB_ICONEXCLAMATION&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span> &lt;span class="k">catch&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">UnsatisfiedLinkError&lt;/span> &lt;span class="n">e&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Can’t link Win32 API&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">e&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Java 包是在第一行导入的。现在，可在不进行其他声明的前提下调用 MessageBeep()和 MessageBox()函数。在 MessageBeep()里，我们可看到包导入时也声明了 Win32 常数。这些常数是在大量 Java 接口里定义的，全部命名为 winx（x 代表欲使用之常数的首字母）。&lt;/p>
+&lt;p>写作本书时，com.ms.win32 包的开发仍未正式完成，但已可堪使用。&lt;/p>
+&lt;p>A.3.3 汇集&lt;/p>
+&lt;p>“汇集”（Marshaling）是指将一个函数自变量从它原始的二进制形式转换成与语言无关的某种形式，再将这种通用形式转换成适合调用函数采用的二进制格式。在前面的例子中，我们调用了 MessageBox()函数，并向它传递了两个字串。MessageBox()是个 C 函数，而且 Java 字串的二进制布局与 C 字串并不相同。但尽管如此，自变量仍获得了正确的传递。这是由于在调用 C 代码前，J/Direct 已帮我们考虑到了将 Java 字串转换成 C 字串的问题。这种情况适合所有标准的 Java 类型。下面这张表格总结了简单数据类型的默认对应关系：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">Java&lt;/span> &lt;span class="n">C&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kt">byte&lt;/span> &lt;span class="n">BYTE&lt;/span>&lt;span class="err">或&lt;/span>&lt;span class="n">CHAR&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kt">short&lt;/span> &lt;span class="n">SHORT&lt;/span>&lt;span class="err">或&lt;/span>&lt;span class="n">WORD&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kt">int&lt;/span> &lt;span class="n">INT&lt;/span>&lt;span class="err">，&lt;/span>&lt;span class="n">UINT&lt;/span>&lt;span class="err">，&lt;/span>&lt;span class="n">LONG&lt;/span>&lt;span class="err">，&lt;/span>&lt;span class="n">ULONG&lt;/span>&lt;span class="err">或&lt;/span>&lt;span class="n">DWORD&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kt">char&lt;/span> &lt;span class="n">TCHAR&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kt">long&lt;/span> &lt;span class="n">__int64&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kt">float&lt;/span> &lt;span class="n">Float&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kt">double&lt;/span> &lt;span class="n">Double&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kt">boolean&lt;/span> &lt;span class="n">BOOL&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">String&lt;/span> &lt;span class="n">LPCTSTR&lt;/span>&lt;span class="err">（只允许在&lt;/span>&lt;span class="n">OLE&lt;/span>&lt;span class="err">模式中作为返回值）&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kt">byte&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">BYTE&lt;/span> &lt;span class="o">*&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kt">short&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">WORD&lt;/span> &lt;span class="o">*&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kt">char&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">TCHAR&lt;/span> &lt;span class="o">*&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kt">int&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">DWORD&lt;/span> &lt;span class="o">*&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这个列表还可继续下去，但已很能说明问题了。大多数情况下，我们不必关心与简单数据类型之间的转换问题。但一旦必须传递用户自定义类型的自变量，情况就立即变得不同了。例如，可能需要传递一个结构化的、用户自定义的数据类型，或者需要把一个指针传给原始内存区域。在这些情况下，有一些特殊的编译引导命令标记一个 Java 类，使其能作为一个指针传给结构（@dll.struct 引导命令）。欲知使用这些关键字的细节，请参考产品文档。&lt;/p>
+&lt;p>A.3.4 编写回调函数&lt;/p>
+&lt;p>有些 Win32 API 函数要求将一个函数指针作为自己的参数使用。Windows API 函数随后就可以调用自变量函数（通常是在以后发生特定的事件时）。这一技术就叫作“回调函数”。回调函数的例子包括窗口进程以及我们在打印过程中设置的回调（为后台打印程序提供回调函数的地址，使其能更新状态，并在必要的时候中止打印）。&lt;/p>
+&lt;p>另一个例子是 API 函数 EnumWindows()，它能枚举目前系统内所有顶级窗口。EnumWindows()要求获取一个函数指针作为自己的参数，然后搜索由 Windows 内部维护的一个列表。对于列表内的每个窗口，它都会调用回调函数，将窗口指针作为一个自变量传给回调。&lt;/p>
+&lt;p>为了在 Java 里达到同样的目的，必须使用 com.ms.dll 包里的 Callback 类。我们从 Callback 里继承，并取消 callback()。这个方法只能接近 int 参数，并会返回 int 或 void。方法签名和具体的实施取决于使用这个回调的 Windows API 函数。
+现在，我们要进行的全部工作就是创建这个 Callback 衍生类的一个实例，并将其作为函数指针传递给 API 函数。随后，J/Direct 会帮助我们自动完成剩余的工作。&lt;/p>
+&lt;p>下面这个例子调用了 Win32 API 函数 EnumWindows()；EnumWindowsProc 类里的 callback()方法会获取每个顶级窗口的指针，获取标题文字，并将其打印到控制台窗口。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kn">import&lt;/span> &lt;span class="nn">com.ms.dll.*&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kn">import&lt;/span> &lt;span class="nn">com.ms.win32.*&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">class&lt;/span> &lt;span class="nc">EnumWindowsProc&lt;/span> &lt;span class="kd">extends&lt;/span> &lt;span class="n">Callback&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">boolean&lt;/span> &lt;span class="nf">callback&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">hwnd&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">lparam&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">StringBuffer&lt;/span> &lt;span class="n">text&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">StringBuffer&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">50&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">User32&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">GetWindowText&lt;/span>&lt;span class="o">(&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">hwnd&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">text&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">text&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">capacity&lt;/span>&lt;span class="o">()+&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">text&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">length&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">!=&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">text&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="kc">true&lt;/span>&lt;span class="o">;&lt;/span> &lt;span class="c1">// to continue enumeration.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">ShowCallback&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="o">[])&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">throws&lt;/span> &lt;span class="n">InterruptedException&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">boolean&lt;/span> &lt;span class="n">ok&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">User32&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">EnumWindows&lt;/span>&lt;span class="o">(&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">new&lt;/span> &lt;span class="n">EnumWindowsProc&lt;/span>&lt;span class="o">(),&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span>&lt;span class="o">(!&lt;/span>&lt;span class="n">ok&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">err&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;EnumWindows failed.&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Thread&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">currentThread&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">sleep&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">3000&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>对 sleep()的调用允许窗口进程在 main()退出前完成。&lt;/p>
+&lt;p>A.3.5 其他 J/Direct 特性&lt;/p>
+&lt;p>通过@dll.import 引导命令内的修改符（标记），还可用到 J/Direct 的另两项特性。第一项是对 OLE 函数的简化访问，第二项是选择 API 函数的 ANSI 及 Unicode 版本。&lt;/p>
+&lt;p>根据约定，所有 OLE 函数都会返回类型为 HRESULT 的一个值，它是由 COM 定义的一个结构化整数值。若在 COM 那一级编写程序，并希望从一个 OLE 函数里返回某些不同的东西，就必须将一个特殊的指针传递给它——该指针指向函数即将在其中填充数据的那个内存区域。但在 Java 中，我们没有指针可用；此外，这种方法并不简练。利用 J/Direct，我们可在@dll.import 引导命令里使用 ole 修改符，从而方便地调用 OLE 函数。标记为 ole 函数的一个固有方法会从 Java 形式的方法签名（通过它决定返回类型）自动转换成 COM 形式的函数。&lt;/p>
+&lt;p>第二项特性是选择 ANSI 或者 Unicode 字串控制方法。对字串进行控制的大多数 Win32 API 函数都提供了两个版本。例如，假设我们观察由 USER32.DLL 导出的符号，那么不会找到一个 MessageBox()函数，相反会看到 MessageBoxA()和 MessageBoxW()函数——分别是该函数的 ANSI 和 Unicode 版本。如果在@dll.import 引导命令里不规定想调用哪个版本，JVM 就会试着自行判断。但这一操作会在程序执行时花费较长的时间。所以，我们一般可用 ansi，unicode 或 auto 修改符硬性规定。&lt;/p>
+&lt;p>欲了解这些特性更详细的情况，请参考微软公司提供的技术文档。&lt;/p>
+&lt;p>A.4 本原接口（RNI）&lt;/p>
+&lt;p>同 J/Direct 相比，RNI 是一种比非 Java 代码复杂得多的接口；但它的功能也十分强大。RNI 比 J/Direct 更接近于 JVM，这也使我们能写出更有效的代码，能处理固有方法中的 Java 对象，而且能实现与 JVM 内部运行机制更紧密的集成。&lt;/p>
+&lt;p>RNI 在概念上类似 Sun 公司的 JNI。考虑到这个原因，而且由于该产品尚未正式完工，所以我只在这里指出它们之间的主要差异。欲了解更详细的情况，请参考微软公司的文档。&lt;/p>
+&lt;p>JNI 和 RNI 之间存在几方面引人注目的差异。下面列出的是由 msjavah 生成的 C 头文件（微软提供的 msjavah 在功能上相当于 Sun 的 javah），应用于前面在 JNI 例子里使用的 Java 类文件 ShowMsgBox。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="cm">/* DO NOT EDIT -
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm">automatically generated by msjavah */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">include&lt;/span> &lt;span class="o">&amp;lt;&lt;/span>&lt;span class="kd">native&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">h&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">pragma&lt;/span> &lt;span class="nf">warning&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">disable&lt;/span>&lt;span class="o">:&lt;/span>&lt;span class="mi">4510&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">pragma&lt;/span> &lt;span class="nf">warning&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">disable&lt;/span>&lt;span class="o">:&lt;/span>&lt;span class="mi">4512&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">pragma&lt;/span> &lt;span class="nf">warning&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">disable&lt;/span>&lt;span class="o">:&lt;/span>&lt;span class="mi">4610&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">struct&lt;/span> &lt;span class="n">Classjava_lang_String&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">define&lt;/span> &lt;span class="n">Hjava_lang_String&lt;/span> &lt;span class="n">Classjava_lang_String&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm">/* Header for class ShowMsgBox */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">ifndef&lt;/span> &lt;span class="n">_Included_ShowMsgBox&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">define&lt;/span> &lt;span class="n">_Included_ShowMsgBox&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">define&lt;/span> &lt;span class="n">HShowMsgBox&lt;/span> &lt;span class="n">ClassShowMsgBox&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">typedef&lt;/span> &lt;span class="n">struct&lt;/span> &lt;span class="n">ClassShowMsgBox&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">include&lt;/span> &lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">pshpack4&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">h&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">long&lt;/span> &lt;span class="n">MSReserved&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">include&lt;/span> &lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">poppack&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">h&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span> &lt;span class="n">ClassShowMsgBox&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">ifdef&lt;/span> &lt;span class="n">__cplusplus&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">extern&lt;/span> &lt;span class="s">&amp;#34;C&amp;#34;&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">endif&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">__declspec&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">dllexport&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="n">__cdecl&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">ShowMsgBox_ShowMessage&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">struct&lt;/span> &lt;span class="n">HShowMsgBox&lt;/span> &lt;span class="o">*,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">struct&lt;/span> &lt;span class="n">Hjava_lang_String&lt;/span> &lt;span class="o">*);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">ifdef&lt;/span> &lt;span class="n">__cplusplus&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">endif&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">endif&lt;/span> &lt;span class="cm">/* _Included_ShowMsgBox */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">pragma&lt;/span> &lt;span class="nf">warning&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="k">default&lt;/span>&lt;span class="o">:&lt;/span>&lt;span class="mi">4510&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">pragma&lt;/span> &lt;span class="nf">warning&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="k">default&lt;/span>&lt;span class="o">:&lt;/span>&lt;span class="mi">4512&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">#&lt;/span>&lt;span class="n">pragma&lt;/span> &lt;span class="nf">warning&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="k">default&lt;/span>&lt;span class="o">:&lt;/span>&lt;span class="mi">4610&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>除可读性较差外，代码里还隐藏着一些技术性问题，待我一一道来。&lt;/p>
+&lt;p>在 RNI 中，固有方法的程序员知道对象的二进制布局。这样便允许我们直接访问自己希望的信息；我们不必象在 JNI 里那样获得一个字段或方法标识符。但由于并非所有虚拟机都需要将相同的二进制布局应用于自己的对象，所以上面的固有方法只能在 Microsoft JVM 下运行。&lt;/p>
+&lt;p>在 JNI 中，通过 JNIEnv 自变量可访问大量函数，以便同 JVM 打交道。在 RNI 中，用于控制 JVM 运作的函数变成了可直接调用。它们中的某一些（如控制异常的那一个）类似于它们的 JNI“兄弟”。但大多数 RNI 函数都有与 JNI 中不同的名字和用途。&lt;/p>
+&lt;p>JNI 和 RNI 最重大的一个区别是“垃圾收集”的模型。在 JNI 中，垃圾收集在固有方法执行期间遵守与 Java 代码执行时相同的规则。而在 RNI 中，要由程序员在固有方法活动期间自行负责“垃圾收集器”器的启动与中止。默认情况下，垃圾收集器在进入固有方法前处于不活动状态；这样一来，程序员就可假定准备使用的对象用不着在那个时间段内进行垃圾收集。然而一旦固有方法准备长时间执行，程序员就应考虑激活垃圾收集器——通过调用 GCEnable()这个 RNI 函数（GC 是“Garbage Collector”的缩写，即“垃圾收集”）。
+也存在与全局指针特性类似的机制——程序员可利用可保证特定的对象在 GC 活动期间不至于被当作“垃圾”收掉。概念是类似的，但名称有所差异——在 RNI 中，人们把它叫作 GCFrames。&lt;/p>
+&lt;p>A.4.1 RNI 总结&lt;/p>
+&lt;p>RNI 与 Microsoft JVM 紧密集成这一事实既是它的优点，也是它的缺点。RNI 比 JNI 复杂得多，但它也为我们提供了对 JVM 内部活动的高度控制；其中包括垃圾收集。此外，它显然针对速度进行了优化，采纳了 C 程序员熟悉的一些折衷方案和技术。但除了微软的 JVM 之外，它并不适于其他 JVM。&lt;/p>
+&lt;p>A.5 Java/COM 集成&lt;/p>
+&lt;p>COM（以前称为 OLE）代表微软公司的“组件对象模型”（Component Object Model），它是所有 ActiveX 技术（包括 ActiveX 控件、Automation 以及 ActiveX 文档）的基础。但 COM 还包含了更多的东西。它是一种特殊的规范，按照它开发出来的组件对象可通过操作系统的专门特性实现“相互操作”。在实际应用中，为 Win32 系统开发的所有新软件都与 COM 有着一定的关系——操作系统通过 COM 对象揭示出自己的一些特性。由其他厂商开发的组件也可以建立在 COM 的基础上，我们能创建和注册自己的 COM 组件。通过这样或那样的形式，如果我们想编写 Win32 代码，那么必须和 COM 打交道。在这里，我们将仅仅重述 COM 编程的基本概念，而且假定读者已掌握了 COM 服务器（能为 COM 客户提供服务的任何 COM 对象）以及 COM 客户（能从 COM 服务器那里申请服务的一个 COM 对象）的概念。本节将尽可能地使叙述变得简单。工具实际的功能要强大得多，而且我们可通过更高级的途径来使用它们。但这也要求对 COM 有着更深刻的认识，那已经超出了本附录的范围。如果您对这个功能强大、但与不同平台有关的特性感兴趣，应该研究 COM 和微软公司的文档资料，仔细阅读有关 Java/COM 集成的那部分内容。如果想获得更多的资料，向您推荐 Dale Rogerson 编著的《Inside COM》，该书由 Microsoft Press 于 1997 年出版。&lt;/p>
+&lt;p>由于 COM 是所有新型 Win32 应用程序的结构核心，所以通过 Java 代码使用（或揭示）COM 服务的能力就显得尤为重要。Java/COM 集成无疑是 Microsoft Java 编译器以及虚拟机最有趣的特性。Java 和 COM 在它们的模型上是如此相似，所以这个集成在概念上是相当直观的，而且在技术上也能轻松实现无缝结合——为访问 COM，几乎不需要编写任何特殊的代码。大多数技术细节都是由编译器和／或虚拟机控制的。最终的结果便是 Java 程序员可象对待原始 Java 对象那样对待 COM 对象。而且 COM 客户可象使用其他 COM 服务器那样使用由 Java 实现的 COM 服务器。在这里提醒大家，尽管我使用的是通用术语“COM”，但根据扩展，完全可用 Java 实现一个 ActiveX Automation 服务器，亦可在 Java 程序中使用一个 ActiveX 控件。&lt;/p>
+&lt;p>Java 和 COM 最引人注目的相似之处就是 COM 接口与 Java 的“interface”关键字的关系。这是接近完美的一种相符，因为：&lt;/p>
+&lt;p>■COM 对象揭示出了接口（也只有接口）&lt;/p>
+&lt;p>■COM 接口本身并不具备实施方案；要由揭示出接口的那个 COM 对象负责它的实施&lt;/p>
+&lt;p>■COM 接口是对语义上相关的一组函数的说明；不会揭示出任何数据&lt;/p>
+&lt;p>■COM 类将 COM 接口组合到了一起。Java 类可实现任意数量的 Java 接口。&lt;/p>
+&lt;p>■COM 有一个引用对象模型；程序员永远不可能“拥有”一个对象，只能获得对对象一个或多个接口的引用。Java 也有一个引用对象模型——对一个对象的引用可“造型”成对它的某个接口的引用。&lt;/p>
+&lt;p>■COM 对象在内存里的“生存时间”取决于使用对象的客户数量；若这个数量变成零，对象就会将自己从内存中删去。在 Java 中，一个对象的生存时间也由客户的数量决定。若不再有对那个对象的引用，对象就会等候垃圾收集器的处理。&lt;/p>
+&lt;p>Java 与 COM 之间这种紧密的对应关系不仅使 Java 程序员可以方便地访问 COM 特性，也使 Java 成为编写 COM 代码的一种有效语言。COM 是与语言无关的，但 COM 开发事实上采用的语言是 C++和 Visual Basic。同 Java 相比，C++在进行 COM 开发时显得更加强大，并可生成更有效的代码，只是它很难使用。Visual Basic 比 Java 简单得多，但它距离基础操作系统太远了，而且它的对象模型并未实现与&lt;/p>
+&lt;p>COM 很好的对应（映射）关系。Java 是两者之间一种很好的折衷方案。
+接下来，让我们对 COM 开发的一些关键问题进行讨论。编写 Java/COM 客户和服务器时，这些问题是首先需要弄清楚的。&lt;/p>
+&lt;p>A.5.1 COM 基础&lt;/p>
+&lt;p>COM 是一种二进制规范，致力于实施可相互操作的对象。例如，COM 认为一个对象的二进制布局必须能够调用另一个 COM 对象里的服务。由于是对二进制布局的一种描述，所以只要某种语言能生成这样的一种布局，就可通过它实现 COM 对象。通常，程序员不必关注象这样的一些低级细节，因为编译器可自动生成正确的布局。例如，假设您的程序是用 C++写的，那么大多数编译器都能生成符合 COM 规范的一张虚拟函数表格。对那些不生成可执行代码的语言，比如 VB 和 Java，在运行期则会自动挂接到 COM。
+COM 库也提供了几个基本的函数，比如用于创建对象或查找系统中一个已注册 COM 类的函数。&lt;/p>
+&lt;p>一个组件对象模型的基本目标包括：&lt;/p>
+&lt;p>■ 让对象调用其他对象里的服务&lt;/p>
+&lt;p>■ 允许新类型对象（或更新对象）无缝插入环境&lt;/p>
+&lt;p>第一点正是面向对象程序设计要解决的问题：我们有一个客户对象，它能向一个服务器对象发出请求。在这种情况下，“客户”和“服务器”这两个术语是在常规意义上使用的，并非指一些特定的硬件配置。对于任何面向对象的语言，第一个目标都是很容易达到的——只要您的代码是一个完整的代码块，同时实现了服务器对象代码以及客户对象代码。若改变了客户和服务器对象相互间的沟通形式，只需简单地重新编译和链接一遍即可。重新启动应用程序时，它就会自动采用组件的最新版本。&lt;/p>
+&lt;p>但假若应用程序由一些未在自己控制之下的组件对象构成，情况就会变得迥然有异——我们不能控制它们的源码，而且它们的更新可能完全独立于我们的应用程序进行。例如，当我们在自己的程序里使用由其他厂商开发的 ActiveX 控件时，就会面临这一情况。控件会安装到我们的系统里，我们的程序能够（在运行期）定位服务器代码，激活对象，同它建立链接，然后使用它。以后，我们可安装控件的新版本，我们的应用程序应该仍然能够运行；即使在最糟的情况下，它也应礼貌地报告一条出错消息，比如“控件未找到”等等；一般不会莫名其妙地挂起或死机。&lt;/p>
+&lt;p>在这些情况下，我们的组件是在独立的可执行代码文件里实现的：DLL 或 EXE。若服务器对象在一个独立的可执行代码文件里实现，就需要由操作系统提供的一个标准方法，从而激活这些对象。当然，我们并不想在自己的代码里使用 DLL 或 EXE 的物理名称及位置，因为这些参数可能经常发生变化。此时，我们想使用的是由操作系统维护的一些标识符。另外，我们的应用程序需要对服务器展示出来的服务进行的一个描述。下面这两个小节将分别讨论这两个问题。&lt;/p>
+&lt;h5 id="1-guid-和注册表">1. GUID 和注册表&lt;/h5>
+&lt;p>COM 采用结构化的整数值（长度为 128 位）唯一性地标识系统中注册的 COM 项目。这些数字的正式名称叫作 GUID（Globally Unique IDentifier，全局唯一标识符），可由特殊的工具生成。此外，这些数字可以保证在“任何空间和时间”里独一无二，没有重复。在空间，是由于数字生成器会读取网卡的 ID 号码；在时间，是由于同时会用到系统的日期和时间。可用 GUID 标识 COM 类（此时叫作 CLSID）或者 COM 接口（IID）。尽管名字不同，但基本概念与二进制结构都是相同的。GUID 亦可在其他环境中使用，这里不再赘述。&lt;/p>
+&lt;p>GUID 以及相关的信息都保存在 Windows 注册表中，或者说保存在“注册数据库”（Registration Database）中。这是一种分级式的数据库，内建于操作系统中，容纳了与系统软硬件配置有关的大量信息。对于 COM，注册表会跟踪系统内安装的组件，比如它们的 CLSID、实现它们的可执行文件的名字及位置以及其他大量细节。其中一个比较重要的细节是组件的 ProgID；ProgID 在概念上类似于 GUID，因为它们都标识着一个 COM 组件。区别在于 GUID 是一个二进制的、通过算法生成的值。而 ProgID 则是由程序员定义的字串值。ProgID 是随同一个 CLSID 分配的。&lt;/p>
+&lt;p>我们说一个 COM 组件已在系统内注册，最起码的一个条件就是它的 CLSID 和它的执行文件已存在于注册表中（ProgID 通常也已就位）。在后面的例子里，我们主要任务就是注册与使用 COM 组件。&lt;/p>
+&lt;p>注册表的一项重要特点就是它作为客户和服务器对象之间的一个去耦层使用。利用注册表内保存的一些信息，客户会激活服务器；其中一项信息是服务器执行模块的物理位置。若这个位置发生了变动，注册表内的信息就会相应地更新。但这个更新过程对于客户来说是“透明”或者看不见的。后者只需直接使用 ProgID 或 CLSID 即可。换句话说，注册表使服务器代码的位置透明成为了可能。随着 DCOM（分布式 COM）的引入，在本地机器上运行的一个服务器甚至可移到网络中的一台远程机器，整个过程甚至不会引起客户对它的丝毫注意（大多数情况下如此）。&lt;/p>
+&lt;h5 id="2-类型库">2. 类型库&lt;/h5>
+&lt;p>由于 COM 具有动态链接的能力，同时由于客户和服务器代码可以分开独立发展，所以客户随时都要动态侦测由服务器展示出来的服务。这些服务是用“类型库”（Type Library）中一种二进制的、与语言无关的形式描述的（就象接口和方法签名）。它既可以是一个独立的文件（通常采用.TLB 扩展名），也可以是链接到执行程序内部的一种 Win32 资源。运行期间，客户会利用类型库的信息调用服务器中的函数。&lt;/p>
+&lt;p>我们可以写一个 Microsoft Interface Definition Language（微软接口定义语言，MIDL）源文件，用 MIDL 编译器编译它，从而生成一个.TLB 文件。MIDL 语言的作用是对 COM 类、接口以及方法进行描述。它在名称、语法以及用途上都类似 OMB/CORBA IDL。然而，Java 程序员不必使用 MIDL。后面还会讲到另一种不同的 Microsoft 工具，它能读入 Java 类文件，并能生成一个类型库。&lt;/p>
+&lt;h5 id="3-comhresult-中的函数返回代码">3. COM:HRESULT 中的函数返回代码&lt;/h5>
+&lt;p>由服务器展示出来的 COM 函数会返回一个值，采用预先定义好的 HRESULT 类型。HRESULT 代表一个包含了三个字段的整数。这样便可使用多个失败和成功代码，同时还可以使用其他信息。由于 COM 函数返回的是一个 HRESULT，所以不能用返回值从函数调用里取回原始数据。若必须返回数据，可传递指向一个内存区域的指针，函数将在那个区域里填充数据。我们把这称为“外部参数”。作为 Java/COM 程序员，我们不必过于关注这个问题，因为虚拟机会帮助我们自动照管一切。这个问题将在后续的小节里讲述。&lt;/p>
+&lt;p>A.5.2 MS Java/COM 集成&lt;/p>
+&lt;p>同 C++/COM 程序员相比，Microsoft Java 编译器、虚拟机以及各式各样的工具极大简化了 Java/COM 程序员的工作。编译器有特殊的引导命令和包，可将 Java 类当作 COM 类对待。但在大多数情况下，我们只需依赖 Microsoft JVM 为 COM 提供的支持，同时利用两个有力的外部工具。&lt;/p>
+&lt;p>Microsoft Java Virtual Machine（JVM）在 COM 和 Java 对象之间扮演了一座桥梁的角色。若将 Java 对象创建成一个 COM 服务器，那么我们的对象仍然会在 JVM 内部运行。Microsoft JVM 是作为一个 DLL 实现的，它向操作系统展示出了 COM 接口。在内部，JVM 将对这些 COM 接口的函数调用映射成 Java 对象中的方法调用。当然，JVM 必须知道哪个 Java 类文件对应于服务器执行模块；之所以能够找出这方面的信息，是由于我们事前已用 Javareg 在 Windows 注册表内注册了类文件。Javareg 是与 Microsoft Java SDK 配套提供的一个工具程序，能读入一个 Java 类文件，生成相应的类型库以及一个 GUID，并可将类注册到系统内。亦可用 Javareg 注册远程服务器。例如，可用它注册在不同机器上运行的一个服务器。&lt;/p>
+&lt;p>如果想写一个 Java/COM 客户，必须经历一系列不同的步骤。Java/COM“客户”是一些特殊的 Java 代码，它们想激活和使用系统内注册的一个 COM 服务器。同样地，虚拟机会与 COM 服务器沟通，并将它提供的服务作为 Java 类内的各种方法展示（揭示）出来。另一个 Microsoft 工具是 jactivex，它能读取一个类型库，并生成相应的 Java 源文件，在其中包含特殊的编译器引导命令。生成的源文件属于我们在指定类型库之后命名的一个包的一部分。下一步是在自己的 COM 客户 Java 源文件中导入那个包。&lt;/p>
+&lt;p>接下来让我们讨论两个例子。&lt;/p>
+&lt;p>A.5.3 用 Java 设计 COM 服务器&lt;/p>
+&lt;p>本节将介绍 ActiveX 控件、Automation 服务器或者其他任何符合 COM 规范的服务器的开发过程。下面这个例子实现了一个简单的 Automation 服务器，它能执行整数加法。我们用 setAddend()方法设置 addend 的值。每次调用 sum()方法的时候，addend 就会添加到当前 result 里。我们用 getResult()获得 result 值，并用 clear()重新设置值。用于实现这一行为的 Java 类是非常简单的：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">Adder&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">addend&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">result&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">setAddend&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">a&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span> &lt;span class="n">addend&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">a&lt;/span>&lt;span class="o">;&lt;/span> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="nf">getAddend&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span> &lt;span class="k">return&lt;/span> &lt;span class="n">addend&lt;/span>&lt;span class="o">;&lt;/span> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="nf">getResult&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span> &lt;span class="k">return&lt;/span> &lt;span class="n">result&lt;/span>&lt;span class="o">;&lt;/span> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">sum&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span> &lt;span class="n">result&lt;/span> &lt;span class="o">+=&lt;/span> &lt;span class="n">addend&lt;/span>&lt;span class="o">;&lt;/span> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">clear&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">result&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">addend&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>为了将这个 Java 类作为一个 COM 对象使用，我们将 Javareg 工具应用于编译好的 Adder.class 文件。这个工具提供了一系列选项；在这种情况下，我们指定 Java 类文件名（&amp;ldquo;Adder&amp;rdquo;），想为这个服务器在注册表里置入的 ProgID（&amp;ldquo;JavaAdder.Adder.1&amp;rdquo;），以及想为即将生成的类型库指定的名字（&amp;ldquo;JavaAdder.tlb&amp;rdquo;）。由于尚未给出 CLSID，所以 Javareg 会自动生成一个。若我们再次对同样的服务器调用 Javareg，就会直接使用现成的 CLSID。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">javareg&lt;/span> &lt;span class="o">/&lt;/span>&lt;span class="n">register&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">/&lt;/span>&lt;span class="n">class&lt;/span>&lt;span class="o">:&lt;/span>&lt;span class="n">Adder&lt;/span> &lt;span class="o">/&lt;/span>&lt;span class="n">progid&lt;/span>&lt;span class="o">:&lt;/span>&lt;span class="n">JavaAdder&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">Adder&lt;/span>&lt;span class="mf">.1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">/&lt;/span>&lt;span class="n">typelib&lt;/span>&lt;span class="o">:&lt;/span>&lt;span class="n">JavaAdder&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">tlb&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Javareg 也会将新服务器注册到 Windows 注册表。此时，我们必须记住将 Adder.class 复制到 Windows\Java\trustlib 目录。考虑到安全方面的原因（特别是涉及程序片调用 COM 服务的问题），只有在 COM 服务器已安装到 trustlib 目录的前提下，这些服务器才会被激活。&lt;/p>
+&lt;p>现在，我们已在自己的系统中安装了一个新的 Automation 服务器。为进行测试，我们需要一个 Automation 控制器，而 Automation 控制器就是 Visual Basic（VB）。在下面，大家会看到几行 VB 代码。按照 VB 的格式，我设置了一个文本框，用它从用户那里接收要相加的值。并用一个标签显示结果，用两个下推按钮分别调用 sum()和 clear()方法。最开始，我们声明了一个名为 Adder 的对象变量。在 Form_Load 子例程中（在窗体首次显示时载入），会调用 Adder 自动服务器的一个新实例，并对窗体的文本字段进行初始化。一旦用户按下“Sum”或者“Clear”按钮，就会调用服务器中对应的方法。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">Dim&lt;/span> &lt;span class="n">Adder&lt;/span> &lt;span class="n">As&lt;/span> &lt;span class="n">Object&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">Private&lt;/span> &lt;span class="n">Sub&lt;/span> &lt;span class="nf">Form_Load&lt;/span>&lt;span class="o">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Set&lt;/span> &lt;span class="n">Adder&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">CreateObject&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;JavaAdder.Adder.1&amp;#34;&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Addend&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">Text&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">Adder&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getAddend&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Result&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">Caption&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">Adder&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getResult&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">End&lt;/span> &lt;span class="n">Sub&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">Private&lt;/span> &lt;span class="n">Sub&lt;/span> &lt;span class="nf">SumBtn_Click&lt;/span>&lt;span class="o">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Adder&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">setAddend&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">Addend&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">Text&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Adder&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">Sum&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Result&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">Caption&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">Adder&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getResult&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">End&lt;/span> &lt;span class="n">Sub&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">Private&lt;/span> &lt;span class="n">Sub&lt;/span> &lt;span class="nf">ClearBtn_Click&lt;/span>&lt;span class="o">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Adder&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">Clear&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Addend&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">Text&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">Adder&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getAddend&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Result&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">Caption&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">Adder&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getResult&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">End&lt;/span> &lt;span class="n">Sub&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>注意，这段代码根本不知道服务器是用 Java 实现的。&lt;/p>
+&lt;p>运行这个程序并调用了 CreateObject()函数以后，就会在 Windows 注册表里搜索指定的 ProgID。在与 ProgID 有关的信息中，最重要的是 Java 类文件的名字。作为一个响应，会启动 Java 虚拟机，而且在 JVM 内部调用 Java 对象的实例。从那个时候开始，JVM 就会自动接管客户和服务器代码之间的交流。&lt;/p>
+&lt;p>A.5.4 用 Java 设计 COM 客户&lt;/p>
+&lt;p>现在，让我们转到另一侧，并用 Java 开发一个 COM 客户。这个程序会调用系统已安装的 COM 服务器内的服务。就目前这个例子来说，我们使用的是在前一个例子里为服务器实现的一个客户。尽管代码在 Java 程序员的眼中看起来比较熟悉，但在幕后发生的一切却并不寻常。本例使用了用 Java 写成的一个服务器，但它可应用于系统内安装的任何 ActiveX 控件、ActiveX Automation 服务器或者 ActiveX 组件——只要我们有一个类型库。&lt;/p>
+&lt;p>首先，我们将 Jactivex 工具应用于服务器的类型库。Jactivex 有一系列选项和开关可供选择。但它最基本的形式是读取一个类型库，并生成 Java 源文件。这个源文件保存于我们的 windows/java/trustlib 目录中。通过下面这行代码，它应用于为外部 COM Automation 服务器生成的类型库：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">jactivex&lt;/span> &lt;span class="o">/&lt;/span>&lt;span class="n">javatlb&lt;/span> &lt;span class="n">JavaAdder&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">tlb&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Jactivex 完成以后，我们再来看看自己的 windows/java/trustlib 目录。此时可在其中看到一个新的子目录，名为 javaadder。这个目录包含了用于新包的源文件。这是在 Java 里与类型库的功能差不多的一个库。这些文件需要使用 Microsoft 编译器的专用引导命令：@com。jactivex 生成多个文件的原因是 COM 使用多个实体来描述一个 COM 服务器（另一个原因是我没有对 MIDL 文件和 Java/COM 工具的使用进行细致的调整）。&lt;/p>
+&lt;p>名为 Adder.java 的文件等价于 MIDL 文件中的一个 coclass 引导命令：它是对一个 COM 类的声明。其他文件则是由服务器揭示出来的 COM 接口的 Java 等价物。这些接口（比如 Adder_DispatchDefault.java）都属于“遣送”（Dispatch）接口，属于 Automation 控制器与 Automation 服务器之间的沟通机制的一部分。Java/COM 集成特性也支持双接口的实现与使用。但是，IDispatch 和双接口的问题已超出了本附录的范围。&lt;/p>
+&lt;p>在下面，大家可看到对应的客户代码。第一行只是导入由 jactivex 生成的包。然后创建并使用 COM Automation 服务器的一个实例，就象它是一个原始的 Java 类那样。请注意行内的类型模型，其中“例示”了 COM 对象（即生成并调用它的一个实例）。这与 COM 对象模型是一致的。在 COM 中，程序员永远不会得到对整个对象的一个引用。相反，他们只能拥有对类内实现的一个或多个接口的引用。&lt;/p>
+&lt;p>“例示”Adder 类的一个 Java 对象以后，就相当于指示 COM 激活服务器，并创建这个 COM 对象的一个实例。但我们随后必须指定自己想使用哪个接口，在由服务器实现的接口中挑选一个。这正是类型模型完成的工作。这儿使用的是“默认遣送”接口，它是 Automation 控制器用于同一个 Automation 服务器通信的标准接口。欲了解这方面的细节，请参考由 Ibid 编著的《Inside COM》。请注意激活服务器并选择一个 COM 接口是多么容易！&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kn">import&lt;/span> &lt;span class="nn">javaadder.*&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">JavaClient&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="o">[]&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Adder_DispatchDefault&lt;/span> &lt;span class="n">iAdder&lt;/span> &lt;span class="o">=&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">(&lt;/span>&lt;span class="n">Adder_DispatchDefault&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">Adder&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">iAdder&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">setAddend&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">iAdder&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">sum&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">iAdder&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">sum&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">iAdder&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">sum&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">iAdder&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getResult&lt;/span>&lt;span class="o">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>现在，我们可以编译它，并开始运行程序。&lt;/p>
+&lt;h5 id="1-commscom-包">1. com.ms.com 包&lt;/h5>
+&lt;p>com.ms.com 包为 COM 的开发定义了数量众多的类。它支持 GUID 的使用——Variant（变体）和 SafeArray Automation（安全数组自动）类型——能与 ActiveX 控件在一个较深的层次打交道，并可控制 COM 异常。&lt;/p>
+&lt;p>由于篇幅有限，这里不可能涉及所有这些主题。但我想着重强调一下 COM 异常的问题。根据规范，几乎所有 COM 函数都会返回一个 HRESULT 值，它告诉我们函数调用是否成功，以及失败的原因。但若观察服务器和客户代码中的 Java 方法签名，就会发现没有 HRESULT。相反，我们用函数返回值从一些函数那里取回数据。“虚拟机”（VM）会将 Java 风格的函数调用转换成 COM 风格的函数调用，甚至包括返回参数。但假若我们在服务器里调用的一个函数在 COM 这一级失败，又会在虚拟机里出现什么事情呢？在这种情况下，JVM 会认为 HRESULT 值标志着一次失败，并会产生类 com.ms.com.ComFailException 的一个固有 Java 异常。这样一来，我们就可用 Java 异常控制机制来管理 COM 错误，而不是检查函数的返回值。
+如欲深入了解这个包内包含的类，请参考微软公司的产品文档。&lt;/p>
+&lt;p>A.5.5 ActiveX/Beans 集成&lt;/p>
+&lt;p>Java/COM 集成一个有趣的结果就是 ActiveX/Beans 的集成。也就是说，Java Bean 可包含到象 VB 或任何一种 Microsoft Office 产品那样的 ActiveX 容器里。而一个 ActiveX 控件可包含到象 Sun BeanBox 这样的 Beans 容器里。Microsoft JVM 会帮助我们考虑到所有的细节。一个 ActiveX 控件仅仅是一个 COM 服务器，它展示了预先定义好的、请求的接口。Bean 只是一个特殊的 Java 类，它遵循特定的编程风格。但在写作本书的时候，这一集成仍然不能算作完美。例如，虚拟机不能将 JavaBeans 事件映射成为 COM 事件模型。若希望从 ActiveX 容器内部的一个 Bean 里对事件加以控制，Bean 必须通过低级技术拦截象鼠标行动这类的系统事件，不能采用标准的 JavaBeans 委托事件模型。&lt;/p>
+&lt;p>抛开这个问题不管，ActiveX/Beans 集成仍然是非常有趣的。由于牵涉的概念与工具与上面讨论的完全相同，所以请参阅您的 Microsoft 文档，了解进一步的细节。&lt;/p>
+&lt;p>A.5.6 固有方法与程序片的注意事项&lt;/p>
+&lt;p>固有方法为我们带来了安全问题的一些考虑。若您的 Java 代码发出对一个固有方法的调用，就相当于将控制权传递到了虚拟机“体系”的外面。固有方法拥有对操作系统的完全访问权限！当然，如果由自己编写固有方法，这正是我们所希望的。但这对程序片来说却是不可接受的——至少不能默许这样做。我们不想看到从因特网远程服务器下载回来的一个程序片自由自在地操作文件系统以及机器的其他敏感区域，除非特别允许它这样做。为了用 J/Direct，RNI 和 COM 集成防止此类情况的发生，只有受到信任（委托）的 Java 代码才有权发出对固有方法的调用。根据程序片的具体使用，必须满足不同的条件才可放行。例如，使用 J/Direct 的一个程序片必须拥有数字化签名，指出自己受到完全信任。在写作本书的时候，并不是所有这些安全机制都已实现（对于 Microsoft SDK for Java，beta 2 版本）。所以当新版本出现以后，请务必留意它的文档说明。&lt;/p>
+&lt;p>A.6 CORBA&lt;/p>
+&lt;p>在大型的分布式应用中，我们的某些要求并非前面讲述的方法能够满足的。举个例子来说，我们可能想同以前遗留下来的数据仓库打交道，或者需要从一个服务器对象里获取服务，无论它的物理位置在哪里。在这些情况下，都要求某种形式的“远程过程调用”（RPC），而且可能要求与语言无关。此时，CORBA 可为我们提供很大的帮助。
+CORBA 并非一种语言特性，而是一种集成技术。它代表着一种具体的规范，各个开发商通过遵守这一规范，可设计出符合 CORBA 标准的集成产品。CORBA 规范是由 OMG 开发出来的。这家非赢利性的机构致力于定义一个标准框架，从而实现分布式、与语言无关对象的相互操作。
+利用 CORBA，我们可实现对 Java 对象以及非 Java 对象的远程调用，并可与传统的系统进行沟通——采用一种“位置透明”的形式。Java 增添了连网支持，是一种优秀的“面向对象”程序设计语言，可构建出图形化和非图形化的应用（程序）。Java 和 OMG 对象模型存在着很好的对应关系；例如，无论 Java 还是 CORBA 都实现了“接口”的概念，并且都拥有一个引用（参考）对象模型。&lt;/p>
+&lt;p>A.6.1 CORBA 基础&lt;/p>
+&lt;p>由 OMG 制订的对象相互操作规范通常称为“对象管理体系”（ObjectManagement Architecture，OMA）。OMA 定义了两个组件：“核心对象模型”（Core Object Model）和“OMA 参考体系”（OMA Reference Model）。OMA 参考体系定义了一套基层服务结构及机制，实现了对象相互间进行操作的能力。OMA 参考体系包括“对象请求代理”（Object Request Broker，ORB）、“对象服务”（Object Services，也称作 CORBAservices）以及一些通用机制。&lt;/p>
+&lt;p>ORB 是对象间相互请求的一条通信总线。进行请求时，毋需关心对方的物理位置在哪里。这意味着在客户代码中看起来象一次方案调用的过程实际是非常复杂的一次操作。首先，必须存在与服务器对象的一条连接途径。而且为了创建一个连接，ORB 必须知道具体实现服务器的代码存放在哪里。建好连接后，必须对方法自变量进行“汇集”。例如，将它们转换到一个二进制流里，以便通过网络传送。必须传递的其他信息包括服务器的机器名称、服务器进程以及对那个进程内的服务器对象进行标识的信息等等。最后，这些信息通过一种低级线路协议传递，信息在服务器那一端解码，最后正式执行调用。ORB 将所有这些复杂的操作都从程序员眼前隐藏起来了，并使程序员的工作几乎和与调用本地对象的方法一样简单。&lt;/p>
+&lt;p>并没有硬性规定应如何实现 ORB 核心，但为了在不同开发商的 ORB 之间实现一种基本的兼容，OMG 定义了一系列服务，它们可通过标准接口访问。&lt;/p>
+&lt;h5 id="1-corba-接口定义语言idl">1. CORBA 接口定义语言（IDL）&lt;/h5>
+&lt;p>CORBA 是面向语言的透明而设计的：一个客户对象可调用属于不同类的服务器对象方法，无论对方是用何种语言实现的。当然，客户对象事先必须知道由服务器对象揭示的方法名称及签名。这时便要用到 IDL。CORBA IDL 是一种与语言无关的设计方法，可用它指定数据类型、属性、操作、接口以及更多的东西。IDL 的语法类似于 C++或 Java 语法。下面这张表格为大家总结了三种语言一些通用概念，并展示了它们的对应关系。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">CORBA&lt;/span> &lt;span class="n">IDL&lt;/span> &lt;span class="n">Java&lt;/span> &lt;span class="n">C&lt;/span>&lt;span class="o">++&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="err">模块（&lt;/span>&lt;span class="n">Module&lt;/span>&lt;span class="err">）&lt;/span> &lt;span class="err">包（&lt;/span>&lt;span class="n">Package&lt;/span>&lt;span class="err">）&lt;/span> &lt;span class="err">命名空间（&lt;/span>&lt;span class="n">Namespace&lt;/span>&lt;span class="err">）&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">接口（&lt;/span>&lt;span class="n">Interface&lt;/span>&lt;span class="err">）&lt;/span> &lt;span class="err">接口（&lt;/span>&lt;span class="n">Interface&lt;/span>&lt;span class="err">）&lt;/span> &lt;span class="err">纯抽象类（&lt;/span>&lt;span class="n">Pure&lt;/span> &lt;span class="kd">abstract&lt;/span> &lt;span class="n">class&lt;/span>&lt;span class="err">）&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">方法（&lt;/span>&lt;span class="n">Method&lt;/span>&lt;span class="err">）&lt;/span> &lt;span class="err">方法（&lt;/span>&lt;span class="n">Method&lt;/span>&lt;span class="err">）&lt;/span> &lt;span class="err">成员函数（&lt;/span>&lt;span class="n">Member&lt;/span> &lt;span class="n">function&lt;/span>&lt;span class="err">）&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>继承概念也获得了支持——就象 C++那样，同样使用冒号运算符。针对需要由服务器和客户实现和使用的属性、方法以及接口，程序员要写出一个 IDL 描述。随后，IDL 会由一个由厂商提供的 IDL/Java 编译器进行编译，后者会读取 IDL 源码，并生成相应的 Java 代码。
+IDL 编译器是一个相当有用的工具：它不仅生成与 IDL 等价的 Java 源码，也会生成用于汇集方法自变量的代码，并可发出远程调用。我们将这种代码称为“根干”（Stub and Skeleton）代码，它组织成多个 Java 源文件，而且通常属于同一个 Java 包的一部分。&lt;/p>
+&lt;h5 id="2-命名服务">2. 命名服务&lt;/h5>
+&lt;p>命名服务属于 CORBA 基本服务之一。CORBA 对象是通过一个引用访问的。尽管引用信息用我们的眼睛来看没什么意义，但可为引用分配由程序员定义的字串名。这一操作叫作“引用的字串化”。一个叫作“命名服务”（Naming Service）的 OMA 组件专门用于执行“字串到对象”以及“对象到字串”转换及映射。由于命名服务扮演了服务器和客户都能查询和操作的一个电话本的角色，所以它作为一个独立的进程运行。创建“对象到字串”映射的过程叫作“绑定一个对象”；删除映射关系的过程叫作“取消绑定”；而让对象引用传递一个字串的过程叫作“解析名称”。&lt;/p>
+&lt;p>比如在启动的时候，服务器应用可创建一个服务器对象，将对象同命名服务绑定起来，然后等候客户发出请求。客户首先获得一个服务器引用，解析出字串名，然后通过引用发出对服务器的调用。&lt;/p>
+&lt;p>同样地，“命名服务”规范也属于 CORBA 的一部分，但实现它的应用程序是由 ORB 厂商（开发商）提供的。由于厂商不同，我们访问命名服务的方式也可能有所区别。&lt;/p>
+&lt;p>A.6.2 一个例子&lt;/p>
+&lt;p>这儿显示的代码可能并不详尽，因为不同的 ORB 有不同的方法来访问 CORBA 服务，所以无论什么例子都要取决于具体的厂商（下例使用了 JavaIDL，这是 Sun 公司的一个免费产品。它配套提供了一个简化版本的 ORB、一个命名服务以及一个“IDL→Java”编译器）。除此之外，由于 Java 仍处在发展初期，所以在不同的 Java/CORBA 产品里并不是包含了所有 CORBA 特性。
+我们希望实现一个服务器，令其在一些机器上运行，其他机器能向它查询正确的时间。我们也希望实现一个客户，令其请求正确的时间。在这种情况下，我们让两个程序都用 Java 实现。但在实际应用中，往往分别采用不同的语言。&lt;/p>
+&lt;h5 id="1-编写-idl-源码">1. 编写 IDL 源码&lt;/h5>
+&lt;p>第一步是为提供的服务编写一个 IDL 描述。这通常是由服务器程序员完成的。随后，程序员就可用任何语言实现服务器，只需那种语言里存在着一个 CORBA IDL 编译器。
+IDL 文件已分发给客户端的程序员，并成为两种语言间的桥梁。
+下面这个例子展示了时间服务器的 IDL 描述情况：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">module&lt;/span> &lt;span class="n">RemoteTime&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">interface&lt;/span> &lt;span class="nc">ExactTime&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">string&lt;/span> &lt;span class="nf">getTime&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">};&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这是对 RemoteTime 命名空间内的 ExactTime 接口的一个声明。该接口由单独一个方法构成，它以字串格式返回当前时间。&lt;/p>
+&lt;h5 id="2-创建根干">2. 创建根干&lt;/h5>
+&lt;p>第二步是编译 IDL，创建 Java 根干代码。我们将利用这些代码实现客户和服务器。与 JavaIDL 产品配套提供的工具是 idltojava：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">idltojava&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">fserver&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">fclient&lt;/span> &lt;span class="n">RemoteTime&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">idl&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>其中两个标记告诉 idltojava 同时为根和干生成代码。idltojava 会生成一个 Java 包，它在 IDL 模块、RemoteTime 以及生成的 Java 文件置入 RemoteTime 子目录后命名。_ExactTimeImplBase.java 代表我们用于实现服务器对象的“干”；&lt;/p>
+&lt;p>而_ExactTimeStub.java 将用于客户。在 ExactTime.java 中，用 Java 方式表示了 IDL 接口。此外还包含了用到的其他支持文件，例如用于简化访问命名服务的文件。&lt;/p>
+&lt;h5 id="3-实现服务器和客户">3. 实现服务器和客户&lt;/h5>
+&lt;p>大家在下面看到的是服务器端使用的代码。服务器对象是在 ExactTimeServer 类里实现的。RemoteTimeServer 这个应用的作用是：创建一个服务器对象，通过 ORB 为其注册，指定对象引用时采用的名称，然后“安静”地等候客户发出请求。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kn">import&lt;/span> &lt;span class="nn">RemoteTime.*&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kn">import&lt;/span> &lt;span class="nn">org.omg.CosNaming.*&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kn">import&lt;/span> &lt;span class="nn">org.omg.CosNaming.NamingContextPackage.*&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kn">import&lt;/span> &lt;span class="nn">org.omg.CORBA.*&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kn">import&lt;/span> &lt;span class="nn">java.util.*&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kn">import&lt;/span> &lt;span class="nn">java.text.*&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// Server object implementation
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="kd">class&lt;/span> &lt;span class="nc">ExactTimeServer&lt;/span> &lt;span class="kd">extends&lt;/span> &lt;span class="n">_ExactTimeImplBase&lt;/span>&lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="nf">getTime&lt;/span>&lt;span class="o">(){&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">DateFormat&lt;/span>&lt;span class="o">.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">getTimeInstance&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">DateFormat&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">FULL&lt;/span>&lt;span class="o">).&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">format&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="k">new&lt;/span> &lt;span class="n">Date&lt;/span>&lt;span class="o">(&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">currentTimeMillis&lt;/span>&lt;span class="o">()));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// Remote application implementation
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">RemoteTimeServer&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="o">[])&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">try&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// ORB creation and initialization:
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">ORB&lt;/span> &lt;span class="n">orb&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">ORB&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">init&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">args&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kc">null&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// Create the server object and register it:
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">ExactTimeServer&lt;/span> &lt;span class="n">timeServerObjRef&lt;/span> &lt;span class="o">=&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">new&lt;/span> &lt;span class="n">ExactTimeServer&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">orb&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">connect&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">timeServerObjRef&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// Get the root naming context:
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">org&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">omg&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">CORBA&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">Object&lt;/span> &lt;span class="n">objRef&lt;/span> &lt;span class="o">=&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">orb&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">resolve_initial_references&lt;/span>&lt;span class="o">(&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s">&amp;#34;NameService&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">NamingContext&lt;/span> &lt;span class="n">ncRef&lt;/span> &lt;span class="o">=&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">NamingContextHelper&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">narrow&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">objRef&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// Assign a string name to the
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// object reference (binding):
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">NameComponent&lt;/span> &lt;span class="n">nc&lt;/span> &lt;span class="o">=&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">new&lt;/span> &lt;span class="n">NameComponent&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;ExactTime&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">NameComponent&lt;/span> &lt;span class="n">path&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="o">{&lt;/span>&lt;span class="n">nc&lt;/span>&lt;span class="o">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">ncRef&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">rebind&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">path&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">timeServerObjRef&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// Wait for client requests:
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">java&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">lang&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">Object&lt;/span> &lt;span class="n">sync&lt;/span> &lt;span class="o">=&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">new&lt;/span> &lt;span class="n">java&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">lang&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">Object&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">synchronized&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">sync&lt;/span>&lt;span class="o">){&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">sync&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">wait&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">catch&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">Exception&lt;/span> &lt;span class="n">e&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s">&amp;#34;Remote Time server error: &amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">e&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">e&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">printStackTrace&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>正如大家看到的那样，服务器对象的实现是非常简单的；它是一个普通的 Java 类，从 IDL 编译器生成的“干”代码中继承而来。但在与 ORB 以及其他 CORBA 服务进行联系的时候，情况却变得稍微有些复杂。&lt;/p>
+&lt;h5 id="4-一些-corba-服务">4. 一些 CORBA 服务&lt;/h5>
+&lt;p>这里要简单介绍一下 JavaIDL 相关代码所做的工作（注意暂时忽略了 CORBA 代码与不同厂商有关这一事实）。main()的第一行代码用于启动 ORB。而且理所当然，这正是服务器对象需要同它进行沟通的原因。就在 ORB 初始化以后，紧接着就创建了一个服务器对象。实际上，它正式名称应该是“短期服务对象”：从客户那里接收请求，“生存时间”与创建它的进程是相同的。创建好短期服务对象后，就会通过 ORB 对其进行注册。这意味着 ORB 已知道它的存在，可将请求转发给它。&lt;/p>
+&lt;p>到目前为止，我们拥有的全部东西就是一个 timeServerObjRef——只有在当前服务器进程里才有效的一个对象引用。下一步是为这个服务对象分配一个字串形式的名字。客户会根据那个名字寻找服务对象。我们通过命名服务（Naming Service）完成这一操作。首先，我们需要对命名服务的一个对象引用。通过调用 resolve_initial_references()，可获得对命名服务的字串式对象引用（在 JavaIDL 中是“NameService”），并将这个引用返回。这是对采用 narrow()方法的一个特定 NamingContext 引用的模型。我们现在可开始使用命名服务了。&lt;/p>
+&lt;p>为了将服务对象同一个字串形式的对象引用绑定在一起，我们首先创建一个 NameComponent 对象，用“ExactTime”进行初始化。“ExactTime”是我们想用于绑定服务对象的名称字串。随后使用 rebind()方法，这是受限于对象引用的字串化引用。我们用 rebind()分配一个引用——即使它已经存在。而假若引用已经存在，那么 bind()会造成一个异常。在 CORBA 中，名称由一系列 NameContext 构成——这便是我们为什么要用一个数组将名称与对象引用绑定起来的原因。&lt;/p>
+&lt;p>服务对象最好准备好由客户使用。此时，服务器进程会进入一种等候状态。同样地，由于它是一种“短期服务”，所以生存时间要受服务器进程的限制。JavaIDL 目前尚未提供对“持久对象”（只要创建它们的进程保持运行状态，对象就会一直存在下去）的支持。
+现在，我们已对服务器代码的工作有了一定的认识。接下来看看客户代码：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kn">import&lt;/span> &lt;span class="nn">RemoteTime.*&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kn">import&lt;/span> &lt;span class="nn">org.omg.CosNaming.*&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kn">import&lt;/span> &lt;span class="nn">org.omg.CORBA.*&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">RemoteTimeClient&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="o">[])&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">try&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// ORB creation and initialization:
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">ORB&lt;/span> &lt;span class="n">orb&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">ORB&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">init&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">args&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kc">null&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// Get the root naming context:
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">org&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">omg&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">CORBA&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">Object&lt;/span> &lt;span class="n">objRef&lt;/span> &lt;span class="o">=&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">orb&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">resolve_initial_references&lt;/span>&lt;span class="o">(&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s">&amp;#34;NameService&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">NamingContext&lt;/span> &lt;span class="n">ncRef&lt;/span> &lt;span class="o">=&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">NamingContextHelper&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">narrow&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">objRef&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// Get (resolve) the stringified object
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// reference for the time server:
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">NameComponent&lt;/span> &lt;span class="n">nc&lt;/span> &lt;span class="o">=&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">new&lt;/span> &lt;span class="n">NameComponent&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;ExactTime&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">NameComponent&lt;/span> &lt;span class="n">path&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="o">{&lt;/span>&lt;span class="n">nc&lt;/span>&lt;span class="o">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">ExactTime&lt;/span> &lt;span class="n">timeObjRef&lt;/span> &lt;span class="o">=&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">ExactTimeHelper&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">narrow&lt;/span>&lt;span class="o">(&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">ncRef&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">resolve&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">path&lt;/span>&lt;span class="o">));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// Make requests to the server object:
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="n">exactTime&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">timeObjRef&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getTime&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">exactTime&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span> &lt;span class="k">catch&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">Exception&lt;/span> &lt;span class="n">e&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s">&amp;#34;Remote Time server error: &amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">e&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">e&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">printStackTrace&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>前几行所做的工作与它们在服务器进程里是一样的：ORB 获得初始化，并解析出对命名服务的一个引用。
+接下来，我们需要用到服务对象的一个对象引用，所以将字串形式的对象引用直接传递给 resolve()方法，并用 narrow()方法将结果造型到 ExactTime 接口引用里。最后调用 getTime()。&lt;/p>
+&lt;h5 id="5-激活名称服务进程">5. 激活名称服务进程&lt;/h5>
+&lt;p>现在，我们已分别获得了一个服务器和一个客户应用，它们已作好相互间进行沟通的准备。大家知道两者都需要利用命名服务绑定和解析字串形式的对象引用。在运行服务或者客户之前，我们必须启动命名服务进程。在 JavaIDL 中，命名服务属于一个 Java 应用，是随产品配套提供的。但它可能与其他产品有所不同。JavaIDL 命名服务在 JVM 的一个实例里运行，并（默认）监视网络端口 900。&lt;/p>
+&lt;h5 id="6-激活服务器与客户">6. 激活服务器与客户&lt;/h5>
+&lt;p>现在，我们已准备好启动服务器和客户应用（之所以按这一顺序，是由于服务器的存在是“短期”的）。若各个方面都设置无误，那么获得的就是在客户控制台窗口内的一行输出文字，提醒我们当前的时间是多少。当然，这一结果本身并没有什么令人兴奋的。但应注意一个问题：即使都处在同一台机器上，客户和服务器应用仍然运行于不同的虚拟机内。它们之间的通信是通过一个基本的集成层进行的——即 ORB 与命名服务的集成。&lt;/p>
+&lt;p>这只是一个简单的例子，面向非网络环境设计。但通常将 ORB 配置成“与位置无关”。若服务器与客户分别位于不同的机器上，那么 ORB 可用一个名为“安装库”（Implementation Repository）的组件解析出远程字串式引用。尽管“安装库”属于 CORBA 的一部分，但它几乎没有具体的规格，所以各厂商的实现方式是不尽相同的。&lt;/p>
+&lt;p>正如大家看到的那样，CORBA 还有许多方面的问题未在这儿进行详细讲述。但通过以上的介绍，应已对其有一个基本的认识。若想获得 CORBA 更详细的资料，最传真的起点莫过于 OMB Web 站点，地址是 &lt;a href="http://www.omg.org" target="_blank" rel="noopener">http://www.omg.org&lt;/a> 。这个地方提供了丰富的文档资料、白页、程序以及对其他 CORBA 资源和产品的链接。&lt;/p>
+&lt;p>A.6.3 Java 程序片和 CORBA&lt;/p>
+&lt;p>Java 程序片可扮演一名 CORBA 客户的角色。这样一来，程序片就可访问由 CORBA 对象揭示的远程信息和服务。但程序片只能同最初下载它的那个服务器连接，所以程序片与它沟通的所有 CORBA 对象都必须位于那台服务器上。这与 CORBA 的宗旨是相悖的：它许诺可以实现“位置的透明”，或者“与位置无关”。&lt;/p>
+&lt;p>将 Java 程序片作为 CORBA 客户使用时，也会带来一些安全方面的问题。如果您在内联网中，一个办法是放宽对浏览器的安全限制。或者设置一道防火墙，以便建立与外部服务器安全连接。&lt;/p>
+&lt;p>针对这一问题，有些 Java ORB 产品专门提供了自己的解决方案。例如，有些产品实现了一种名为“HTTP 通道”（HTTP Tunneling）的技术，另一些则提供了特别的防火墙功能。&lt;/p>
+&lt;p>作为放到附录中的内容，所有这些主题都显得太复杂了。但它们确实是需要重点注意的问题。&lt;/p>
+&lt;p>A.6.4 比较 CORBA 与 RMI&lt;/p>
+&lt;p>我们已经知道，CORBA 的一项主要特性就是对 RPC（远程过程调用）的支持。利用这一技术，我们的本地对象可调用位置远程对象内的方法。当然，目前已有一项固有的 Java 特性可以做完全相同的事情：RMI（参考第 15 章）。尽管 RMI 使 Java 对象之间进行 RPC 调用成为可能，但 CORBA 能在用任何语言编制的对象之间进行 RPC。这显然是一项很大的区别。&lt;/p>
+&lt;p>然而，可通过 RMI 调用远程、非 Java 代码的服务。我们需要的全部东西就是位于服务器那一端的、某种形式的封装 Java 对象，它将非 Java 代码“包裹”于其中。封装对象通过 RMI 同 Java 客户建立外部连接，并于内部建立与非 Java 代码的连接——采用前面讲到的某种技术，如 JNI 或 J/Direct。&lt;/p>
+&lt;p>使用这种方法时，要求我们编写某种类型的“集成层”——这其实正是 CORBA 帮我们做的事情。但是这样做以后，就不再需要其他厂商开发的 ORB 了。&lt;/p>
+&lt;p>A.7 总结&lt;/p>
+&lt;p>我们在这个附录讨论的都是从一个 Java 应用里调用非 Java 代码最基本的技术。每种技术都有自己的优缺点。但目前最主要的问题是并非所有这些特性都能在所有 JVM 中找到。因此，即使一个 Java 程序能调用位于特定平台上的固有方法，仍有可能不适用于安装了不同 JVM 的另一种平台。&lt;/p>
+&lt;p>Sun 公司提供的 JNI 具有灵活、简单（尽管它要求对 JVM 内核进行大量控制）、功能强大以及通用于大多数 JVM 的优点。到本书完稿时为止，微软仍未提供对 JNI 的支持，而是提供了自己的 J/Direct（调用 Win32 DLL 函数的一种简便方法）和 RNI（特别适合编写高效率的代码，但要求对 JVM 内核有很深入的理解）。微软也提供了自己的专利 Java/COM 集成方案。这一方案具有很强大的功能，且将 Java 变成了编写 COM 服务器和客户的有效语言。只有微软公司的编译器和 JVM 能提供对 J/Direct、RNI 以及 Java/COM 的支持。&lt;/p>
+&lt;p>我们最后研究的是 CORBA，它使我们的 Java 对象可与其他对象沟通——无论它们的物理位置在哪里，也无论是用何种语言实现的。CORBA 与前面提到的所有技术都不同，因为它并未集成到 Java 语言里，而是采用了其他厂商（第三方）的集成技术，并要求我们购买其他厂商提供的 ORB。CORBA 是一种有趣和通用的方案，但如果只是想发出对操作系统的调用，它也许并非一种最佳方案。&lt;/p></description></item><item><title>附录B 对比C++和Java</title><link>https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/%E9%99%84%E5%BD%95b-%E5%AF%B9%E6%AF%94c++%E5%92%8Cjava/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/%E9%99%84%E5%BD%95b-%E5%AF%B9%E6%AF%94c++%E5%92%8Cjava/</guid><description>&lt;h1 id="附录-b-对比-c和-java">附录 B 对比 C++和 Java&lt;/h1>
+&lt;p>“作为一名 C++程序员，我们早已掌握了面向对象程序设计的基本概念，而且 Java 的语法无疑是非常熟悉的。事实上，Java 本来就是从 C++衍生出来的。”&lt;/p>
+&lt;p>然而，C++和 Java 之间仍存在一些显著的差异。可以这样说，这些差异代表着技术的极大进步。一旦我们弄清楚了这些差异，就会理解为什么说 Java 是一种优秀的程序设计语言。本附录将引导大家认识用于区分 Java 和 C++的一些重要特征。&lt;/p>
+&lt;p>(1) 最大的障碍在于速度：解释过的 Java 要比 C 的执行速度慢上约 20 倍。无论什么都不能阻止 Java 语言进行编译。写作本书的时候，刚刚出现了一些准实时编译器，它们能显著加快速度。当然，我们完全有理由认为会出现适用于更多流行平台的纯固有编译器，但假若没有那些编译器，由于速度的限制，必须有些问题是 Java 不能解决的。&lt;/p>
+&lt;p>(2) 和 C++一样，Java 也提供了两种类型的注释。&lt;/p>
+&lt;p>(3) 所有东西都必须置入一个类。不存在全局函数或者全局数据。如果想获得与全局函数等价的功能，可考虑将 static 方法和 static 数据置入一个类里。注意没有象结构、枚举或者联合这一类的东西，一切只有“类”（Class）！&lt;/p>
+&lt;p>(4) 所有方法都是在类的主体定义的。所以用 C++的眼光看，似乎所有函数都已嵌入，但实情并非如何（嵌入的问题在后面讲述）。&lt;/p>
+&lt;p>(5) 在 Java 中，类定义采取几乎和 C++一样的形式。但没有标志结束的分号。没有 class foo 这种形式的类声明，只有类定义。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">class&lt;/span> &lt;span class="nf">aType&lt;/span>&lt;span class="o">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kt">void&lt;/span> &lt;span class="nf">aMethod&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>&lt;span class="cm">/* 方法主体 */&lt;/span>&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>(6) Java 中没有作用域范围运算符“::”。Java 利用点号做所有的事情，但可以不用考虑它，因为只能在一个类里定义元素。即使那些方法定义，也必须在一个类的内部，所以根本没有必要指定作用域的范围。我们注意到的一项差异是对 static 方法的调用：使用 ClassName.methodName()。除此以外，package（包）的名字是用点号建立的，并能用 import 关键字实现 C++的“#include”的一部分功能。例如下面这个语句：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kn">import&lt;/span> &lt;span class="nn">java.awt.*&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>（#include 并不直接映射成 import，但在使用时有类似的感觉。）&lt;/p>
+&lt;p>(7) 与 C++类似，Java 含有一系列“主类型”（Primitive type），以实现更有效率的访问。在 Java 中，这些类型包括 boolean，char，byte，short，int，long，float 以及 double。所有主类型的大小都是固有的，且与具体的机器无关（考虑到移植的问题）。这肯定会对性能造成一定的影响，具体取决于不同的机器。对类型的检查和要求在 Java 里变得更苛刻。例如：&lt;/p>
+&lt;p>■ 条件表达式只能是 boolean（布尔）类型，不可使用整数。&lt;/p>
+&lt;p>■ 必须使用象 X+Y 这样的一个表达式的结果；不能仅仅用“X+Y”来实现“副作用”。&lt;/p>
+&lt;p>(8) char（字符）类型使用国际通用的 16 位 Unicode 字符集，所以能自动表达大多数国家的字符。&lt;/p>
+&lt;p>(9) 静态引用的字串会自动转换成 String 对象。和 C 及 C++不同，没有独立的静态字符数组字串可供使用。&lt;/p>
+&lt;p>(10) Java 增添了三个右移位运算符“&amp;raquo;&amp;gt;”，具有与“逻辑”右移位运算符类似的功用，可在最末尾插入零值。“&amp;raquo;”则会在移位的同时插入符号位（即“算术”移位）。&lt;/p>
+&lt;p>(11) 尽管表面上类似，但与 C++相比，Java 数组采用的是一个颇为不同的结构，并具有独特的行为。有一个只读的 length 成员，通过它可知道数组有多大。而且一旦超过数组边界，运行期检查会自动丢弃一个异常。所有数组都是在内存“堆”里创建的，我们可将一个数组分配给另一个（只是简单地复制数组指针）。数组标识符属于第一级对象，它的所有方法通常都适用于其他所有对象。&lt;/p>
+&lt;p>(12) 对于所有不属于主类型的对象，都只能通过 new 命令创建。和 C++不同，Java 没有相应的命令可以“在栈上”创建不属于主类型的对象。所有主类型都只能在栈上创建，同时不使用 new 命令。所有主要的类都有自己的“封装（器）”类，所以能够通过 new 创建等价的、以内存“堆”为基础的对象（主类型数组是一个例外：它们可象 C++那样通过集合初始化进行分配，或者使用 new）。&lt;/p>
+&lt;p>(13) Java 中不必进行提前声明。若想在定义前使用一个类或方法，只需直接使用它即可——编译器会保证使用恰当的定义。所以和在 C++中不同，我们不会碰到任何涉及提前引用的问题。&lt;/p>
+&lt;p>(14) Java 没有预处理机。若想使用另一个库里的类，只需使用 import 命令，并指定库名即可。不存在类似于预处理机的宏。&lt;/p>
+&lt;p>(15) Java 用包代替了命名空间。由于将所有东西都置入一个类，而且由于采用了一种名为“封装”的机制，它能针对类名进行类似于命名空间分解的操作，所以命名的问题不再进入我们的考虑之列。数据包也会在单独一个库名下收集库的组件。我们只需简单地“import”（导入）一个包，剩下的工作会由编译器自动完成。&lt;/p>
+&lt;p>(16) 被定义成类成员的对象指针会自动初始化成 null。对基本类数据成员的初始化在 Java 里得到了可靠的保障。若不明确地进行初始化，它们就会得到一个默认值（零或等价的值）。可对它们进行明确的初始化（显式初始化）：要么在类内定义它们，要么在构造器中定义。采用的语法比 C++的语法更容易理解，而且对于 static 和非 static 成员来说都是固定不变的。我们不必从外部定义 static 成员的存储方式，这和 C++是不同的。&lt;/p>
+&lt;p>(17) 在 Java 里，没有象 C 和 C++那样的指针。用 new 创建一个对象的时候，会获得一个引用（本书一直将其称作“指针”）。例如：
+String s = new String(&amp;ldquo;howdy&amp;rdquo;);&lt;/p>
+&lt;p>然而，C++引用在创建时必须进行初始化，而且不可重定义到一个不同的位置。但 Java 引用并不一定局限于创建时的位置。它们可根据情况任意定义，这便消除了对指针的部分需求。在 C 和 C++里大量采用指针的另一个原因是为了能指向任意一个内存位置（这同时会使它们变得不安全，也是 Java 不提供这一支持的原因）。指针通常被看作在基本变量数组中四处移动的一种有效手段。Java 允许我们以更安全的形式达到相同的目标。解决指针问题的终极方法是“固有方法”（已在附录 A 讨论）。将指针传递给方法时，通常不会带来太大的问题，因为此时没有全局函数，只有类。而且我们可传递对对象的引用。Java 语言最开始声称自己“完全不采用指针！”但随着许多程序员都质问没有指针如何工作？于是后来又声明“采用受到限制的指针”。大家可自行判断它是否“真”的是一个指针。但不管在何种情况下，都不存在指针“算术”。&lt;/p>
+&lt;p>(18) Java 提供了与 C++类似的“构造器”（Constructor）。如果不自己定义一个，就会获得一个默认构造器。而如果定义了一个非默认的构造器，就不会为我们自动定义默认构造器。这和 C++是一样的。注意没有复制构造器，因为所有自变量都是按引用传递的。&lt;/p>
+&lt;p>(19) Java 中没有“破坏器”（Destructor）。变量不存在“作用域”的问题。一个对象的“存在时间”是由对象的存在时间决定的，并非由垃圾收集器决定。有个 finalize()方法是每一个类的成员，它在某种程度上类似于 C++的“破坏器”。但 finalize()是由垃圾收集器调用的，而且只负责释放“资源”（如打开的文件、套接字、端口、URL 等等）。如需在一个特定的地点做某样事情，必须创建一个特殊的方法，并调用它，不能依赖 finalize()。而在另一方面，C++中的所有对象都会（或者说“应该”）破坏，但并非 Java 中的所有对象都会被当作“垃圾”收集掉。由于 Java 不支持破坏器的概念，所以在必要的时候，必须谨慎地创建一个清除方法。而且针对类内的基础类以及成员对象，需要明确调用所有清除方法。&lt;/p>
+&lt;p>(20) Java 具有方法“重载”机制，它的工作原理与 C++函数的重载几乎是完全相同的。&lt;/p>
+&lt;p>(21) Java 不支持默认自变量。&lt;/p>
+&lt;p>(22) Java 中没有 goto。它采取的无条件跳转机制是“break 标签”或者“continue 标准”，用于跳出当前的多重嵌套循环。&lt;/p>
+&lt;p>(23) Java 采用了一种单根式的分级结构，因此所有对象都是从根类 Object 统一继承的。而在 C++中，我们可在任何地方启动一个新的继承树，所以最后往往看到包含了大量树的“一片森林”。在 Java 中，我们无论如何都只有一个分级结构。尽管这表面上看似乎造成了限制，但由于我们知道每个对象肯定至少有一个 Object 接口，所以往往能获得更强大的能力。C++目前似乎是唯一没有强制单根结构的唯一一种 OO 语言。&lt;/p>
+&lt;p>(24) Java 没有模板或者参数化类型的其他形式。它提供了一系列集合：Vector（向量），Stack（栈）以及 Hashtable（散列表），用于容纳 Object 引用。利用这些集合，我们的一系列要求可得到满足。但这些集合并非是为实现象 C++“标准模板库”（STL）那样的快速调用而设计的。Java 1.2 中的新集合显得更加完整，但仍不具备正宗模板那样的高效率使用手段。&lt;/p>
+&lt;p>(25) “垃圾收集”意味着在 Java 中出现内存漏洞的情况会少得多，但也并非完全不可能（若调用一个用于分配存储空间的固有方法，垃圾收集器就不能对其进行跟踪监视）。然而，内存漏洞和资源漏洞多是由于编写不当的 finalize()造成的，或是由于在已分配的一个块尾释放一种资源造成的（“破坏器”在此时显得特别方便）。垃圾收集器是在 C++基础上的一种极大进步，使许多编程问题消弥于无形之中。但对少数几个垃圾收集器力有不逮的问题，它却是不大适合的。但垃圾收集器的大量优点也使这一处缺点显得微不足道。&lt;/p>
+&lt;p>(26) Java 内建了对多线程的支持。利用一个特殊的 Thread 类，我们可通过继承创建一个新线程（放弃了 run()方法）。若将 synchronized（同步）关键字作为方法的一个类型限制符使用，相互排斥现象会在对象这一级发生。在任何给定的时间，只有一个线程能使用一个对象的 synchronized 方法。在另一方面，一个 synchronized 方法进入以后，它首先会“锁定”对象，防止其他任何 synchronized 方法再使用那个对象。只有退出了这个方法，才会将对象“解锁”。在线程之间，我们仍然要负责实现更复杂的同步机制，方法是创建自己的“监视器”类。递归的 synchronized 方法可以正常运作。若线程的优先等级相同，则时间的“分片”不能得到保证。&lt;/p>
+&lt;p>(27) 我们不是象 C++那样控制声明代码块，而是将访问限定符（public，private 和 protected）置入每个类成员的定义里。若未规定一个“显式”（明确的）限定符，就会默认为“友好的”（friendly）。这意味着同一个包里的其他元素也可以访问它（相当于它们都成为 C++的“friends”——朋友），但不可由包外的任何元素访问。类——以及类内的每个方法——都有一个访问限定符，决定它是否能在文件的外部“可见”。private 关键字通常很少在 Java 中使用，因为与排斥同一个包内其他类的访问相比，“友好的”访问通常更加有用。然而，在多线程的环境中，对 private 的恰当运用是非常重要的。Java 的 protected 关键字意味着“可由继承者访问，亦可由包内其他元素访问”。注意 Java 没有与 C++的 protected 关键字等价的元素，后者意味着“只能由继承者访问”（以前可用“private protected”实现这个目的，但这一对关键字的组合已被取消了）。&lt;/p>
+&lt;p>(28) 嵌套的类。在 C++中，对类进行嵌套有助于隐藏名称，并便于代码的组织（但 C++的“命名空间”已使名称的隐藏显得多余）。Java 的“封装”或“打包”概念等价于 C++的命名空间，所以不再是一个问题。Java 1.1 引入了“内部类”的概念，它秘密保持指向外部类的一个指针——创建内部类对象的时候需要用到。这意味着内部类对象也许能访问外部类对象的成员，毋需任何条件——就好象那些成员直接隶属于内部类对象一样。这样便为回调问题提供了一个更优秀的方案——C++是用指向成员的指针解决的。&lt;/p>
+&lt;p>(29) 由于存在前面介绍的那种内部类，所以 Java 里没有指向成员的指针。&lt;/p>
+&lt;p>(30) Java 不存在“嵌入”（inline）方法。Java 编译器也许会自行决定嵌入一个方法，但我们对此没有更多的控制权力。在 Java 中，可为一个方法使用 final 关键字，从而“建议”进行嵌入操作。然而，嵌入函数对于 C++的编译器来说也只是一种建议。&lt;/p>
+&lt;p>(31) Java 中的继承具有与 C++相同的效果，但采用的语法不同。Java 用 extends 关键字标志从一个基础类的继承，并用 super 关键字指出准备在基础类中调用的方法，它与我们当前所在的方法具有相同的名字（然而，Java 中的 super 关键字只允许我们访问父类的方法——亦即分级结构的上一级）。通过在 C++中设定基础类的作用域，我们可访问位于分级结构较深处的方法。亦可用 super 关键字调用基础类构造器。正如早先指出的那样，所有类最终都会从 Object 里自动继承。和 C++不同，不存在明确的构造器初始化列表。但编译器会强迫我们在构造器主体的开头进行全部的基础类初始化，而且不允许我们在主体的后面部分进行这一工作。通过组合运用自动初始化以及来自未初始化对象指针的异常，成员的初始化可得到有效的保证。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">Foo&lt;/span> &lt;span class="kd">extends&lt;/span> &lt;span class="n">Bar&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="nf">Foo&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">msg&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">super&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">msg&lt;/span>&lt;span class="o">);&lt;/span> &lt;span class="c1">// Calls base constructor
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="nf">baz&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">i&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span> &lt;span class="c1">// Override
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="kd">super&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">baz&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">i&lt;/span>&lt;span class="o">);&lt;/span> &lt;span class="c1">// Calls base method
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>(32) Java 中的继承不会改变基础类成员的保护级别。我们不能在 Java 中指定 public，private 或者 protected 继承，这一点与 C++是相同的。此外，在衍生类中的优先方法不能减少对基础类方法的访问。例如，假设一个成员在基础类中属于 public，而我们用另一个方法代替了它，那么用于替换的方法也必须属于 public（编译器会自动检查）。&lt;/p>
+&lt;p>(33) Java 提供了一个 interface 关键字，它的作用是创建抽象基础类的一个等价物。在其中填充抽象方法，且没有数据成员。这样一来，对于仅仅设计成一个接口的东西，以及对于用 extends 关键字在现有功能基础上的扩展，两者之间便产生了一个明显的差异。不值得用 abstract 关键字产生一种类似的效果，因为我们不能创建属于那个类的一个对象。一个 abstract（抽象）类可包含抽象方法（尽管并不要求在它里面包含什么东西），但它也能包含用于具体实现的代码。因此，它被限制成一个单一的继承。通过与接口联合使用，这一方案避免了对类似于 C++虚拟基础类那样的一些机制的需要。&lt;/p>
+&lt;p>为创建可进行“例示”（即创建一个实例）的一个 interface（接口）的版本，需使用 implements 关键字。它的语法类似于继承的语法，如下所示：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">interface&lt;/span> &lt;span class="nc">Face&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">smile&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">Baz&lt;/span> &lt;span class="kd">extends&lt;/span> &lt;span class="n">Bar&lt;/span> &lt;span class="kd">implements&lt;/span> &lt;span class="n">Face&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">smile&lt;/span>&lt;span class="o">(&lt;/span> &lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;a warm smile&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>(34) Java 中没有 virtual 关键字，因为所有非 static 方法都肯定会用到动态绑定。在 Java 中，程序员不必自行决定是否使用动态绑定。C++之所以采用了 virtual，是由于我们对性能进行调整的时候，可通过将其省略，从而获得执行效率的少量提升（或者换句话说：“如果不用，就没必要为它付出代价”）。virtual 经常会造成一定程度的混淆，而且获得令人不快的结果。final 关键字为性能的调整规定了一些范围——它向编译器指出这种方法不能被取代，所以它的范围可能被静态约束（而且成为嵌入状态，所以使用 C++非 virtual 调用的等价方式）。这些优化工作是由编译器完成的。&lt;/p>
+&lt;p>(35) Java 不提供多重继承机制（MI），至少不象 C++那样做。与 protected 类似，MI 表面上是一个很不错的主意，但只有真正面对一个特定的设计问题时，才知道自己需要它。由于 Java 使用的是“单根”分级结构，所以只有在极少的场合才需要用到 MI。interface 关键字会帮助我们自动完成多个接口的合并工作。&lt;/p>
+&lt;p>(36) 运行期的类型标识功能与 C++极为相似。例如，为获得与指针 X 有关的信息，可使用下述代码：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">X&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getClass&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">getName&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>为进行一个“类型安全”的紧缩造型，可使用：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">derived&lt;/span> &lt;span class="n">d&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">derived&lt;/span>&lt;span class="o">)&lt;/span>&lt;span class="n">base&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这与旧式风格的 C 造型是一样的。编译器会自动调用动态造型机制，不要求使用额外的语法。尽管它并不象 C++的“new casts”那样具有易于定位造型的优点，但 Java 会检查使用情况，并丢弃那些“异常”，所以它不会象 C++那样允许坏造型的存在。&lt;/p>
+&lt;p>(37) Java 采取了不同的异常控制机制，因为此时已经不存在构造器。可添加一个 finally 从句，强制执行特定的语句，以便进行必要的清除工作。Java 中的所有异常都是从基础类 Throwable 里继承而来的，所以可确保我们得到的是一个通用接口。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">f&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">Obj&lt;/span> &lt;span class="n">b&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="kd">throws&lt;/span> &lt;span class="n">IOException&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">myresource&lt;/span> &lt;span class="n">mr&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">b&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">createResource&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">try&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">mr&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">UseResource&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span> &lt;span class="k">catch&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">MyException&lt;/span> &lt;span class="n">e&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// handle my exception
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="o">}&lt;/span> &lt;span class="k">catch&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">Throwable&lt;/span> &lt;span class="n">e&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// handle all other exceptions
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="o">}&lt;/span> &lt;span class="k">finally&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">mr&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">dispose&lt;/span>&lt;span class="o">();&lt;/span> &lt;span class="c1">// special cleanup
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>(38) Java 的异常规范比 C++的出色得多。丢弃一个错误的异常后，不是象 C++那样在运行期间调用一个函数，Java 异常规范是在编译期间检查并执行的。除此以外，被取代的方法必须遵守那一方法的基础类版本的异常规范：它们可丢弃指定的异常或者从那些异常衍生出来的其他异常。这样一来，我们最终得到的是更为“健壮”的异常控制代码。&lt;/p>
+&lt;p>(39) Java 具有方法重载的能力，但不允许运算符重载。String 类不能用+和+=运算符连接不同的字串，而且 String 表达式使用自动的类型转换，但那是一种特殊的内建情况。&lt;/p>
+&lt;p>(40) 通过事先的约定，C++中经常出现的 const 问题在 Java 里已得到了控制。我们只能传递指向对象的指针，本地副本永远不会为我们自动生成。若希望使用类似 C++按值传递那样的技术，可调用 clone()，生成自变量的一个本地副本（尽管 clone()的设计依然尚显粗糙——参见第 12 章）。根本不存在被自动调用的副本构造器。为创建一个编译期的常数值，可象下面这样编码：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">static&lt;/span> &lt;span class="kd">final&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">SIZE&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">255&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">static&lt;/span> &lt;span class="kd">final&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">BSIZE&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">8&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="n">SIZE&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>(41) 由于安全方面的原因，“应用程序”的编程与“程序片”的编程之间存在着显著的差异。一个最明显的问题是程序片不允许我们进行磁盘的写操作，因为这样做会造成从远程站点下载的、不明来历的程序可能胡乱改写我们的磁盘。随着 Java 1.1 对数字签名技术的引用，这一情况已有所改观。根据数字签名，我们可确切知道一个程序片的全部作者，并验证他们是否已获得授权。Java 1.2 会进一步增强程序片的能力。&lt;/p>
+&lt;p>(42) 由于 Java 在某些场合可能显得限制太多，所以有时不愿用它执行象直接访问硬件这样的重要任务。Java 解决这个问题的方案是“固有方法”，允许我们调用由其他语言写成的函数（目前只支持 C 和 C++）。这样一来，我们就肯定能够解决与平台有关的问题（采用一种不可移植的形式，但那些代码随后会被隔离起来）。程序片不能调用固有方法，只有应用程序才可以。&lt;/p>
+&lt;p>(43) Java 提供对注释文档的内建支持，所以源码文件也可以包含它们自己的文档。通过一个单独的程序，这些文档信息可以提取出来，并重新格式化成 HTML。这无疑是文档管理及应用的极大进步。&lt;/p>
+&lt;p>(44) Java 包含了一些标准库，用于完成特定的任务。C++则依靠一些非标准的、由其他厂商提供的库。这些任务包括（或不久就要包括）：&lt;/p>
+&lt;p>■ 连网&lt;/p>
+&lt;p>■ 数据库连接（通过 JDBC）&lt;/p>
+&lt;p>■ 多线程&lt;/p>
+&lt;p>■ 分布式对象（通过 RMI 和 CORBA）&lt;/p>
+&lt;p>■ 压缩&lt;/p>
+&lt;p>■ 商贸&lt;/p>
+&lt;p>由于这些库简单易用，而且非常标准，所以能极大加快应用程序的开发速度。&lt;/p>
+&lt;p>(45) Java 1.1 包含了 Java Beans 标准，后者可创建在可视编程环境中使用的组件。由于遵守同样的标准，所以可视组件能够在所有厂商的开发环境中使用。由于我们并不依赖一家厂商的方案进行可视组件的设计，所以组件的选择余地会加大，并可提高组件的效能。除此之外，Java Beans 的设计非常简单，便于程序员理解；而那些由不同的厂商开发的专用组件框架则要求进行更深入的学习。&lt;/p>
+&lt;p>(46) 若访问 Java 指针失败，就会丢弃一次异常。这种丢弃测试并不一定要正好在使用一个指针之前进行。根据 Java 的设计规范，只是说异常必须以某种形式丢弃。许多 C++运行期系统也能丢弃那些由于指针错误造成的异常。&lt;/p>
+&lt;p>(47) Java 通常显得更为健壮，为此采取的手段如下：&lt;/p>
+&lt;p>■ 对象指针初始化成 null（一个关键字）&lt;/p>
+&lt;p>■ 指针肯定会得到检查，并在出错时丢弃异常&lt;/p>
+&lt;p>■ 所有数组访问都会得到检查，及时发现边界异常情况&lt;/p>
+&lt;p>■ 自动垃圾收集，防止出现内存漏洞&lt;/p>
+&lt;p>■ 明确、“傻瓜式”的异常控制机制&lt;/p>
+&lt;p>■ 为多线程提供了简单的语言支持&lt;/p>
+&lt;p>■ 对网络程序片进行字节码校验&lt;/p></description></item><item><title>附录C Java编程规则</title><link>https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/%E9%99%84%E5%BD%95c-java%E7%BC%96%E7%A8%8B%E8%A7%84%E5%88%99/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/%E9%99%84%E5%BD%95c-java%E7%BC%96%E7%A8%8B%E8%A7%84%E5%88%99/</guid><description>&lt;h1 id="附录-c-java-编程规则">附录 C Java 编程规则&lt;/h1>
+&lt;p>本附录包含了大量有用的建议，帮助大家进行低级程序设计，并提供了代码编写的一般性指导：&lt;/p>
+&lt;p>(1) 类名首字母应该大写。字段、方法以及对象（指针）的首字母应小写。对于所有标识符，其中包含的所有单词都应紧靠在一起，而且大写中间单词的首字母。例如：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">ThisIsAClassName&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">thisIsMethodOrFieldName&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>若在定义中出现了常数初始化字符，则大写 static final 基本类型标识符中的所有字母。这样便可标志出它们属于编译期的常数。&lt;/p>
+&lt;p>Java 包（Package）属于一种特殊情况：它们全都是小写字母，即便中间的单词亦是如此。对于域名扩展名称，如 com，org，net 或者 edu 等，全部都应小写（这也是 Java 1.1 和 Java 1.2 的区别之一）。&lt;/p>
+&lt;p>(2) 为了常规用途而创建一个类时，请采取“经典形式”，并包含对下述元素的定义：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">equals&lt;/span>&lt;span class="o">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">hashCode&lt;/span>&lt;span class="o">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">toString&lt;/span>&lt;span class="o">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">clone&lt;/span>&lt;span class="o">()&lt;/span>&lt;span class="err">（&lt;/span>&lt;span class="n">implement&lt;/span> &lt;span class="n">Cloneable&lt;/span>&lt;span class="err">）&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">implement&lt;/span> &lt;span class="n">Serializable&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>(3) 对于自己创建的每一个类，都考虑置入一个 main()，其中包含了用于测试那个类的代码。为使用一个项目中的类，我们没必要删除测试代码。若进行了任何形式的改动，可方便地返回测试。这些代码也可作为如何使用类的一个示例使用。&lt;/p>
+&lt;p>(4) 应将方法设计成简要的、功能性单元，用它描述和实现一个不连续的类接口部分。理想情况下，方法应简明扼要。若长度很大，可考虑通过某种方式将其分割成较短的几个方法。这样做也便于类内代码的重复使用（有些时候，方法必须非常大，但它们仍应只做同样的一件事情）。&lt;/p>
+&lt;p>(5) 设计一个类时，请设身处地为客户程序员考虑一下（类的使用方法应该是非常明确的）。然后，再设身处地为管理代码的人考虑一下（预计有可能进行哪些形式的修改，想想用什么方法可把它们变得更简单）。&lt;/p>
+&lt;p>(6) 使类尽可能短小精悍，而且只解决一个特定的问题。下面是对类设计的一些建议：&lt;/p>
+&lt;p>■ 一个复杂的开关语句：考虑采用“多态”机制&lt;/p>
+&lt;p>■ 数量众多的方法涉及到类型差别极大的操作：考虑用几个类来分别实现&lt;/p>
+&lt;p>■ 许多成员变量在特征上有很大的差别：考虑使用几个类&lt;/p>
+&lt;p>(7) 让一切东西都尽可能地“私有”——private。可使库的某一部分“公共化”（一个方法、类或者一个字段等等），就永远不能把它拿出。若强行拿出，就可能破坏其他人现有的代码，使他们不得不重新编写和设计。若只公布自己必须公布的，就可放心大胆地改变其他任何东西。在多线程环境中，隐私是特别重要的一个因素——只有 private 字段才能在非同步使用的情况下受到保护。&lt;/p>
+&lt;p>(8) 谨惕“巨大对象综合症”。对一些习惯于顺序编程思维、且初涉 OOP 领域的新手，往往喜欢先写一个顺序执行的程序，再把它嵌入一个或两个巨大的对象里。根据编程原理，对象表达的应该是应用程序的概念，而非应用程序本身。&lt;/p>
+&lt;p>(9) 若不得已进行一些不太雅观的编程，至少应该把那些代码置于一个类的内部。&lt;/p>
+&lt;p>(10) 任何时候只要发现类与类之间结合得非常紧密，就需要考虑是否采用内部类，从而改善编码及维护工作（参见第 14 章 14.1.2 小节的“用内部类改进代码”）。&lt;/p>
+&lt;p>(11) 尽可能细致地加上注释，并用 javadoc 注释文档语法生成自己的程序文档。&lt;/p>
+&lt;p>(12) 避免使用“魔术数字”，这些数字很难与代码很好地配合。如以后需要修改它，无疑会成为一场噩梦，因为根本不知道“100”到底是指“数组大小”还是“其他全然不同的东西”。所以，我们应创建一个常数，并为其使用具有说服力的描述性名称，并在整个程序中都采用常数标识符。这样可使程序更易理解以及更易维护。&lt;/p>
+&lt;p>(13) 涉及构造器和异常的时候，通常希望重新丢弃在构造器中捕获的任何异常——如果它造成了那个对象的创建失败。这样一来，调用者就不会以为那个对象已正确地创建，从而盲目地继续。&lt;/p>
+&lt;p>(14) 当客户程序员用完对象以后，若你的类要求进行任何清除工作，可考虑将清除代码置于一个良好定义的方法里，采用类似于 cleanup()这样的名字，明确表明自己的用途。除此以外，可在类内放置一个 boolean（布尔）标记，指出对象是否已被清除。在类的 finalize()方法里，请确定对象已被清除，并已丢弃了从 RuntimeException 继承的一个类（如果还没有的话），从而指出一个编程错误。在采取象这样的方案之前，请确定 finalize()能够在自己的系统中工作（可能需要调用 System.runFinalizersOnExit(true)，从而确保这一行为）。&lt;/p>
+&lt;p>(15) 在一个特定的作用域内，若一个对象必须清除（非由垃圾收集机制处理），请采用下述方法：初始化对象；若成功，则立即进入一个含有 finally 从句的 try 块，开始清除工作。&lt;/p>
+&lt;p>(16) 若在初始化过程中需要覆盖（取消）finalize()，请记住调用 super.finalize()（若 Object 属于我们的直接超类，则无此必要）。在对 finalize()进行覆盖的过程中，对 super.finalize()的调用应属于最后一个行动，而不应是第一个行动，这样可确保在需要基础类组件的时候它们依然有效。&lt;/p>
+&lt;p>(17) 创建大小固定的对象集合时，请将它们传输至一个数组（若准备从一个方法里返回这个集合，更应如此操作）。这样一来，我们就可享受到数组在编译期进行类型检查的好处。此外，为使用它们，数组的接收者也许并不需要将对象“造型”到数组里。&lt;/p>
+&lt;p>(18) 尽量使用 interfaces，不要使用 abstract 类。若已知某样东西准备成为一个基础类，那么第一个选择应是将其变成一个 interface（接口）。只有在不得不使用方法定义或者成员变量的时候，才需要将其变成一个 abstract（抽象）类。接口主要描述了客户希望做什么事情，而一个类则致力于（或允许）具体的实施细节。&lt;/p>
+&lt;p>(19) 在构造器内部，只进行那些将对象设为正确状态所需的工作。尽可能地避免调用其他方法，因为那些方法可能被其他人覆盖或取消，从而在构建过程中产生不可预知的结果（参见第 7 章的详细说明）。&lt;/p>
+&lt;p>(20) 对象不应只是简单地容纳一些数据；它们的行为也应得到良好的定义。&lt;/p>
+&lt;p>(21) 在现成类的基础上创建新类时，请首先选择“新建”或“创作”。只有自己的设计要求必须继承时，才应考虑这方面的问题。若在本来允许新建的场合使用了继承，则整个设计会变得没有必要地复杂。&lt;/p>
+&lt;p>(22) 用继承及方法覆盖来表示行为间的差异，而用字段表示状态间的区别。一个非常极端的例子是通过对不同类的继承来表示颜色，这是绝对应该避免的：应直接使用一个“颜色”字段。&lt;/p>
+&lt;p>(23) 为避免编程时遇到麻烦，请保证在自己类路径指到的任何地方，每个名字都仅对应一个类。否则，编译器可能先找到同名的另一个类，并报告出错消息。若怀疑自己碰到了类路径问题，请试试在类路径的每一个起点，搜索一下同名的.class 文件。&lt;/p>
+&lt;p>(24) 在 Java 1.1 AWT 中使用事件“适配器”时，特别容易碰到一个陷阱。若覆盖了某个适配器方法，同时拼写方法没有特别讲究，最后的结果就是新添加一个方法，而不是覆盖现成方法。然而，由于这样做是完全合法的，所以不会从编译器或运行期系统获得任何出错提示——只不过代码的工作就变得不正常了。&lt;/p>
+&lt;p>(25) 用合理的设计方案消除“伪功能”。也就是说，假若只需要创建类的一个对象，就不要提前限制自己使用应用程序，并加上一条“只生成其中一个”注释。请考虑将其封装成一个“独生子”的形式。若在主程序里有大量散乱的代码，用于创建自己的对象，请考虑采纳一种创造性的方案，将些代码封装起来。&lt;/p>
+&lt;p>(26) 警惕“分析瘫痪”。请记住，无论如何都要提前了解整个项目的状况，再去考察其中的细节。由于把握了全局，可快速认识自己未知的一些因素，防止在考察细节的时候陷入“死逻辑”中。&lt;/p>
+&lt;p>(27) 警惕“过早优化”。首先让它运行起来，再考虑变得更快——但只有在自己必须这样做、而且经证实在某部分代码中的确存在一个性能瓶颈的时候，才应进行优化。除非用专门的工具分析瓶颈，否则很有可能是在浪费自己的时间。性能提升的隐含代价是自己的代码变得难于理解，而且难于维护。&lt;/p>
+&lt;p>(28) 请记住，阅读代码的时间比写代码的时间多得多。思路清晰的设计可获得易于理解的程序，但注释、细致的解释以及一些示例往往具有不可估量的价值。无论对你自己，还是对后来的人，它们都是相当重要的。如对此仍有怀疑，那么请试想自己试图从联机 Java 文档里找出有用信息时碰到的挫折，这样或许能将你说服。&lt;/p>
+&lt;p>(29) 如认为自己已进行了良好的分析、设计或者实施，那么请稍微更换一下思维角度。试试邀请一些外来人士——并不一定是专家，但可以是来自本公司其他部门的人。请他们用完全新鲜的眼光考察你的工作，看看是否能找出你一度熟视无睹的问题。采取这种方式，往往能在最适合修改的阶段找出一些关键性的问题，避免产品发行后再解决问题而造成的金钱及精力方面的损失。&lt;/p>
+&lt;p>(30) 良好的设计能带来最大的回报。简言之，对于一个特定的问题，通常会花较长的时间才能找到一种最恰当的解决方案。但一旦找到了正确的方法，以后的工作就轻松多了，再也不用经历数小时、数天或者数月的痛苦挣扎。我们的努力工作会带来最大的回报（甚至无可估量）。而且由于自己倾注了大量心血，最终获得一个出色的设计方案，成功的快感也是令人心动的。坚持抵制草草完工的诱惑——那样做往往得不偿失。&lt;/p>
+&lt;p>(31) 可在 Web 上找到大量的编程参考资源，甚至包括大量新闻组、讨论组、邮寄列表等。下面这个地方提供了大量有益的链接：&lt;/p>
+&lt;p>&lt;a href="http://www.ulb.ac.be/esp/ip-Links/Java/joodcs/mm-WebBiblio.html" target="_blank" rel="noopener">http://www.ulb.ac.be/esp/ip-Links/Java/joodcs/mm-WebBiblio.html&lt;/a>&lt;/p></description></item><item><title>附录D 性能</title><link>https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/%E9%99%84%E5%BD%95d-%E6%80%A7%E8%83%BD/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/%E9%99%84%E5%BD%95d-%E6%80%A7%E8%83%BD/</guid><description>&lt;h1 id="附录-d-性能">附录 D 性能&lt;/h1>
+&lt;p>“本附录由 Joe Sharp 投稿，并获得他的同意在这儿转载。请联系SharpJoe@aol.com”&lt;/p>
+&lt;p>Java 语言特别强调准确性，但可靠的行为要以性能作为代价。这一特点反映在自动收集垃圾、严格的运行期检查、完整的字节码检查以及保守的运行期同步等等方面。对一个解释型的虚拟机来说，由于目前有大量平台可供挑选，所以进一步阻碍了性能的发挥。
+“先做完它，再逐步完善。幸好需要改进的地方通常不会太多。”（Steve McConnell 的《About performance》[16]）
+本附录的宗旨就是指导大家寻找和优化“需要完善的那一部分”。&lt;/p>
+&lt;p>D.1 基本方法&lt;/p>
+&lt;p>只有正确和完整地检测了程序后，再可着手解决性能方面的问题：&lt;/p>
+&lt;p>(1) 在现实环境中检测程序的性能。若符合要求，则目标达到。若不符合，则转到下一步。&lt;/p>
+&lt;p>(2) 寻找最致命的性能瓶颈。这也许要求一定的技巧，但所有努力都不会白费。如简单地猜测瓶颈所在，并试图进行优化，那么可能是白花时间。&lt;/p>
+&lt;p>(3) 运用本附录介绍的提速技术，然后返回步骤 1。&lt;/p>
+&lt;p>为使努力不至白费，瓶颈的定位是至关重要的一环。Donald Knuth[9]曾改进过一个程序，那个程序把 50％的时间都花在约 4％的代码量上。在仅一个工作小时里，他修改了几行代码，使程序的执行速度倍增。此时，若将时间继续投入到剩余代码的修改上，那么只会得不偿失。Knuth 在编程界有一句名言：“过早的优化是一切麻烦的根源”（Premature optimization is the root of all evil）。最明智的做法是抑制过早优化的冲动，因为那样做可能遗漏多种有用的编程技术，造成代码更难理解和操控，并需更大的精力进行维护。&lt;/p>
+&lt;p>D.2 寻找瓶颈&lt;/p>
+&lt;p>为找出最影响程序性能的瓶颈，可采取下述几种方法：&lt;/p>
+&lt;p>D.2.1 安插自己的测试代码&lt;/p>
+&lt;p>插入下述“显式”计时代码，对程序进行评测：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kt">long&lt;/span> &lt;span class="n">start&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">currentTimeMillis&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// 要计时的运算代码放在这儿
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="kt">long&lt;/span> &lt;span class="n">time&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">currentTimeMillis&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="n">start&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>利用 System.out.println()，让一种不常用到的方法将累积时间打印到控制台窗口。由于一旦出错，编译器会将其忽略，所以可用一个“静态最终布尔值”（Static final boolean）打开或关闭计时，使代码能放心留在最终发行的程序里，这样任何时候都可以拿来应急。尽管还可以选用更复杂的评测手段，但若仅仅为了量度一个特定任务的执行时间，这无疑是最简便的方法。
+System.currentTimeMillis()返回的时间以千分之一秒（1 毫秒）为单位。然而，有些系统的时间精度低于 1 毫秒（如 Windows PC），所以需要重复 n 次，再将总时间除以 n，获得准确的时间。&lt;/p>
+&lt;p>D.2.2 JDK 性能评测[2]&lt;/p>
+&lt;p>JDK 配套提供了一个内建的评测程序，能跟踪花在每个例程上的时间，并将评测结果写入一个文件。不幸的是，JDK 评测器并不稳定。它在 JDK 1.1.1 中能正常工作，但在后续版本中却非常不稳定。&lt;/p>
+&lt;p>为运行评测程序，请在调用 Java 解释器的未优化版本时加上-prof 选项。例如：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">java_g&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">prof&lt;/span> &lt;span class="n">myClass&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>或加上一个程序片（Applet）：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">java_g&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">prof&lt;/span> &lt;span class="n">sun&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">applet&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">AppletViewer&lt;/span> &lt;span class="n">applet&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">html&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>理解评测程序的输出信息并不容易。事实上，在 JDK 1.0 中，它居然将方法名称截短为 30 字符。所以可能无法区分出某些方法。然而，若您用的平台确实能支持-prof 选项，那么可试试 Vladimir Bulatov 的“HyperPorf”[3]或者 Greg White 的“ProfileViewer”来解释一下结果。&lt;/p>
+&lt;p>D.2.3 特殊工具&lt;/p>
+&lt;p>如果想随时跟上性能优化工具的潮流，最好的方法就是作一些 Web 站点的常客。比如由 Jonathan Hardwick 制作的“Tools for Optimizing Java”（Java 优化工具）网站：&lt;/p>
+&lt;p>&lt;a href="http://www.cs.cmu.edu/~jch/java/tools.html" target="_blank" rel="noopener">http://www.cs.cmu.edu/~jch/java/tools.html&lt;/a>&lt;/p>
+&lt;p>D.2.4 性能评测的技巧&lt;/p>
+&lt;p>■ 由于评测时要用到系统时钟，所以当时不要运行其他任何进程或应用程序，以免影响测试结果。&lt;/p>
+&lt;p>■ 如对自己的程序进行了修改，并试图（至少在开发平台上）改善它的性能，那么在修改前后应分别测试一下代码的执行时间。&lt;/p>
+&lt;p>■ 尽量在完全一致的环境中进行每一次时间测试。&lt;/p>
+&lt;p>■ 如果可能，应设计一个不依赖任何用户输入的测试，避免用户的不同反应导致结果出现误差。&lt;/p>
+&lt;p>D.3 提速方法&lt;/p>
+&lt;p>现在，关键的性能瓶颈应已隔离出来。接下来，可对其应用两种类型的优化：常规手段以及依赖 Java 语言。&lt;/p>
+&lt;p>D.3.1 常规手段&lt;/p>
+&lt;p>通常，一个有效的提速方法是用更现实的方式重新定义程序。例如，在《Programming Pearls》（编程拾贝）一书中[14]，Bentley 利用了一段小说数据描写，它可以生成速度非常快、而且非常精简的拼写检查器，从而介绍了 Doug McIlroy 对英语语言的表述。除此以外，与其他方法相比，更好的算法也许能带来更大的性能提升——特别是在数据集的尺寸越来越大的时候。欲了解这些常规手段的详情，请参考本附录末尾的“一般书籍”清单。&lt;/p>
+&lt;p>D.3.2 依赖语言的方法&lt;/p>
+&lt;p>为进行客观的分析，最好明确掌握各种运算的执行时间。这样一来，得到的结果可独立于当前使用的计算机——通过除以花在本地赋值上的时间，最后得到的就是“标准时间”。&lt;/p>
+&lt;p>运算 示例 标准时间&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="err">本地赋值&lt;/span> &lt;span class="n">i&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="n">n&lt;/span>&lt;span class="o">;&lt;/span> &lt;span class="mf">1.0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">实例赋值&lt;/span> &lt;span class="k">this&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">i&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="n">n&lt;/span>&lt;span class="o">;&lt;/span> &lt;span class="mf">1.2&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">int&lt;/span>&lt;span class="err">增值&lt;/span> &lt;span class="n">i&lt;/span>&lt;span class="o">++;&lt;/span> &lt;span class="mf">1.5&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">byte&lt;/span>&lt;span class="err">增值&lt;/span> &lt;span class="n">b&lt;/span>&lt;span class="o">++;&lt;/span> &lt;span class="mf">2.0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">short&lt;/span>&lt;span class="err">增值&lt;/span> &lt;span class="n">s&lt;/span>&lt;span class="o">++;&lt;/span> &lt;span class="mf">2.0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">float&lt;/span>&lt;span class="err">增值&lt;/span> &lt;span class="n">f&lt;/span>&lt;span class="o">++;&lt;/span> &lt;span class="mf">2.0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">double&lt;/span>&lt;span class="err">增值&lt;/span> &lt;span class="n">d&lt;/span>&lt;span class="o">++;&lt;/span> &lt;span class="mf">2.0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">空循环&lt;/span> &lt;span class="k">while&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="n">n&lt;/span>&lt;span class="o">++;&lt;/span> &lt;span class="mf">2.0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">三元表达式&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">x&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">?-&lt;/span>&lt;span class="n">x&lt;/span> &lt;span class="o">:&lt;/span> &lt;span class="n">x&lt;/span> &lt;span class="mf">2.2&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">算术调用&lt;/span> &lt;span class="n">Math&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">abs&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">x&lt;/span>&lt;span class="o">);&lt;/span> &lt;span class="mf">2.5&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">数组赋值&lt;/span> &lt;span class="n">a&lt;/span>&lt;span class="o">[&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="o">]&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">n&lt;/span>&lt;span class="o">;&lt;/span> &lt;span class="mf">2.7&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">long&lt;/span>&lt;span class="err">增值&lt;/span> &lt;span class="n">l&lt;/span>&lt;span class="o">++;&lt;/span> &lt;span class="mf">3.5&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">方法调用&lt;/span> &lt;span class="n">funct&lt;/span>&lt;span class="o">();&lt;/span> &lt;span class="mf">5.9&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">throw&lt;/span>&lt;span class="err">或&lt;/span>&lt;span class="n">catch&lt;/span>&lt;span class="err">异常&lt;/span> &lt;span class="k">try&lt;/span>&lt;span class="o">{&lt;/span> &lt;span class="k">throw&lt;/span> &lt;span class="n">e&lt;/span>&lt;span class="o">;&lt;/span> &lt;span class="o">}&lt;/span>&lt;span class="err">或&lt;/span>&lt;span class="k">catch&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">e&lt;/span>&lt;span class="o">){}&lt;/span> &lt;span class="mi">320&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">同步方法调用&lt;/span> &lt;span class="n">synchMehod&lt;/span>&lt;span class="o">();&lt;/span> &lt;span class="mi">570&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">新建对象&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">Object&lt;/span>&lt;span class="o">();&lt;/span> &lt;span class="mi">980&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">新建数组&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="kt">int&lt;/span>&lt;span class="o">[&lt;/span>&lt;span class="mi">10&lt;/span>&lt;span class="o">];&lt;/span> &lt;span class="mi">3100&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>通过自己的系统（如我的 Pentium 200 Pro，Netscape 3 及 JDK 1.1.5），这些相对时间向大家揭示出：新建对象和数组会造成最沉重的开销，同步会造成比较沉重的开销，而一次不同步的方法调用会造成适度的开销。参考资源[5]和[6]为大家总结了测量用程序片的 Web 地址，可到自己的机器上运行它们。&lt;/p>
+&lt;ol>
+&lt;li>常规修改&lt;/li>
+&lt;/ol>
+&lt;p>下面是加快 Java 程序关键部分执行速度的一些常规操作建议（注意对比修改前后的测试结果）。&lt;/p>
+&lt;p>将&amp;hellip; 修改成&amp;hellip; 理由&lt;/p>
+&lt;p>接口 抽象类（只需一个父时） 接口的多个继承会妨碍性能的优化&lt;/p>
+&lt;p>非本地或数组循环变量 本地循环变量 根据前表的耗时比较，一次实例整数赋值的时间是本地整数赋值时间的 1.2 倍，但数组赋值的
+时间是本地整数赋值的 2.7 倍&lt;/p>
+&lt;p>链接列表（固定尺寸） 保存丢弃的链接项目，或将列表替换成一个循环数组（大致知道尺寸） 每新建一个对象，都相当于本地赋值 980 次。参考“重复利用对象”（下一节）、Van Wyk[12] p.87 以及 Bentley[15] p.81
+x/2（或 2 的任意次幂） X&amp;raquo;2（或 2 的任意次幂） 使用更快的硬件指令&lt;/p>
+&lt;p>D.3.3 特殊情况&lt;/p>
+&lt;p>■ 字串的开销：字串连接运算符+看似简单，但实际需要消耗大量系统资源。编译器可高效地连接字串，但变量字串却要求可观的处理器时间。例如，假设 s 和 t 是字串变量：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;heading&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">s&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="s">&amp;#34;trailer&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">t&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>上述语句要求新建一个 StringBuffer（字串缓冲），追加自变量，然后用 toString()将结果转换回一个字串。因此，无论磁盘空间还是处理器时间，都会受到严重消耗。若准备追加多个字串，则可考虑直接使用一个字串缓冲——特别是能在一个循环里重复利用它的时候。通过在每次循环里禁止新建一个字串缓冲，可节省 980 单位的对象创建时间（如前所述）。利用 substring()以及其他字串方法，可进一步地改善性能。如果可行，字符数组的速度甚至能够更快。也要注意由于同步的关系，所以 StringTokenizer 会造成较大的开销。&lt;/p>
+&lt;p>■ 同步：在 JDK 解释器中，调用同步方法通常会比调用不同步方法慢 10 倍。经 JIT 编译器处理后，这一性能上的差距提升到 50 到 100 倍（注意前表总结的时间显示出要慢 97 倍）。所以要尽可能避免使用同步方法——若不能避免，方法的同步也要比代码块的同步稍快一些。&lt;/p>
+&lt;p>■ 重复利用对象：要花很长的时间来新建一个对象（根据前表总结的时间，对象的新建时间是赋值时间的 980 倍，而新建一个小数组的时间是赋值时间的 3100 倍）。因此，最明智的做法是保存和更新老对象的字段，而不是创建一个新对象。例如，不要在自己的 paint()方法中新建一个 Font 对象。相反，应将其声明成实例对象，再初始化一次。在这以后，可在 paint()里需要的时候随时进行更新。参见 Bentley 编著的《编程拾贝》，p.81[15]。&lt;/p>
+&lt;p>■ 异常：只有在不正常的情况下，才应放弃异常处理模块。什么才叫“不正常”呢？这通常是指程序遇到了问题，而这一般是不愿见到的，所以性能不再成为优先考虑的目标。进行优化时，将小的“try-catch”块合并到一起。由于这些块将代码分割成小的、各自独立的片断，所以会妨碍编译器进行优化。另一方面，若过份热衷于删除异常处理模块，也可能造成代码健壮程度的下降。&lt;/p>
+&lt;p>■ 散列处理：首先，Java 1.0 和 1.1 的标准“散列表”（Hashtable）类需要造型以及特别消耗系统资源的同步处理（570 单位的赋值时间）。其次，早期的 JDK 库不能自动决定最佳的表格尺寸。最后，散列函数应针对实际使用项（Key）的特征设计。考虑到所有这些原因，我们可特别设计一个散列类，令其与特定的应用程序配合，从而改善常规散列表的性能。注意 Java 1.2 集合库的散列映射（HashMap）具有更大的灵活性，而且不会自动同步。&lt;/p>
+&lt;p>■ 方法内嵌：只有在方法属于 final（最终）、private（专用）或 static（静态）的情况下，Java 编译器才能内嵌这个方法。而且某些情况下，还要求它绝对不可以有局部变量。若代码花大量时间调用一个不含上述任何属性的方法，那么请考虑为其编写一个“final”版本。&lt;/p>
+&lt;p>■I/O：应尽可能使用缓冲。否则，最终也许就是一次仅输入／输出一个字节的恶果。注意 JDK 1.0 的 I/O 类采用了大量同步措施，所以若使用象 readFully()这样的一个“大批量”调用，然后由自己解释数据，就可获得更佳的性能。也要注意 Java 1.1 的“reader”和“writer”类已针对性能进行了优化。&lt;/p>
+&lt;p>■ 造型和实例：造型会耗去 2 到 200 个单位的赋值时间。开销更大的甚至要求上溯继承（遗传）结构。其他高代价的操作会损失和恢复更低层结构的能力。&lt;/p>
+&lt;p>■ 图形：利用剪切技术，减少在 repaint()中的工作量；倍增缓冲区，提高接收速度；同时利用图形压缩技术，缩短下载时间。来自 JavaWorld 的“Java Applets”以及来自 Sun 的“Performing Animation”是两个很好的教程。请记着使用最贴切的命令。例如，为根据一系列点画一个多边形，和 drawLine()相比，drawPolygon()的速度要快得多。如必须画一条单像素粗细的直线，drawLine(x,y,x,y)的速度比 fillRect(x,y,1,1)快。&lt;/p>
+&lt;p>■ 使用 API 类：尽量使用来自 Java API 的类，因为它们本身已针对机器的性能进行了优化。这是用 Java 难于达到的。比如在复制任意长度的一个数组时，arraryCopy()比使用循环的速度快得多。&lt;/p>
+&lt;p>■ 替换 API 类：有些时候，API 类提供了比我们希望更多的功能，相应的执行时间也会增加。因此，可定做特别的版本，让它做更少的事情，但可更快地运行。例如，假定一个应用程序需要一个容器来保存大量数组。为加快执行速度，可将原来的 Vector（矢量）替换成更快的动态对象数组。&lt;/p>
+&lt;ol>
+&lt;li>其他建议&lt;/li>
+&lt;/ol>
+&lt;p>■ 将重复的常数计算移至关键循环之外——比如计算固定长度缓冲区的 buffer.length。&lt;/p>
+&lt;p>■static final（静态最终）常数有助于编译器优化程序。&lt;/p>
+&lt;p>■ 实现固定长度的循环。&lt;/p>
+&lt;p>■ 使用 javac 的优化选项：-O。它通过内嵌 static，final 以及 private 方法，从而优化编译过的代码。注意类的长度可能会增加（只对 JDK 1.1 而言——更早的版本也许不能执行字节查证）。新型的“Just-in-time”（JIT）编译器会动态加速代码。&lt;/p>
+&lt;p>■ 尽可能地将计数减至 0——这使用了一个特殊的 JVM 字节码。&lt;/p>
+&lt;p>D.4 参考资源&lt;/p>
+&lt;p>D.4.1 性能工具&lt;/p>
+&lt;p>[1] 运行于 Pentium Pro 200，Netscape 3.0，JDK 1.1.4 的 MicroBenchmark（参见下面的参考资源[5]）&lt;/p>
+&lt;p>[2] Sun 的 Java 文档页——JDK Java 解释器主题：
+&lt;a href="http://java.sun.com/products/JDK/tools/win32/java.html" target="_blank" rel="noopener">http://java.sun.com/products/JDK/tools/win32/java.html&lt;/a>&lt;/p>
+&lt;p>[3] Vladimir Bulatov 的 HyperProf
+&lt;a href="http://www.physics.orst.edu/~bulatov/HyperProf" target="_blank" rel="noopener">http://www.physics.orst.edu/~bulatov/HyperProf&lt;/a>&lt;/p>
+&lt;p>[4] Greg White 的 ProfileViewer
+&lt;a href="http://www.inetmi.com/~gwhi/ProfileViewer/ProfileViewer.html" target="_blank" rel="noopener">http://www.inetmi.com/~gwhi/ProfileViewer/ProfileViewer.html&lt;/a>&lt;/p>
+&lt;p>D.4.2 Web 站点&lt;/p>
+&lt;p>[5] 对于 Java 代码的优化主题，最出色的在线参考资源是 Jonathan Hardwick 的“Java Optimization”网站：
+&lt;a href="http://www.cs.cmu.edu/~jch/java/optimization.html" target="_blank" rel="noopener">http://www.cs.cmu.edu/~jch/java/optimization.html&lt;/a>&lt;/p>
+&lt;p>“Java 优化工具”主页：&lt;/p>
+&lt;p>&lt;a href="http://www.cs.cmu.edu/~jch/java/tools.html" target="_blank" rel="noopener">http://www.cs.cmu.edu/~jch/java/tools.html&lt;/a>&lt;/p>
+&lt;p>以及“Java Microbenchmarks”（有一个 45 秒钟的评测过程）：&lt;/p>
+&lt;p>&lt;a href="http://www.cs.cmu.edu/~jch/java/benchmarks.html" target="_blank" rel="noopener">http://www.cs.cmu.edu/~jch/java/benchmarks.html&lt;/a>&lt;/p>
+&lt;p>D.4.3 文章&lt;/p>
+&lt;p>[6] “Make Java fast:Optimize! How to get the greatest performanceout of your code through low-level optimizations in Java”（让 Java 更快：优化！如何通过在 Java 中的低级优化，使代码发挥最出色的性能）。作者：Doug Bell。网址：
+&lt;a href="http://www.javaworld.com/javaworld/jw-04-1997/jw-04-optimize.html" target="_blank" rel="noopener">http://www.javaworld.com/javaworld/jw-04-1997/jw-04-optimize.html&lt;/a>
+（含一个全面的性能评测程序片，有详尽注释）&lt;/p>
+&lt;p>[7] “Java Optimization Resources”（Java 优化资源）
+&lt;a href="http://www.cs.cmu.edu/~jch/java/resources.html" target="_blank" rel="noopener">http://www.cs.cmu.edu/~jch/java/resources.html&lt;/a>&lt;/p>
+&lt;p>[8] “Optimizing Java for Speed”（优化 Java，提高速度）：
+&lt;a href="http://www.cs.cmu.edu/~jch/java/speed.html" target="_blank" rel="noopener">http://www.cs.cmu.edu/~jch/java/speed.html&lt;/a>&lt;/p>
+&lt;p>[9] “An Empirical Study of FORTRAN Programs”（FORTRAN 程序实战解析）。作者：Donald Knuth。1971 年出版。第 1 卷，p.105-33，“软件——实践和练习”。&lt;/p>
+&lt;p>[10] “Building High-Performance Applications and Servers in Java:An Experiential Study”。作者:Jimmy Nguyen，Michael Fraenkel，RichardRedpath，Binh Q. Nguyen 以及 Sandeep K. Singhal。IBM T.J. Watson ResearchCenter,IBM Software Solutions。&lt;/p>
+&lt;p>&lt;a href="http://www.ibm.com/java/education/javahipr.html" target="_blank" rel="noopener">http://www.ibm.com/java/education/javahipr.html&lt;/a>&lt;/p>
+&lt;p>D.4.4 Java 专业书籍&lt;/p>
+&lt;p>[11] 《Advanced Java，Idioms，Pitfalls，Styles, and Programming Tips》。作者：Chris Laffra。Prentice Hall 1997 年出版（Java 1.0）。第 11 章第 20 小节。&lt;/p>
+&lt;p>D.4.5 一般书籍&lt;/p>
+&lt;p>[12] 《Data Structures and C Programs》（数据结构和 C 程序）。作者：J.Van Wyk。Addison-Wesly 1998 年出版。&lt;/p>
+&lt;p>[13] 《Writing Efficient Programs》（编写有效的程序）。作者：Jon Bentley。Prentice Hall 1982 年出版。特别参考 p.110 和 p.145-151。&lt;/p>
+&lt;p>[14] 《More Programming Pearls》（编程拾贝第二版）。作者：JonBentley。“Association for Computing Machinery”，1998 年 2 月。&lt;/p>
+&lt;p>[15] 《Programming Pearls》（编程拾贝）。作者：Jone Bentley。Addison-Wesley 1989 年出版。第 2 部分强调了常规的性能改善问题。[16] 《Code Complete:A Practical Handbook of Software Construction》（完整代码索引：实用软件开发手册）。作者：Steve McConnell。Microsoft 出版社 1993 年出版，第 9 章。&lt;/p>
+&lt;p>[17] 《Object-Oriented System Development》（面向对象系统的开发）。作者：Champeaux，Lea 和 Faure。第 25 章。&lt;/p>
+&lt;p>[18] 《The Art of Programming》（编程艺术）。作者：Donald Knuth。第 1 卷“基本算法第 3 版”；第 3 卷“排序和搜索第 2 版”。Addison-Wesley 出版。这是有关程序算法的一本百科全书。&lt;/p>
+&lt;p>[19] 《Algorithms in C:Fundammentals,Data Structures, Sorting,Searching》（C 算法：基础、数据结构、排序、搜索）第 3 版。作者：RobertSedgewick。Addison-Wesley 1997 年出版。作者是 Knuth 的学生。这是专门讨论几种语言的七个版本之一。对算法进行了深入浅出的解释。&lt;/p></description></item><item><title>附录E 关于垃圾收集的一些话</title><link>https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/%E9%99%84%E5%BD%95e-%E5%85%B3%E4%BA%8E%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E7%9A%84%E4%B8%80%E4%BA%9B%E8%AF%9D/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/%E9%99%84%E5%BD%95e-%E5%85%B3%E4%BA%8E%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E7%9A%84%E4%B8%80%E4%BA%9B%E8%AF%9D/</guid><description>&lt;h1 id="附录-e-关于垃圾收集的一些话">附录 E 关于垃圾收集的一些话&lt;/h1>
+&lt;p>“很难相信 Java 居然能和 C++一样快，甚至还能更快一些。”&lt;/p>
+&lt;p>据我自己的实践，这种说法确实成立。然而，我也发现许多关于速度的怀疑都来自一些早期的实现方式。由于这些方式并非特别有效，所以没有一个模型可供参考，不能解释 Java 速度快的原因。&lt;/p>
+&lt;p>我之所以想到速度，部分原因是由于 C++模型。C++将自己的主要精力放在编译期间“静态”发生的所有事情上，所以程序的运行期版本非常短小和快速。C++也直接建立在 C 模型的基础上（主要为了向后兼容），但有时仅仅由于它在 C 中能按特定的方式工作，所以也是 C++中最方便的一种方法。最重要的一种情况是 C 和 C++对内存的管理方式，它是某些人觉得 Java 速度肯定慢的重要依据：在 Java 中，所有对象都必须在内存“堆”里创建。&lt;/p>
+&lt;p>而在 C++中，对象是在栈中创建的。这样可达到更快的速度，因为当我们进入一个特定的作用域时，栈指针会向下移动一个单位，为那个作用域内创建的、以栈为基础的所有对象分配存储空间。而当我们离开作用域的时候（调用完毕所有局部构造器后），栈指针会向上移动一个单位。然而，在 C++里创建“内存堆”（Heap）对象通常会慢得多，因为它建立在 C 的内存堆基础上。这种内存堆实际是一个大的内存池，要求必须进行再循环（再生）。在 C++里调用 delete 以后，释放的内存会在堆里留下一个洞，所以再调用 new 的时候，存储分配机制必须进行某种形式的搜索，使对象的存储与堆内任何现成的洞相配，否则就会很快用光堆的存储空间。之所以内存堆的分配会在 C++里对性能造成如此重大的性能影响，对可用内存的搜索正是一个重要的原因。所以创建基于栈的对象要快得多。&lt;/p>
+&lt;p>同样地，由于 C++如此多的工作都在编译期间进行，所以必须考虑这方面的因素。但在 Java 的某些地方，事情的发生却要显得“动态”得多，它会改变模型。创建对象的时候，垃圾收集器的使用对于提高对象创建的速度产生了显著的影响。从表面上看，这种说法似乎有些奇怪——存储空间的释放会对存储空间的分配造成影响，但它正是 JVM 采取的重要手段之一，这意味着在 Java 中为堆对象分配存储空间几乎能达到与 C++中在栈里创建存储空间一样快的速度。&lt;/p>
+&lt;p>可将 C++的堆（以及更慢的 Java 堆）想象成一个庭院，每个对象都拥有自己的一块地皮。在以后的某个时间，这种“不动产”会被抛弃，而且必须再生。但在某些 JVM 里，Java 堆的工作方式却是颇有不同的。它更象一条传送带：每次分配了一个新对象后，都会朝前移动。这意味着对象存储空间的分配可以达到非常快的速度。“堆指针”简单地向前移至处女地，所以它与 C++的栈分配方式几乎是完全相同的（当然，在数据记录上会多花一些开销，但要比搜索存储空间快多了）。&lt;/p>
+&lt;p>现在，大家可能注意到了堆事实并非一条传送带。如按那种方式对待它，最终就要求进行大量的页交换（这对性能的发挥会产生巨大干扰），这样终究会用光内存，出现内存分页错误。所以这儿必须采取一个技巧，那就是著名的“垃圾收集器”。它在收集“垃圾”的同时，也负责压缩堆里的所有对象，将“堆指针”移至尽可能靠近传送带开头的地方，远离发生（内存）分页错误的地点。垃圾收集器会重新安排所有东西，使其成为一个高速、无限自由的堆模型，同时游刃有余地分配存储空间。&lt;/p>
+&lt;p>为真正掌握它的工作原理，我们首先需要理解不同垃圾收集器（GC）采取的工作方案。一种简单、但速度较慢的 GC 技术是引用计数。这意味着每个对象都包含了一个引用计数器。每当一个指针同一个对象连接起来时，引用计数器就会增值。每当一个指针超出自己的作用域，或者设为 null 时，引用计数就会减值。这样一来，只要程序处于运行状态，就需要连续进行引用计数管理——尽管这种管理本身的开销比较少。垃圾收集器会在整个对象列表中移动巡视，一旦它发现其中一个引用计数成为 0，就释放它占据的存储空间。但这样做也有一个缺点：若对象相互之间进行循环引用，那么即使引用计数不是 0，仍有可能属于应收掉的“垃圾”。为了找出这种自引用的组，要求垃圾收集器进行大量额外的工作。引用计数属于垃圾收集的一种类型，但它看起来并不适合在所有 JVM 方案中采用。&lt;/p>
+&lt;p>在速度更快的方案里，垃圾收集并不建立在引用计数的基础上。相反，它们基于这样一个原理：所有非死锁的对象最终都肯定能回溯至一个指针，该指针要么存在于栈中，要么存在于静态存储空间。这个回溯链可能经历了几层对象。所以，如果从栈和静态存储区域开始，并经历所有指针，就能找出所有活动的对象。对于自己找到的每个指针，都必须跟踪到它指向的那个对象，然后跟随那个对象中的所有指针，“跟踪追击”到它们指向的对象……等等，直到遍历了从栈或静态存储区域中的指针发起的整个链接网路为止。中途移经的每个对象都必须仍处于活动状态。注意对于那些特殊的自引用组，并不会出现前述的问题。由于它们根本找不到，所以会自动当作垃圾处理。&lt;/p>
+&lt;p>在这里阐述的方法中，JVM 采用一种“自适应”的垃圾收集方案。对于它找到的那些活动对象，具体采取的操作取决于当前正在使用的是什么变体。其中一个变体是“停止和复制”。这意味着由于一些不久之后就会非常明显的原因，程序首先会停止运行（并非一种后台收集方案）。随后，已找到的每个活动对象都会从一个内存堆复制到另一个，留下所有的垃圾。除此以外，随着对象复制到新堆，它们会一个接一个地聚焦在一起。这样可使新堆显得更加紧凑（并使新的存储区域可以简单地抽离末尾，就象前面讲述的那样）。&lt;/p>
+&lt;p>当然，将一个对象从一处挪到另一处时，指向那个对象的所有指针（引用）都必须改变。对于那些通过跟踪内存堆的对象而获得的指针，以及那些静态存储区域，都可以立即改变。但在“遍历”过程中，还有可能遇到指向这个对象的其他指针。一旦发现这个问题，就当即进行修正（可想象一个散列表将老地址映射成新地址）。&lt;/p>
+&lt;p>有两方面的问题使复制收集器显得效率低下。第一个问题是我们拥有两个堆，所有内存都在这两个独立的堆内来回移动，要求付出的管理量是实际需要的两倍。为解决这个问题，有些 JVM 根据需要分配内存堆，并将一个堆简单地复制到另一个。&lt;/p>
+&lt;p>第二个问题是复制。随着程序变得越来越“健壮”，它几乎不产生或产生很少的垃圾。尽管如此，一个副本收集器仍会将所有内存从一处复制到另一处，这显得非常浪费。为避免这个问题，有些 JVM 能侦测是否没有产生新的垃圾，并随即改换另一种方案（这便是“自适应”的缘由）。另一种方案叫作“标记和清除”，Sun 公司的 JVM 一直采用的都是这种方案。对于常规性的应用，标记和清除显得非常慢，但一旦知道自己不产生垃圾，或者只产生很少的垃圾，它的速度就会非常快。&lt;/p>
+&lt;p>标记和清除采用相同的逻辑：从栈和静态存储区域开始，并跟踪所有指针，寻找活动对象。然而，每次发现一个活动对象的时候，就会设置一个标记，为那个对象作上“记号”。但此时尚不收集那个对象。只有在标记过程结束，清除过程才正式开始。在清除过程中，死锁的对象会被释放然而，不会进行任何形式的复制，所以假若收集器决定压缩一个断续的内存堆，它通过移动周围的对象来实现。&lt;/p>
+&lt;p>“停止和复制”向我们表明这种类型的垃圾收集并不是在后台进行的；相反，一旦发生垃圾收集，程序就会停止运行。在 Sun 公司的文档库中，可发现许多地方都将垃圾收集定义成一种低优先级的后台进程，但它只是一种理论上的实验，实际根本不能工作。在实际应用中，Sun 的垃圾收集器会在内存减少时运行。除此以外，“标记和清除”也要求程序停止运行。&lt;/p>
+&lt;p>正如早先指出的那样，在这里介绍的 JVM 中，内存是按大块分配的。若分配一个大块头对象，它会获得自己的内存块。严格的“停止和复制”要求在释放旧堆之前，将每个活动的对象从源堆复制到一个新堆，此时会涉及大量的内存转换工作。通过内存块，垃圾收集器通常可利用死块复制对象，就象它进行收集时那样。每个块都有一个生成计数，用于跟踪它是否依然“存活”。通常，只有自上次垃圾收集以来创建的块才会得到压缩；对于其他所有块，如果已从其他某些地方进行了引用，那么生成计数都会溢出。这是许多短期的、临时的对象经常遇到的情况。会周期性地进行一次完整清除工作——大块头的对象仍未复制（只是让它们的生成计数溢出），而那些包含了小对象的块会进行复制和压缩。JVM 会监视垃圾收集器的效率，如果由于所有对象都属于长期对象，造成垃圾收集成为浪费时间的一个过程，就会切换到“标记和清除”方案。类似地，JVM 会跟踪监视成功的“标记与清除”工作，若内存堆变得越来越“散乱”，就会换回“停止和复制”方案。“自定义”的说法就是从这种行为来的，我们将其最后总结为：“根据情况，自动转换停止和复制／标记和清除这两种模式”。&lt;/p>
+&lt;p>JVM 还采用了其他许多加速方案。其中一个特别重要的涉及装载器以及 JIT 编译器。若必须装载一个类（通常是我们首次想创建那个类的一个对象时），会找到.class 文件，并将那个类的字节码送入内存。此时，一个方法是用 JIT 编译所有代码，但这样做有两方面的缺点：它会花更多的时间，若与程序的运行时间综合考虑，编译时间还有可能更长；而且它增大了执行文件的长度（字节码比扩展过的 JIT 代码精简得多），这有可能造成内存页交换，从而显著放慢一个程序的执行速度。另一种替代办法是：除非确有必要，否则不经 JIT 编译。这样一来，那些根本不会执行的代码就可能永远得不到 JIT 的编译。&lt;/p>
+&lt;p>由于 JVM 对浏览器来说是外置的，大家可能希望在使用浏览器的时候从一些 JVM 的速度提高中获得好处。但非常不幸，JVM 目前不能与不同的浏览器进行沟通。为发挥一种特定 JVM 的潜力，要么使用内建了那种 JVM 的浏览器，要么只有运行独立的 Java 应用程序。&lt;/p></description></item><item><title>附录F 推荐读物</title><link>https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/%E9%99%84%E5%BD%95f-%E6%8E%A8%E8%8D%90%E8%AF%BB%E7%89%A9/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/%E9%99%84%E5%BD%95f-%E6%8E%A8%E8%8D%90%E8%AF%BB%E7%89%A9/</guid><description>&lt;h1 id="附录-f-推荐读物">附录 F 推荐读物&lt;/h1>
+&lt;p>■《Java in a Nutshell:A Desktop Quick Reference，第 2 版》
+作者：David Flanagan
+出版社：O&amp;rsquo;Reilly &amp;amp; Assoc
+出版时间：1997
+简介：对 Java 1.1 联机文档的一个简要总结。就个人来说，我更喜欢在线阅览文档，特别是在它们变化得如此快的时候。然而，许多人仍然喜欢印刷出来的文档，这样可以省一些上网费。而且这本书也提供了比联机文档更多的讨论。&lt;/p>
+&lt;p>■《The Java Class Libraries:An Annotated Reference》
+作者：Patrick Chan 和 Rosanna Lee
+出版社：Addison-Wesley
+出版时间：1997
+简介：作为一种联机参考资源，应向读者提供足够多的说明，使其简单易用。《Thinking in Java》的一名技术审定员说道：“如果我只能有一本 Java 书，那么肯定选它。”不过我可没有他那么激动。它太大、太贵，而且示例的质量并不能令我满意。但在遇到麻烦的时候，该书还是很有参考价值的。而且与《Java in a Nutshell》相比，它看起来有更大的深度（当然也有更多的文字）。&lt;/p>
+&lt;p>■《Java Network Programming》
+作者：Elliote Rusty Harold
+David Flanagan
+出版社：O&amp;rsquo;Reilly
+出版时间：1997
+简介：在阅读本书前，我可以说根本不理解 Java 有关网络的问题。后来，我也发现他的 Web 站点“Cafe au Lait”是个令人激动的、很人个性的以及经常更新的去处，涉及大量有价值的 Java 开发资源。由于几乎每天更新，所以在这里能看到与 Java 有关的大量新闻。站点地址是：http://sunsite.unc.edu/javafaq/。&lt;/p>
+&lt;p>■《Core Java，第 3 版》
+作者：Cornel 和 Horstmann
+出版社：Prentice-Hall
+出版时间：1997
+简介：对于自己碰到的问题，若在《Thinking in Java》里找不到答案，这就是一个很好的参考地点。注意：Java 1.1 的版本是《Core Java 1.1 Volume 1-Fundamentals &amp;amp; Core Java 1.1 Volume 2-Advanced Features》&lt;/p>
+&lt;p>■《JDBC Database Access with Java》
+作者：Hamilton，Cattell 和 Fisher
+出版社：Addison-Wesley
+出版时间：1997
+简介：如果对 SQL 和数据库一无所知，这本书就可以作为一个相当好的起点。它也对 API 进行了详尽的解释，并提供一个“注释参考。与“Java 系列”（由 JavaSoft 授权的唯一一套丛书）的其他所有书籍一样，这本书的缺点也是进行了过份的渲染，只说 Java 的好话——在这一系列书籍里找不到任何不利于 Java 的地方。&lt;/p>
+&lt;p>■《Java Programming with CORBA》
+作者：Andreas Vogel 和 Keith Duddy
+出版社：Jonh Wiley &amp;amp; Sons
+出版时间：1997
+简介：针对三种主要的 Java ORB（Visbroker，Orbix，Joe），本书分别用大量代码实例进行了详尽的阐述。&lt;/p>
+&lt;p>■《Design Patterns》
+作者：Gamma，Helm，Johnson 和 Vlissides
+出版社：Addison-Wesley
+出版时间：1995
+简介：这是一本发起了编程领域方案革命的经典书籍。&lt;/p>
+&lt;p>■《UML Toolkit》
+作者：Hans-Erik Eriksson 和 Magnus Penker
+出版社：Jonh Wiley &amp;amp; Sons
+出版时间：1997
+简介：解释 UML 以及如何使用它，并提供 Java 的实际案例供参考。配套 CD-ROM 包含了 Java 代码以及 Rational Rose 的一个删减版本。本书对 UML 进行了非常出色的描述，并解释了如何用它构建实际的系统。&lt;/p>
+&lt;p>■《Practical Algorithms for Programmers》
+作者：Binstock 和 Rex
+出版社：Addison-Wesley
+出版时间：1995
+简介：算法是用 C 描述的，所以它们很容易就能转换到 Java 里面。每种算法都有详尽的解释。&lt;/p></description></item><item><title>写在前面的话</title><link>https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/%E5%86%99%E5%9C%A8%E5%89%8D%E9%9D%A2%E7%9A%84%E8%AF%9D/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/%E5%86%99%E5%9C%A8%E5%89%8D%E9%9D%A2%E7%9A%84%E8%AF%9D/</guid><description>&lt;h1 id="写在前面的话">写在前面的话&lt;/h1>
+&lt;p>我的兄弟 Todd 目前正在进行从硬件到编程领域的工作转变。我曾提醒他下一次大革命的重点将是遗传工程。
+我们的微生物技术将能制造食品、燃油和塑料；它们都是清洁的，不会造成污染，而且能使人类进一步透视物理世界的奥秘。我认为相比之下电脑的进步会显得微不足道。&lt;/p>
+&lt;p>但随后，我又意识到自己正在犯一些科幻作家常犯的错误：在技术中迷失了（这种事情在科幻小说里常有发生）！如果是一名有经验的作家，就知道绝对不能就事论事，必须以人为中心。遗传对我们的生命有非常大的影响，但不能十分确定它能抹淡计算机革命——或至少信息革命——的影响。信息涉及人相互间的沟通：的确，汽车和轮子的发明都非常重要，但它们最终亦如此而已。真正重要的还是我们与世界的关系，而其中最关键的就是通信。&lt;/p>
+&lt;p>这本书或许能说明一些问题。许多人认为我有点儿大胆或者稍微有些狂妄，居然把所有家当都摆到了 Web 上。“这样做还有谁来买它呢？”他们问。假如我是一个十分守旧的人，那么绝对不这样干。但我确实不想再沿原来的老路再写一本计算机参考书了。我不知道最终会发生什么事情，但的确认为这是我对一本书作出的最明智的一个决定。&lt;/p>
+&lt;p>至少有一件事是可以肯定的，人们开始向我发送纠错反馈。这是一个令人震惊的体验，因为读者会看到书中的每一个角落，并揪出那些藏匿得很深的技术及语法错误。这样一来，和其他以传统方式发行的书不同，我就能及时改正已知的所有类别的错误，而不是让它们最终印成铅字，堂而皇之地出现在各位的面前。俗话说，“当局者迷，旁观者清”。人们对书中的错误是非常敏感的，往往毫不客气地指出：“我想这样说是错误的，我的看法是……”。在我仔细研究后，往往发现自己确实有不当之处，而这是当初写作时根本没有意识到的（检查多少遍也不行）。我意识到这是群体力量的一个可喜的反映，它使这本书显得的确与众不同。&lt;/p>
+&lt;p>但我随之又听到了另一个声音：“好吧，你在那儿放的电子版的确很有创意，但我想要的是从真正的出版社那里印刷的一个版本！”事实上，我作出了许多努力，让它用普通打印机机就能得到很好的阅读效果，但仍然不象真正印刷的书那样正规。许多人不想在屏幕上看完整本书，也不喜欢拿着一叠纸阅读。无论打印格式有多么好，这些人喜欢是仍然是真正的“书”（激光打印机的墨盒也太贵了一点）。现在看来，计算机的革命仍未使出版界完全走出传统的模式。但是，有一个学生向我推荐了未来出版的一种模式：书籍将首先在互联网上出版，然后只有在绝对必要的前提下，才会印刷到纸张上。目前，为数众多的书籍销售都不十分理想，许多出版社都在亏本。但如采用这种方式出版，就显得灵活得多，也更容易保证赢利。&lt;/p>
+&lt;p>这本书也从另一个角度也给了我深刻的启迪。我刚开始的时候以为 Java“只是另一种程序设计语言”。这个想法在许多情况下都是成立的。但随着时间的推移，我对它的学习也愈加深入，开始意识到它的基本宗旨与我见过的其他所有语言都有所区别。&lt;/p>
+&lt;p>程序设计与对复杂性的操控有很大的关系：对一个准备解决的问题，它的复杂程度取决用于解决它的机器的复杂程度。正是由于这一复杂性的存在，我们的程序设计项目屡屡失败。对于我以前接触过的所有编程语言，它们都没能跳过这一框框，由此决定了它们的主要设计目标就是克服程序开发与维护中的复杂性。当然，许多语言在设计时就已考虑到了复杂性的问题。但从另一角度看，实际设计时肯定会有另一些问题浮现出来，需把它们考虑到这个复杂性的问题里。不可避免地，其他那些问题最后会变成最让程序员头痛的。例如，C++必须同 C 保持向后兼容（使 C 程序员能尽快地适应新环境），同时又要保证编程的效率。C++在这两个方面都设计得很好，为其赢得了不少的声誉。但它们同时也暴露出了额外的复杂性，阻碍了某些项目的成功实现（当然，你可以责备程序员和管理层，但假如一种语言能通过捕获你的错误而提供帮助，它为什么不那样做呢？）。作为另一个例子，Visual Basic（VB）同当初的 BASIC 有关的紧密的联系。而 BASIC 并没有打算设计成一种能全面解决问题的语言，所以堆加到 VB 身上的所有扩展都造成了令人头痛和难于管理和维护的语法。另一方面，C++、VB 和其他如 Smalltalk 之类的语言均在复杂性的问题上下了一番功夫。由此得到的结果便是，它们在解决特定类型的问题时是非常成功的。
+在理解到 Java 最终的目标是减轻程序员的负担时，我才真正感受到了震憾，尽管它的潜台词好象是说：“除了缩短时间和减小产生健壮代码的难度以外，我们不关心其他任何事情。”在目前这个初级阶段，达到那个目标的后果便是代码不能特别快地运行（尽管有许多保证都说 Java 终究有一天会运行得多么快），但它确实将开发时间缩短到令人惊讶的地步——几乎只有创建一个等效 C++程序一半甚至更短的时间。这段节省下来的时间可以产生更大的效益，但 Java 并不仅止于此。它甚至更上一层楼，将重要性越来越明显的一切复杂任务都封装在内，比如网络程序和多线程处理等等。Java 的各种语言特性和库在任何时候都能使那些任务轻而易举完成。而且最后，它解决了一些真正有些难度的复杂问题：跨平台程序、动态代码改换以及安全保护等等。换在从前，其中任何每一个都能使你头大如斗。所以不管我们见到了什么性能问题，Java 的保证仍然是非常有效的：它使程序员显著提高了程序设计的效率！&lt;/p>
+&lt;p>在我看来，编程效率提升后影响最大的就是 Web。网络程序设计以前非常困难，而 Java 使这个问题迎刃而解（而且 Java 也在不断地进步，使解决这类问题变得越来越容易）。网络程序的设计要求我们相互间更有效率地沟通，而且至少要比电话通信来得便宜（仅仅电子函件就为许多公司带来了好处）。随着我们网上通信越来越频繁，令人震惊的事情会慢慢发生，而且它们令人吃惊的程度绝不亚于当初工业革命给人带来的震憾。&lt;/p>
+&lt;p>在各个方面：创建程序；按计划编制程序；构造用户界面，使程序能与用户沟通；在不同类型的机器上运行程序；以及方便地编写程序，使其能通过因特网通信——Java 提高了人与人之间的“通信带宽”。而且我认为通信革命的结果可能并不单单是数量庞大的比特到处传来传去那么简单。我们认为认清真正的革命发生在哪里，因为人和人之间的交流变得更方便了——个体与个体之间，个体与组之间，组与组之间，甚至在星球之间。有人预言下一次大革命的发生就是由于足够多的人和足够多的相互连接造成的，而这种革命是以整个世界为基础发生的。Java 可能是、也可能不是促成那次革命的直接因素，但我在这里至少感觉自己在做一些有意义的工作——尝试教会大家一种重要的语言！&lt;/p></description></item><item><title>引言</title><link>https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/%E5%BC%95%E8%A8%80/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/think-in-java/%E5%BC%95%E8%A8%80/</guid><description>&lt;h1 id="引言">引言&lt;/h1>
+&lt;p>同人类任何语言一样，Java 为我们提供了一种表达思想的方式。如操作得当，同其他方式相比，随着问题变得愈大和愈复杂，这种表达方式的方便性和灵活性会显露无遗。&lt;/p>
+&lt;p>不可将 Java 简单想象成一系列特性的集合；如孤立地看，有些特性是没有任何意义的。只有在考虑“设计”、而非考虑简单的编码时，才可真正体会到 Java 的强大。为了按这种方式理解 Java，首先必须掌握它与编程的一些基本概念。本书讨论了编程问题、它们为何会成为问题以及 Java 用以解决它们的方法。所以，我对每一章的解释都建立在如何用语言解决一种特定类型的问题基础上。按这种方式，我希望引导您一步一步地进入 Java 的世界，使其最终成为您最自然的一种语言。&lt;/p>
+&lt;p>贯穿本书，我试图在您的大脑里建立一个模型——或者说一个“知识结构”。这样可加深对语言的理解。若遇到难解之处，应学会把它填入这个模型的对应地方，然后自行演绎出答案。事实上，学习任何语言时，脑海里有一个现成的知识结构往往会起到事半功倍的效果。&lt;/p>
+&lt;h4 id="1-前提">1. 前提&lt;/h4>
+&lt;p>本书假定读者对编程多少有些熟悉。应已知道程序是一系列语句的集合，知道子程序／函数／宏是什么，知道象“If”这样的控制语句，也知道象“while”这样的循环结构。注意这些东西在大量语言里都是类似的。假如您学过一种宏语言，或者用过 Perl 之类的工具，那么它们的基本概念并无什么区别。总之，只要能习惯基本的编程概念，就可顺利阅读本书。当然，C/C++程序员在阅读时能占到更多的便宜。但即使不熟悉 C，一样不要把自己排除在外（尽管以后的学习要付出更大的努力）。我会讲述面向对象编程的概念，以及 Java 的基本控制机制，所以不用担心自己会打不好基础。况且，您需要学习的第一类知识就会涉及到基本的流程控制语句。&lt;/p>
+&lt;p>尽管经常都会谈及 C 和 C++语言的一些特性，但并没有打算使它们成为内部参考，而是想帮助所有程序员都能正确地看待那两种语言。毕竟，Java 是从它们那里衍生出来的。我将试着尽可能地简化这些引用和参考，并合理地解释一名非 C/C++程序员通常不太熟悉的内容。&lt;/p>
+&lt;h4 id="2-java-的学习">2. Java 的学习&lt;/h4>
+&lt;p>在我第一本书《Using C++》面市的几乎同一时间（Osborne/McGraw-Hill 于 1989 年出版），我开始教授那种语言。程序设计语言的教授已成为我的专业。自 1989 年以来，我便在世界各地见过许多昏昏欲睡、满脸茫然以及困惑不解的面容。开始在室内面向较少的一组人授课以后，我从作业中发现了一些特别的问题。即使那些上课面带会心的微笑或者频频点头的学生，对许多问题也存在认识上的混淆。在过去几年间的“软件开发会议”上，由我主持 C++分组讨论会（现在变成了 Java 讨论会）。有的演讲人试图在很短的时间内向听众灌输过多的主题。所以到最后，尽管听众的水平都还可以，而且提供的材料也很充足，但仍然损失了一部分听众。这可能是由于问得太多了，但由于我是那些采取传统授课方式的人之一，所以很想使每个人都能跟上讲课进度。&lt;/p>
+&lt;p>有段时间，我编制了大量教学简报。经过不断的试验和修订（或称“反复”，这是在 Java 程序设计中非常有用的一项技术），最后成功地在一门课程中集成了从我的教学经验中总结出来的所有东西——我在很长一段时间里都在使用。其中由一系列离散的、易于消化的小步骤组成，而且每个小课程结束后都有一些适当的练习。我目前已在 Java 公开研讨会上公布了这一课程，大家可到http://www.BruceEckel.com了解详情（对研讨会的介绍也以CD-ROM的形式提供，具体信息可在同样的Web站点找到）。&lt;/p>
+&lt;p>从每一次研讨会收到的反馈都帮助我修改及重新制订学习材料的重心，直到我最后认为它成为一个完善的教学载体为止。但本书并非仅仅是一本教科书——我尝试在其中装入尽可能多的信息，并按照主题进行了有序的分类。无论如何，这本书的主要宗旨是为那些独立学习的人士服务，他们正准备深入一门新的程序设计语言，而没有太大的可能参加此类专业研讨会。&lt;/p>
+&lt;h4 id="3-目标">3. 目标&lt;/h4>
+&lt;p>就象我的前一本书《Thinking in C++》一样，这本书面向语言的教授进行了良好的结构与组织。特别地，我的目标是建立一套有序的机制，可帮助我在自己的研讨会上更好地进行语言教学。在我思考书中的一章时，实际上是在想如何教好一堂课。我的目标是得到一系列规模适中的教学模块，可以在合理的时间内教完。随后是一些精心挑选的练习，可以在课堂上当即完成。&lt;/p>
+&lt;p>&lt;strong>在这本书中，我想达到的目标总结如下：&lt;/strong>&lt;/p>
+&lt;p>(1) 每一次都将教学内容向前推进一小步，便于读者在继续后面的学习前消化前面的内容。&lt;/p>
+&lt;p>(2) 采用的示例尽可能简短。当然，这样做有时会妨碍我解决“现实世界”的问题。但我同时也发现对那些新手来说，如果他们能理解每一个细节，那么一般会产生更大的学习兴趣。而假如他们一开始就被要解决的问题的深度和广度所震惊，那么一般都不会收到很好的学习效果。另外在实际教学过程中，对能够摘录的代码数量是有严重限制的。另一方面，这样做无疑会有些人会批评我采用了“不真实的例子”，但只要能起到良好的效果，我宁愿接受这一指责。&lt;/p>
+&lt;p>(3) 要揭示的特性按照我精心挑选的顺序依次出场，而且尽可能符合读者的思想历程。当然，我不可能永远都做到这一点；在那些情况下，会给出一段简要的声明，指出这个问题。&lt;/p>
+&lt;p>(4) 只把我认为有助于理解语言的东西介绍给读者，而不是把我知道的一切东西都抖出来，这并非藏私。我认为信息的重要程度是存在一个合理的层次的。有些情况是 95％的程序员都永远不必了解的。如强行学习，只会干扰他们的正常思维，从而加深语言在他们面前表现出来的难度。以 C 语言为例，假如你能记住运算符优先次序表（我从来记不住），那么就可以写出更“聪明”的代码。但再深入想一层，那也会使代码的读者／维护者感到困扰。所以忘了那些次序吧，在拿不准的时候加上括号即可。&lt;/p>
+&lt;p>(5) 每一节都有明确的学习重点，所以教学时间（以及练习的间隔时间）非常短。这样做不仅能保持读者思想的活跃，也能使问题更容易理解，对自己的学习产生更大的信心。&lt;/p>
+&lt;p>(6) 提供一个坚实的基础，使读者能充分理解问题，以便更容易转向一些更加困难的课程和书籍。&lt;/p>
+&lt;h4 id="4-联机文档">4. 联机文档&lt;/h4>
+&lt;p>由 Sun 微系统公司提供的 Java 语言和库（可免费下载）配套提供了电子版的用户帮助手册，可用 Web 浏览器阅读。此外，由其他厂商开发的几乎所有类似产品都有一套等价的文档系统。而目前出版的与 Java 有关的几乎所有书籍都重复了这份文档。所以你要么已经拥有了它，要么需要下载。所以除非特别必要，否则本书不会重复那份文档的内容。因为一般地说，用 Web 浏览器查找与类有关的资料比在书中查找方便得多（电子版的东西更新也快）。只有在需要对文档进行补充，以便你能理解一个特定的例子时，本书才会提供有关类的一些附加说明。&lt;/p>
+&lt;h4 id="5-章节">5. 章节&lt;/h4>
+&lt;p>本书在设计时认真考虑了人们学习 Java 语言的方式。在我授课时，学生们的反映有效地帮助了我认识哪些部分是比较困难的，需特别加以留意。我也曾经一次讲述了太多的问题，但得到的教训是：假如包括了大量新特性，就需要对它们全部作出解释，而这特别容易加深学生们的混淆。因此，我进行了大量努力，使这本书一次尽可能地少涉及一些问题。&lt;/p>
+&lt;p>所以，我在书中的目标是让每一章都讲述一种语言特性，或者只讲述少数几个相互关联的特性。这样一来，读者在转向下一主题时，就能更容易地消化前面学到的知识。&lt;/p>
+&lt;p>下面列出对本书各章的一个简要说明，它们与我实际进行的课堂教学是对应的。&lt;/p>
+&lt;p>&lt;strong>(1) 第 1 章：对象入门&lt;/strong>&lt;/p>
+&lt;p>这一章是对面向对象的程序设计（OOP）的一个综述，其中包括对“什么是对象”之类的基本问题的回答，并讲述了接口与实现、抽象与封装、消息与函数、继承与合成以及非常重要的多态性的概念。这一章会向大家提出一些对象创建的基本问题，比如构造器、对象存在于何处、创建好后把它们置于什么地方以及魔术般的垃圾收集器（能够清除不再需要的对象）。要介绍的另一些问题还包括通过异常实现的错误控制机制、反应灵敏的用户界面的多线程处理以及连网和因特网等等。大家也会从中了解到是什么使得 Java 如此特别，它为什么取得了这么大的成功，以及与面向对象的分析与设计有关的问题。&lt;/p>
+&lt;p>&lt;strong>(2) 第 2 章：一切都是对象&lt;/strong>&lt;/p>
+&lt;p>本章将大家带到可以着手写自己的第一个 Java 程序的地方，所以必须对一些基本概念作出解释，其中包括对象“指针”的概念；怎样创建一个对象；对基本数据类型和数组的一个介绍；作用域以及垃圾收集器清除对象的方式；如何将 Java 中的所有东西都归为一种新数据类型（类），以及如何创建自己的类；函数、自变量以及返回值；名字的可见度以及使用来自其他库的组件；static 关键字；注释和嵌入文档等等。&lt;/p>
+&lt;p>&lt;strong>(3) 第 3 章：控制程序流程&lt;/strong>&lt;/p>
+&lt;p>本章开始介绍起源于 C 和 C++，由 Java 继承的所有运算符。除此以外，还要学习运算符一些不易使人注意的问题，以及涉及造型、升迁以及优先次序的问题。随后要讲述的是基本的流程控制以及选择运算，这些是几乎所有程序设计语言都具有的特性：用 if-else 实现选择；用 for 和 while 实现循环；用 break 和 continue 以及 Java 的标签式 break 和 contiune（它们被认为是 Java 中“不见的 gogo”）退出循环；以及用 switch 实现另一种形式的选择。尽管这些与 C 和 C++中见到的有一定的共通性，但多少存在一些区别。除此以外，所有示例都是完整的 Java 示例，能使大家很快地熟悉 Java 的外观。&lt;/p>
+&lt;p>&lt;strong>(4) 第 4 章：初始化和清除&lt;/strong>&lt;/p>
+&lt;p>本章开始介绍构造器，它的作用是担保初始化的正确实现。对构造器的定义要涉及函数重载的概念（因为可能同时有几个构造器）。随后要讨论的是清除过程，它并非肯定如想象的那么简单。用完一个对象后，通常可以不必管它，垃圾收集器会自动介入，释放由它占据的内存。这里详细探讨了垃圾收集器以及它的一些特点。在这一章的最后，我们将更贴近地观察初始化过程：自动成员初始化、指定成员初始化、初始化的顺序、static（静态）初始化以及数组初始化等等。&lt;/p>
+&lt;p>&lt;strong>(5) 第 5 章：隐藏实现过程&lt;/strong>&lt;/p>
+&lt;p>本章要探讨将代码封装到一起的方式，以及在库的其他部分隐藏时，为什么仍有一部分处于暴露状态。首先要讨论的是 package 和 import 关键字，它们的作用是进行文件级的封装（打包）操作，并允许我们构建由类构成的库（类库）。此时也会谈到目录路径和文件名的问题。本章剩下的部分将讨论 public，private 以及 protected 三个关键字、“友好”访问的概念以及各种场合下不同访问控制级的意义。&lt;/p>
+&lt;p>&lt;strong>(6) 第 6 章：类再生&lt;/strong>&lt;/p>
+&lt;p>继承的概念是几乎所有 OOP 语言中都占有重要的地位。它是对现有类加以利用，并为其添加新功能的一种有效途径（同时可以修改它，这是第 7 章的主题）。通过继承来重复使用原有的代码时（再生），一般需要保持“基础类”不变，只是将这儿或那儿的东西串联起来，以达到预期的效果。然而，继承并不是在现有类基础上制造新类的唯一手段。通过“合成”，亦可将一个对象嵌入新类。在这一章中，大家将学习在 Java 中重复使用代码的这两种方法，以及具体如何运用。&lt;/p>
+&lt;p>&lt;strong>(7) 第 7 章：多态性&lt;/strong>&lt;/p>
+&lt;p>若由你自己来干，可能要花 9 个月的时间才能发现和理解多态性的问题，这一特性实际是 OOP 一个重要的基础。通过一些小的、简单的例子，读者可知道如何通过继承来创建一系列类型，并通过它们共有的基础类对那个系列中的对象进行操作。通过 Java 的多态性概念，同一系列中的所有对象都具有了共通性。这意味着我们编写的代码不必再依赖特定的类型信息。这使程序更易扩展，包容力也更强。由此，程序的构建和代码的维护可以变得更方便，付出的代价也会更低。此外，Java 还通过“接口”提供了设置再生关系的第三种途径。这儿所谓的“接口”是对对象物理“接口”一种纯粹的抽象。一旦理解了多态性的概念，接口的含义就很容易解释了。本章也向大家介绍了 Java 1.1 的“内部类”。&lt;/p>
+&lt;p>&lt;strong>(8) 第 8 章：对象的容纳&lt;/strong>&lt;/p>
+&lt;p>对一个非常简单的程序来说，它可能只拥有一个固定数量的对象，而且对象的“生存时间”或者“存在时间”是已知的。但是通常，我们的程序会在不定的时间创建新对象，只有在程序运行时才可了解到它们的详情。此外，除非进入运行期，否则无法知道所需对象的数量，甚至无法得知它们确切的类型。为解决这个常见的程序设计问题，我们需要拥有一种能力，可在任何时间、任何地点创建任何数量的对象。本章的宗旨便是探讨在使用对象的同时用来容纳它们的一些 Java 工具：从简单的数组到复杂的集合（数据结构），如 Vector 和 Hashtable 等。最后，我们还会深入讨论新型和改进过的 Java 1.2 集合库。&lt;/p>
+&lt;p>&lt;strong>(9) 第 9 章：异常差错控制&lt;/strong>&lt;/p>
+&lt;p>Java 最基本的设计宗旨之一便是组织错误的代码不会真的运行起来。编译器会尽可能捕获问题。但某些情况下，除非进入运行期，否则问题是不会被发现的。这些问题要么属于编程错误，要么则是一些自然的出错状况，它们只有在作为程序正常运行的一部分时才会成立。Java 为此提供了“异常控制”机制，用于控制程序运行时产生的一切问题。这一章将解释 try、catch、throw、throws 以及 finally 等关键字在 Java 中的工作原理。并讲述什么时候应当“掷”出异常，以及在捕获到异常后该采取什么操作。此外，大家还会学习 Java 的一些标准异常，如何构建自己的异常，异常发生在构造器中怎么办，以及异常控制器如何定位等等。&lt;/p>
+&lt;p>&lt;strong>(10) 第 10 章：Java IO 系统&lt;/strong>&lt;/p>
+&lt;p>理论上，我们可将任何程序分割为三部分：输入、处理和输出。这意味着 IO（输入／输出）是所有程序最为关键的部分。在这一章中，大家将学习 Java 为此提供的各种类，如何用它们读写文件、内存块以及控制台等。“老”IO 和 Java 1.1 的“新”IO 将得到着重强调。除此之外，本节还要探讨如何获取一个对象、对其进行“流式”加工（使其能置入磁盘或通过网络传送）以及重新构建它等等。这些操作在 Java 的 1.1 版中都可以自动完成。另外，我们也要讨论 Java 1.1 的压缩库，它将用在 Java 的归档文件格式中（JAR）。&lt;/p>
+&lt;p>&lt;strong>(11) 第 11 章：运行期类型鉴定&lt;/strong>&lt;/p>
+&lt;p>若只有指向基础类的一个指针，Java 的运行期类型标鉴定（RTTI）使我们能获知一个对象的准确类型是什么。一般情况下，我们需要有意忽略一个对象的准确类型，让 Java 的动态绑定机制（多态性）为那一类型实现正确的行为。但在某些场合下，对于只有一个基础指针的对象，我们仍然特别有必要了解它的准确类型是什么。拥有这个资料后，通常可以更有效地执行一次特殊情况下的操作。本章将解释 RTTI 的用途、如何使用以及在适当的时候如何放弃它。此外，Java 1.1 的“反射”特性也会在这里得到介绍。&lt;/p>
+&lt;p>&lt;strong>(12) 第 12 章：传递和返回对象&lt;/strong>&lt;/p>
+&lt;p>由于我们在 Java 中同对象沟通的唯一途径是“指针”，所以将对象传递到一个函数里以及从那个函数返回一个对象的概念就显得非常有趣了。本章将解释在函数中进出时，什么才是为了管理对象需要了解的。同时也会讲述 String（字串）类的概念，它用一种不同的方式解决了同样的问题。&lt;/p>
+&lt;p>&lt;strong>(13) 第 13 章：创建窗口和程序片&lt;/strong>&lt;/p>
+&lt;p>Java 配套提供了“抽象 Windows 工具包”（AWT）。这实际是一系列类的集合，能以一种可移植的形式解决视窗操纵问题。这些窗口化程序既可以程序片的形式出现，亦可作为独立的应用程序使用。本章将向大家介绍 AWT 以及网上程序片的创建过程。我们也会探讨 AWT 的优缺点以及 Java 1.1 在 GUI 方面的一些改进。同时，重要的“Java Beans”技术也会在这里得到强调。Java Beans 是创建“快速应用开发”（RAD）程序构造工具的重要基础。我们最后介绍的是 Java 1.2 的“Swing”库——它使 Java 的 UI 组件得到了显著的改善。&lt;/p>
+&lt;p>&lt;strong>(14) 第 14 章：多线程&lt;/strong>&lt;/p>
+&lt;p>Java 提供了一套内建的机制，可提供对多个并发子任务的支持，我们称其为“线程”。这线程均在单一的程序内运行。除非机器安装了多个处理器，否则这就是多个子任务的唯一运行方式。尽管还有别的许多重要用途，但在打算创建一个反应灵敏的用户界面时，多线程的运用显得尤为重要。举个例子来说，在采用了多线程技术后，尽管当时还有别的任务在执行，但用户仍然可以毫无阻碍地按下一个按钮，或者键入一些文字。本章将对 Java 的多线程处理机制进行探讨，并介绍相关的语法。&lt;/p>
+&lt;p>&lt;strong>(15) 第 15 章 网络编程&lt;/strong>&lt;/p>
+&lt;p>开始编写网络应用时，就会发现所有 Java 特性和库仿佛早已串联到了一起。本章将探讨如何通过因特网通信，以及 Java 用以辅助此类编程的一些类。此外，这里也展示了如何创建一个 Java 程序片，令其同一个“通用网关接口”（CGI）程序通信；揭示了如何用 C++编写 CGI 程序；也讲述了与 Java 1.1 的“Java 数据库连接”（JDBC）和“远程方法调用”（RMI）有关的问题。&lt;/p>
+&lt;p>&lt;strong>(16) 第 16 章 设计范式&lt;/strong>&lt;/p>
+&lt;p>本章将讨论非常重要、但同时也是非传统的“范式”程序设计概念。大家会学习设计进展过程的一个例子。首先是最初的方案，然后经历各种程序逻辑，将方案不断改革为更恰当的设计。通过整个过程的学习，大家可体会到使设计思想逐渐变得清晰起来的一种途径。&lt;/p>
+&lt;p>&lt;strong>(17) 第 17 章 项目&lt;/strong>&lt;/p>
+&lt;p>本章包括了一系列项目，它们要么以本书前面讲述的内容为基础，要么对以前各章进行了一番扩展。这些项目显然是书中最复杂的，它们有效演示了新技术和类库的应用。
+有些主题似乎不太适合放到本书的核心位置，但我发现有必要在教学时讨论它们，这些主题都放入了本书的附录。&lt;/p>
+&lt;p>&lt;strong>(18) 附录 A：使用非 Java 代码&lt;/strong>&lt;/p>
+&lt;p>对一个完全能够移植的 Java 程序，它肯定存在一些严重的缺陷：速度太慢，而且不能访问与具体平台有关的服务。若事先知道程序要在什么平台上使用，就可考虑将一些操作变成“固有方法”，从而显著加快执行速度。这些“固有方法”实际是一些特殊的函数，以另一种程序设计语言写成（目前仅支持 C/C++）。Java 还可通过另一些途径提供对非 Java 代码的支持，其中包括 CORBA。本附录将详细介绍这些特性，以便大家能创建一些简单的例子，同非 Java 代码打交道。&lt;/p>
+&lt;p>&lt;strong>(19) 附录 B：对比 C++和 Java&lt;/strong>&lt;/p>
+&lt;p>对一个 C++程序员，他应该已经掌握了面向对象程序设计的基本概念，而且 Java 语法对他来说无疑是非常眼熟的。这一点是明显的，因为 Java 本身就是从 C++衍生而来。但是，C++和 Java 之间的确存在一些显著的差异。这些差异意味着 Java 在 C++基础上作出的重大改进。一旦理解了这些差异，就能理解为什么说 Java 是一种杰出的语言。这一附录便是为这个目的设立的，它讲述了使 Java 与 C++明显有别的一些重要特性。&lt;/p>
+&lt;p>&lt;strong>(20) 附录 C：Java 编程规则&lt;/strong>&lt;/p>
+&lt;p>本附录提供了大量建议，帮助大家进行低级程序设计和代码编写。&lt;/p>
+&lt;p>&lt;strong>(21) 附录 D：性能&lt;/strong>&lt;/p>
+&lt;p>通过这个附录的学习，大家可发现自己 Java 程序中存在的瓶颈，并可有效地改善执行速度。&lt;/p>
+&lt;p>&lt;strong>(22) 附录 E：关于垃圾收集的一些话&lt;/strong>&lt;/p>
+&lt;p>这个附录讲述了用于实现垃圾收集的操作和方法。&lt;/p>
+&lt;p>&lt;strong>(23) 附录 F：推荐读物&lt;/strong>&lt;/p>
+&lt;p>列出我感觉特别有用的一系列 Java 参考书。&lt;/p>
+&lt;h4 id="6-练习">6. 练习&lt;/h4>
+&lt;p>为巩固对新知识的掌握，我发现简单的练习特别有用。所以读者在每一章结束时都能找到一系列练习。
+大多数练习都很简单，在合理的时间内可以完成。如将本书作为教材，可考虑在课堂内完成。老师要注意观察，确定所有学生都已消化了讲授的内容。有些练习要难些，他们是为那些有兴趣深入的读者准备的。大多数练习都可在较短时间内做完，有效地检测和加深您的知识。有些题目比较具有挑战性，但都不会太麻烦。事实上，练习中碰到的问题在实际应用中也会经常碰到。&lt;/p>
+&lt;h4 id="7-多媒体-cd-rom">7. 多媒体 CD-ROM&lt;/h4>
+&lt;p>本书配套提供了一片多媒体 CD-ROM，可单独购买及使用。它与其他计算机书籍的普通配套 CD 不同，那些 CD 通常仅包含了书中用到的源码（本书的源码可从www.BruceEckel.com免费下载）。本CD-ROM是一个独立的产品，包含了一周“Hads-OnJava”培训课程的全部内容。这是一个由Bruce Eckel 讲授的、长度在 15 小时以上的课程，含 500 张以上的演示幻灯片。该课程建立在这本书的基础上，所以是非常理想的一个配套产品。&lt;/p>
+&lt;p>&lt;strong>CD-ROM 包含了本书的两个版本：&lt;/strong>&lt;/p>
+&lt;p>(1) 本书一个可打印的版本，与下载版完全一致。&lt;/p>
+&lt;p>(2) 为方便读者在屏幕上阅读和索引，CD-ROM 提供了一个独特的超链接版本。这些超链接包括：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="err">■&lt;/span>&lt;span class="mi">230&lt;/span>&lt;span class="err">个章、节和小标题链接&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">■&lt;/span>&lt;span class="mi">3600&lt;/span>&lt;span class="err">个索引链接&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>CD-ROM 刻录了 600MB 以上的数据。我相信它已对所谓“物超所值”进行了崭新的定义。&lt;/p>
+&lt;p>CD-ROM 包含了本书打印版的所有东西，另外还有来自五天快速入门课程的全部材料。我相信它建立了一个新的书刊品质评定标准。&lt;/p>
+&lt;p>若想单独购买此 CD-ROM，只能从 Web 站点www.BruceEckel.com处直接订购。&lt;/p>
+&lt;h4 id="8-源代码">8. 源代码&lt;/h4>
+&lt;p>本书所有源码都作为保留版权的免费软件提供，可以独立软件包的形式获得，亦可从http://www.BruceEckel.com下载。为保证大家获得的是最新版本，我用这个正式站点发行代码以及本书电子版。亦可在其他站点找到电子书和源码的镜像版（有些站点已在http://www.BruceEckel.com处列出）。但无论如何，都应检查正式站点，确定镜像版确实是最新的版本。可在课堂和其他教育场所发布这些代码。&lt;/p>
+&lt;p>版权的主要目标是保证源码得到正确的引用，并防止在未经许可的情况下，在印刷材料中发布代码。通常，只要源码获得了正确的引用，则在大多数媒体中使用本书的示例都没有什么问题。&lt;/p>
+&lt;p>在每个源码文件中，都能发现下述版本声明文字：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="mi">16&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">17&lt;/span>&lt;span class="err">页程序&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>可在自己的开发项目中使用代码，并可在课堂上引用（包括学习材料）。但要确定版权声明在每个源文件中得到了保留。&lt;/p>
+&lt;h4 id="9-编码样式">9. 编码样式&lt;/h4>
+&lt;p>在本书正文中，标识符（函数、变量和类名）以粗体印刷。大多数关键字也采用粗体——除了一些频繁用到的关键字（若全部采用粗体，会使页面拥挤难看，比如那些“类”）。&lt;/p>
+&lt;p>对于本书的示例，我采用了一种特定的编码样式。该样式得到了大多数 Java 开发环境的支持。该样式问世已有几年的时间，最早起源于 Bjarne Stroustrup 先生在《The C++ Programming Language》里采用的样式（Addison-Wesley 1991 年出版，第 2 版）。由于代码样式目前是个敏感问题，极易招致数小时的激烈辩论，所以我在这儿只想指出自己并不打算通过这些示例建立一种样式标准。之所以采用这些样式，完全出于我自己的考虑。由于 Java 是一种形式非常自由的编程语言，所以读者完全可以根据自己的感觉选用了适合的编码样式。&lt;/p>
+&lt;p>本书的程序是由字处理程序包括在正文中的，它们直接取自编译好的文件。所以，本书印刷的代码文件应能正常工作，不会造成编译器错误。会造成编译错误的代码已经用注释//!标出。所以很容易发现，也很容易用自动方式进行测试。读者发现并向作者报告的错误首先会在发行的源码中改正，然后在本书的更新版中校订（所有更新都会在 Web 站点http://www.BruceEckel.com处出现）。&lt;/p>
+&lt;h4 id="10-java-版本">10. Java 版本&lt;/h4>
+&lt;p>尽管我用几家厂商的 Java 开发平台对本书的代码进行了测试，但在判断代码行为是否正确时，却通常以 Sun 公司的 Java 开发平台为准。&lt;/p>
+&lt;p>当您读到本书时，Sun 应已发行了 Java 的三个重要版本：1.0，1.1 及 1.2（Sun 声称每 9 个月就会发布一个主要更新版本）。就我看，1.1 版对 Java 语言进行了显著改进，完全应标记成 2.0 版（由于 1.1 已作出了如此大的修改，真不敢想象 2.0 版会出现什么变化）。然而，它的 1.2 版看起来最终将 Java 推入了一个全盛时期，特别是其中考虑到了用户界面工具。&lt;/p>
+&lt;p>本书主要讨论了 1.0 和 1.1 版，1.2 版有部分内容涉及。但在有些时候，新方法明显优于老方法。此时，我会明显偏向于新方法，通常教给大家更好的方法，而完全忽略老方法。然而，有的新方法要以老方法为基础，所以不可避免地要从老方法入手。这一特点尤以 AWT 为甚，因为那儿不仅存在数量众多的老式 Java 1.0 代码，有的平台仍然只支持 Java 1.0。我会尽量指出哪些特性是哪个版本特有的。&lt;/p>
+&lt;p>大家会注意到我并未使用子版本号，比如 1.1.1。至本书完稿为止，Sun 公司发布的最后一个 1.0 版是 1.02；而 1.1 的最后版本是 1.1.5（Java 1.2 仍在做 β 测试）。在这本书中，我只会提到 Java 1.0，Java 1.1 及 Java 1.2，避免由于子版本编号过多造成的键入和印刷错误。&lt;/p>
+&lt;h4 id="11-课程和培训">11. 课程和培训&lt;/h4>
+&lt;p>我的公司提供了一个五日制的公共培训课程，以本书的内容为基础。每章的内容都代表着一堂课，并附有相应的课后练习，以便巩固学到的知识。一些辅助用的幻灯片可在本书的配套光盘上找到，最大限度地方便各位读者。欲了解更多的情况，请访问：&lt;/p>
+&lt;p>&lt;a href="http://www.BruceEckel.com" target="_blank" rel="noopener">http://www.BruceEckel.com&lt;/a>&lt;/p>
+&lt;p>或发函至：&lt;/p>
+&lt;p>&lt;a href="mailto:Bruce@EckelObjects.com">Bruce@EckelObjects.com&lt;/a>&lt;/p>
+&lt;p>我的公司也提供了咨询服务，指导客户完成整个开发过程——特别是您的单位首次接触 Java 开发的时候。&lt;/p>
+&lt;h4 id="12-错误">12. 错误&lt;/h4>
+&lt;p>无论作者花多大精力来避免，错误总是从意想不到的地方冒出来。如果您认为自己发现了一个错误，请在源文件（可在 &lt;a href="http://www.BruceEckel.com" target="_blank" rel="noopener">http://www.BruceEckel.com&lt;/a> 处找到）里指出有可能是错误的地方，填好我们提供的表单。将您推荐的纠错方法通过电子函件发给Bruce@EckelObjects.com。经适当的核对与处理，Web 站点的电子版以及本书的下一个印刷版本会作出相应的改正。具体格式如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="err">在主题行（&lt;/span>&lt;span class="n">Subject&lt;/span>&lt;span class="err">）写上“&lt;/span>&lt;span class="n">TIJ&lt;/span> &lt;span class="n">Correction&lt;/span>&lt;span class="err">”（去掉引号），以便您的函件进入对应的目录。&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="err">在函件正文，采用下述形式：&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nl">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nl">find:&lt;/span> &lt;span class="err">在这里写一个单行字串，以便我们搜索错误所在的地方&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nl">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nl">Comment:&lt;/span> &lt;span class="err">在这里可写多行批注正文，最好以“&lt;/span>&lt;span class="n">here&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">s&lt;/span> &lt;span class="n">how&lt;/span> &lt;span class="n">I&lt;/span> &lt;span class="n">think&lt;/span> &lt;span class="n">it&lt;/span> &lt;span class="n">shoud&lt;/span> &lt;span class="n">read&lt;/span>&lt;span class="err">”开头&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">###&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>其中，“###”指出批注正文的结束。这样一来，我自己设计的一个纠错工具就能对原始正文来一次“搜索”，而您建议的纠错方法会在随后的一个窗口中弹出。
+若希望在本书的下一版添加什么内容，或对书中的练习题有什么意见，也欢迎您指出。我们感谢您的所有意见。&lt;/p>
+&lt;h4 id="13-封面设计">13. 封面设计&lt;/h4>
+&lt;p>《Thinking in Java》一书封面的创作灵感来源于 American Arts &amp;amp; CraftsMovement（美洲艺术＆手工艺品运动）。这一运动起始于世纪之交，1900 到 1920 年达到了顶峰。它起源于英格兰，具有一定的历史背景。当时正是机器革命产生的风暴席卷整个大陆的时候，而且受到维多利亚地区强烈装饰风格的巨大影响。Arts&amp;amp;Crafts 强调的是原始风格，回归自然的初衷是整个运动的核心。那时对手工制作推崇备至，手工艺人特别得到尊重。正因为如此，人们远远避开现代工具的使用。这场运动对整个艺术界造成了深远的影响，直至今天仍受到人们的怀念。特别是我们面临又一次世纪之交，强烈的怀旧情绪难免涌上心来。计算机发展至今，已走过了很长的一段路。我们更迫切地感到：软件设计中最重要的是设计者本身，而不是流水化的代码编制。如设计者本身的素质和修养不高，那么最多只是“生产”代码的工具而已。&lt;/p>
+&lt;p>我以同样的眼光来看待 Java：作为一种将程序员从操作系统繁琐机制中解放出来的尝试，它的目的是使人们成为真正的“软件艺术家”。&lt;/p>
+&lt;p>无论作者还是本书的封面设计者（自孩提时代就是我的朋友）都从这一场运动中获得了灵感。所以接下来的事情就非常简单了，要么自己设计，要么直接采用来自那个时期的作品。&lt;/p>
+&lt;p>此外，封面向大家展示了一个收集箱，自然学者可能用它展示自己的昆虫标本。我们认为这些昆虫都是“对象”，全部置于更大的“收集箱”对象里，再统一置入“封面”这个对象里。它向我们揭示了面向对象编程技术最基本的“集合”概念。当然，作为一名程序员，大家对于“昆虫”或“虫”是非常敏感的（“虫”在英语里是 Bug，后指程序错误）。这里的“虫”已被抓获，在一只广口瓶中杀死，最后禁闭于一个小的展览盒里——暗示 Java 有能力寻找、显示和消除程序里的“虫”（这是 Java 最具特色的特性之一）。&lt;/p>
+&lt;h4 id="14-致谢">14. 致谢&lt;/h4>
+&lt;p>首先，感谢 Doyle Street Cohousing Community（道尔街住房社区）容忍我花两年的时间来写这本书（其实他们一直都在容忍我的“胡做非为”）。非常感谢 Kevin 和 Sonda Donovan，是他们把科罗拉多 Crested Butte 市这个风景优美的地方租给我，使我整个夏天都能安心写作。感谢 Crested Butte 友好的居民；以及 Rocky Mountain Biological Laboratory（岩石山生物实验室），他们的工作人员总是面带微笑。&lt;/p>
+&lt;p>这是我第一次找代理人出书，但却绝没有后悔。谢谢“摩尔文学代理公司”的 Claudette Moore 小姐。是她强大的信心与毅力使我最终梦想成真。&lt;/p>
+&lt;p>我的头两本书是与 Osborne/McGraw-Hill 出版社的编辑 Jeff Pepper 合作出版的。Jeff 又在正确的地方和正确的时间出现在了 Prentice-Hall 出版社，是他为了清除了所有可能遇到的障碍，也使我感受了一次愉快的出书经历。谢谢你，Jeff——你对我非常重要。&lt;/p>
+&lt;p>要特别感谢 Gen Kiyooka 和他的 Digigami 公司，我用的 Web 服务器就是他们提供的；也要感谢 Scott Callaway，服务器是由他负责维护的。在我学习 Web 的过程中，一个服务器无疑是相当有价值的帮助。&lt;/p>
+&lt;p>谢谢 Cay Horstmann（《Core Java》一书的副编辑，Prentice Hall 于 1997 年出版）、D&amp;rsquo;Arcy Smith（Symantec 公司）和 Paul Tyma（《Java Primer Plus》一书的副编辑，The Waite Group 于 1996 年出版），感谢他们帮助我澄清语言方面的一些概念。&lt;/p>
+&lt;p>感谢那些在“Java 软件开发会议”上我的 Java 小组发言的同志们，以及我教授过的那些学生，他们提出的问题使我的教案愈发成熟起来。&lt;/p>
+&lt;p>特别感谢 Larry 和 Tina O&amp;rsquo;Brien，是他们将这本书和我的教学内容制成一张教学 CD-ROM（关于这方面的问题，http://www.BruceEckel.com有更多的答案）。&lt;/p>
+&lt;p>有许多人送来了纠错报告，我真的很感激所有这些朋友，但特别要对下面这些人说声谢谢：Kevin Raulerson（发现了多处重大错误），Bob Resendes（发现的错误令人难以置信），John Pinto，Joe Dante，Joe Sharp，David Combs（许多语法和表达不清的地方），Dr. Robert Stephenson，Franklin Chen，Zev Griner，David Karr，Leander A. Stroschein，Steve Clark，Charles A. Lee，AustinMaher，Dennis P. Roth，Roque Oliveira，Douglas Dunn，Dejan Ristic，NeilGalarneau，David B. Malkovsky，Steve Wilkinson，以及其他许多热心读者。&lt;/p>
+&lt;p>为了使这本书在欧洲发行，Prof. Ir. Marc Meurrens 进行了大量工作。&lt;/p>
+&lt;p>有一些技术人员曾走进我的生活，他们后来都和我成了朋友。最不寻常的是他们全是素食主义者，平时喜欢练习瑜珈功，以及另一些形式的精神训练。我在练习了以后，觉得对我保持精力的旺盛非常有好处。他们是 Kraig Brockschmidt，GenKiyooka 和 Andrea provaglio，是这些朋友帮我了解了 Java 和程序设计在意大利的情况。
+显然，在 Delphi 上的一些经验使我更容易理解 Java，因为它们有许多概念和语言设计决定是相通的。我的 Delphi 朋友提供了许多帮助，使我能够洞察一些不易为人注意的编程环境。他们是 Marco Cantu（另一个意大利人——难道会说拉丁语的人在学习 Java 时有得天独厚的优势？）、Neil Rubenking（他最喜欢瑜珈／素食／禅道，但也非常喜欢计算机）以及 Zack Urlocker（是我游历世界时碰面次数最多的一位同志）。&lt;/p>
+&lt;p>我的朋友 Richard Hale Shaw（以及 Kim）的一些意见和支持发挥了非常关键的作用。Richard 和我花了数月的时间将教学内容合并到一起，并探讨如何使学生感受到最完美的学习体验。也要感谢 KoAnn Vikoren，Eric Eaurot，DeborahSommers，Julie Shaw，Nicole Freeman，Cindy Blair，Barbara Hanscome，Regina Ridley，Alex Dunne 以及 MFI 其他可敬的成员。&lt;/p>
+&lt;p>书籍设计、封面设计以及封面照片是由我的朋友 Daniel Will-Harris 制作的。他是一位著名的作家和设计家（http://www.WillHarris.com），在初中的时候就已显露出了过人的数学天赋。但是，小样是由我制作的，所以录入错误都是我的。我是用Microsoft Word 97 for Windows 来写这本书，并用它生成小样。正文字体采用的是 Bitstream Carmina；标题采用 Bitstream Calligraph 421（www.bitstream.com）；每章开头的符号采用的是来自P22的Leonardo Extras（http://www.p22.com）；封面字体采用ITC Rennie Marckintosh。
+感谢为我提供编译器程序的一些著名公司：Borland，Microsoft，Symantec，Sybase/Powersoft/Watcom 以及 Sun。&lt;/p>
+&lt;p>特别感谢我的老师和我所有的学生（他们也是我的老师），其中最有趣的一位写作老师是 Gabrielle Rico（《Writing the Natural Way》一书的作者，Putnam 于 1983 年出版）。&lt;/p>
+&lt;p>曾向我提供过支持的朋友包括（当然还不止）：Andrew Binstock，SteveSinofsky，JD Hildebrandt，Tom Keffer，Brian McElhinney，Brinkley Barr，《Midnight Engineering》杂志社的 Bill Gates，Larry Constantine 和 LucyLockwood，Greg Perry，Dan Putterman，Christi Westphal，Gene Wang，DaveMayer，David Intersimone，Andrea Rosenfield，Claire Sawyers，另一些意大利朋友（Laura Fallai，Corrado，Ilsa 和 Cristina Giustozzi），Chris 和 Laura Strand，Almquists，Brad Jerbic，Marilyng Cvitanic，Mabrys，Haflingers，Pollocks，Peter Vinci，Robbins Families，Moelter Families（和 McMillans），Michael Wilk，Dave Stoner，Laurie Adams，Cranstons，Larry Fogg，Mike 和 Karen Sequeira，Gary Entsminger 和 Allison Brody，KevinDonovan 和 Sonda Eastlack，Chester 和 Shannon Andersen，Joe Lordi，Dave 和 Brenda Bartlett，David Lee，Rentschlers，Sudeks，Dick，Patty 和 Lee Eckel，Lynn 和 Todd 以及他们的家人。最后，当然还有我的爸爸和妈妈。&lt;/p></description></item></channel></rss>

@@ -22,7 +22,7 @@ B-Tree 还中的父子节点还满足以下排序规则：
 - 如果某个指针在节点 node 最右边且不为 null，则其指向节点的所有 key 大于 v(keym)，其中 v(keym)为 node 的最后一个 key 的值。
 - 如果某个指针在节点 node 的左右相邻 key 分别是 keyi 和 keyi+1 且不为 null，则其指向节点的所有 key 小于 v(keyi+1)且大于 v(keyi)。
 
-![](https://ww1.sinaimg.cn/large/007rAy9hly1g162uiayzzj30cq037jrf.jpg)
+![B-Tree 示意](https://assets.ng-tech.icu/item/20230407224316.png)
 
 由于 B-Tree 的特性，在 B-Tree 中按 key 检索数据的算法非常直观：首先从根节点进行二分查找，如果找到则返回对应节点的 data，否则对相应区间的指针指向的节点递归进行查找，直到找到节点或找到 null 指针，前者查找成功，后者查找失败。B-Tree 上查找算法的伪代码如下：
 

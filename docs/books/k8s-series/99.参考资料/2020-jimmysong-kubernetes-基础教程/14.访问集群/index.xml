@@ -1,0 +1,754 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>_index | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/</link><atom:link href="https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/index.xml" rel="self" type="application/rss+xml"/><description>_index</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>_index</title><link>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/</link></image><item><title>accessing-kubernetes-pods-from-outside-of-the-cluster</title><link>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/accessing-kubernetes-pods-from-outside-of-the-cluster/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/accessing-kubernetes-pods-from-outside-of-the-cluster/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 96
+title: 从外部访问 Kubernetes 中的 Pod
+date: &amp;lsquo;2022-05-21T00:00:00+08:00&amp;rsquo;
+type: book&lt;/h2>
+&lt;p>前面几节讲到如何访问 Kubernetes 集群，本文主要讲解访问 Kubernetes 中的 Pod 和 Serivce 的几种方式，包括如下几种：&lt;/p>
+&lt;ul>
+&lt;li>hostNetwork&lt;/li>
+&lt;li>hostPort&lt;/li>
+&lt;li>NodePort&lt;/li>
+&lt;li>LoadBalancer&lt;/li>
+&lt;li>Ingress&lt;/li>
+&lt;/ul>
+&lt;p>说是暴露 Pod 其实跟暴露 Service 是一回事，因为 Pod 就是 Service 的后端。&lt;/p>
+&lt;h2 id="hostnetwork-true">hostNetwork: true&lt;/h2>
+&lt;p>这是一种直接定义 Pod 网络的方式。&lt;/p>
+&lt;p>如果在 Pod 中使用 &lt;code>hostNotwork:true&lt;/code> 配置的话，在这种 pod 中运行的应用程序可以直接看到 pod 启动的主机的网络接口。在主机的所有网络接口上都可以访问到该应用程序。以下是使用主机网络的 pod 的示例定义：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Pod&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">influxdb&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">hostNetwork&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">containers&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">influxdb&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">influxdb&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>部署该 Pod：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl create -f influxdb-hostnetwork.yml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>访问该 pod 所在主机的 8086 端口：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">curl -v http://&lt;span class="nv">$POD_IP&lt;/span>:8086/ping
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>将看到 204 No Content 的 204 返回码，说明可以正常访问。&lt;/p>
+&lt;p>注意每次启动这个 Pod 的时候都可能被调度到不同的节点上，所有外部访问 Pod 的 IP 也是变化的，而且调度 Pod 的时候还需要考虑是否与宿主机上的端口冲突，因此一般情况下除非您知道需要某个特定应用占用特定宿主机上的特定端口时才使用 &lt;code>hostNetwork: true&lt;/code> 的方式。&lt;/p>
+&lt;p>这种 Pod 的网络模式有一个用处就是可以将网络插件包装在 Pod 中然后部署在每个宿主机上，这样该 Pod 就可以控制该宿主机上的所有网络。&lt;/p>
+&lt;h2 id="hostport">hostPort&lt;/h2>
+&lt;p>这是一种直接定义 Pod 网络的方式。&lt;/p>
+&lt;p>&lt;code>hostPort&lt;/code> 是直接将容器的端口与所调度的节点上的端口路由，这样用户就可以通过宿主机的 IP 加上来访问 Pod 了，比如：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Pod&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">influxdb&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">containers&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">influxdb&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">influxdb&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">ports&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">containerPort&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">8086&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">hostPort&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">8086&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这样做有个缺点，因为 Pod 重新调度的时候该 Pod 被调度到的宿主机可能会变动，这样就变化了，用户必须自己维护一个 Pod 与所在宿主机的对应关系。&lt;/p>
+&lt;p>这种网络方式可以用来做 Nginx Ingress Controller。外部流量都需要通过 Kubernetes node 节点的 80 和 443 端口。&lt;/p>
+&lt;h2 id="nodeport">NodePort&lt;/h2>
+&lt;p>NodePort 在 Kubernetes 里是一个广泛应用的服务暴露方式。Kubernetes 中的 service 默认情况下都是使用的 &lt;code>ClusterIP&lt;/code> 这种类型，这样的 service 会产生一个 ClusterIP，这个 IP 只能在集群内部访问，要想让外部能够直接访问 service，需要将 service type 修改为 &lt;code>nodePort&lt;/code>。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Pod&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">influxdb&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">labels&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">influxdb&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">containers&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">influxdb&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">influxdb&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">ports&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">containerPort&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">8086&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>同时还可以给 service 指定一个 &lt;code>nodePort&lt;/code> 值，范围是 30000-32767，这个值在 API server 的配置文件中，用 &lt;code>--service-node-port-range&lt;/code> 定义。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Service&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">influxdb&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">NodePort&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">ports&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">port&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">8086&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">nodePort&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">30000&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">selector&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">influxdb&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>集群外就可以使用 Kubernetes 任意一个节点的 IP 加上 30000 端口访问该服务了。kube-proxy 会自动将流量以 &lt;code>round-robin&lt;/code> 的方式转发给该 service 的每一个 pod。&lt;/p>
+&lt;p>这种服务暴露方式，无法让你指定自己想要的应用常用端口，不过可以在集群上再部署一个反向代理作为流量入口。&lt;/p>
+&lt;h2 id="loadbalancer">LoadBalancer&lt;/h2>
+&lt;p>&lt;code>LoadBalancer&lt;/code> 只能在 service 上定义。这是公有云提供的负载均衡器，如 AWS、Azure、CloudStack、GCE 等。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Service&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">influxdb&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">LoadBalancer&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">ports&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">port&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">8086&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">selector&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">influxdb&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>查看服务：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl get svc influxdb
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">NAME CLUSTER-IP EXTERNAL-IP PORT&lt;span class="o">(&lt;/span>S&lt;span class="o">)&lt;/span> AGE
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">influxdb 10.97.121.42 10.13.242.236 8086:30051/TCP 39s
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>内部可以使用 ClusterIP 加端口来访问服务，如 &lt;code>10.97.121.42:8086&lt;/code>。&lt;/p>
+&lt;p>外部可以用以下两种方式访问该服务：&lt;/p>
+&lt;ul>
+&lt;li>使用任一节点的 IP 加 30051 端口访问该服务&lt;/li>
+&lt;li>使用 &lt;code>EXTERNAL-IP&lt;/code> 来访问，这是一个 VIP，是云供应商提供的负载均衡器 IP，如 &lt;code>10.13.242.236:8086&lt;/code>&lt;/li>
+&lt;/ul>
+&lt;h2 id="ingress">Ingress&lt;/h2>
+&lt;p>&lt;code>Ingress&lt;/code> 是自 kubernetes1.1 版本后引入的资源类型。必须要部署 Ingress controller 才能创建 Ingress 资源，Ingress controller 是以一种插件的形式提供。Ingress controller 是部署在 Kubernetes 之上的 Docker 容器。它的 Docker 镜像包含一个像 nginx 或 HAProxy 的负载均衡器和一个控制器守护进程。控制器守护程序从 Kubernetes 接收所需的 Ingress 配置。它会生成一个 nginx 或 HAProxy 配置文件，并重新启动负载平衡器进程以使更改生效。换句话说，Ingress controller 是由 Kubernetes 管理的负载均衡器。&lt;/p>
+&lt;p>Kubernetes Ingress 提供了负载平衡器的典型特性：HTTP 路由，粘性会话，SSL 终止，SSL 直通，TCP 和 UDP 负载平衡等。目前并不是所有的 Ingress controller 都实现了这些功能，需要查看具体的 Ingress controller 文档。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">extensions/v1beta1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Ingress&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">influxdb&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">rules&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">host&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">influxdb.kube.example.com&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">http&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">paths&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">backend&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">serviceName&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">influxdb&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">servicePort&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">8086&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>外部访问 URL &lt;code>http://influxdb.kube.example.com/ping&lt;/code> 访问该服务，入口就是 80 端口，然后 Ingress controller 直接将流量转发给后端 Pod，不需再经过 kube-proxy 的转发，比 LoadBalancer 方式更高效。&lt;/p>
+&lt;h2 id="总结">总结&lt;/h2>
+&lt;p>总的来说 Ingress 是一个非常灵活和越来越得到厂商支持的服务暴露方式，包括 Nginx、HAProxy、Traefik，还有各种 服务网格，而其它服务暴露方式可以更适用于服务调试、特殊应用的部署。&lt;/p>
+&lt;h2 id="参考">参考&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="http://alesnosek.com/blog/2017/02/14/accessing-kubernetes-pods-from-outside-of-the-cluster/" target="_blank" rel="noopener">Accessing Kubernetes Pods from Outside of the Cluster - alesnosek.com&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>authenticate-across-clusters-kubeconfig</title><link>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/authenticate-across-clusters-kubeconfig/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/authenticate-across-clusters-kubeconfig/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 93
+title: 使用 kubeconfig 文件配置跨集群认证
+date: &amp;ldquo;2022-05-21T00:00:00+08:00&amp;rdquo;
+type: book&lt;/h2>
+&lt;p>Kubernetes 的认证方式对于不同的人来说可能有所不同。&lt;/p>
+&lt;ul>
+&lt;li>运行 kubelet 可能有一种认证方式（即证书）。&lt;/li>
+&lt;li>用户可能有不同的认证方式（即令牌）。&lt;/li>
+&lt;li>管理员可能具有他们为个人用户提供的证书列表。&lt;/li>
+&lt;li>我们可能有多个集群，并希望在同一个地方将其全部定义——这样用户就能使用自己的证书并重用相同的全局配置。&lt;/li>
+&lt;/ul>
+&lt;p>所以为了能够让用户轻松地在多个集群之间切换，对于多个用户的情况下，我们将其定义在了一个 kubeconfig 文件中。&lt;/p>
+&lt;p>此文件包含一系列与昵称相关联的身份验证机制和集群连接信息。它还引入了一个（用户）认证信息元组和一个被称为上下文的与昵称相关联的集群连接信息的概念。&lt;/p>
+&lt;p>如果明确指定，则允许使用多个 kubeconfig 文件。在运行时，它们与命令行中指定的覆盖选项一起加载并合并（参见下面的 &lt;a href="https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig#loading-and-merging-rules" target="_blank" rel="noopener">规则&lt;/a>）。&lt;/p>
+&lt;h2 id="相关讨论">相关讨论&lt;/h2>
+&lt;p>&lt;a href="http://issue.k8s.io/1755" target="_blank" rel="noopener">http://issue.k8s.io/1755&lt;/a>&lt;/p>
+&lt;h2 id="kubeconfig-文件的组成">Kubeconfig 文件的组成&lt;/h2>
+&lt;h3 id="kubeconifg-文件示例">Kubeconifg 文件示例&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">current-context&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">federal-context&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">clusters&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">cluster&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">api-version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">server&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">http://cow.org:8080&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">cow-cluster&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">cluster&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">certificate-authority&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">path/to/my/cafile&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">server&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">https://horse.org:4443&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">horse-cluster&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">cluster&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">insecure-skip-tls-verify&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">server&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">https://pig.org:443&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">pig-cluster&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">contexts&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">context&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">cluster&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">horse-cluster&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">namespace&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">chisel-ns&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">user&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">green-user&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">federal-context&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">context&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">cluster&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">pig-cluster&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">namespace&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">saw-ns&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">user&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">black-user&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">queen-anne-context&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Config&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">preferences&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">colors&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">users&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">blue-user&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">user&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">token&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">blue-token&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">green-user&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">user&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">client-certificate&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">path/to/my/client/cert&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">client-key&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">path/to/my/client/key&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="各个组件的拆解释意">各个组件的拆解/释意&lt;/h3>
+&lt;h4 id="cluster">Cluster&lt;/h4>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">clusters&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">cluster&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">certificate-authority&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">path/to/my/cafile&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">server&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">https://horse.org:4443&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">horse-cluster&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">cluster&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">insecure-skip-tls-verify&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">server&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">https://pig.org:443&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">pig-cluster&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;code>cluster&lt;/code> 中包含 kubernetes 集群的端点数据，包括 kubernetes apiserver 的完整 url 以及集群的证书颁发机构或者当集群的服务证书未被系统信任的证书颁发机构签名时，设置&lt;code>insecure-skip-tls-verify: true&lt;/code>。&lt;/p>
+&lt;p>&lt;code>cluster&lt;/code> 的名称（昵称）作为该 kubeconfig 文件中的集群字典的 key。您可以使用 &lt;code>kubectl config set-cluster&lt;/code>添加或修改 &lt;code>cluster&lt;/code> 条目。&lt;/p>
+&lt;h4 id="user">user&lt;/h4>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">users&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">blue-user&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">user&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">token&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">blue-token&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">green-user&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">user&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">client-certificate&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">path/to/my/client/cert&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">client-key&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">path/to/my/client/key&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;code>user&lt;/code> 定义用于向 kubernetes 集群进行身份验证的客户端凭据。在加载/合并 kubeconfig 之后，&lt;code>user&lt;/code> 将有一个名称（昵称）作为用户条目列表中的 key。可用凭证有 &lt;code>client-certificate&lt;/code>、&lt;code>client-key&lt;/code>、&lt;code>token&lt;/code> 和 &lt;code>username/password&lt;/code>。&lt;code>username/password&lt;/code> 和 &lt;code>token&lt;/code> 是二者只能选择一个，但 client-certificate 和 client-key 可以分别与它们组合。&lt;/p>
+&lt;p>您可以使用 &lt;code>kubectl config set-credentials&lt;/code> 添加或者修改 &lt;code>user&lt;/code> 条目。&lt;/p>
+&lt;h4 id="context">context&lt;/h4>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">contexts&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">context&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">cluster&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">horse-cluster&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">namespace&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">chisel-ns&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">user&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">green-user&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">federal-context&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;code>context&lt;/code> 定义了一个命名的 &lt;a href="https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig#cluster" target="_blank" rel="noopener">&lt;code>cluster&lt;/code>&lt;/a>、&lt;a href="https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig#user" target="_blank" rel="noopener">&lt;code>user&lt;/code>&lt;/a>、&lt;a href="https://kubernetes.io/docs/user-guide/namespaces" target="_blank" rel="noopener">&lt;code>namespace&lt;/code>&lt;/a> 元组，用于使用提供的认证信息和命名空间将请求发送到指定的集群。三个都是可选的；仅使用 &lt;code>cluster&lt;/code>、&lt;code>user&lt;/code>、&lt;code>namespace&lt;/code> 之一指定上下文，或指定 none。未指定的值或在加载的 kubeconfig 中没有相应条目的命名值（例如，如果为上述 kubeconfig 文件指定了 &lt;code>pink-user&lt;/code> 的上下文）将被替换为默认值。有关覆盖/合并行为，请参阅下面的 &lt;a href="https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig#loading-and-merging" target="_blank" rel="noopener">加载和合并规则&lt;/a>。&lt;/p>
+&lt;p>您可以使用 &lt;code>kubectl config set-context&lt;/code> 添加或修改上下文条目。&lt;/p>
+&lt;h4 id="current-context">current-context&lt;/h4>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">current-context&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">federal-context&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;code>current-context&lt;/code> 是昵称或者说是作为 &lt;code>cluster&lt;/code>、&lt;code>user&lt;/code>、&lt;code>namespace&lt;/code> 元组的 ”key“，当 kubectl 从该文件中加载配置的时候会被默认使用。您可以在 kubectl 命令行里覆盖这些值，通过分别传入 &lt;code>—context=CONTEXT&lt;/code>、 &lt;code>—cluster=CLUSTER&lt;/code>、&lt;code>--user=USER&lt;/code> 和 &lt;code>--namespace=NAMESPACE&lt;/code> 。&lt;/p>
+&lt;p>您可以使用 &lt;code>kubectl config use-context&lt;/code> 更改 &lt;code>current-context&lt;/code>。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Config&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">preferences&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">colors&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h4 id="杂项">杂项&lt;/h4>
+&lt;p>&lt;code>apiVersion&lt;/code> 和 &lt;code>kind&lt;/code> 标识客户端解析器的版本和模式，不应手动编辑。&lt;code>preferences&lt;/code> 指定可选（和当前未使用）的 kubectl 首选项。&lt;/p>
+&lt;h2 id="查看-kubeconfig-文件">查看 kubeconfig 文件&lt;/h2>
+&lt;p>&lt;code>kubectl config view&lt;/code> 命令可以展示当前的 kubeconfig 设置。默认将为您展示所有的 kubeconfig 设置；您可以通过传入 &lt;code>—minify&lt;/code> 参数，将视图过滤到与 &lt;code>current-context&lt;/code> 有关的配额设置。有关其他选项，请参阅 &lt;code>kubectl config view&lt;/code>。&lt;/p>
+&lt;h2 id="构建您自己的-kubeconfig-文件">构建您自己的 kubeconfig 文件&lt;/h2>
+&lt;p>您可以使用上文 &lt;a href="https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig#example-kubeconfig-file" target="_blank" rel="noopener">示例 kubeconfig 文件&lt;/a> 作为&lt;/p>
+&lt;p>&lt;strong>注意：&lt;/strong> 如果您是通过 &lt;code>kube-up.sh&lt;/code> 脚本部署的 kubernetes 集群，不需要自己创建 kubeconfig 文件——该脚本已经为您创建过了。&lt;/p>
+&lt;p>当 api server 启动的时候使用了 &lt;code>—token-auth-file=tokens.csv&lt;/code> 选项时，上述文件将会与 &lt;a href="https://kubernetes.io/docs/admin/kube-apiserver/" target="_blank" rel="noopener">API server&lt;/a> 相关联，&lt;code>tokens.csv&lt;/code> 文件看起来会像这个样子：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">blue-user,blue-user,1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mister-red,mister-red,2
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;strong>注意：&lt;/strong> 启动 API server 时有很多 &lt;a href="https://kubernetes.io/docs/admin/kube-apiserver/" target="_blank" rel="noopener">可用选项&lt;/a>。请您一定要确保理解您使用的选项。&lt;/p>
+&lt;p>上述示例 kubeconfig 文件提供了 &lt;code>green-user&lt;/code> 的客户端凭证。因为用户的 &lt;code>current-user&lt;/code> 是 &lt;code>green-user&lt;/code> ，任何该 API server 的客户端使用该示例 kubeconfig 文件时都可以成功登录。同样，我们可以通过修改 &lt;code>current-context&lt;/code> 的值以 &lt;code>blue-user&lt;/code> 的身份操作。&lt;/p>
+&lt;p>在上面的示例中，&lt;code>green-user&lt;/code> 通过提供凭据登录，&lt;code>blue-user&lt;/code> 使用的是 token。使用 &lt;code>kubectl config set-credentials&lt;/code> 指定登录信息。想了解更多信息，请访问 &amp;ldquo;&lt;a href="https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig#commands-for-the-example-file" target="_blank" rel="noopener">示例文件相关操作命令&lt;/a>&amp;quot;。&lt;/p>
+&lt;h2 id="加载和合并规则">加载和合并规则&lt;/h2>
+&lt;p>加载和合并 kubeconfig 文件的规则很简单，但有很多。最终的配置按照以下顺序构建：&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>从磁盘中获取 kubeconfig。这将通过以下层次结构和合并规则完成：&lt;/p>
+&lt;p>如果设置了 &lt;code>CommandLineLocation&lt;/code> （&lt;code>kubeconfig&lt;/code> 命令行参数的值），将会只使用该文件，而不会进行合并。该参数在一条命令中只允许指定一次。&lt;/p>
+&lt;p>或者，如果设置了 &lt;code>EnvVarLocation&lt;/code> （&lt;code>$KUBECONFIG&lt;/code> 的值），其将会被作为应合并的文件列表，并根据以下规则合并文件。空文件名被忽略。非串行内容的文件将产生错误。设置特定值或 map key 的第一个文件将优先使用，并且值或 map key 也永远不会更改。这意味着设置 CurrentContext 的第一个文件将保留其上下文。这也意味着如果两个文件同时指定一个 &lt;code>red-user&lt;/code>，那么将只使用第一个文件中的 &lt;code>red-user&lt;/code> 的值。即使第二个文件的 &lt;code>red-user&lt;/code> 中有非冲突条目也被丢弃。&lt;/p>
+&lt;p>另外，使用 Home 目录位置（&lt;code>~/.kube/config&lt;/code>）将不会合并。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>根据此链中的第一个命中确定要使用的上下文&lt;/p>
+&lt;ol>
+&lt;li>命令行参数——&lt;code>context&lt;/code> 命令行选项的值&lt;/li>
+&lt;li>来自合并后的 &lt;code>kubeconfig&lt;/code> 文件的 &lt;code>current-context&lt;/code>&lt;/li>
+&lt;li>在这个阶段允许空&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;li>
+&lt;p>确定要使用的集群信息和用户。此时，我们可能有也可能没有上下文。他们是基于这个链中的第一次命中。（运行两次，一次为用户，一次为集群）&lt;/p>
+&lt;ol>
+&lt;li>命令行参数——&lt;code>user&lt;/code> 指定用户，&lt;code>cluster&lt;/code> 指定集群名称&lt;/li>
+&lt;li>如果上下文存在，则使用上下文的值&lt;/li>
+&lt;li>允许空&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;li>
+&lt;p>确定要使用的实际集群信息。此时，我们可能有也可能没有集群信息。根据链条构建每个集群信息（第一次命中胜出）：&lt;/p>
+&lt;ol>
+&lt;li>命令行参数——&lt;code>server&lt;/code>，&lt;code>api-version&lt;/code>，&lt;code>certificate-authority&lt;/code> 和 &lt;code>insecure-skip-tls-verify&lt;/code>&lt;/li>
+&lt;li>如果存在集群信息，并且存在该属性的值，请使用它。&lt;/li>
+&lt;li>如果没有服务器位置，则产生错误。&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;li>
+&lt;p>确定要使用的实际用户信息。用户使用与集群信息相同的规则构建，除非，您的每个用户只能使用一种认证技术。&lt;/p>
+&lt;ol>
+&lt;li>负载优先级为 1）命令行标志 2）来自 kubeconfig 的用户字段&lt;/li>
+&lt;li>命令行标志是：&lt;code>client-certificate&lt;/code>、&lt;code>client-key&lt;/code>、&lt;code>username&lt;/code>、&lt;code>password&lt;/code> 和 &lt;code>token&lt;/code>&lt;/li>
+&lt;li>如果有两种冲突的技术，则失败。&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;li>
+&lt;p>对于任何仍然缺少的信息，将使用默认值，并可能会提示验证信息&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Kubeconfig 文件中的所有文件引用都相对于 kubeconfig 文件本身的位置进行解析。当命令行上显示文件引用时，它们将相对于当前工作目录进行解析。当路径保存在 &lt;code>~/.kube/config&lt;/code> 中时，相对路径使用相对存储，绝对路径使用绝对存储。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;p>Kubeconfig 文件中的任何路径都相对于 kubeconfig 文件本身的位置进行解析。&lt;/p>
+&lt;h2 id="使用-kubectl-config-subcommand-操作-kubeconfig">使用 &lt;code>kubectl config &amp;lt;subcommand&amp;gt;&lt;/code> 操作 kubeconfig&lt;/h2>
+&lt;p>&lt;code>kubectl config&lt;/code> 有一些列的子命令可以帮助我们更方便的操作 kubeconfig 文件。&lt;/p>
+&lt;p>请参阅 &lt;code>kubectl/kubectl_config&lt;/code>。&lt;/p>
+&lt;h3 id="example">Example&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl config set-credentials myself --username&lt;span class="o">=&lt;/span>admin --password&lt;span class="o">=&lt;/span>secret
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl config set-cluster local-server --server&lt;span class="o">=&lt;/span>http://localhost:8080
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl config set-context default-context --cluster&lt;span class="o">=&lt;/span>local-server --user&lt;span class="o">=&lt;/span>myself
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl config use-context default-context
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl config &lt;span class="nb">set&lt;/span> contexts.default-context.namespace the-right-prefix
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl config view
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>产生如下输出：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">clusters&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">cluster&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">server&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">http://localhost:8080&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">local-server&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">contexts&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">context&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">cluster&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">local-server&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">namespace&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">the-right-prefix&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">user&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">myself&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">default-context&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">current-context&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">default-context&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Config&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">preferences&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>{}&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">users&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">myself&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">user&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">password&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">secret&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">username&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">admin&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Kubeconfig 文件会像这样子：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">clusters&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">cluster&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">server&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">http://localhost:8080&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">local-server&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">contexts&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">context&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">cluster&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">local-server&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">namespace&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">the-right-prefix&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">user&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">myself&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">default-context&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">current-context&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">default-context&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Config&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">preferences&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>{}&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">users&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">myself&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">user&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">password&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">secret&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">username&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">admin&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h4 id="示例文件相关操作命令">示例文件相关操作命令&lt;/h4>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl config &lt;span class="nb">set&lt;/span> preferences.colors &lt;span class="nb">true&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl config set-cluster cow-cluster --server&lt;span class="o">=&lt;/span>http://cow.org:8080 --api-version&lt;span class="o">=&lt;/span>v1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl config set-cluster horse-cluster --server&lt;span class="o">=&lt;/span>https://horse.org:4443 --certificate-authority&lt;span class="o">=&lt;/span>path/to/my/cafile
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl config set-cluster pig-cluster --server&lt;span class="o">=&lt;/span>https://pig.org:443 --insecure-skip-tls-verify&lt;span class="o">=&lt;/span>&lt;span class="nb">true&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl config set-credentials blue-user --token&lt;span class="o">=&lt;/span>blue-token
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl config set-credentials green-user --client-certificate&lt;span class="o">=&lt;/span>path/to/my/client/cert --client-key&lt;span class="o">=&lt;/span>path/to/my/client/key
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl config set-context queen-anne-context --cluster&lt;span class="o">=&lt;/span>pig-cluster --user&lt;span class="o">=&lt;/span>black-user --namespace&lt;span class="o">=&lt;/span>saw-ns
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl config set-context federal-context --cluster&lt;span class="o">=&lt;/span>horse-cluster --user&lt;span class="o">=&lt;/span>green-user --namespace&lt;span class="o">=&lt;/span>chisel-ns
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl config use-context federal-context
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="最后将它们捆绑在一起">最后将它们捆绑在一起&lt;/h3>
+&lt;p>所以，将这一切绑在一起，快速创建自己的 kubeconfig 文件：&lt;/p>
+&lt;ul>
+&lt;li>仔细看一下，了解您的 api-server 的启动方式：在设计 kubeconfig 文件以方便身份验证之前，您需要知道您自己的安全要求和策略。&lt;/li>
+&lt;li>将上面的代码段替换为您的集群的 api-server 端点的信息。&lt;/li>
+&lt;li>确保您的 api-server 至少能够以提供一个用户（即 &lt;code>green-user&lt;/code>）凭据的方式启动。当然您必须查看 api-server 文档，以了解当前关于身份验证细节方面的最新技术。&lt;/li>
+&lt;/ul></description></item><item><title>connecting-to-applications-port-forward</title><link>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/connecting-to-applications-port-forward/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/connecting-to-applications-port-forward/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 94
+title: 通过端口转发访问集群中的应用程序
+date: &amp;lsquo;2022-05-21T00:00:00+08:00&amp;rsquo;
+type: book&lt;/h2>
+&lt;p>本页向您展示如何使用 &lt;code>kubectl port-forward&lt;/code> 命令连接到运行在 Kubernetes 集群中的 Redis 服务器。这种类型的连接对于数据库调试很有帮助。&lt;/p>
+&lt;h2 id="创建一个-pod-来运行-redis-服务器">创建一个 Pod 来运行 Redis 服务器&lt;/h2>
+&lt;ol>
+&lt;li>
+&lt;p>创建一个 Pod：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl create -f https://k8s.io/docs/tasks/access-application-cluster/redis-master.yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>命令运行成功后将有以下输出验证该 Pod 是否已经创建：&lt;/p>
+&lt;pre tabindex="0">&lt;code>pod &amp;#34;redis-master&amp;#34; created
+&lt;/code>&lt;/pre>&lt;/li>
+&lt;li>
+&lt;p>检查 Pod 是否正在运行且处于就绪状态：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl get pods
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>当 Pod 就绪，输出显示 Running 的状态：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl"> NAME READY STATUS RESTARTS AGE
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> redis-master 2/2 Running &lt;span class="m">0&lt;/span> 41s
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>验证 Redis 服务器是否已在 Pod 中运行，并监听 6379 端口：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">{&lt;/span>% raw %&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">kubectl get pods redis-master --template&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;{{(index (index .spec.containers 0).ports 0).containerPort}}{{&amp;#34;\n&amp;#34;}}&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">{&lt;/span>% endraw %&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>端口输出如下：&lt;/p>
+&lt;pre tabindex="0">&lt;code>6379
+&lt;/code>&lt;/pre>&lt;/li>
+&lt;/ol>
+&lt;h2 id="将本地端口转发到-pod-中的端口">将本地端口转发到 Pod 中的端口&lt;/h2>
+&lt;ol>
+&lt;li>
+&lt;p>将本地工作站上的 6379 端口转发到 redis-master pod 的 6379 端口：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl port-forward redis-master 6379:6379
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>输出类似于：&lt;/p>
+&lt;pre tabindex="0">&lt;code> I0710 14:43:38.274550 3655 portforward.go:225] Forwarding from 127.0.0.1:6379 -&amp;gt; 6379
+I0710 14:43:38.274797 3655 portforward.go:225] Forwarding from [::1]:6379 -&amp;gt; 6379
+&lt;/code>&lt;/pre>&lt;/li>
+&lt;li>
+&lt;p>启动 Redis 命令行界面&lt;/p>
+&lt;pre tabindex="0">&lt;code>redis-cli
+&lt;/code>&lt;/pre>&lt;/li>
+&lt;li>
+&lt;p>在 Redis 命令行提示符下，输入 &lt;code>ping&lt;/code> 命令：&lt;/p>
+&lt;pre tabindex="0">&lt;code>127.0.0.1:6379&amp;gt;ping
+&lt;/code>&lt;/pre>&lt;p>Ping 请求成功返回 PONG。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h2 id="讨论">讨论&lt;/h2>
+&lt;p>创建连接，将本地的 6379 端口转发到运行在 Pod 中的 Redis 服务器的 6379 端口。有了这个连接您就可以在本地工作站中调试运行在 Pod 中的数据库。&lt;/p></description></item><item><title>kubernator-kubernetes-ui</title><link>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/kubernator-kubernetes-ui/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/kubernator-kubernetes-ui/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 98
+title: Kubernator - 更底层的 Kubernetes UI
+date: &amp;ldquo;2022-05-21T00:00:00+08:00&amp;rdquo;
+type: book&lt;/h2>
+&lt;p>&lt;a href="https://github.com/smpio/kubernator" target="_blank" rel="noopener">Kubernator&lt;/a> 相较于 &lt;a href="https://github.com/smpio/kubernator" target="_blank" rel="noopener">Kubernetes Dashboard&lt;/a> 来说，是一个更底层的 Kubernetes UI，Dashboard 操作的都是 Kubernetes 的底层对象，而 Kubernator 是直接操作 Kubernetes 各个对象的 YAML 文件。&lt;/p>
+&lt;p>Kubernator 提供了一种基于目录树和关系拓扑图的方式来管理 Kubernetes 的对象的方法，用户可以在 Web 上像通过 GitHub 的网页版一样操作 Kubernetes 的对象，执行修改、拷贝等操作，详细的使用方式见 &lt;a href="https://github.com/smpio/kubernator" target="_blank" rel="noopener">https://github.com/smpio/kubernator&lt;/a>。&lt;/p>
+&lt;h2 id="安装-kubernator">安装 Kubernator&lt;/h2>
+&lt;p>Kubernator 的安装十分简单，可以直接使用 &lt;code>kubectl&lt;/code> 命令来运行，它不依赖任何其它组件。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl create ns kubernator
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">kubectl -n kubernator run --image&lt;span class="o">=&lt;/span>smpio/kubernator --port&lt;span class="o">=&lt;/span>&lt;span class="m">80&lt;/span> kubernator
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">kubectl -n kubernator expose deploy kubernator
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">kubectl proxy
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>然后就可以通过 &lt;code>http://localhost:8001/api/v1/namespaces/kubernator/services/kubernator/proxy/&lt;/code> 来访问了。&lt;/p>
+&lt;p>Catalog 页面可以看到 Kubernetes 中资源对象的树形结构，还可以在该页面中对资源对象的配置进行更改和操作。&lt;/p>
+&lt;p>
+&lt;figure id="figure-kubernator-catalog-页面">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/book/kubernetes-handbook/kubernator-catalog.jpg" alt="Kubernator catalog 页面" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+Kubernator catalog 页面
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;p>RBAC 页面可以看到集群中 RBAC 关系及结构。&lt;/p>
+&lt;p>
+&lt;figure id="figure-kubernator-rbac-页面">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/book/kubernetes-handbook/kubernator-rbac.jpg" alt="Kubernator rbac 页面" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+Kubernator rbac 页面
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;h2 id="参考">参考&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://github.com/smpio/kubernator" target="_blank" rel="noopener">Kubernator - github.com&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>lens</title><link>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/lens/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/lens/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 97
+title: Lens - Kubernetes IDE
+date: &amp;ldquo;2022-05-21T00:00:00+08:00&amp;rdquo;
+type: book&lt;/h2>
+&lt;p>&lt;a href="https://k8slens.dev/" target="_blank" rel="noopener">Lens&lt;/a> 是一款开源的 Kubenretes IDE，也可以作为桌面客户端，官方网站 &lt;a href="https://k8slens.dev" target="_blank" rel="noopener">https://k8slens.dev&lt;/a>，具有以下特性：&lt;/p>
+&lt;ul>
+&lt;li>完全开源，GitHub 地址 &lt;a href="https://github.com/lensapp/lens" target="_blank" rel="noopener">https://github.com/lensapp/lens&lt;/a>&lt;/li>
+&lt;li>实时展示集群状态&lt;/li>
+&lt;li>内置 Prometheus 监控&lt;/li>
+&lt;li>多集群，多个 namespace 管理&lt;/li>
+&lt;li>原生 Kubernetes 支持&lt;/li>
+&lt;li>支持使用 chart 安装应用&lt;/li>
+&lt;li>使用 kubeconfig 登陆认证&lt;/li>
+&lt;li>支持多平台，Windows、Mac、Linux&lt;/li>
+&lt;li>Visual Studio Code 友好的风格设计&lt;/li>
+&lt;/ul>
+&lt;p>Lens 界面图下图所示。&lt;/p>
+&lt;p>
+&lt;figure id="figure-lens-kubernetes-ide-界面">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/book/kubernetes-handbook/lens.jpg" alt="Lens Kubernetes IDE 界面" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+Lens Kubernetes IDE 界面
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;h2 id="参考">参考&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://k8slens.dev/" target="_blank" rel="noopener">Lens, Kubernetes IDE - k8slens.dev&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>methods</title><link>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/methods/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/methods/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 92
+title: 访问集群
+date: &amp;ldquo;2022-05-21T00:00:00+08:00&amp;rdquo;
+type: book&lt;/h2>
+&lt;p>本文列举了集中访问 Kubernetes 集群的方式。&lt;/p>
+&lt;h2 id="第一次使用-kubectl-访问">第一次使用 kubectl 访问&lt;/h2>
+&lt;p>如果您是第一次访问 Kubernetes API 的话，我们建议您使用 Kubernetes 命令行工具：&lt;code>kubectl&lt;/code>。&lt;/p>
+&lt;p>为了访问集群，您需要知道集群的地址，并且需要有访问它的凭证。通常，如果您完成了入门指南那么这些将会自动设置，或者其他人为您部署的集群提供并给您凭证和集群地址。&lt;/p>
+&lt;p>使用下面的命令检查 kubectl 已知的集群的地址和凭证：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl config view
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="直接访问-rest-api">直接访问 REST API&lt;/h2>
+&lt;p>Kubectl 处理对 apiserver 的定位和认证。如果您想直接访问 REST API，可以使用像 curl、wget 或浏览器这样的 http 客户端，有以下几种方式来定位和认证：&lt;/p>
+&lt;ul>
+&lt;li>以 proxy 模式运行 kubectl。
+&lt;ul>
+&lt;li>推荐方法。&lt;/li>
+&lt;li>使用已保存的 apiserver 位置信息。&lt;/li>
+&lt;li>使用自签名证书验证 apiserver 的身份。没有 MITM（中间人攻击）的可能。&lt;/li>
+&lt;li>认证到 apiserver。&lt;/li>
+&lt;li>将来，可能会做智能的客户端负载均衡和故障转移。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>直接向 http 客户端提供位置和凭据。
+&lt;ul>
+&lt;li>替代方法。&lt;/li>
+&lt;li>适用于通过使用代理而混淆的某些类型的客户端代码。&lt;/li>
+&lt;li>需要将根证书导入浏览器以防止 MITM。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;h3 id="使用-kubectl-proxy">使用 kubectl proxy&lt;/h3>
+&lt;p>以下命令作为反向代理的模式运行 kubectl。它处理对 apiserver 的定位并进行认证。&lt;/p>
+&lt;p>像这样运行：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl proxy --port&lt;span class="o">=&lt;/span>&lt;span class="m">8080&lt;/span> &lt;span class="p">&amp;amp;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>然后您可以使用 curl、wget 或者浏览器来访问 API，如下所示：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ curl http://localhost:8080/api/
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;versions&amp;#34;&lt;/span>: &lt;span class="o">[&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;v1&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="不使用-kubectl-proxy13x-以前版本">不使用 kubectl proxy（1.3.x 以前版本）&lt;/h3>
+&lt;p>通过将认证 token 直接传递给 apiserver 的方式，可以避免使用 kubectl proxy，如下所示：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ &lt;span class="nv">APISERVER&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="k">$(&lt;/span>kubectl config view &lt;span class="p">|&lt;/span> grep server &lt;span class="p">|&lt;/span> cut -f 2- -d &lt;span class="s2">&amp;#34;:&amp;#34;&lt;/span> &lt;span class="p">|&lt;/span> tr -d &lt;span class="s2">&amp;#34; &amp;#34;&lt;/span>&lt;span class="k">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ &lt;span class="nv">TOKEN&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="k">$(&lt;/span>kubectl config view &lt;span class="p">|&lt;/span> grep token &lt;span class="p">|&lt;/span> cut -f &lt;span class="m">2&lt;/span> -d &lt;span class="s2">&amp;#34;:&amp;#34;&lt;/span> &lt;span class="p">|&lt;/span> tr -d &lt;span class="s2">&amp;#34; &amp;#34;&lt;/span>&lt;span class="k">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ curl &lt;span class="nv">$APISERVER&lt;/span>/api --header &lt;span class="s2">&amp;#34;Authorization: Bearer &lt;/span>&lt;span class="nv">$TOKEN&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span> --insecure
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;versions&amp;#34;&lt;/span>: &lt;span class="o">[&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;v1&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="不使用-kubectl-proxy13x-以后版本">不使用 kubectl proxy（1.3.x 以后版本）&lt;/h3>
+&lt;p>在 Kubernetes 1.3 或更高版本中，&lt;code>kubectl config view&lt;/code> 不再显示 token。使用 &lt;code>kubectl describe secret …&lt;/code> 获取 default service account 的 token，如下所示：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ &lt;span class="nv">APISERVER&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="k">$(&lt;/span>kubectl config view &lt;span class="p">|&lt;/span> grep server &lt;span class="p">|&lt;/span> cut -f 2- -d &lt;span class="s2">&amp;#34;:&amp;#34;&lt;/span> &lt;span class="p">|&lt;/span> tr -d &lt;span class="s2">&amp;#34; &amp;#34;&lt;/span>&lt;span class="k">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ &lt;span class="nv">TOKEN&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="k">$(&lt;/span>kubectl describe secret &lt;span class="k">$(&lt;/span>kubectl get secrets &lt;span class="p">|&lt;/span> grep default &lt;span class="p">|&lt;/span> cut -f1 -d &lt;span class="s1">&amp;#39; &amp;#39;&lt;/span>&lt;span class="k">)&lt;/span> &lt;span class="p">|&lt;/span> grep -E &lt;span class="s1">&amp;#39;^token&amp;#39;&lt;/span> &lt;span class="p">|&lt;/span> cut -f2 -d&lt;span class="s1">&amp;#39;:&amp;#39;&lt;/span> &lt;span class="p">|&lt;/span> tr -d &lt;span class="s1">&amp;#39;\t&amp;#39;&lt;/span>&lt;span class="k">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ curl &lt;span class="nv">$APISERVER&lt;/span>/api --header &lt;span class="s2">&amp;#34;Authorization: Bearer &lt;/span>&lt;span class="nv">$TOKEN&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span> --insecure
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;kind&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;APIVersions&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;versions&amp;#34;&lt;/span>: &lt;span class="o">[&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;v1&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">]&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;serverAddressByClientCIDRs&amp;#34;&lt;/span>: &lt;span class="o">[&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;clientCIDR&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;0.0.0.0/0&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;serverAddress&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;10.0.1.149:443&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>以上示例使用&lt;code>--insecure&lt;/code> 标志。这使得它容易受到 MITM 攻击。当 kubectl 访问集群时，它使用存储的根证书和客户端证书来访问服务器。（这些安装在&lt;code>~/.kube&lt;/code>目录中）。由于集群证书通常是自签名的，因此可能需要特殊配置才能让您的 http 客户端使用根证书。&lt;/p>
+&lt;p>对于某些集群，apiserver 可能不需要身份验证；可以选择在本地主机上服务，或者使用防火墙保护。对此还没有一个标准。&lt;a href="https://kubernetes.io/docs/admin/accessing-the-api" target="_blank" rel="noopener">配置对 API 的访问&lt;/a> 描述了集群管理员如何配置此操作。这种方法可能与未来的高可用性支持相冲突。&lt;/p>
+&lt;h2 id="编程访问-api">编程访问 API&lt;/h2>
+&lt;p>Kubernetes 支持 &lt;a href="https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster.md#go-client" target="_blank" rel="noopener">Go&lt;/a> 和 &lt;a href="https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster.md#python-client" target="_blank" rel="noopener">Python&lt;/a> 客户端库。&lt;/p>
+&lt;h3 id="go-客户端">Go 客户端&lt;/h3>
+&lt;ul>
+&lt;li>要获取该库，请运行以下命令：&lt;code>go get k8s.io/client-go/&amp;lt;version number&amp;gt;/kubernetes&lt;/code> 请参阅 &lt;a href="https://github.com/kubernetes/client-go" target="_blank" rel="noopener">https://github.com/kubernetes/client-go&lt;/a> 以查看支持哪些版本。&lt;/li>
+&lt;li>使用 client-go 客户端编程。请注意，client-go 定义了自己的 API 对象，因此如果需要，请从 client-go 而不是从主存储库导入 API 定义，例如导入 &lt;code>k8s.io/client-go/1.4/pkg/api/v1&lt;/code> 是正确的。&lt;/li>
+&lt;/ul>
+&lt;p>Go 客户端可以使用与 kubectl 命令行工具相同的 &lt;a href="https://kubernetes.io/docs/concepts/cluster-administration/authenticate-across-clusters-kubeconfig" target="_blank" rel="noopener">kubeconfig 文件&lt;/a> 来定位和验证 apiserver。参考官方 &lt;a href="https://git.k8s.io/client-go/examples/out-of-cluster-client-configuration/main.go" target="_blank" rel="noopener">示例&lt;/a> 和 &lt;a href="../../develop/client-go-sample">client-go 示例&lt;/a>。&lt;/p>
+&lt;p>如果应用程序在集群中以 Pod 的形式部署，请参考 &lt;a href="https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster.md#accessing-the-api-from-a-pod" target="_blank" rel="noopener">下一节&lt;/a>。&lt;/p>
+&lt;h3 id="python-客户端">Python 客户端&lt;/h3>
+&lt;p>要使用 &lt;a href="https://github.com/kubernetes-incubator/client-python" target="_blank" rel="noopener">Python client&lt;/a>，请运行以下命令：&lt;code>pip install kubernetes&lt;/code>。查看 &lt;a href="https://github.com/kubernetes-incubator/client-python" target="_blank" rel="noopener">Python 客户端库页面&lt;/a> 获取更多的安装选择。&lt;/p>
+&lt;p>Python 客户端可以使用与 kubectl 命令行工具相同的 &lt;a href="https://kubernetes.io/docs/concepts/cluster-administration/authenticate-across-clusters-kubeconfig" target="_blank" rel="noopener">kubeconfig 文件&lt;/a> 来定位和验证 apiserver。&lt;/p>
+&lt;h3 id="其他语言">其他语言&lt;/h3>
+&lt;p>还有更多的客户端库可以用来访问 API。有关其他库的验证方式，请参阅文档。&lt;/p>
+&lt;h2 id="在-pod-中访问-api">在 Pod 中访问 API&lt;/h2>
+&lt;p>在 Pod 中访问 API 时，定位和认证到 API server 的方式有所不同。在 Pod 中找到 apiserver 地址的推荐方法是使用 kubernetes DNS 名称，将它解析为服务 IP，后者又将被路由到 apiserver。&lt;/p>
+&lt;p>向 apiserver 认证的推荐方法是使用 &lt;a href="https://kubernetes.io/docs/user-guide/service-accounts" target="_blank" rel="noopener">service account&lt;/a> 凭据。通过 kube-system，pod 与 service account 相关联，并且将该 service account 的凭据（token）放入该 pod 中每个容器的文件系统树中，位于 &lt;code>/var/run/secrets/kubernetes.io/serviceaccount/token&lt;/code>。&lt;/p>
+&lt;p>如果可用，证书包将位于每个容器的文件系统树的 &lt;code>/var/run/secrets/kubernetes.io/serviceaccount/ca.crt&lt;/code> 位置，并用于验证 apiserver 的服务证书。&lt;/p>
+&lt;p>最后，用于 namespace API 操作的默认 namespace 放在每个容器中的 &lt;code>/var/run/secrets/kubernetes.io/serviceaccount/namespace&lt;/code> 中。&lt;/p>
+&lt;p>在 pod 中，连接到 API 的推荐方法是：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>将 kubectl proxy 作为 pod 中的一个容器来运行，或作为在容器内运行的后台进程。它将 Kubernetes API 代理到 pod 的本地主机接口，以便其他任何 pod 中的容器内的进程都可以访问它。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>使用 Go 客户端库，并使用 &lt;code>rest.InClusterConfig()&lt;/code> 和 &lt;code>kubernetes.NewForConfig()&lt;/code> 函数创建一个客户端。&lt;/p>
+&lt;p>他们处理对 apiserver 的定位和认证。&lt;a href="https://git.k8s.io/client-go/examples/in-cluster-client-configuration/main.go" target="_blank" rel="noopener">示例&lt;/a>&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;p>在以上的几种情况下，都需要使用 pod 的凭据与 apiserver 进行安全通信。&lt;/p>
+&lt;h2 id="访问集群中运行的-service">访问集群中运行的 service&lt;/h2>
+&lt;p>上一节是关于连接到 kubernetes API server。这一节是关于连接到 kubernetes 集群中运行的 service。在 Kubernetes 中，&lt;a href="https://kubernetes.io/docs/admin/node" target="_blank" rel="noopener">node&lt;/a>、 &lt;a href="https://kubernetes.io/docs/user-guide/pods" target="_blank" rel="noopener">pod&lt;/a> 和 &lt;a href="https://kubernetes.io/docs/user-guide/services" target="_blank" rel="noopener">services&lt;/a> 都有它们自己的 IP。很多情况下，集群中 node 的 IP、Pod 的 IP、service 的 IP 都是不可路由的，因此在集群外面的机器就无法访问到它们，例如从您自己的笔记本电脑。&lt;/p>
+&lt;h3 id="连接的方式">连接的方式&lt;/h3>
+&lt;p>您可以选择以下几种方式从集群外部连接到 node、pod 和 service：&lt;/p>
+&lt;ul>
+&lt;li>通过 public IP 访问 service。
+&lt;ul>
+&lt;li>使用 &lt;code>NodePort&lt;/code> 和 &lt;code>LoadBalancer&lt;/code> 类型的 service，以使 service 能够在集群外部被访问到。&lt;/li>
+&lt;li>根据您的集群环境，这可能会将服务暴露给您的公司网络，或者可能会将其暴露在互联网上。想想暴露的服务是否安全。它是否自己进行身份验证？&lt;/li>
+&lt;li>将 pod 放在服务后面。要从一组副本（例如为了调试）访问一个特定的 pod，请在 pod 上放置一个唯一的 label，并创建一个选择该 label 的新服务。&lt;/li>
+&lt;li>在大多数情况下，应用程序开发人员不需要通过 node IP 直接访问节点。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>通过 Proxy 规则访问 service、node、pod。
+&lt;ul>
+&lt;li>在访问远程服务之前，请执行 apiserver 认证和授权。如果服务不够安全，无法暴露给互联网，或者为了访问节点 IP 上的端口或进行调试，请使用这种方式。&lt;/li>
+&lt;li>代理可能会导致某些 Web 应用程序出现问题。&lt;/li>
+&lt;li>仅适用于 HTTP/HTTPS。&lt;/li>
+&lt;li>&lt;a href="https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster.md#manually-constructing-apiserver-proxy-urls" target="_blank" rel="noopener">见此描述&lt;/a>。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>在集群内访问 node 和 pod。
+&lt;ul>
+&lt;li>运行一个 pod，然后使用 kubectl exec 命令连接到 shell。从该 shell 中连接到其他 node、pod 和 service。&lt;/li>
+&lt;li>有些集群可能允许 ssh 到集群上的某个节点。从那个节点您可以访问到集群中的服务。这是一个非标准的方法，它可能将在某些集群上奏效，而在某些集群不行。这些节点上可能安装了浏览器和其他工具也可能没有。集群 DNS 可能无法正常工作。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;h3 id="访问内置服务">访问内置服务&lt;/h3>
+&lt;p>通常集群内会有几个在 kube-system 中启动的服务。使用 &lt;code>kubectl cluster-info&lt;/code> 命令获取该列表：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl cluster-info
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Kubernetes master is running at https://104.197.5.247
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> elasticsearch-logging is running at https://104.197.5.247/api/v1/namespaces/kube-system/services/elasticsearch-logging/proxy
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> kibana-logging is running at https://104.197.5.247/api/v1/namespaces/kube-system/services/kibana-logging/proxy
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> kube-dns is running at https://104.197.5.247/api/v1/namespaces/kube-system/services/kube-dns/proxy
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> grafana is running at https://104.197.5.247/api/v1/namespaces/kube-system/services/monitoring-grafana/proxy
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> heapster is running at https://104.197.5.247/api/v1/namespaces/kube-system/services/monitoring-heapster/proxy
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这显示了访问每个服务的代理 URL。&lt;/p>
+&lt;p>例如，此集群启用了集群级日志记录（使用 Elasticsearch），如果传入合适的凭据，可以在该地址 &lt;code>https://104.197.5.247/api/v1/namespaces/kube-system/services/elasticsearch-logging/proxy/&lt;/code> 访问到，或通过 kubectl 代理，例如：&lt;code>http://localhost:8080/api/v1/namespaces/kube-system/services/elasticsearch-logging/proxy/&lt;/code>。&lt;/p>
+&lt;p>（有关如何传递凭据和使用 kubectl 代理，请 &lt;a href="https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster.md#accessing-the-cluster-api" target="_blank" rel="noopener">参阅上文&lt;/a>）&lt;/p>
+&lt;h4 id="手动构建-apiserver-代理-url">手动构建 apiserver 代理 URL&lt;/h4>
+&lt;p>如上所述，您可以使用 &lt;code>kubectl cluster-info&lt;/code> 命令来检索服务的代理 URL。要创建包含服务端点、后缀和参数的代理 URL，您只需附加到服务的代理 URL：&lt;/p>
+&lt;p>&lt;code>http://&lt;/code>&lt;em>kubernetes_master_address&lt;/em>&lt;code>/api/v1/namespaces/&lt;/code>&lt;em>namespace_name&lt;/em>&lt;code>/services/&lt;/code>&lt;em>service_name[:port_name]&lt;/em>&lt;code>/proxy&lt;/code>&lt;/p>
+&lt;p>如果您没有指定 port 的名字，那么您不必在 URL 里指定 port_name。&lt;/p>
+&lt;h4 id="示例">示例&lt;/h4>
+&lt;ul>
+&lt;li>要想访问 Elasticsearch 的服务端点 &lt;code>_search?q=user:kimchy&lt;/code>，您需要使用：&lt;code>http://104.197.5.247/api/v1/namespaces/kube-system/services/elasticsearch-logging/proxy/_search?q=user:kimchy&lt;/code>&lt;/li>
+&lt;li>要想访问 Elasticsearch 的集群健康信息 &lt;code>_cluster/health?pretty=true&lt;/code>，您需要使用：&lt;code>https://104.197.5.247/api/v1/namespaces/kube-system/services/elasticsearch-logging/proxy/_cluster/health?pretty=true&lt;/code>&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-json" data-lang="json">&lt;span class="line">&lt;span class="cl">&lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;cluster_name&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;kubernetes_logging&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;status&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;yellow&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;timed_out&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="kc">false&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;number_of_nodes&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;number_of_data_nodes&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;active_primary_shards&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">5&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;active_shards&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">5&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;relocating_shards&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;initializing_shards&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;unassigned_shards&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">5&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h4 id="使用-web-浏览器来访问集群中运行的服务">使用 web 浏览器来访问集群中运行的服务&lt;/h4>
+&lt;p>您可以将 apiserver 代理网址放在浏览器的地址栏中。然而：&lt;/p>
+&lt;ul>
+&lt;li>Web 浏览器通常不能传递 token，因此您可能需要使用基本（密码）认证。Apiserver 可以配置为接受基本认证，但您的集群可能未配置为接受基本认证。&lt;/li>
+&lt;li>某些网络应用程序可能无法正常工作，特别是那些在不知道代理路径前缀的情况下构造 URL 的客户端 JavaScript。&lt;/li>
+&lt;/ul>
+&lt;h2 id="请求重定向">请求重定向&lt;/h2>
+&lt;p>重定向功能已被弃用和删除。请改用代理（见下文）。&lt;/p>
+&lt;h2 id="多种代理">多种代理&lt;/h2>
+&lt;p>在使用 kubernetes 的时候您可能会遇到许多种不同的代理：&lt;/p>
+&lt;ol>
+&lt;li>&lt;a href="https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster.md#directly-accessing-the-rest-api" target="_blank" rel="noopener">kubectl 代理&lt;/a>：
+&lt;ul>
+&lt;li>在用户桌面或 pod 中运行&lt;/li>
+&lt;li>从 localhost 地址到 Kubernetes apiserver 的代理&lt;/li>
+&lt;li>客户端到代理使用 HTTP&lt;/li>
+&lt;li>apiserver 的代理使用 HTTPS&lt;/li>
+&lt;li>定位 apiserver&lt;/li>
+&lt;li>添加身份验证 header&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>&lt;a href="https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster.md#discovering-builtin-services" target="_blank" rel="noopener">apiserver 代理&lt;/a>：
+&lt;ul>
+&lt;li>将一个堡垒机作为 apiserver&lt;/li>
+&lt;li>将集群之外的用户连接到集群 IP，否则可能无法访问&lt;/li>
+&lt;li>在 apiserver 进程中运行&lt;/li>
+&lt;li>客户端到代理使用 HTTPS（或 http，如果 apiserver 如此配置）&lt;/li>
+&lt;li>根据代理目标的可用信息由代理选择使用 HTTP 或 HTTPS&lt;/li>
+&lt;li>可用于访问 node、pod 或 service&lt;/li>
+&lt;li>用于访问 service 时进行负载均衡&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>&lt;a href="https://kubernetes.io/docs/user-guide/services/#ips-and-vips" target="_blank" rel="noopener">kube 代理&lt;/a>：
+&lt;ul>
+&lt;li>在每个节点上运行&lt;/li>
+&lt;li>代理 UDP 和 TCP&lt;/li>
+&lt;li>不支持 HTTP&lt;/li>
+&lt;li>提供负载均衡&lt;/li>
+&lt;li>只是用来访问 service&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>apiserver 前面的代理/负载均衡器：
+&lt;ul>
+&lt;li>存在和实现因集群而异（例如 nginx）&lt;/li>
+&lt;li>位于所有客户端和一个或多个 apiserver 之间&lt;/li>
+&lt;li>作为负载均衡器，如果有多个 apiserver&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>外部服务的云负载均衡器：
+&lt;ul>
+&lt;li>由一些云提供商提供（例如 AWS ELB，Google Cloud Load Balancer）&lt;/li>
+&lt;li>当 Kubernetes service 类型为 LoadBalancer 时，会自动创建&lt;/li>
+&lt;li>仅使用 UDP/TCP&lt;/li>
+&lt;li>实施方式因云提供商而异&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ol></description></item><item><title>service-access-application-cluster</title><link>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/service-access-application-cluster/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-series/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/service-access-application-cluster/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 95
+title: 使用 service 访问集群中的应用程序
+date: &amp;ldquo;2022-05-21T00:00:00+08:00&amp;rdquo;
+type: book&lt;/h2>
+&lt;p>本文向您展示如何创建 Kubernetes Service 对象，外部客户端可以使用它来访问集群中运行的应用程序。该 Service 可以为具有两个运行实例的应用程序提供负载均衡。&lt;/p>
+&lt;h2 id="目的">目的&lt;/h2>
+&lt;ul>
+&lt;li>运行 Hello World 应用程序的两个实例。&lt;/li>
+&lt;li>创建一个暴露 node 节点端口的 Service 对象。&lt;/li>
+&lt;li>使用 Service 对象访问正在运行的应用程序。&lt;/li>
+&lt;/ul>
+&lt;h2 id="为在两个-pod-中运行的应用程序创建-service">为在两个 pod 中运行的应用程序创建 service&lt;/h2>
+&lt;ol>
+&lt;li>
+&lt;p>在集群中运行 Hello World 应用程序：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl run hello-world --replicas&lt;span class="o">=&lt;/span>&lt;span class="m">2&lt;/span> --labels&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;run=load-balancer-example&amp;#34;&lt;/span> --image&lt;span class="o">=&lt;/span>gcr.io/google-samples/node-hello:1.0 --port&lt;span class="o">=&lt;/span>&lt;span class="m">8080&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>上述命令创建一个 &lt;a href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment" target="_blank" rel="noopener">Deployment&lt;/a> 对象和一个相关联的 &lt;a href="https://kubernetes.io/docs/concepts/workloads/controllers/replicaset" target="_blank" rel="noopener">ReplicaSet&lt;/a> 对象。该 ReplicaSet 有两个 &lt;a href="https://kubernetes.io/docs/concepts/workloads/pods/pod" target="_blank" rel="noopener">Pod&lt;/a>，每个 Pod 中都运行一个 Hello World 应用程序。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>显示关于该 Deployment 的信息：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl get deployments hello-world
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">kubectl describe deployments hello-world
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>显示 ReplicaSet 的信息：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl get replicasets
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">kubectl describe replicasets
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>创建一个暴露该 Deployment 的 Service 对象：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl expose deployment hello-world --type&lt;span class="o">=&lt;/span>NodePort --name&lt;span class="o">=&lt;/span>example-service
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>显示该 Service 的信息：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl describe services example-service
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>输出类似于：&lt;/p>
+&lt;pre tabindex="0">&lt;code> Name: example-service
+Namespace: default
+Labels: run=load-balancer-example
+Selector: run=load-balancer-example
+Type: NodePort
+IP: 10.32.0.16
+Port: &amp;lt;unset&amp;gt; 8080/TCP
+NodePort: &amp;lt;unset&amp;gt; 31496/TCP
+Endpoints: 10.200.1.4:8080,10.200.2.5:8080
+Session Affinity: None
+No events.
+&lt;/code>&lt;/pre>&lt;p>记下服务的 NodePort 值。例如，在前面的输出中，NodePort 值为 31496。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>列出运行 Hello World 应用程序的 Pod：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl get pods --selector&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;run=load-balancer-example&amp;#34;&lt;/span> --output&lt;span class="o">=&lt;/span>wide
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>输出类似于：&lt;/p>
+&lt;pre tabindex="0">&lt;code> NAME READY STATUS ... IP NODE
+hello-world-2895499144-bsbk5 1/1 Running ... 10.200.1.4 worker1
+hello-world-2895499144-m1pwt 1/1 Running ... 10.200.2.5 worker2
+&lt;/code>&lt;/pre>&lt;/li>
+&lt;li>
+&lt;p>获取正在运行 Hello World 应用程序的 Pod 的其中一个节点的 public IP 地址。如何得到这个地址取决于您的集群设置。例如，如果您使用 Minikube，可以通过运行 &lt;code>kubectl cluster-info&lt;/code> 查看节点地址。如果您是使用 Google Compute Engine 实例，可以使用 &lt;code>gcloud compute instances list&lt;/code> 命令查看您的公共地址节点。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>在您选择的节点上，在您的节点端口上例如创建允许 TCP 流量的防火墙规则，如果您的服务 NodePort 值为 31568，创建防火墙规则，允许端口 31568 上的 TCP 流量。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>使用节点地址和节点端口访问 Hello World 应用程序：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">curl http://&amp;lt;public-node-ip&amp;gt;:&amp;lt;node-port&amp;gt;
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>其中 &lt;code>&amp;lt;public-node-ip&amp;gt;&lt;/code> 是您节点的 public IP 地址，而 &lt;code>&amp;lt;node-port&amp;gt;&lt;/code> 是您服务的 NodePort 值。&lt;/p>
+&lt;p>对成功请求的响应是一个 hello 消息：&lt;/p>
+&lt;pre tabindex="0">&lt;code>Hello Kubernetes!
+&lt;/code>&lt;/pre>&lt;/li>
+&lt;/ol>
+&lt;h2 id="使用-service-配置文件">使用 Service 配置文件&lt;/h2>
+&lt;p>作为使用 &lt;code>kubectl expose&lt;/code> 的替代方法，您可以使用 &lt;a href="https://kubernetes.io/docs/user-guide/services/operations" target="_blank" rel="noopener">service 配置文件&lt;/a> 来创建 Service。&lt;/p>
+&lt;p>要删除 Service，输入以下命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl delete services example-service
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>删除 Deployment、ReplicaSet 和正运行在 Pod 中的 Hello World 应用程序，输入以下命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl delete deployment hello-world
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>了解更多关于 &lt;a href="https://kubernetes.io/docs/concepts/services-networking/connect-applications-service" target="_blank" rel="noopener">使用 service 连接应用程序&lt;/a>。&lt;/p></description></item></channel></rss>

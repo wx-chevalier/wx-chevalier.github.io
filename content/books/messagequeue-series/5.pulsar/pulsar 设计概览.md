@@ -8,7 +8,7 @@ commentable: true
 
 # Pulsar 设计概览
 
-![Pulsar 流程概览](https://ngte-superbed.oss-cn-beijing.aliyuncs.com/superbed/2021/07/30/6103ff985132923bf8ddae56.jpg)
+![Pulsar 流程概览](https://assets.ng-tech.icu/superbed/2021/07/30/6103ff985132923bf8ddae56.jpg)
 
 # Links
 
