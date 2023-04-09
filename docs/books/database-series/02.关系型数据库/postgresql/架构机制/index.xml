@@ -1,0 +1,505 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>架构机制 | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/database-series/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/</link><atom:link href="https://ng-tech.icu/books/database-series/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/index.xml" rel="self" type="application/rss+xml"/><description>架构机制</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>架构机制</title><link>https://ng-tech.icu/books/database-series/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/</link></image><item><title>并发控制</title><link>https://ng-tech.icu/books/database-series/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/database-series/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/</guid><description>&lt;ul>
+&lt;li>&lt;a href="https://parg.co/rp7" target="_blank" rel="noopener">深入解析 PostgreSQL 系列&lt;/a>整理自 &lt;a href="http://www.interdb.jp/pg/index.html" target="_blank" rel="noopener">The Internals of PostgreSQL&lt;/a> 等系列文章，从碎片化地阅读到体系化地学习，感觉对数据库有了更深入地了解；触类旁通，相互印证，也是有利于掌握 MySQL 等其他的关系型数据库或者 NoSQL 数据库。&lt;/li>
+&lt;/ul>
+&lt;h1 id="深入解析-postgresql-系列之并发控制与事务机制">深入解析 PostgreSQL 系列之并发控制与事务机制&lt;/h1>
+&lt;p>并发控制旨在针对数据库中对事务并行的场景，保证 ACID 中的一致性（Consistency）与隔离（Isolation）。数据库技术中主流的三种并发控制技术分别是：Multi-version Concurrency Control (MVCC), Strict Two-Phase Locking (S2PL), 以及 Optimistic Concurrency Control (OCC)，每种技术也都有很多的变种。在 MVCC 中，每次写操作都会在旧的版本之上创建新的版本，并且会保留旧的版本。当某个事务需要读取数据时，数据库系统会从所有的版本中选取出符合该事务隔离级别要求的版本。MVCC 的最大优势在于读并不会阻塞写，写也不会阻塞读；而像 S2PL 这样的系统，写事务会事先获取到排他锁，从而会阻塞读事务。&lt;/p>
+&lt;p>PostgreSQL 以及 Oracle 等 RDBMS 实际使用了所谓的 Snapshot Isolation（SI）这个 MVCC 技术的变种。Oracle 引入了额外的 Rollback Segments，当写入新的数据时，老版本的数据会被写入到 Rollback Segment 中，随后再被覆写到实际的数据块。PostgreSQL 则是使用了相对简单的实现方式，新的数据对象会被直接插入到关联的 Table Page 中；而在读取表数据的时候，PostgreSQL 会通过可见性检测规则（Visibility Check Rules）来选择合适的版本。&lt;/p>
+&lt;p>SI 能够避免 ANSI SQL-92 标准中定义的三个反常现象：脏读（Dirty Reads），不可重复读（Non-Repeatable Reads）以及幻读（Phantom Reads）；在 9.1 版本后引入的 Serializable Snapshot Isolation（SSI）则能够提供真正的顺序读写的能力。&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>Isolation Level&lt;/th>
+&lt;th>Dirty Reads&lt;/th>
+&lt;th>Non-repeatable Read&lt;/th>
+&lt;th>Phantom Read&lt;/th>
+&lt;th>Serialization Anomaly&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>READ COMMITTED&lt;/td>
+&lt;td>Not possible&lt;/td>
+&lt;td>Possible&lt;/td>
+&lt;td>Possible&lt;/td>
+&lt;td>Possible&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>REPEATABLE READ&lt;/td>
+&lt;td>Not possible&lt;/td>
+&lt;td>Not possible&lt;/td>
+&lt;td>Not possible in PG; See &lt;a href="http://www.interdb.jp/pg/pgsql05.html#_5.7.2." target="_blank" rel="noopener">Section 5.7.2.&lt;/a> (Possible in ANSI SQL)&lt;/td>
+&lt;td>Possible&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>SERIALIZABLE&lt;/td>
+&lt;td>Not possible&lt;/td>
+&lt;td>Not possible&lt;/td>
+&lt;td>Not possible&lt;/td>
+&lt;td>Not possible&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h1 id="tuple-结构">Tuple 结构&lt;/h1>
+&lt;h2 id="transaction-id">Transaction ID&lt;/h2>
+&lt;p>当某个事务开启时，PostgreSQL 内置的 Transaction Manager 会为它分配唯一的 Transaction ID(txid)；txid 是 32 位无类型整型值，可以通过 &lt;code>txid_current()&lt;/code> 函数来获取当前的 txid：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="nv">testdb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># BEGIN;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">BEGIN
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">testdb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># SELECT txid_current();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> txid_current
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">--------------
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="m">100&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>&lt;span class="m">1&lt;/span> row&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>PostgreSQL 还保留了三个关键 txid 值作特殊标记：0 表示无效的 txid，1 表示启动时的 txid，仅在 Database Cluster 启动时使用；2 代表了被冻结的（Frozen）txid，用于在序列化事务时候使用。PostgreSQL 选择数值类型作为 txid，也是为了方便进行比较；对于 txid 值为 100 的事务而言，所有小于 100 的事务是发生在过去的，可见的；而所有大于 100 的事务，是发生在未来，即不可见的。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://user-images.githubusercontent.com/5803001/51909334-57ec8480-2407-11e9-965d-68ee0427ef03.png" alt="image" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>鉴于实际系统中的 txid 数目的需要可能会超过最大值，PostgreSQL 实际是将这些 txid 作为环来看待。&lt;/p>
+&lt;h2 id="heaptupleheaderdata">HeapTupleHeaderData&lt;/h2>
+&lt;p>Table Pages 中的 Heap Tuples 往往包含三个部分：HeapTupleHeaderData 结构，NULL bitmap 以及用户数据。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://user-images.githubusercontent.com/5803001/51910630-bebf6d00-240a-11e9-99aa-fb94a3cb9941.png" alt="image" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>其中 HeapTupleHeaderData 与事物处理强相关的属性有：&lt;/p>
+&lt;ul>
+&lt;li>(TransactionId)t_xmin: 存放插入该 Tuple 时的 txid&lt;/li>
+&lt;li>(TransactionId)t_xmax: 存放删除或者更新该 Tuple 时的 txid，如果还没更新或者删除，那么置 0，表示无效&lt;/li>
+&lt;li>(CommandId)t_cid: 存放 Command ID，即 创建该 Tuple 的命令在该事务内执行的所有 SQL 命令中的编号；譬如 &lt;code>BEGIN; INSERT; INSERT; INSERT; COMMIT;&lt;/code> 这个事务，如果是首个 INSERT 命令创建的 Tuple，那么其 t_cid 值为 0，第二个就是 1&lt;/li>
+&lt;li>(ItemPointerData)t_ctid: 当某个 Tuple 更新时，该值就指向新创建的 Tuple，否则指向自己&lt;/li>
+&lt;/ul>
+&lt;h1 id="tuple-的插入删除与更新">Tuple 的插入、删除与更新&lt;/h1>
+&lt;p>如上所述，Table Pages 中的 Tuples 呈如下布局：&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://user-images.githubusercontent.com/5803001/51994715-5ba60700-24ec-11e9-89d3-37af876d4751.png" alt="image" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;h2 id="插入">插入&lt;/h2>
+&lt;p>在执行插入操作时，PostgreSQL 会直接将某个新的 Tuple 插入到目标表的某个页中：&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://user-images.githubusercontent.com/5803001/51994854-96a83a80-24ec-11e9-840e-e1bd2211d9ed.png" alt="image" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>假如某个 txid 为 99 的事务插入了新的 Tuple，那么该 Tuple 的头域会被设置为如下值：&lt;/p>
+&lt;ul>
+&lt;li>t_xmin 与创建该 Tuple 的事务的 txid 保持一致，即 99&lt;/li>
+&lt;li>t_xmax 被设置为 0，因为其还未被删除或者更新&lt;/li>
+&lt;li>t_cid 被设置为 0，因为该 Tuple 是由事务中的首个 Insert 命令创建的&lt;/li>
+&lt;li>t_ctid 被设置为了 &lt;code>(0, 1)&lt;/code>，即指向了自己&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="nv">testdb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># CREATE EXTENSION pageinspect;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">CREATE EXTENSION
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">testdb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># CREATE TABLE tbl (data text);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">CREATE TABLE
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">testdb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># INSERT INTO tbl VALUES(&amp;#39;A&amp;#39;);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">INSERT &lt;span class="m">0&lt;/span> &lt;span class="m">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">testdb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># SELECT lp as tuple, t_xmin, t_xmax, t_field3 as t_cid, t_ctid&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> FROM heap_page_items&lt;span class="o">(&lt;/span>get_raw_page&lt;span class="o">(&lt;/span>&lt;span class="s1">&amp;#39;tbl&amp;#39;&lt;/span>, 0&lt;span class="o">))&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> tuple &lt;span class="p">|&lt;/span> t_xmin &lt;span class="p">|&lt;/span> t_xmax &lt;span class="p">|&lt;/span> t_cid &lt;span class="p">|&lt;/span> t_ctid
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-------+--------+--------+-------+--------
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="m">1&lt;/span> &lt;span class="p">|&lt;/span> &lt;span class="m">99&lt;/span> &lt;span class="p">|&lt;/span> &lt;span class="m">0&lt;/span> &lt;span class="p">|&lt;/span> &lt;span class="m">0&lt;/span> &lt;span class="p">|&lt;/span> &lt;span class="o">(&lt;/span>0,1&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="删除">删除&lt;/h2>
+&lt;p>在删除操作中，目标 Tuple 会被先逻辑删除，即将 t_xmax 的值设置为当前删除该 Tuple 的事务的 txid 值。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://user-images.githubusercontent.com/5803001/51995164-25b55280-24ed-11e9-88dc-bcc0c52f5733.png" alt="image" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>当该事务被提交之后，PostgreSQL 会将该 Tuple 标记为 Dead Tuple，并随后在 VACUUM 处理过程中被彻底清除。&lt;/p>
+&lt;h2 id="更新">更新&lt;/h2>
+&lt;p>在更新操作时，PostgreSQL 会首先逻辑删除最新的 Tuple，然后插入新的 Tuple：&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://user-images.githubusercontent.com/5803001/52027410-4c53a780-2546-11e9-9187-4ff043cc71ce.png" alt="image" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>上图所示的行被 txid 为 99 的事务插入，被 txid 为 100 的事务连续更新两次；在该事务提交之后，Tuple_2 与 Tuple_3 就会被标记为 Dead Tuples。&lt;/p>
+&lt;h2 id="free-space-map">Free Space Map&lt;/h2>
+&lt;p>当插入某个 Heap Tuple 或者 Index Tuple 时，PostgreSQL 使用相关表的 FSM 来决定应该选择哪个 Page 来进行具体的插入操作。每个 FSM 都存放着表或者索引文件相关的剩余空间容量的信息，可以使用如下方式查看：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="nv">testdb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># CREATE EXTENSION pg_freespacemap;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">CREATE EXTENSION
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">testdb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># SELECT *, round(100 * avail/8192 ,2) as &amp;#34;freespace ratio&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> FROM pg_freespace&lt;span class="o">(&lt;/span>&lt;span class="s1">&amp;#39;accounts&amp;#39;&lt;/span>&lt;span class="o">)&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> blkno &lt;span class="p">|&lt;/span> avail &lt;span class="p">|&lt;/span> freespace ratio
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-------+-------+-----------------
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="m">0&lt;/span> &lt;span class="p">|&lt;/span> &lt;span class="m">7904&lt;/span> &lt;span class="p">|&lt;/span> 96.00
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="m">1&lt;/span> &lt;span class="p">|&lt;/span> &lt;span class="m">7520&lt;/span> &lt;span class="p">|&lt;/span> 91.00
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="m">2&lt;/span> &lt;span class="p">|&lt;/span> &lt;span class="m">7136&lt;/span> &lt;span class="p">|&lt;/span> 87.00
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="m">3&lt;/span> &lt;span class="p">|&lt;/span> &lt;span class="m">7136&lt;/span> &lt;span class="p">|&lt;/span> 87.00
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="m">4&lt;/span> &lt;span class="p">|&lt;/span> &lt;span class="m">7136&lt;/span> &lt;span class="p">|&lt;/span> 87.00
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="m">5&lt;/span> &lt;span class="p">|&lt;/span> &lt;span class="m">7136&lt;/span> &lt;span class="p">|&lt;/span> 87.00
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">....
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="commit-log">Commit Log&lt;/h1>
+&lt;p>PostgreSQL 使用 Commit Log，亦称 clog 来存放事务的状态；clog 存放于 Shared Memory 中，在整个事务处理的生命周期中都起到了重要的作用。PostgreSQL 定义了四种不同的事务状态：IN_PROGRESS, COMMITTED, ABORTED, 以及 SUB_COMMITTED。Clog 有 Shared Memory 中多个 8KB 大小的页构成，其逻辑上表现为类数组结构，数组下标即是关联的事务的 txid，而值就是当前事务的状态：&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://user-images.githubusercontent.com/5803001/52032886-ea06a100-255d-11e9-8b80-58e73292b2d6.png" alt="image" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>如果当前的 txid 超过了当前 clog 页可承载的最大范围，那么 PostgreSQL 会自动创建新页。而在 PostgreSQL 停止或者 Checkpoint 进程运行的时候，clog 的数据会被持久化存储到 pg_xact 子目录下，以 0000，0001 依次顺序命名，单个文件的最大尺寸为 256KB。而当 PostgreSQL 重启的时候，存放在 pg_xact 目录下的文件会被重新加载到内存中。而随着 PostgreSQL 的持续运行，clog 中势必会累计很多的过时或者无用的数据，Vacuum 处理过程中同样会清除这些无用的数据。&lt;/p>
+&lt;h2 id="transaction-snapshot--事务快照">Transaction Snapshot | 事务快照&lt;/h2>
+&lt;p>事务快照即是存放了当前全部事务是否为激活状态信息的数据结构，PostgreSQL 内部将快照表示为简单的文本结构，&lt;code>xmin:xmax:xip_list’&lt;/code>；譬如 &amp;ldquo;100:100:&amp;quot;，其意味着所有 txid 小于或者等于 99 的事务是非激活状态，而大于等于 100 的事务是处在了激活状态。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="nv">testdb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># SELECT txid_current_snapshot();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> txid_current_snapshot
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-----------------------
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> 100:104:100,102
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>&lt;span class="m">1&lt;/span> row&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ul>
+&lt;li>xmin: 最早的仍处在激活状态的 txid，所有更早之前的事务要么处于被提交之后的可见态，要么就是被回滚之后的假死态。&lt;/li>
+&lt;li>xmax: 首个至今仍未分配的事务编号，所有 txid 大于或者等于该值的事务，相对于该快照归属的事务都是尚未发生的，因此是不可见的。&lt;/li>
+&lt;li>xip_list: 快照时候处于激活状态的 txids，仅会包含在 xmin 与 xmax 之间的 txids。&lt;/li>
+&lt;/ul>
+&lt;p>以 &lt;code>100:104:100,102&lt;/code> 为例，其示意图如下所示：&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://user-images.githubusercontent.com/5803001/52041337-0e21ac80-2575-11e9-98ab-c4455dfd242d.png" alt="image" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>事务快照主要由事务管理器（Transaction Manager）提供，在 READ COMMITTED 这个隔离级别，无论是否有 SQL 命令执行，该事务都会被分配到某个快照；而对于 REPEATABLE READ 或者 SERIALIZABLE 隔离级别的事务而言，仅当首个 SQL 语句被执行的时候，才会被分配到某个事务快照用于进行可见性检测。事务快照的意义在于，当某个快照进行可见性判断时，无论目标事务是否已经被提交或者放弃，只要他在快照中被标记为 Active，那么其就会被当做 IN_PROGRESS 状态的事务来处理。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://user-images.githubusercontent.com/5803001/52042264-bafd2900-2577-11e9-8a33-677188f2be9a.png" alt="image" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>事务管理器始终保存有关当前运行的事务的信息。假设三个事务一个接一个地开始，并且 Transaction_A 和 Transaction_B 的隔离级别是 READ COMMITTED，Transaction_C 的隔离级别是 REPEATABLE READ。&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>T1：&lt;/p>
+&lt;ul>
+&lt;li>Transaction_A 启动并执行第一个 SELECT 命令。执行第一个命令时，Transaction_A 请求此刻的 txid 和快照。在这种情况下，事务管理器分配 txid 200，并返回事务快照'200：200：&amp;rsquo;。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>T2：&lt;/p>
+&lt;ul>
+&lt;li>Transaction_B 启动并执行第一个 SELECT 命令。事务管理器分配 txid 201，并返回事务快照'200：200：&amp;rsquo;，因为 Transaction_A（txid 200）正在进行中。因此，无法从 Transaction_B 中看到 Transaction_A。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>T3：&lt;/p>
+&lt;ul>
+&lt;li>Transaction_C 启动并执行第一个 SELECT 命令。事务管理器分配 txid 202，并返回事务快照'200：200：&amp;rsquo;，因此，Transaction_A 和 Transaction_B 不能从 Transaction_C 中看到。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>T4：&lt;/p>
+&lt;ul>
+&lt;li>Transaction_A 已提交。事务管理器删除有关此事务的信息。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>T5：&lt;/p>
+&lt;ul>
+&lt;li>Transaction_B 和 Transaction_C 执行各自的 SELECT 命令。&lt;/li>
+&lt;li>Transaction_B 需要事务快照，因为它处于 READ COMMITTED 级别。在这种情况下，Transaction_B 获取新快照'201：201：&amp;rsquo;，因为 Transaction_A（txid 200）已提交。因此，Transaction_B 不再是 Transaction_B 中不可见的。&lt;/li>
+&lt;li>Transaction_C 不需要事务快照，因为它处于 REPEATABLE READ 级别并使用获得的快照，即'200：200：&amp;rsquo;。因此，Transaction_A 仍然是 Transaction_C 不可见的。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;h1 id="visibility-check--可见性检测">Visibility Check | 可见性检测&lt;/h1>
+&lt;h2 id="rules--可见性检测规则">Rules | 可见性检测规则&lt;/h2>
+&lt;p>可见性检测的规则用于根据 Tuple 的 t_xmin 与 t_xmax，clog 以及自身分配到的事务快照来决定某个 Tuple 相对于某个事务是否可见。&lt;/p>
+&lt;h3 id="t_xmin-对应事务的状态为-aborted">t_xmin 对应事务的状态为 ABORTED&lt;/h3>
+&lt;p>当某个 Tuple 的 t_xmin 值对应的事务的状态为 ABORTED 时候，该 Tuple 永远是不可见的：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="line">&lt;span class="cl">&lt;span class="cm">/* t_xmin status = ABORTED */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// Rule 1: If Status(t_xmin) = ABORTED ⇒ Invisible
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">Rule&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="n">IF&lt;/span> &lt;span class="n">t_xmin&lt;/span> &lt;span class="n">status&lt;/span> &lt;span class="n">is&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">ABORTED&lt;/span>&lt;span class="err">&amp;#39;&lt;/span> &lt;span class="n">THEN&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">RETURN&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">Invisible&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">END&lt;/span> &lt;span class="n">IF&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="t_xmin-对应事务的状态为-in_progress">t_xmin 对应事务的状态为 IN_PROGRESS&lt;/h3>
+&lt;p>对于非插入该 Tuple 的事务之外的其他事务关联的 Tuple 而言，该 Tuple 永远是不可见的；仅对于与该 Tuple 同属一事务的 Tuple 可见（此时该 Tuple 未被删除或者更新的）。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="line">&lt;span class="cl"> &lt;span class="cm">/* t_xmin status = IN_PROGRESS */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">IF&lt;/span> &lt;span class="n">t_xmin&lt;/span> &lt;span class="n">status&lt;/span> &lt;span class="n">is&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">IN_PROGRESS&lt;/span>&lt;span class="err">&amp;#39;&lt;/span> &lt;span class="n">THEN&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">IF&lt;/span> &lt;span class="n">t_xmin&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">current_txid&lt;/span> &lt;span class="n">THEN&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// Rule 2: If Status(t_xmin) = IN_PROGRESS ∧ t_xmin = current_txid ∧ t_xmax = INVAILD ⇒ Visible
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">Rule&lt;/span> &lt;span class="mi">2&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="n">IF&lt;/span> &lt;span class="n">t_xmax&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">INVALID&lt;/span> &lt;span class="n">THEN&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">RETURN&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">Visible&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// Rule 3: If Status(t_xmin) = IN_PROGRESS ∧ t_xmin = current_txid ∧ t_xmax ≠ INVAILD ⇒ Invisible
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">Rule&lt;/span> &lt;span class="mi">3&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="n">ELSE&lt;/span> &lt;span class="cm">/* this tuple has been deleted or updated by the current transaction itself. */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">RETURN&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">Invisible&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">END&lt;/span> &lt;span class="n">IF&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// Rule 4: If Status(t_xmin) = IN_PROGRESS ∧ t_xmin ≠ current_txid ⇒ Invisible
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">Rule&lt;/span> &lt;span class="mi">4&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="n">ELSE&lt;/span> &lt;span class="cm">/* t_xmin ≠ current_txid */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">RETURN&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">Invisible&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">END&lt;/span> &lt;span class="n">IF&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">END&lt;/span> &lt;span class="n">IF&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="t_xmin-对应事务的状态为-committed">t_xmin 对应事务的状态为 COMMITTED&lt;/h3>
+&lt;p>此时该 Tuple 在大部分情况下都是可见的，除了该 Tuple 被更新或者删除。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="line">&lt;span class="cl"> &lt;span class="cm">/* t_xmin status = COMMITTED */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">IF&lt;/span> &lt;span class="n">t_xmin&lt;/span> &lt;span class="n">status&lt;/span> &lt;span class="n">is&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">COMMITTED&lt;/span>&lt;span class="err">&amp;#39;&lt;/span> &lt;span class="n">THEN&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// If Status(t_xmin) = COMMITTED ∧ Snapshot(t_xmin) = active ⇒ Invisible
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">Rule&lt;/span> &lt;span class="mi">5&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="n">IF&lt;/span> &lt;span class="n">t_xmin&lt;/span> &lt;span class="n">is&lt;/span> &lt;span class="n">active&lt;/span> &lt;span class="n">in&lt;/span> &lt;span class="n">the&lt;/span> &lt;span class="n">obtained&lt;/span> &lt;span class="n">transaction&lt;/span> &lt;span class="n">snapshot&lt;/span> &lt;span class="n">THEN&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">RETURN&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">Invisible&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// If Status(t_xmin) = COMMITTED ∧ (t_xmax = INVALID ∨ Status(t_xmax) = ABORTED) ⇒ Visible
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">Rule&lt;/span> &lt;span class="mi">6&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="n">ELSE&lt;/span> &lt;span class="n">IF&lt;/span> &lt;span class="n">t_xmax&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">INVALID&lt;/span> &lt;span class="n">OR&lt;/span> &lt;span class="n">status&lt;/span> &lt;span class="n">of&lt;/span> &lt;span class="n">t_xmax&lt;/span> &lt;span class="n">is&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">ABORTED&lt;/span>&lt;span class="err">&amp;#39;&lt;/span> &lt;span class="n">THEN&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">RETURN&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">Visible&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">ELSE&lt;/span> &lt;span class="n">IF&lt;/span> &lt;span class="n">t_xmax&lt;/span> &lt;span class="n">status&lt;/span> &lt;span class="n">is&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">IN_PROGRESS&lt;/span>&lt;span class="err">&amp;#39;&lt;/span> &lt;span class="n">THEN&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// If Status(t_xmin) = COMMITTED ∧ Status(t_xmax) = IN_PROGRESS ∧ t_xmax = current_txid ⇒ Invisible
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">Rule&lt;/span> &lt;span class="mi">7&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="n">IF&lt;/span> &lt;span class="n">t_xmax&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">current_txid&lt;/span> &lt;span class="n">THEN&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">RETURN&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">Invisible&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// If Status(t_xmin) = COMMITTED ∧ Status(t_xmax) = IN_PROGRESS ∧ t_xmax ≠ current_txid ⇒ Visible
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">Rule&lt;/span> &lt;span class="mi">8&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="n">ELSE&lt;/span> &lt;span class="cm">/* t_xmax ≠ current_txid */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">RETURN&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">Visible&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">END&lt;/span> &lt;span class="n">IF&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">ELSE&lt;/span> &lt;span class="n">IF&lt;/span> &lt;span class="n">t_xmax&lt;/span> &lt;span class="n">status&lt;/span> &lt;span class="n">is&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">COMMITTED&lt;/span>&lt;span class="err">&amp;#39;&lt;/span> &lt;span class="n">THEN&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// If Status(t_xmin) = COMMITTED ∧ Status(t_xmax) = COMMITTED ∧ Snapshot(t_xmax) = active ⇒ Visible
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">Rule&lt;/span> &lt;span class="mi">9&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="n">IF&lt;/span> &lt;span class="n">t_xmax&lt;/span> &lt;span class="n">is&lt;/span> &lt;span class="n">active&lt;/span> &lt;span class="n">in&lt;/span> &lt;span class="n">the&lt;/span> &lt;span class="n">obtained&lt;/span> &lt;span class="n">transaction&lt;/span> &lt;span class="n">snapshot&lt;/span> &lt;span class="n">THEN&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">RETURN&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">Visible&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// If Status(t_xmin) = COMMITTED ∧ Status(t_xmax) = COMMITTED ∧ Snapshot(t_xmax) ≠ active ⇒ Invisible
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">Rule&lt;/span> &lt;span class="mi">10&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="n">ELSE&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">RETURN&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">Invisible&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">END&lt;/span> &lt;span class="n">IF&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">END&lt;/span> &lt;span class="n">IF&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">END&lt;/span> &lt;span class="n">IF&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="可见性检测流程">可见性检测流程&lt;/h2>
+&lt;p>以简单的双事务更新与查询为例：&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://user-images.githubusercontent.com/5803001/52044845-1205fc80-257e-11e9-98d9-253120ce1726.png" alt="image" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>上图中 txid 200 的事务的隔离级别是 READ COMMITED，txid 201 的隔离级别为 READ COMMITED 或者 REPEATABLE READ。&lt;/p>
+&lt;ul>
+&lt;li>当在 T3 时刻执行 SELECT 命令时：&lt;/li>
+&lt;/ul>
+&lt;p>根据 Rule 6，此时仅有 &lt;code>Tuple_1&lt;/code> 是处于可见状态：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="o">#&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Rule6&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">Tuple_1&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">⇒&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Status&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">t_xmin&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="mi">199&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">COMMITTED&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">∧&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">t_xmax&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">INVALID&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">⇒&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Visible&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">testdb&lt;/span>&lt;span class="o">=#&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c1">-- txid 200
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">testdb&lt;/span>&lt;span class="o">=#&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">tbl&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="n">name&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c1">--------
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Jekyll&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">row&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">testdb&lt;/span>&lt;span class="o">=#&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c1">-- txid 201
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">testdb&lt;/span>&lt;span class="o">=#&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">tbl&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="n">name&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c1">--------
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Jekyll&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">row&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ul>
+&lt;li>当在 T5 时刻执行 SELECT 命令时：&lt;/li>
+&lt;/ul>
+&lt;p>对于 txid 200 的事务而言，根据 Rule 7 与 Rule 2 可知，&lt;code>Tuple_1&lt;/code> 可见而 &lt;code>Tuple_2&lt;/code> 不可见：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Rule7(Tuple_1): Status(t_xmin:199) = COMMITTED ∧ Status(t_xmax:200) = IN_PROGRESS ∧ t_xmax:200 = current_txid:200 ⇒ Invisible&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Rule2(Tuple_2): Status(t_xmin:200) = IN_PROGRESS ∧ t_xmin:200 = current_txid:200 ∧ t_xmax = INVAILD ⇒ Visible&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">testdb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># -- txid 200&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">testdb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># SELECT * FROM tbl;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> name
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">------
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Hyde
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>&lt;span class="m">1&lt;/span> row&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>而对于 txid 201 的事务而言，&lt;code>Tuple_1&lt;/code> 是可见的，&lt;code>Tuple_2&lt;/code> 是不可见的：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Rule8(Tuple_1): Status(t_xmin:199) = COMMITTED ∧ Status(t_xmax:200) = IN_PROGRESS ∧ t_xmax:200 ≠ current_txid:201 ⇒ Visible&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Rule4(Tuple_2): Status(t_xmin:200) = IN_PROGRESS ∧ t_xmin:200 ≠ current_txid:201 ⇒ Invisible&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">testdb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># -- txid 201&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">testdb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># SELECT * FROM tbl;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> name
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">--------
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Jekyll
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>&lt;span class="m">1&lt;/span> row&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ul>
+&lt;li>当在 T7 时刻执行 SELECT 命令时：&lt;/li>
+&lt;/ul>
+&lt;p>如果此时 txid 201 的事务处于 READ COMMITED 的隔离级别，那么 txid 200 会被当做 COMMITTED 来处理，因为此时获取到的事务快照是 &lt;code>201:201:&lt;/code>，因此 &lt;code>Tuple_1&lt;/code> 是不可见的，而 &lt;code>Tuple_2&lt;/code> 是可见的：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Rule10(Tuple_1): Status(t_xmin:199) = COMMITTED ∧ Status(t_xmax:200) = COMMITTED ∧ Snapshot(t_xmax:200) ≠ active ⇒ Invisible&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Rule6(Tuple_2): Status(t_xmin:200) = COMMITTED ∧ t_xmax = INVALID ⇒ Visible&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">testdb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># -- txid 201 (READ COMMITTED)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">testdb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># SELECT * FROM tbl;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> name
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">------
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Hyde
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>&lt;span class="m">1&lt;/span> row&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>如果此时 txid 201 的事务处于 REPEATABLE READ 的隔离级别，此时获取到的事务快照还是 &lt;code>200:200:&lt;/code>，那么 txid 200 的事务必须被当做 IN_PROGRESS 状态来处理；因此此时 &lt;code>Tuple_1&lt;/code> 是可见的，而 &lt;code>Tuple_2&lt;/code> 是不可见的：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Rule9(Tuple_1): Status(t_xmin:199) = COMMITTED ∧ Status(t_xmax:200) = COMMITTED ∧ Snapshot(t_xmax:200) = active ⇒ Visible&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Rule5(Tuple_2): Status(t_xmin:200) = COMMITTED ∧ Snapshot(t_xmin:200) = active ⇒ Invisible&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">testdb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># -- txid 201 (REPEATABLE READ)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">testdb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># SELECT * FROM tbl;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> name
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">--------
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Jekyll
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>&lt;span class="m">1&lt;/span> row&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="preventing-lost-updates--避免更新丢失">Preventing Lost Updates | 避免更新丢失&lt;/h1>
+&lt;p>所谓的更新丢失（Lost Update），也就是写冲突（ww-conflict），其出现在两个事务同时更新相同的行；在 PostgreSQL 中，REPEATABLE READ 与 SERIALIZABLE 这两个级别都需要规避这种异常现象。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>1&lt;span class="o">)&lt;/span> FOR each row that will be updated by this UPDATE &lt;span class="nb">command&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>2&lt;span class="o">)&lt;/span> WHILE &lt;span class="nb">true&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> /* The First Block */
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>3&lt;span class="o">)&lt;/span> IF the target row is being updated THEN
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>4&lt;span class="o">)&lt;/span> WAIT &lt;span class="k">for&lt;/span> the termination of the transaction that updated the target row
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>5&lt;span class="o">)&lt;/span> IF &lt;span class="o">(&lt;/span>the status of the terminated transaction is COMMITTED&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> AND &lt;span class="o">(&lt;/span>the isolation level of this transaction is REPEATABLE READ or SERIALIZABLE&lt;span class="o">)&lt;/span> THEN
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>6&lt;span class="o">)&lt;/span> ABORT this transaction /* First-Updater-Win */
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> ELSE
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>7&lt;span class="o">)&lt;/span> GOTO step &lt;span class="o">(&lt;/span>2&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> END IF
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> /* The Second Block */
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>8&lt;span class="o">)&lt;/span> ELSE IF the target row has been updated by another concurrent transaction THEN
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>9&lt;span class="o">)&lt;/span> IF &lt;span class="o">(&lt;/span>the isolation level of this transaction is READ COMMITTED THEN
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>10&lt;span class="o">)&lt;/span> UPDATE the target row
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> ELSE
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>11&lt;span class="o">)&lt;/span> ABORT this transaction /* First-Updater-Win */
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> END IF
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> /* The Third Block */
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> ELSE /* The target row is not yet modified or has been updated by a terminated transaction. */
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>12&lt;span class="o">)&lt;/span> UPDATE the target row
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> END IF
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> END WHILE
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> END FOR
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在上述流程中，UPDATE 命令会遍历每个待更新行，当发现该行正在被其他事务更新时进入等待状态直到该行被解除锁定。如果该行已经被更新，并且隔离级别为 REPEATABLE 或者 SERIALIZABLE，则放弃更新。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://user-images.githubusercontent.com/5803001/52051263-fb67a180-258d-11e9-9b2c-af56c7b6a3ed.png" alt="image" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>Being updated 意味着该行由另一个并发事务更新，并且其事务尚未终止。因为 PostgreSQL 的 SI 使用 first-updater-win 方案，在这种情况下，当前事务必须等待更新目标行的事务的终止。假设事务 Tx_A 和 Tx_B 同时运行，并且 Tx_B 尝试更新行；但是 Tx_A 已更新它并且仍在进行中，Tx_B 等待 Tx_A 的终止。在更新目标行提交的事务之后，继续当前事务的更新操作。如果当前事务处于 READ COMMITTED 级别，则将更新目标行; 否则 REPEATABLE READ 或 SERIALIZABLE，当前事务立即中止以防止丢失更新。&lt;/p>
+&lt;h1 id="空间整理">空间整理&lt;/h1>
+&lt;p>PostgreSQL 的并发控制机制还依赖于以下的维护流程：&lt;/p>
+&lt;ul>
+&lt;li>移除那些被标记为 Dead 的 Tuples 与 Index Tuples&lt;/li>
+&lt;li>移除 clog 中过时的部分&lt;/li>
+&lt;li>冻结旧的 txids&lt;/li>
+&lt;li>更新 FSM，VM 以及其他统计信息&lt;/li>
+&lt;/ul>
+&lt;p>首先讨论下 txid 环绕式处理的问题，假设 txid 100 的事务插入了某个 &lt;code>Tuple_1&lt;/code>，则该 Tuple 对应的 t_xmin 值为 100；而后服务器又运行了许久，&lt;code>Tuple_1&lt;/code> 期间并未被改变。直到 txid 为 &lt;code>2^31 + 101&lt;/code> 时，对于该事务而言，其执行 SELECT 命令时，是无法看到 &lt;code>Tuple_1&lt;/code> 的，因为 txid 为 100 的事务相对于其是发生在未来的，由其创建的 Tuple 自然也就是不可见的。&lt;/p>
+&lt;p>为了解决这个问题，PostgreSQL 引入了所谓的 frozen txid（被冻结的 txid），并且设置了 FREEZE 进程来具体处理该问题。前文提及到 txid 2 是保留值，专门表征那些被冻结的 Tuple，这些 Tuple 永远是非激活的、可见的。FREEZE 进程同样由 Vacuum 进程统一调用，它会扫描所有的表文件，将那些与当前 txid 差值超过 vacuum_freeze_min_age 定义的 Tuple 的 t_xmin 域设置为 2。在 9.4 版本之后，则是将 t_infomask 域中的 XMIN_FROZEN 位设置来表征该 Tuple 为冻结状态。&lt;/p></description></item><item><title>查询处理</title><link>https://ng-tech.icu/books/database-series/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E6%9F%A5%E8%AF%A2%E5%A4%84%E7%90%86/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/database-series/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E6%9F%A5%E8%AF%A2%E5%A4%84%E7%90%86/</guid><description>&lt;h1 id="query-processing--查询处理">Query Processing | 查询处理&lt;/h1>
+&lt;h1 id="查询处理流程">查询处理流程&lt;/h1>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://ww1.sinaimg.cn/large/007rAy9hgy1fzhjswic24j30w00bft96.jpg" alt="" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>In PostgreSQL, although the parallel query implemented in version 9.6 uses multiple background worker processes, a backend process basically handles all queries issued by the connected client. This backend consists of five subsystems, as shown below:&lt;/p>
+&lt;p>PostgreSQL 中使用了多个 Background Worker 来并发地处理查询请求&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>Parser，Parser 会从普通的 SQL 文本中生成解析树。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Analyzer/Analyser，对提取树进行语义化分析，生成查询树。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Rewriter，
+The rewriter transforms a query tree using the rules stored in the rule system if such rules exist.&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;p>Planner
+The planner generates the plan tree that can most effectively be executed from the query tree.&lt;/p>
+&lt;p>Executor
+The executor executes the query via accessing the tables and indexes in the order that was created by the plan tree.&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://ww1.sinaimg.cn/large/007rAy9hgy1fzheky40s5j30bq0bldfs.jpg" alt="" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;h2 id="parser">Parser&lt;/h2>
+&lt;p>The parser generates a parse tree that can be read by subsequent subsystems from an SQL statement in plain text. A parse tree is a tree whose root node is the SelectStmt structure defined in parsenodes.h.&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://ww1.sinaimg.cn/large/007rAy9hgy1fzheky40s5j30bq0bldfs.jpg" alt="" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>Due to the fact that the parser only checks the syntax of an input when generating a parse tree, it only returns an error if there is a syntax error in the query. The parser does not check the semantics of an input query. For example, even if the query contains a table name that does not exist, the parser does not return an error. Semantic checks are done by the analyzer/analyser.&lt;/p>
+&lt;h2 id="analyzeranalyser">Analyzer/Analyser&lt;/h2>
+&lt;p>The analyzer/analyser runs a semantic analysis of a parse tree generated by the parser and generates a query tree.&lt;/p>
+&lt;p>The root of a query tree is the Query structure defined in parsenodes.h; this structure contains metadata of its corresponding query such as the type of this command (SELECT, INSERT or others) and several leaves; each leaf forms a list or a tree and holds data of the individual particular clause.&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://ww1.sinaimg.cn/large/007rAy9hgy1fzheky40s5j30bq0bldfs.jpg" alt="" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;h2 id="rewriter">Rewriter&lt;/h2>
+&lt;p>The rewriter is the system that realizes the rule system, and transforms a query tree according to the rules stored in the pg_rules system catalog if necessary.&lt;/p>
+&lt;p>Views in PostgreSQL are implemented by using the rule system. When a view is defined by the CREATE VIEW command, the corresponding rule is automatically generated and stored in the catalog.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="nv">sampledb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># CREATE VIEW employees_list&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">sampledb-# AS SELECT e.id, e.name, d.name AS department
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">sampledb-# FROM employees AS e, departments AS d WHERE e.department_id &lt;span class="o">=&lt;/span> d.id&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>When a query that contains a view shown below is issued, the parser creates the parse tree as shown in Fig. 3.4(a).&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="nv">sampledb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># SELECT * FROM employees_list;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://ww1.sinaimg.cn/large/007rAy9hgy1fzhjswic24j30w00bft96.jpg" alt="" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;h2 id="planner-and-executor">Planner and Executor&lt;/h2>
+&lt;p>The planner receives a query tree from the rewriter and generates a (query) plan tree that can be processed by the executor most effectively.&lt;/p>
+&lt;p>The planner in PostgreSQL is based on pure cost-based optimization; it does not support rule-based optimization and hints. This planner is the most complex subsystem in RDBMS;&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://ww1.sinaimg.cn/large/007rAy9hgy1fzhjswic24j30w00bft96.jpg" alt="" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>A plan tree is composed of elements called plan nodes, and it is connected to the plantree list of the PlannedStmt structure.&lt;/p>
+&lt;p>Each plan node has information that the executor requires for processing, and the executor processes from the end of the plan tree to the root in the case of a single-table query.&lt;/p>
+&lt;p>For example, the plan tree shown in Fig. 3.5 is a list of a sort node and a sequential scan node; thus, the executor scans the table:tbl_a by a sequential scan and then sorts the obtained result.&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://ww1.sinaimg.cn/large/007rAy9hgy1fzhjswic24j30w00bft96.jpg" alt="" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>The executor reads and writes tables and indexes in the database cluster via the buffer manager described in Chapter 8. When processing a query, the executor uses some memory areas, such as temp_buffers and work_mem, allocated in advance and creates temporary files if necessary.&lt;/p>
+&lt;p>In addition, when accessing tuples, PostgreSQL uses the concurrency control mechanism to maintain consistency and isolation of the running transactions.&lt;/p>
+&lt;h1 id="单表查询">单表查询&lt;/h1>
+&lt;h1 id="index--索引">Index | 索引&lt;/h1>
+&lt;h2 id="index-only-scans">Index-Only Scans&lt;/h2>
+&lt;h1 id="多表查询">多表查询&lt;/h1>
+&lt;h1 id="foreign-data-wrappers">Foreign Data Wrappers&lt;/h1>
+&lt;h1 id="parallel-queries--并发查询">Parallel Queries | 并发查询&lt;/h1></description></item><item><title>持久化与缓冲区管理</title><link>https://ng-tech.icu/books/database-series/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E6%8C%81%E4%B9%85%E5%8C%96%E4%B8%8E%E7%BC%93%E5%86%B2%E5%8C%BA%E7%AE%A1%E7%90%86/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/database-series/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E6%8C%81%E4%B9%85%E5%8C%96%E4%B8%8E%E7%BC%93%E5%86%B2%E5%8C%BA%E7%AE%A1%E7%90%86/</guid><description>&lt;h1 id="持久化与缓冲区管理">持久化与缓冲区管理&lt;/h1>
+&lt;h1 id="存储机制">存储机制&lt;/h1>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://s2.ax1x.com/2019/11/24/MOCrgs.png" alt="PG 存储机制" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;h1 id="vacuum-processing">Vacuum Processing&lt;/h1>
+&lt;h1 id="heap-only-tuple-hot">Heap Only Tuple (HOT)&lt;/h1>
+&lt;h1 id="buffer-management">Buffer Management&lt;/h1></description></item><item><title>日志备份与恢复</title><link>https://ng-tech.icu/books/database-series/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E6%97%A5%E5%BF%97%E5%A4%87%E4%BB%BD%E4%B8%8E%E6%81%A2%E5%A4%8D/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/database-series/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E6%97%A5%E5%BF%97%E5%A4%87%E4%BB%BD%E4%B8%8E%E6%81%A2%E5%A4%8D/</guid><description>&lt;h1 id="日志备份与恢复">日志备份与恢复&lt;/h1>
+&lt;h1 id="write-ahead-logging--wal">Write Ahead Logging — WAL&lt;/h1>
+&lt;h1 id="base-backup">Base Backup&lt;/h1>
+&lt;h1 id="point-in-time-recovery">Point-in-Time Recovery&lt;/h1>
+&lt;h1 id="streaming-replication">Streaming Replication&lt;/h1></description></item><item><title>数据库架构</title><link>https://ng-tech.icu/books/database-series/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%9E%B6%E6%9E%84/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/database-series/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%9E%B6%E6%9E%84/</guid><description>&lt;h1 id="数据库架构">数据库架构&lt;/h1>
+&lt;h1 id="database-cluster-databases-与-tables">Database Cluster, Databases 与 Tables&lt;/h1>
+&lt;p>在 PostgreSQL 中 Database Cluster 并非指多个数据库服务器的集群，而是由某个 PostgreSQL 服务器管理的 Databases 的集合。一个 PostgreSQL 服务器运行于单节点，并且管理单个 Database Cluster。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://user-images.githubusercontent.com/5803001/51726741-d5309600-20a3-11e9-80f3-5d44480b12a1.png" alt="image" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>PostgreSQL 中所有的 Databases 对象是由 OIDs(Object Identifiers) 来标识，每个 OID 是 4 字节的无符号整型。而 Databases 与关联的 OIDs 关联存放于 &lt;a href="http://www.postgresql.org/docs/current/static/catalogs.html" target="_blank" rel="noopener">System Catalogs&lt;/a> 中，譬如 Databases 与 Heap Tables 分别存放于 pg_database 与 pg_class 表中：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="n">sampledb&lt;/span>&lt;span class="o">=#&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">datname&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">oid&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">pg_database&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">WHERE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">datname&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;sampledb&amp;#39;&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="n">datname&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">oid&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c1">----------+-------
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sampledb&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">16384&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">row&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">sampledb&lt;/span>&lt;span class="o">=#&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">relname&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">oid&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">pg_class&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">WHERE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">relname&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;sampletbl&amp;#39;&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="n">relname&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">oid&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c1">-----------+-------
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sampletbl&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">18740&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">row&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="database-clutser-的结构">Database Clutser 的结构&lt;/h1>
+&lt;h2 id="物理结构">物理结构&lt;/h2>
+&lt;p>Database Cluster 在物理存储上即是根目录（由 PG_DATA 指定）下的某个子目录，而 Database 也存放于 Database Cluster 的目录下，其又包含了 Tables, Indexed 等数据。在&lt;a href="http://www.postgresql.org/docs/current/static/storage-file-layout.html" target="_blank" rel="noopener">官方文档&lt;/a>中我们可以查看具体的文件夹分割与功能描述。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://user-images.githubusercontent.com/5803001/51727280-3eb1a400-20a6-11e9-93c3-7f806c8dfc45.png" alt="image" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;h2 id="逻辑结构">逻辑结构&lt;/h2>
+&lt;h1 id="heap-table-file">Heap Table File&lt;/h1>
+&lt;h1 id="process-architecture--进程架构">Process Architecture | 进程架构&lt;/h1>
+&lt;h1 id="memory-architecture--内存架构">Memory Architecture | 内存架构&lt;/h1></description></item></channel></rss>

@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>操作符 | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/</link><atom:link href="https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/index.xml" rel="self" type="application/rss+xml"/><description>操作符</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>操作符</title><link>https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/</link></image><item><title>变换操作</title><link>https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/%E5%8F%98%E6%8D%A2%E6%93%8D%E4%BD%9C/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/%E5%8F%98%E6%8D%A2%E6%93%8D%E4%BD%9C/</guid><description>&lt;h1 id="transforming转换">Transforming(转换)&lt;/h1>
+&lt;p>所谓变换，就是将事件序列中的对象或整个序列进行加工处理，转换成不同的事件或事件序列。&lt;/p>
+&lt;h2 id="mapflatmap">Map/flatMap&lt;/h2>
+&lt;p>Map 与 flatMap 的用法相近，都可以将某个 Observable 转化为另一个 Observable，不过它们的区别如下：&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>map&lt;/code>为一对一变换。可以将一个对象转换成另一个对象，或者将对象数组的每单个对象转换成新的对象数组的每单个对象。&lt;/li>
+&lt;li>&lt;code>flatMap()&lt;/code>为一对多变换。可以将一个对象转换成一组对象，或者将对象数组的每单个对象转换成新的对象数组的每单组对象。&lt;code>flatMap()&lt;/code> 中返回的是个 &lt;code>Observable&lt;/code> 对象，并且这个 &lt;code>Observable&lt;/code> 对象并不是被直接发送到了 &lt;code>Subscriber&lt;/code> 的回调方法中。&lt;/li>
+&lt;/ul>
+&lt;p>&lt;code>flatMap()&lt;/code> 的原理是这样的：&lt;/p>
+&lt;ol>
+&lt;li>使用传入的事件对象创建一个 &lt;code>Observable&lt;/code> 对象；&lt;/li>
+&lt;li>并不发送这个 &lt;code>Observable&lt;/code>, 而是将它激活，于是它开始发送事件；&lt;/li>
+&lt;li>每一个创建出来的 &lt;code>Observable&lt;/code> 发送的事件，都被汇入同一个 &lt;code>Observable&lt;/code>，而这个 &lt;code>Observable&lt;/code> 负责将这些事件统一交给 &lt;code>Subscriber&lt;/code> 的回调方法。&lt;/li>
+&lt;/ol>
+&lt;p>这三个步骤，把事件拆成了两级，通过一组新创建的 &lt;code>Observable&lt;/code> 将初始的对象铺平之后通过统一路径分发了下去。而这个铺平就是 &lt;code>flatMap()&lt;/code> 所谓的 flat。&lt;/p>
+&lt;p>以 Person 为例，一个 Person 对应一个身份证 id，一个 Person 可以有多个 Email。通过&lt;code>map()&lt;/code>可以将 Person 转换成 id，从而得到一个 Person 的身份证号码；通过&lt;code>flatMap()&lt;/code>可以将 Person 转换成一组 Email，从而得到一个 Person 的所有 Email。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">MapObservable&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">names&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="o">{&lt;/span> &lt;span class="s">&amp;#34;A&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;B&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;C&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;D&amp;#34;&lt;/span> &lt;span class="o">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">mapNameToId&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Observable&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">from&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">names&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">map&lt;/span>&lt;span class="o">(&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">s&lt;/span> &lt;span class="o">-&amp;gt;&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">s&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">hashCode&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">subscribe&lt;/span>&lt;span class="o">(&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">integer&lt;/span> &lt;span class="o">-&amp;gt;&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Person Id is :&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">integer&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">mapNameToEmails&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Observable&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">from&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">names&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">flatMap&lt;/span>&lt;span class="o">(&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">s&lt;/span> &lt;span class="o">-&amp;gt;&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">Observable&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">from&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="k">new&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="o">{&lt;/span> &lt;span class="n">s&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="s">&amp;#34;@b.com&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">s&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="s">&amp;#34;@a.com&amp;#34;&lt;/span> &lt;span class="o">});&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">subscribe&lt;/span>&lt;span class="o">(&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">s&lt;/span> &lt;span class="o">-&amp;gt;&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Person Id is :&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">s&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="o">[])&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">MapObservable&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">mapNameToId&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">MapObservable&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">mapNameToEmails&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="exception-handler">Exception Handler&lt;/h3>
+&lt;p>当我们利用 flatMap 来链式调用 Observable 时，可能出现在中间的某个 Observable 抛出异常的情形，本例即是演示这种可能存在异常的情形，如下：&lt;/p>
+&lt;pre tabindex="0">&lt;code>
+public static void flatMapWithException() {
+Observable.from(names).
+flatMap(s -&amp;gt; {
+return Observable.&amp;lt;String&amp;gt;create(subscriber -&amp;gt; {
+subscriber.onError(new Exception(&amp;#34;Custom Exceptions&amp;#34;));
+});
+})
+.flatMap(s -&amp;gt; {
+System.out.println(&amp;#34;In FlatMap 3&amp;#34;);
+return Observable.from(new String[]{s + &amp;#34;@b.com&amp;#34;, s + &amp;#34;@a.com&amp;#34;});
+})
+.subscribe(s -&amp;gt; {
+System.out.println(&amp;#34;Person Id is :&amp;#34; + s);
+},
+throwable -&amp;gt; {
+System.out.println(throwable.getMessage());
+});
+}
+&lt;/code>&lt;/pre>&lt;p>最终的输出结果直接就是:&lt;/p>
+&lt;pre tabindex="0">&lt;code>Custom Exceptions
+&lt;/code>&lt;/pre>&lt;p>可以看出，一旦某个 Observable 抛出异常，那么会直接进入最后的 Subscriber。&lt;/p>
+&lt;h3 id="multiple-threads">Multiple Threads&lt;/h3>
+&lt;p>RxJava 本身最大的优势即是可以进行便捷明晰的并发编程，当我们在连接多个 Observable 时候，可以选择将某些耗时较长的 Observable 放到子线程中运行，测试代码如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm">/**
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * @function 演示在不同线程中的flatMap
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">flatMapWithMultipleThread&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Observable&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">from&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="k">new&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">[]{&lt;/span>&lt;span class="s">&amp;#34;name&amp;#34;&lt;/span>&lt;span class="o">}).&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">flatMap&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">s&lt;/span> &lt;span class="o">-&amp;gt;&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">Observable&lt;/span>&lt;span class="o">.&amp;lt;&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="n">create&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">subscriber&lt;/span> &lt;span class="o">-&amp;gt;&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;FlatMap 1:&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">Thread&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">currentThread&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">getName&lt;/span>&lt;span class="o">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">subscriber&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">onNext&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">s&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">});&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">})&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">flatMap&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">s&lt;/span> &lt;span class="o">-&amp;gt;&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">Observable&lt;/span>&lt;span class="o">.&amp;lt;&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="n">create&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">subscriber&lt;/span> &lt;span class="o">-&amp;gt;&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">try&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;FlatMap 2:&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">Thread&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">currentThread&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">getName&lt;/span>&lt;span class="o">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Thread&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">sleep&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">1000l&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">subscriber&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">onNext&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">s&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span> &lt;span class="k">catch&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">InterruptedException&lt;/span> &lt;span class="n">e&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">e&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">printStackTrace&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">});&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">})&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">subscribe&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">s&lt;/span> &lt;span class="o">-&amp;gt;&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Subscriber:&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">Thread&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">currentThread&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">getName&lt;/span>&lt;span class="o">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">},&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">throwable&lt;/span> &lt;span class="o">-&amp;gt;&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">throwable&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getMessage&lt;/span>&lt;span class="o">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">});&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="o">[])&lt;/span> &lt;span class="kd">throws&lt;/span> &lt;span class="n">InterruptedException&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">MapObservable&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">flatMapWithMultipleThread&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Before Stop&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">//睡眠一段时间以等待所有的输出
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">Thread&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">sleep&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">5000l&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>最终输出结果为：&lt;/p>
+&lt;pre tabindex="0">&lt;code>
+FlatMap 1:main
+FlatMap 2:main
+Subscriber:main
+&lt;/code>&lt;/pre>&lt;h2 id="bufferwindow时间平移">buffer/window:时间平移&lt;/h2></description></item><item><title>创建操作</title><link>https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/%E5%88%9B%E5%BB%BA%E6%93%8D%E4%BD%9C/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/%E5%88%9B%E5%BB%BA%E6%93%8D%E4%BD%9C/</guid><description/></item><item><title>错误处理</title><link>https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/</guid><description/></item><item><title>辅助操作</title><link>https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/%E8%BE%85%E5%8A%A9%E6%93%8D%E4%BD%9C/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/%E8%BE%85%E5%8A%A9%E6%93%8D%E4%BD%9C/</guid><description>&lt;h1 id="utility">Utility&lt;/h1>
+&lt;h2 id="delay延迟发射或者监听">delay:延迟发射或者监听&lt;/h2>
+&lt;p>顾名思义，delay 操作会延时一段时间再发射数据。有两种方式实现这个效果；一是缓存这些数据，等一段时间后再发射；或者是把 Subscriber 订阅的时间延迟。&lt;/p>
+&lt;h3 id="delay">delay()&lt;/h3>
+&lt;p>简单的 delay 函数只是把每个数据都延时一段时间再发射，相当于把整个数据流都往后推迟了。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">Observable&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">interval&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">100&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">TimeUnit&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">MILLISECONDS&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">take&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">5&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">delay&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">TimeUnit&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">SECONDS&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">timeInterval&lt;/span>&lt;span class="o">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">subscribe&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">::&lt;/span>&lt;span class="n">println&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>输出：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">TimeInterval&lt;/span> &lt;span class="o">[&lt;/span>&lt;span class="n">intervalInMilliseconds&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">1109&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">TimeInterval&lt;/span> &lt;span class="o">[&lt;/span>&lt;span class="n">intervalInMilliseconds&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">94&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">TimeInterval&lt;/span> &lt;span class="o">[&lt;/span>&lt;span class="n">intervalInMilliseconds&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">100&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">TimeInterval&lt;/span> &lt;span class="o">[&lt;/span>&lt;span class="n">intervalInMilliseconds&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">100&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">TimeInterval&lt;/span> &lt;span class="o">[&lt;/span>&lt;span class="n">intervalInMilliseconds&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">101&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">4&lt;/span>&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>可以看到，第一个数据差不多被延迟了 1s，后面每隔 100ms 左右发射下一个数据。还可以分别推迟每个数据的时间。&lt;/p>
+&lt;p>这个重载函数的参数为一个函数，该函数的参数为源 Observable 发射的数据返回一个 信号 Observable。当信号 Observable 发射数据的时候，也就是源 Observable 的数据发射的时候。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">Observable&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">interval&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">100&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">TimeUnit&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">MILLISECONDS&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">take&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">5&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">delay&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">i&lt;/span> &lt;span class="o">-&amp;gt;&lt;/span> &lt;span class="n">Observable&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">timer&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">i&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="mi">100&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">TimeUnit&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">MILLISECONDS&lt;/span>&lt;span class="o">))&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">timeInterval&lt;/span>&lt;span class="o">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">subscribe&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">::&lt;/span>&lt;span class="n">println&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>输出：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">TimeInterval&lt;/span> &lt;span class="o">[&lt;/span>&lt;span class="n">intervalInMilliseconds&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">152&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">TimeInterval&lt;/span> &lt;span class="o">[&lt;/span>&lt;span class="n">intervalInMilliseconds&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">173&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">TimeInterval&lt;/span> &lt;span class="o">[&lt;/span>&lt;span class="n">intervalInMilliseconds&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">199&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">TimeInterval&lt;/span> &lt;span class="o">[&lt;/span>&lt;span class="n">intervalInMilliseconds&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">201&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">TimeInterval&lt;/span> &lt;span class="o">[&lt;/span>&lt;span class="n">intervalInMilliseconds&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">199&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">4&lt;/span>&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>源 Observable 每隔 100ms 发射一个数据，而结果显示为 200ms 发射一个数据。interval 从 0 开始发射数据，i 结果为 0、1、2 等，每隔数据推迟了 &lt;code>i*100ms&lt;/code> 再发射。所以后面每隔数据都比前一个数据多推迟了 100ms，结果就是每个数据差不多间隔 200ms 发射。&lt;/p>
+&lt;h3 id="delaysubscription">delaySubscription&lt;/h3>
+&lt;p>除了缓存数据，延迟发射缓冲的数据以外，还可以选择使用推迟订阅的方式。根据 Observable 是 hot 或者 cold 则会有不同的结果。后面会专门的介绍 cold 和 hot Observable 的区别。这里的示例为 cold Observable，推迟订阅到 cold Observable 和推迟整个数据流是一样的效果。但是由于推迟订阅不需要缓存发射的数据，所以更加高效。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">Observable&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">interval&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">100&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">TimeUnit&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">MILLISECONDS&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">take&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">5&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">delaySubscription&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">1000&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">TimeUnit&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">MILLISECONDS&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">timeInterval&lt;/span>&lt;span class="o">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">subscribe&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">::&lt;/span>&lt;span class="n">println&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>输出：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">TimeInterval&lt;/span> &lt;span class="o">[&lt;/span>&lt;span class="n">intervalInMilliseconds&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">1114&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">TimeInterval&lt;/span> &lt;span class="o">[&lt;/span>&lt;span class="n">intervalInMilliseconds&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">92&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">TimeInterval&lt;/span> &lt;span class="o">[&lt;/span>&lt;span class="n">intervalInMilliseconds&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">101&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">TimeInterval&lt;/span> &lt;span class="o">[&lt;/span>&lt;span class="n">intervalInMilliseconds&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">100&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">TimeInterval&lt;/span> &lt;span class="o">[&lt;/span>&lt;span class="n">intervalInMilliseconds&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">99&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">4&lt;/span>&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>可以看到整个数据流推迟了 1000ms。同样还有一个重载函数，可以使用另外一个 Observable 来告诉 Subscriber 何时订阅：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">final&lt;/span> &lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">U&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">Observable&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">T&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="nf">delaySubscription&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">Func0&lt;/span>&lt;span class="o">&amp;lt;?&lt;/span> &lt;span class="kd">extends&lt;/span> &lt;span class="n">Observable&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">U&lt;/span>&lt;span class="o">&amp;gt;&amp;gt;&lt;/span> &lt;span class="n">subscriptionDelay&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item><item><title>过滤操作</title><link>https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/%E8%BF%87%E6%BB%A4%E6%93%8D%E4%BD%9C/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/%E8%BF%87%E6%BB%A4%E6%93%8D%E4%BD%9C/</guid><description/></item><item><title>结合操作</title><link>https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/%E7%BB%93%E5%90%88%E6%93%8D%E4%BD%9C/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/%E7%BB%93%E5%90%88%E6%93%8D%E4%BD%9C/</guid><description>&lt;h1 id="combing组合">Combing(组合)&lt;/h1>
+&lt;h2 id="merge合并">Merge(合并)&lt;/h2>
+&lt;p>在”异步的世界“中经常会创建这样的场景，我们有多个来源但是又只想有一个结果：多输入，单输出。RxJava 的 merge()方法将帮助你把两个甚至更多的 Observables 合并到他们发射的数据项里。下图给出了把两个序列合并在一个最终发射的 Observable。
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="http://rxjava.yuxingxin.com/images/chapter6_1.png" alt="" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>
+正如你看到的那样，发射的数据被交叉合并到一个 Observable 里面。注意如果你同步的合并 Observable，它们将连接在一起并且不会交叉。&lt;/p>
+&lt;pre tabindex="0">&lt;code>Observable&amp;lt;Integer&amp;gt; observable_1 = Observable.from(new Integer[]{1, 2});
+Observable&amp;lt;Integer&amp;gt; observable_2 = Observable.from(new Integer[]{2, 3});
+Observable&amp;lt;Integer&amp;gt; observable_combined = Observable.merge(observable_1, observable_2);
+observable_combined.subscribe(
+(value) -&amp;gt; {
+System.out.println(Thread.currentThread().getName() + &amp;#34; Emited!&amp;#34;);
+System.out.println(value);
+}
+);
+&lt;/code>&lt;/pre>&lt;p>需要注意的是，在上述代码中，最终值的输出序列还是 1,2,2,3，这是因为两个 Observable 都是在 Main Thread 中执行，我们来看看如果用&lt;code>subscribeOn&lt;/code>让每个 Observable 在不同线程中执行的效果：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">Observable&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">Object&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">observable_1&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">Observable&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">create&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">subscriber&lt;/span> &lt;span class="o">-&amp;gt;&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">try&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Thread&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">sleep&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">1000l&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">subscriber&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">onNext&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Thread&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">sleep&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">3000l&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">subscriber&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">onNext&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span> &lt;span class="k">catch&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">InterruptedException&lt;/span> &lt;span class="n">e&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">e&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">printStackTrace&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}).&lt;/span>&lt;span class="na">subscribeOn&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">Schedulers&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">newThread&lt;/span>&lt;span class="o">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">Observable&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">Object&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">observable_2&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">Observable&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">create&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">subscriber&lt;/span> &lt;span class="o">-&amp;gt;&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">try&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Thread&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">sleep&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">2000l&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">subscriber&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">onNext&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Thread&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">sleep&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">4000l&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">subscriber&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">onNext&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">4&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span> &lt;span class="k">catch&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">InterruptedException&lt;/span> &lt;span class="n">e&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">e&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">printStackTrace&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">})&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">subscribeOn&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">Schedulers&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">newThread&lt;/span>&lt;span class="o">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">Observable&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">Object&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">observable_combined&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">Observable&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">merge&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">observable_1&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">observable_2&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">observable_combined&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">subscribe&lt;/span>&lt;span class="o">(&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">(&lt;/span>&lt;span class="n">value&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">-&amp;gt;&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">Thread&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">currentThread&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">getName&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="s">&amp;#34; Emited!&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">value&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>最终的结果如下所示：&lt;/p>
+&lt;pre tabindex="0">&lt;code>RxNewThreadScheduler-1 Emited!
+1
+RxNewThreadScheduler-2 Emited!
+3
+RxNewThreadScheduler-1 Emited!
+2
+RxNewThreadScheduler-2 Emited!
+4
+&lt;/code>&lt;/pre></description></item><item><title>聚合操作</title><link>https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/%E8%81%9A%E5%90%88%E6%93%8D%E4%BD%9C/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/%E8%81%9A%E5%90%88%E6%93%8D%E4%BD%9C/</guid><description/></item><item><title>条件和布尔操作</title><link>https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/%E6%9D%A1%E4%BB%B6%E5%92%8C%E5%B8%83%E5%B0%94%E6%93%8D%E4%BD%9C/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-series/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/03.%E5%B9%B6%E5%8F%91%E6%A1%86%E6%9E%B6/rxjava/%E6%93%8D%E4%BD%9C%E7%AC%A6/%E6%9D%A1%E4%BB%B6%E5%92%8C%E5%B8%83%E5%B0%94%E6%93%8D%E4%BD%9C/</guid><description/></item></channel></rss>
