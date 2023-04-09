@@ -1,7 +1,0 @@
-
----
-title: 段式存储管理
-linktitle: 段式存储管理
-type: book
-commentable: true
----
