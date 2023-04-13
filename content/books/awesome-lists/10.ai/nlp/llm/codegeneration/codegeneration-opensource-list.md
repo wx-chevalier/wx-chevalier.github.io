@@ -12,4 +12,6 @@ commentable: true
 
 - [2023-Tabby ![code](https://ng-tech.icu/assets/code.svg) ![star](https://img.shields.io/github/stars/TabbyML/tabby)](https://github.com/TabbyML/tabby): Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub Copilot.
 
+- [2023-Turbopilot ![code](https://ng-tech.icu/assets/code.svg) ![star](https://img.shields.io/github/stars/ravenscroftj/turbopilot)](https://github.com/ravenscroftj/turbopilot): Turbopilot is an open source large-language-model based code completion engine that runs locally on CPU
+
     
