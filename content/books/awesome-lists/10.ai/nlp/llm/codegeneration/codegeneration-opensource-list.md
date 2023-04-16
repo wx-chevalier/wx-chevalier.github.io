@@ -14,4 +14,6 @@ commentable: true
 
 - [2023-Turbopilot ![code](https://ng-tech.icu/assets/code.svg) ![star](https://img.shields.io/github/stars/ravenscroftj/turbopilot)](https://github.com/ravenscroftj/turbopilot): Turbopilot is an open source large-language-model based code completion engine that runs locally on CPU
 
+- [2023-GPT-Code-Clippy ![code](https://ng-tech.icu/assets/code.svg) ![star](https://img.shields.io/github/stars/CodedotAl/gpt-code-clippy)](https://github.com/CodedotAl/gpt-code-clippy): GPT-Code-Clippy (GPT-CC) is an open source version of GitHub Copilot, a language model -- based on GPT-3, called GPT-Codex -- that is fine-tuned on publicly available code from GitHub.
+
     
