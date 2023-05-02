@@ -13,7 +13,7 @@
   - [x] 将所有的 1 统一变为 01
 - [ ] 允许尾部添加自定义的 meta 描述块，以支持 permalink 等
 - [x] 添加 clustrmaps
-- [ ] 将全部的 -Series 切换为 -Notes
+- [x] 将全部的 -Series 切换为 -Notes
   - [ ] 移除全部的 postimg.cc
 - [ ] 从 Algolia Search 迁移到 MeiliSearch
 - [ ] 迁移文章全部的图片到自己的 AliOss
