@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>6.开放接口 | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/1.kubernetes-%E6%9E%B6%E6%9E%84/6.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/</link><atom:link href="https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/1.kubernetes-%E6%9E%B6%E6%9E%84/6.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/index.xml" rel="self" type="application/rss+xml"/><description>6.开放接口</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>6.开放接口</title><link>https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/1.kubernetes-%E6%9E%B6%E6%9E%84/6.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/</link></image><item><title>7.容器运行时接口（CRI）</title><link>https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/1.kubernetes-%E6%9E%B6%E6%9E%84/6.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/7.%E5%AE%B9%E5%99%A8%E8%BF%90%E8%A1%8C%E6%97%B6%E6%8E%A5%E5%8F%A3cri/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/1.kubernetes-%E6%9E%B6%E6%9E%84/6.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/7.%E5%AE%B9%E5%99%A8%E8%BF%90%E8%A1%8C%E6%97%B6%E6%8E%A5%E5%8F%A3cri/</guid><description>&lt;h1 id="容器运行时接口cri">容器运行时接口（CRI）&lt;/h1>
+&lt;p>容器运行时接口（Container Runtime Interface），简称 CRI。CRI 中定义了 &lt;strong>容器&lt;/strong> 和 &lt;strong>镜像&lt;/strong> 的服务的接口，因为容器运行时与镜像的生命周期是彼此隔离的，因此需要定义两个服务。该接口使用 &lt;a href="https://developers.google.com/protocol-buffers/" target="_blank" rel="noopener">Protocol Buffer&lt;/a>，基于 &lt;a href="https://grpc.io/" target="_blank" rel="noopener">gRPC&lt;/a>，在 Kubernetes v1.10 + 版本中是在 &lt;code>pkg/kubelet/apis/cri/runtime/v1alpha2&lt;/code> 的 &lt;code>api.proto&lt;/code> 中定义的。&lt;/p>
+&lt;h2 id="cri-架构">CRI 架构&lt;/h2>
+&lt;p>Container Runtime 实现了 CRI gRPC Server，包括 &lt;code>RuntimeService&lt;/code> 和 &lt;code>ImageService&lt;/code>。该 gRPC Server 需要监听本地的 Unix socket，而 kubelet 则作为 gRPC Client 运行。&lt;/p>
+&lt;p>
+&lt;figure id="figure-cri-架构---图片来自-kubernetes-blog">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="../https://assets.ng-tech.icu/book/kubernetes-handbook/cri-architecture.png" alt="CRI 架构 - 图片来自 kubernetes blog" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+CRI 架构 - 图片来自 kubernetes blog
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;h2 id="启用-cri">启用 CRI&lt;/h2>
+&lt;p>除非集成了 rktnetes，否则 CRI 都是被默认启用了，从 Kubernetes 1.7 版本开始，旧的预集成的 docker CRI 已经被移除。&lt;/p>
+&lt;p>要想启用 CRI 只需要在 kubelet 的启动参数重传入此参数：&lt;code>--container-runtime-endpoint&lt;/code> 远程运行时服务的端点。当前 Linux 上支持 unix socket，windows 上支持 tcp。例如：&lt;code>unix:///var/run/dockershim.sock&lt;/code>、 &lt;code>tcp://localhost:373&lt;/code>，默认是 &lt;code>unix:///var/run/dockershim.sock&lt;/code>，即默认使用本地的 docker 作为容器运行时。&lt;/p>
+&lt;h2 id="cri-接口">CRI 接口&lt;/h2>
+&lt;p>Kubernetes 1.9 中的 CRI 接口在 &lt;code>api.proto&lt;/code> 中的定义如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-protobuf" data-lang="protobuf">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// Runtime service defines the public APIs for remote container runtimes
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="kd">service&lt;/span> &lt;span class="n">RuntimeService&lt;/span> &lt;span class="p">{&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// Version returns the runtime name, runtime version, and runtime API version.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">Version&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">VersionRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">VersionResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// RunPodSandbox creates and starts a pod-level sandbox. Runtimes must ensure
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">//the sandbox is in the ready state on success.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">RunPodSandbox&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">RunPodSandboxRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">RunPodSandboxResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// StopPodSandbox stops any running process that is part of the sandbox and
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">//reclaims network resources (e.g., IP addresses) allocated to the sandbox.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// If there are any running containers in the sandbox, they must be forcibly
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">//terminated.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// This call is idempotent, and must not return an error if all relevant
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">//resources have already been reclaimed. kubelet will call StopPodSandbox
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">//at least once before calling RemovePodSandbox. It will also attempt to
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">//reclaim resources eagerly, as soon as a sandbox is not needed. Hence,
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">//multiple StopPodSandbox calls are expected.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">StopPodSandbox&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">StopPodSandboxRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">StopPodSandboxResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// RemovePodSandbox removes the sandbox. If there are any running containers
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">//in the sandbox, they must be forcibly terminated and removed.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// This call is idempotent, and must not return an error if the sandbox has
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">//already been removed.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">RemovePodSandbox&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">RemovePodSandboxRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">RemovePodSandboxResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// PodSandboxStatus returns the status of the PodSandbox. If the PodSandbox is not
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">//present, returns an error.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">PodSandboxStatus&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">PodSandboxStatusRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">PodSandboxStatusResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// ListPodSandbox returns a list of PodSandboxes.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">ListPodSandbox&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ListPodSandboxRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ListPodSandboxResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// CreateContainer creates a new container in specified PodSandbox
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">CreateContainer&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">CreateContainerRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">CreateContainerResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// StartContainer starts the container.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">StartContainer&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">StartContainerRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">StartContainerResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// StopContainer stops a running container with a grace period (i.e., timeout).
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// This call is idempotent, and must not return an error if the container has
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">//already been stopped.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// TODO: what must the runtime do after the grace period is reached?
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">StopContainer&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">StopContainerRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">StopContainerResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// RemoveContainer removes the container. If the container is running, the
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">//container must be forcibly removed.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// This call is idempotent, and must not return an error if the container has
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">//already been removed.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">RemoveContainer&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">RemoveContainerRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">RemoveContainerResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// ListContainers lists all containers by filters.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">ListContainers&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ListContainersRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ListContainersResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// ContainerStatus returns status of the container. If the container is not
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">//present, returns an error.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">ContainerStatus&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ContainerStatusRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ContainerStatusResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// UpdateContainerResources updates ContainerConfig of the container.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">UpdateContainerResources&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">UpdateContainerResourcesRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">UpdateContainerResourcesResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// ExecSync runs a command in a container synchronously.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">ExecSync&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ExecSyncRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ExecSyncResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// Exec prepares a streaming endpoint to execute a command in the container.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">Exec&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ExecRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ExecResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// Attach prepares a streaming endpoint to attach to a running container.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">Attach&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">AttachRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">AttachResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// PortForward prepares a streaming endpoint to forward ports from a PodSandbox.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">PortForward&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">PortForwardRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">PortForwardResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// ContainerStats returns stats of the container. If the container does not
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">//exist, the call returns an error.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">ContainerStats&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ContainerStatsRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ContainerStatsResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// ListContainerStats returns stats of all running containers.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">ListContainerStats&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ListContainerStatsRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ListContainerStatsResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// UpdateRuntimeConfig updates the runtime configuration based on the given request.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">UpdateRuntimeConfig&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">UpdateRuntimeConfigRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">UpdateRuntimeConfigResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// Status returns the status of the runtime.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">Status&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">StatusRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">StatusResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c1">// ImageService defines the public APIs for managing images.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="kd">service&lt;/span> &lt;span class="n">ImageService&lt;/span> &lt;span class="p">{&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// ListImages lists existing images.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">ListImages&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ListImagesRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ListImagesResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// ImageStatus returns the status of the image. If the image is not
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">//present, returns a response with ImageStatusResponse.Image set to
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">//nil.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">ImageStatus&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ImageStatusRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ImageStatusResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// PullImage pulls an image with authentication config.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">PullImage&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">PullImageRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">PullImageResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// RemoveImage removes the image.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// This call is idempotent, and must not return an error if the image has
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">//already been removed.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">RemoveImage&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">RemoveImageRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">RemoveImageResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span> &lt;span class="c1">// ImageFSInfo returns information of the filesystem that is used to store images.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">rpc&lt;/span> &lt;span class="n">ImageFsInfo&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ImageFsInfoRequest&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">returns&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">ImageFsInfoResponse&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{}}&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这其中包含了两个 gRPC 服务：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>RuntimeService&lt;/strong>：容器和 Sandbox 运行时管理。&lt;/li>
+&lt;li>&lt;strong>ImageService&lt;/strong>：提供了从镜像仓库拉取、查看、和移除镜像的 RPC。&lt;/li>
+&lt;/ul>
+&lt;h2 id="当前支持的-cri-后端">当前支持的 CRI 后端&lt;/h2>
+&lt;p>我们最初在使用 Kubernetes 时通常会默认使用 Docker 作为容器运行时，其实从 Kubernetes 1.5 开始已经支持 CRI，通过 CRI 接口可以指定使用其它容器运行时作为 Pod 的后端，目前支持 CRI 的后端有：&lt;/p>
+&lt;ul>
+&lt;li>&lt;a href="https://github.com/kubernetes-incubator/cri-o" target="_blank" rel="noopener">cri-o&lt;/a>：cri-o 是 Kubernetes 的 CRI 标准的实现，并且允许 Kubernetes 间接使用 OCI 兼容的容器运行时，可以把 cri-o 看成 Kubernetes 使用 OCI 兼容的容器运行时的中间层。&lt;/li>
+&lt;li>&lt;a href="https://github.com/containerd/cri-containerd" target="_blank" rel="noopener">cri-containerd&lt;/a>：基于 &lt;a href="https://github.com/containerd/containerd" target="_blank" rel="noopener">Containerd&lt;/a> 的 Kubernetes CRI 实现&lt;/li>
+&lt;li>&lt;a href="https://coreos.com/rkt/" target="_blank" rel="noopener">rkt&lt;/a>：由 CoreOS 主推的用来跟 docker 抗衡的容器运行时&lt;/li>
+&lt;li>&lt;a href="https://github.com/kubernetes/frakti" target="_blank" rel="noopener">frakti&lt;/a>：基于 hypervisor 的 CRI&lt;/li>
+&lt;li>&lt;a href="https://www.docker.com" target="_blank" rel="noopener">docker&lt;/a>：Kuberentes 最初就开始支持的容器运行时，目前还没完全从 kubelet 中解耦，Docker 公司同时推广了 &lt;a href="https://www.opencontainers.org/" target="_blank" rel="noopener">OCI&lt;/a> 标准&lt;/li>
+&lt;/ul>
+&lt;p>CRI 是由 &lt;a href="https://kubernetes.slack.com/archives/sig-node" target="_blank" rel="noopener">SIG-Node&lt;/a> 来维护的。&lt;/p>
+&lt;h2 id="当前通过-cri-o-间接支持-cri-的后端">当前通过 CRI-O 间接支持 CRI 的后端&lt;/h2>
+&lt;p>当前同样存在一些只实现了 &lt;a href="https://www.opencontainers.org/" target="_blank" rel="noopener">OCI&lt;/a> 标准的容器，但是它们可以通过 CRI-O 来作为 Kubernetes 的容器运行时。CRI-O 是 Kubernetes 的 CRI 标准的实现，并且允许 Kubernetes 间接使用 OCI 兼容的容器运行时。&lt;/p>
+&lt;ul>
+&lt;li>&lt;a href="https://github.com/clearcontainers" target="_blank" rel="noopener">Clear Containers&lt;/a>：由 Intel 推出的兼容 OCI 容器运行时，可以通过 CRI-O 来兼容 CRI。&lt;/li>
+&lt;li>&lt;a href="https://katacontainers.io/" target="_blank" rel="noopener">Kata Containers&lt;/a>：符合 OCI 规范，可以通过 CRI-O 或 &lt;a href="https://github.com/containerd/cri" target="_blank" rel="noopener">Containerd CRI Plugin&lt;/a> 来兼容 CRI。&lt;/li>
+&lt;li>&lt;a href="https://github.com/google/gvisor" target="_blank" rel="noopener">gVisor&lt;/a>：由谷歌推出的容器运行时沙箱 (Experimental)，可以通过 CRI-O 来兼容 CRI。&lt;/li>
+&lt;/ul>
+&lt;h2 id="参考">参考&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://sreeninet.wordpress.com/2017/02/11/kubernetes-cri-and-minikube/" target="_blank" rel="noopener">Kubernetes CRI and Minikube - sreeninet.wordpress.com&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://projectatomic.io/blog/2017/02/crio-runtimes/" target="_blank" rel="noopener">CRI-O and Alternative Runtimes in Kubernetes - projectatomic.io&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.infoq.cn/article/2017/02/Docker-Containerd-RunC/" target="_blank" rel="noopener">Docker、Containerd、RunC&amp;hellip;：你应该知道的所有&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://kubernetes.io/blog/2016/12/container-runtime-interface-cri-in-kubernetes/" target="_blank" rel="noopener">Introducing Container Runtime Interface (CRI) in Kubernetes - blog.kubernetes.io&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://cri-o.io/" target="_blank" rel="noopener">cri-o 官网 - cri-o.io&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://github.com/kata-containers/documentation/blob/master/design/architecture.md#kubernetes-support" target="_blank" rel="noopener">Kata Containers Architecture - github.com&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>8.容器网络接口（CNI）</title><link>https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/1.kubernetes-%E6%9E%B6%E6%9E%84/6.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/8.%E5%AE%B9%E5%99%A8%E7%BD%91%E7%BB%9C%E6%8E%A5%E5%8F%A3cni/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/1.kubernetes-%E6%9E%B6%E6%9E%84/6.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/8.%E5%AE%B9%E5%99%A8%E7%BD%91%E7%BB%9C%E6%8E%A5%E5%8F%A3cni/</guid><description>&lt;h1 id="容器网络接口cni">容器网络接口（CNI）&lt;/h1>
+&lt;p>容器网络接口（Container Network Interface），简称 CNI，是 CNCF 旗下的一个项目，由一组用于配置 Linux 容器的网络接口的规范和库组成，同时还包含了一些插件。CNI 仅关心容器创建时的网络分配，和当容器被删除时释放网络资源。有关详情请查看 &lt;a href="https://github.com/containernetworking/cni" target="_blank" rel="noopener">GitHub&lt;/a>。&lt;/p>
+&lt;p>Kubernetes 源码的 &lt;code>vendor/github.com/containernetworking/cni/libcni&lt;/code> 目录中已经包含了 CNI 的代码，也就是说 Kubernetes 中已经内置了 CNI。&lt;/p>
+&lt;h2 id="接口定义">接口定义&lt;/h2>
+&lt;p>CNI 的接口中包括以下几个方法：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">type&lt;/span> &lt;span class="nx">CNI&lt;/span> &lt;span class="kd">interface&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">AddNetworkList&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">net&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">NetworkConfigList&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">rt&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">RuntimeConf&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">types&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Result&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">error&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">DelNetworkList&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">net&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">NetworkConfigList&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">rt&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">RuntimeConf&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="kt">error&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">AddNetwork&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">net&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">NetworkConfig&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">rt&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">RuntimeConf&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">types&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Result&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">error&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">DelNetwork&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">net&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">NetworkConfig&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">rt&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">RuntimeConf&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="kt">error&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>该接口只有四个方法，添加网络、删除网络、添加网络列表、删除网络列表。&lt;/p>
+&lt;h2 id="设计考量">设计考量&lt;/h2>
+&lt;p>CNI 设计的时候考虑了以下问题：&lt;/p>
+&lt;ul>
+&lt;li>容器运行时必须在调用任何插件之前为容器创建一个新的网络命名空间。&lt;/li>
+&lt;li>然后，运行时必须确定这个容器应属于哪个网络，并为每个网络确定哪些插件必须被执行。&lt;/li>
+&lt;li>网络配置采用 JSON 格式，可以很容易地存储在文件中。网络配置包括必填字段，如 &lt;code>name&lt;/code> 和 &lt;code>type&lt;/code> 以及插件（类型）。网络配置允许字段在调用之间改变值。为此，有一个可选的字段 &lt;code>args&lt;/code>，必须包含不同的信息。&lt;/li>
+&lt;li>容器运行时必须按顺序为每个网络执行相应的插件，将容器添加到每个网络中。&lt;/li>
+&lt;li>在完成容器生命周期后，运行时必须以相反的顺序执行插件（相对于执行添加容器的顺序）以将容器与网络断开连接。&lt;/li>
+&lt;li>容器运行时不能为同一容器调用并行操作，但可以为不同的容器调用并行操作。&lt;/li>
+&lt;li>容器运行时必须为容器订阅 ADD 和 DEL 操作，这样 ADD 后面总是跟着相应的 DEL。DEL 可能跟着额外的 DEL，但是，插件应该允许处理多个 DEL（即插件 DEL 应该是幂等的）。&lt;/li>
+&lt;li>容器必须由 ContainerID 唯一标识。存储状态的插件应该使用（网络名称，容器 ID）的主键来完成。&lt;/li>
+&lt;li>运行时不能调用同一个网络名称或容器 ID 执行两次 ADD（没有相应的 DEL）。换句话说，给定的容器 ID 必须只能添加到特定的网络一次。&lt;/li>
+&lt;/ul>
+&lt;h2 id="cni-插件">CNI 插件&lt;/h2>
+&lt;p>CNI 插件必须实现一个可执行文件，这个文件可以被容器管理系统（例如 rkt 或 Kubernetes）调用。&lt;/p>
+&lt;p>CNI 插件负责将网络接口插入容器网络命名空间（例如，veth 对的一端），并在主机上进行任何必要的改变（例如将 veth 的另一端连接到网桥）。然后将 IP 分配给接口，并通过调用适当的 IPAM 插件来设置与 “IP 地址管理” 部分一致的路由。&lt;/p>
+&lt;h3 id="参数">参数&lt;/h3>
+&lt;p>CNI 插件必须支持以下操作：&lt;/p>
+&lt;h4 id="将容器添加到网络">将容器添加到网络&lt;/h4>
+&lt;p>参数：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>版本&lt;/strong>调用者正在使用的 CNI 规范（容器管理系统或调用插件）的版本。&lt;/li>
+&lt;li>&lt;strong>容器 ID&lt;/strong>由运行时分配的容器的唯一明文标识符。一定不能是空的。&lt;/li>
+&lt;li>&lt;strong>网络命名空间路径&lt;/strong>要添加的网络名称空间的路径，即 &lt;code>/proc/[pid]/ns/net&lt;/code> 或绑定挂载 / 链接。&lt;/li>
+&lt;li>&lt;strong>网络配置&lt;/strong>描述容器可以加入的网络的 JSON 文档。架构如下所述。&lt;/li>
+&lt;li>&lt;strong>额外的参数&lt;/strong>这提供了一个替代机制，允许在每个容器上简单配置 CNI 插件。&lt;/li>
+&lt;li>&lt;strong>容器内接口的名称&lt;/strong>这是应该分配给容器（网络命名空间）内创建的接口的名称；因此它必须符合 Linux 接口名称上的标准限制。&lt;/li>
+&lt;/ul>
+&lt;p>结果：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>接口列表&lt;/strong>根据插件的不同，这可以包括沙箱（例如容器或管理程序）接口名称和 / 或主机接口名称，每个接口的硬件地址以及接口所在的沙箱（如果有的话）的详细信息。&lt;/li>
+&lt;li>&lt;strong>分配给每个接口的 IP 配置&lt;/strong>分配给沙箱和 / 或主机接口的 IPv4 和 / 或 IPv6 地址，网关和路由。&lt;/li>
+&lt;li>&lt;strong>DNS 信息&lt;/strong>包含 nameserver、domain、search domain 和 option 的 DNS 信息的字典。&lt;/li>
+&lt;/ul>
+&lt;h4 id="从网络中删除容器">从网络中删除容器&lt;/h4>
+&lt;p>参数：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>&lt;strong>版本&lt;/strong>调用者正在使用的 CNI 规范（容器管理系统或调用插件）的版本。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;strong>容器 ID&lt;/strong>，如上所述。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;strong>网络命名空间路径&lt;/strong>，如上定义。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;strong>网络配置&lt;/strong>，如上所述。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;strong>额外的参数&lt;/strong>，如上所述。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;strong>上面定义的容器&lt;/strong>内的接口的名称。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>所有参数应与传递给相应的添加操作的参数相同。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>删除操作应释放配置的网络中提供的 containerid 拥有的所有资源。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;p>报告版本：&lt;/p>
+&lt;ul>
+&lt;li>参数：无。&lt;/li>
+&lt;li>结果：插件支持的 CNI 规范版本信息。&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-json" data-lang="json">&lt;span class="line">&lt;span class="cl">&lt;span class="p">{&lt;/span>&lt;span class="err">“cniVersion”：“0.3.1”，&lt;/span>&lt;span class="c1">// 此输出使用的 CNI 规范的版本
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="err">“supportedVersions”：[“0.1.0”，“0.2.0”，“0.3.0”，“0.3.1”]&lt;/span> &lt;span class="c1">// 此插件支持的 CNI 规范版本列表
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>CNI 插件的详细说明请参考：&lt;a href="https://github.com/containernetworking/cni/blob/master/SPEC.md" target="_blank" rel="noopener">CNI SPEC&lt;/a>。&lt;/p>
+&lt;h3 id="ip-分配">IP 分配&lt;/h3>
+&lt;p>作为容器网络管理的一部分，CNI 插件需要为接口分配（并维护）IP 地址，并安装与该接口相关的所有必要路由。这给了 CNI 插件很大的灵活性，但也给它带来了很大的负担。众多的 CNI 插件需要编写相同的代码来支持用户需要的多种 IP 管理方案（例如 dhcp、host-local）。&lt;/p>
+&lt;p>为了减轻负担，使 IP 管理策略与 CNI 插件类型解耦，我们定义了 IP 地址管理插件（IPAM 插件）。CNI 插件的职责是在执行时恰当地调用 IPAM 插件。IPAM 插件必须确定接口 IP/subnet，网关和路由，并将此信息返回到 “主” 插件来应用配置。IPAM 插件可以通过协议（例如 dhcp）、存储在本地文件系统上的数据、网络配置文件的 “ipam” 部分或上述的组合来获得信息。&lt;/p>
+&lt;h4 id="ipam-插件">IPAM 插件&lt;/h4>
+&lt;p>像 CNI 插件一样，调用 IPAM 插件的可执行文件。可执行文件位于预定义的路径列表中，通过 &lt;code>CNI_PATH&lt;/code> 指示给 CNI 插件。IPAM 插件必须接收所有传入 CNI 插件的相同环境变量。就像 CNI 插件一样，IPAM 插件通过 stdin 接收网络配置。&lt;/p>
+&lt;h2 id="可用插件">可用插件&lt;/h2>
+&lt;h3 id="main接口创建">Main：接口创建&lt;/h3>
+&lt;ul>
+&lt;li>&lt;strong>bridge&lt;/strong>：创建网桥，并添加主机和容器到该网桥&lt;/li>
+&lt;li>&lt;strong>ipvlan&lt;/strong>：在容器中添加一个 &lt;a href="https://www.kernel.org/doc/Documentation/networking/ipvlan.txt" target="_blank" rel="noopener">ipvlan&lt;/a> 接口&lt;/li>
+&lt;li>&lt;strong>loopback&lt;/strong>：创建一个回环接口&lt;/li>
+&lt;li>&lt;strong>macvlan&lt;/strong>：创建一个新的 MAC 地址，将所有的流量转发到容器&lt;/li>
+&lt;li>&lt;strong>ptp&lt;/strong>：创建 veth 对&lt;/li>
+&lt;li>&lt;strong>vlan&lt;/strong>：分配一个 vlan 设备&lt;/li>
+&lt;/ul>
+&lt;h3 id="ipamip-地址分配">IPAM：IP 地址分配&lt;/h3>
+&lt;ul>
+&lt;li>&lt;strong>dhcp&lt;/strong>：在主机上运行守护程序，代表容器发出 DHCP 请求&lt;/li>
+&lt;li>&lt;strong>host-local&lt;/strong>：维护分配 IP 的本地数据库&lt;/li>
+&lt;/ul>
+&lt;h3 id="meta其它插件">Meta：其它插件&lt;/h3>
+&lt;ul>
+&lt;li>&lt;strong>flannel&lt;/strong>：根据 flannel 的配置文件创建接口&lt;/li>
+&lt;li>&lt;strong>tuning&lt;/strong>：调整现有接口的 sysctl 参数&lt;/li>
+&lt;li>&lt;strong>portmap&lt;/strong>：一个基于 iptables 的 portmapping 插件。将端口从主机的地址空间映射到容器。&lt;/li>
+&lt;/ul>
+&lt;h2 id="参考">参考&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://github.com/containernetworking/cni" target="_blank" rel="noopener">containernetworking/cni - github.com&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://github.com/containernetworking/plugins" target="_blank" rel="noopener">containernetworking/plugins - github.com&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://github.com/containernetworking/cni/blob/master/SPEC.md#container-networking-interface-specification" target="_blank" rel="noopener">Container Networking Interface Specification - github.com&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://github.com/containernetworking/cni/blob/master/CONVENTIONS.md" target="_blank" rel="noopener">CNI Extension conventions - github.com&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>9.容器存储接口（CSI）</title><link>https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/1.kubernetes-%E6%9E%B6%E6%9E%84/6.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/9.%E5%AE%B9%E5%99%A8%E5%AD%98%E5%82%A8%E6%8E%A5%E5%8F%A3csi/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/1.kubernetes-%E6%9E%B6%E6%9E%84/6.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/9.%E5%AE%B9%E5%99%A8%E5%AD%98%E5%82%A8%E6%8E%A5%E5%8F%A3csi/</guid><description>&lt;h1 id="容器存储接口csi">容器存储接口（CSI）&lt;/h1>
+&lt;p>容器存储接口（Container Storage Interface），简称 CSI，CSI 试图建立一个行业标准接口的规范，借助 CSI 容器编排系统（CO）可以将任意存储系统暴露给自己的容器工作负载。有关详细信息，请查看&lt;a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/storage/container-storage-interface.md" target="_blank" rel="noopener">设计方案&lt;/a>。&lt;/p>
+&lt;p>&lt;code>csi&lt;/code> 卷类型是一种 out-tree（即跟其它存储插件在同一个代码路径下，随 Kubernetes 的代码同时编译的） 的 CSI 卷插件，用于 Pod 与在同一节点上运行的外部 CSI 卷驱动程序交互。部署 CSI 兼容卷驱动后，用户可以使用 &lt;code>csi&lt;/code> 作为卷类型来挂载驱动提供的存储。&lt;/p>
+&lt;p>CSI 持久化卷支持是在 Kubernetes v1.9 中引入的，作为一个 alpha 特性，必须由集群管理员明确启用。换句话说，集群管理员需要在 apiserver、controller-manager 和 kubelet 组件的 “&lt;code>--feature-gates =&lt;/code>” 标志中加上 “&lt;code>CSIPersistentVolume = true&lt;/code>”。&lt;/p>
+&lt;p>CSI 持久化卷具有以下字段可供用户指定：&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>driver&lt;/code>：一个字符串值，指定要使用的卷驱动程序的名称。必须少于 63 个字符，并以一个字符开头。驱动程序名称可以包含 “。”、“ - ”、“_” 或数字。&lt;/li>
+&lt;li>&lt;code>volumeHandle&lt;/code>：一个字符串值，唯一标识从 CSI 卷插件的 &lt;code>CreateVolume&lt;/code> 调用返回的卷名。随后在卷驱动程序的所有后续调用中使用卷句柄来引用该卷。&lt;/li>
+&lt;li>&lt;code>readOnly&lt;/code>：一个可选的布尔值，指示卷是否被发布为只读。默认是 false。&lt;/li>
+&lt;/ul>
+&lt;h2 id="使用说明">使用说明&lt;/h2>
+&lt;p>下面将介绍如何使用 CSI。&lt;/p>
+&lt;h3 id="动态配置">动态配置&lt;/h3>
+&lt;p>可以通过为 CSI 创建插件 &lt;code>StorageClass&lt;/code> 来支持动态配置的 CSI Storage 插件启用自动创建/删除 。&lt;/p>
+&lt;p>例如，以下 &lt;code>StorageClass&lt;/code> 允许通过名为 &lt;code>com.example.team/csi-driver&lt;/code> 的 CSI Volume Plugin 动态创建 “fast-storage” Volume。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">StorageClass&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">storage.k8s.io/v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">fast-storage&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">provisioner&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">com.example.team/csi-driver&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">parameters&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">pd-ssd&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>要触发动态配置，请创建一个 &lt;code>PersistentVolumeClaim&lt;/code> 对象。例如，下面的 PersistentVolumeClaim 可以使用上面的 StorageClass 触发动态配置。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">PersistentVolumeClaim&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-request-for-storage&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">accessModes&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="l">ReadWriteOnce&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">resources&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">requests&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">storage&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">5Gi&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">storageClassName&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">fast-storage&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>当动态创建 Volume 时，通过 CreateVolume 调用，将参数 &lt;code>type：pd-ssd&lt;/code> 传递给 CSI 插件 &lt;code>com.example.team/csi-driver&lt;/code> 。作为响应，外部 Volume 插件会创建一个新 Volume，然后自动创建一个 &lt;code>PersistentVolume&lt;/code> 对象来对应前面的 PVC 。然后，Kubernetes 会将新的 &lt;code>PersistentVolume&lt;/code> 对象绑定到 &lt;code>PersistentVolumeClaim&lt;/code>，使其可以使用。&lt;/p>
+&lt;p>如果 &lt;code>fast-storage&lt;/code> StorageClass 被标记为默认值，则不需要在 &lt;code>PersistentVolumeClaim&lt;/code> 中包含 StorageClassName，它将被默认使用。&lt;/p>
+&lt;h3 id="预配置-volume">预配置 Volume&lt;/h3>
+&lt;p>您可以通过手动创建一个 &lt;code>PersistentVolume&lt;/code> 对象来展示现有 Volumes，从而在 Kubernetes 中暴露预先存在的 Volume。例如，暴露属于 &lt;code>com.example.team/csi-driver&lt;/code> 这个 CSI 插件的 &lt;code>existingVolumeName Volume&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">PersistentVolume&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-manually-created-pv&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">capacity&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">storage&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">5Gi&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">accessModes&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="l">ReadWriteOnce&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">persistentVolumeReclaimPolicy&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Retain&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">csi&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">driver&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">com.example.team/csi-driver&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">volumeHandle&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">existingVolumeName&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">readOnly&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">false&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="附着和挂载">附着和挂载&lt;/h3>
+&lt;p>您可以在任何的 pod 或者 pod 的 template 中引用绑定到 CSI volume 上的 &lt;code>PersistentVolumeClaim&lt;/code>。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Pod&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-pod&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">containers&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-frontend&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">dockerfile/nginx&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">volumeMounts&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">mountPath&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;/var/www/html&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-csi-volume&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">volumes&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-csi-volume&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">persistentVolumeClaim&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">claimName&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-request-for-storage&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>当一个引用了 CSI Volume 的 pod 被调度时， Kubernetes 将针对外部 CSI 插件进行相应的操作，以确保特定的 Volume 被 attached、mounted， 并且能被 pod 中的容器使用。&lt;/p>
+&lt;p>关于 CSI 实现的详细信息请参考&lt;a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/storage/container-storage-interface.md" target="_blank" rel="noopener">设计文档&lt;/a>。&lt;/p>
+&lt;h2 id="创建-csi-驱动">创建 CSI 驱动&lt;/h2>
+&lt;p>Kubernetes 尽可能少地指定 CSI Volume 驱动程序的打包和部署规范。&lt;a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/storage/container-storage-interface.md#third-party-csi-volume-drivers" target="_blank" rel="noopener">这里&lt;/a>记录了在 Kubernetes 上部署 CSI Volume 驱动程序的最低要求。&lt;/p>
+&lt;p>最低要求文件还包含&lt;a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/storage/container-storage-interface.md#recommended-mechanism-for-deploying-csi-drivers-on-kubernetes" target="_blank" rel="noopener">概述部分&lt;/a>，提供了在 Kubernetes 上部署任意容器化 CSI 驱动程序的建议机制。存储提供商可以运用这个机制来简化 Kubernetes 上容器式 CSI 兼容 Volume 驱动程序的部署。&lt;/p>
+&lt;p>作为推荐部署的一部分，Kubernetes 团队提供以下 sidecar（辅助）容器：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>&lt;a href="https://github.com/kubernetes-csi/external-attacher" target="_blank" rel="noopener">External-attacher&lt;/a>&lt;/p>
+&lt;p>可监听 Kubernetes VolumeAttachment 对象并触发 ControllerPublish 和 ControllerUnPublish 操作的 sidecar 容器，通过 CSI endpoint 触发 ；&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;a href="https://github.com/kubernetes-csi/external-provisioner" target="_blank" rel="noopener">External-provisioner&lt;/a>&lt;/p>
+&lt;p>监听 Kubernetes PersistentVolumeClaim 对象的 sidecar 容器，并触发对 CSI 端点的 CreateVolume 和 DeleteVolume 操作；&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;a href="https://github.com/kubernetes-csi/driver-registrar" target="_blank" rel="noopener">Driver-registrar&lt;/a>(DEPRECATED)&lt;/p>
+&lt;p>使用 Kubelet（将来）注册 CSI 驱动程序的 sidecar 容器，并将 &lt;code>NodeId&lt;/code> （通过 &lt;code>GetNodeID&lt;/code> 调用检索到 CSI endpoint）添加到 Kubernetes Node API 对象的 annotation 里面。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;a href="https://github.com/kubernetes-csi/cluster-driver-registrar" target="_blank" rel="noopener">Cluster Driver Registrar&lt;/a>&lt;/p>
+&lt;p>创建 CSIDriver 这个集群范围的 CRD 对象。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;a href="https://github.com/kubernetes-csi/node-driver-registrar" target="_blank" rel="noopener">Node Driver Registrar&lt;/a>&lt;/p>
+&lt;p>替代 Driver-registrar。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;p>存储供应商完全可以使用这些组件来为其插件构建 Kubernetes Deployment，同时让它们的 CSI 驱动程序完全意识不到 Kubernetes 的存在。&lt;/p>
+&lt;p>另外 CSI 驱动完全是由第三方存储供应商自己维护的，在 kubernetes 1.9 版本中 CSI 还处于 alpha 版本。&lt;/p>
+&lt;h2 id="参考">参考&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://github.com/container-storage-interface/spec/blob/master/spec.md" target="_blank" rel="noopener">Container Storage Interface (CSI) - github.com&lt;/a>&lt;/li>
+&lt;/ul></description></item></channel></rss>

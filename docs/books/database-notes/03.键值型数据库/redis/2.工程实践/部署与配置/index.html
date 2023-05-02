@@ -1,0 +1,1026 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="部署与配置 Redis 的安装还是比较简单的，直接从官网下载好安装包进行编译即可： tar zxvf redis-2.8.9.tar.gz cd redis-2.8.9 #直接make 编译 make #可使用root用户执行`make install`，将可执行文件拷贝到/usr/local/bin目"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/2.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.63df6ae9fc2b4cc71b83f1774d780209.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/2.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/2.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/"><meta property="og:title" content="部署与配置 | Next-gen Tech Edu"><meta property="og:description" content="部署与配置 Redis 的安装还是比较简单的，直接从官网下载好安装包进行编译即可： tar zxvf redis-2.8.9.tar.gz cd redis-2.8.9 #直接make 编译 make #可使用root用户执行`make install`，将可执行文件拷贝到/usr/local/bin目"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>部署与配置 | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=c094acce086584e4e6218fadba68a59c><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
+<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
+<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
+<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
+<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
+<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">2.工程实践</span>
+<span><i class="fas fa-chevron-down"></i></span></div></button>
+<button class="form-control sidebar-search js-search d-none d-md-flex">
+<i class="fas fa-search pr-2"></i>
+<span class=sidebar-search-text>搜索...</span>
+<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
+Back</a>
+<span>|</span>
+<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
+Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id2690b8b8f463773b4e666f15a56809bd")' href=#id2690b8b8f463773b4e666f15a56809bd aria-expanded=false aria-controls=id2690b8b8f463773b4e666f15a56809bd aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/>Redis</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id2690b8b8f463773b4e666f15a56809bd aria-expanded=false aria-controls=id2690b8b8f463773b4e666f15a56809bd><i class="fa-solid fa-angle-down" id=caret-id2690b8b8f463773b4e666f15a56809bd></i></a></div><ul class="nav docs-sidenav collapse show" id=id2690b8b8f463773b4e666f15a56809bd><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idd5ff7f631c185dd86a713a3bc9a2f9f4")' href=#idd5ff7f631c185dd86a713a3bc9a2f9f4 aria-expanded=false aria-controls=idd5ff7f631c185dd86a713a3bc9a2f9f4 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/1.%E6%95%B0%E6%8D%AE%E6%93%8D%E4%BD%9C/>1.数据操作</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idd5ff7f631c185dd86a713a3bc9a2f9f4 aria-expanded=false aria-controls=idd5ff7f631c185dd86a713a3bc9a2f9f4><i class="fa-solid fa-angle-right" id=caret-idd5ff7f631c185dd86a713a3bc9a2f9f4></i></a></div><ul class="nav docs-sidenav collapse" id=idd5ff7f631c185dd86a713a3bc9a2f9f4><li class="child level"><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/1.%E6%95%B0%E6%8D%AE%E6%93%8D%E4%BD%9C/%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B/>基础类型</a></li><li class="child level"><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/1.%E6%95%B0%E6%8D%AE%E6%93%8D%E4%BD%9C/%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/>集合类型</a></li><li class="child level"><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/1.%E6%95%B0%E6%8D%AE%E6%93%8D%E4%BD%9C/%E9%94%AE%E5%9F%BA%E7%A1%80/>键基础</a></li><li class="child level"><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/1.%E6%95%B0%E6%8D%AE%E6%93%8D%E4%BD%9C/%E5%85%B6%E4%BB%96%E7%B1%BB%E5%9E%8B/>其他类型</a></li><li class="child level"><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/1.%E6%95%B0%E6%8D%AE%E6%93%8D%E4%BD%9C/%E4%BA%8B%E5%8A%A1%E4%B8%8E%E7%AE%A1%E9%81%93/>事务与管道</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id81a21de5928037d3199720556814daa3")' href=#id81a21de5928037d3199720556814daa3 aria-expanded=false aria-controls=id81a21de5928037d3199720556814daa3 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/2.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/>2.工程实践</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id81a21de5928037d3199720556814daa3 aria-expanded=false aria-controls=id81a21de5928037d3199720556814daa3><i class="fa-solid fa-angle-down" id=caret-id81a21de5928037d3199720556814daa3></i></a></div><ul class="nav docs-sidenav collapse show" id=id81a21de5928037d3199720556814daa3><li class="child level active"><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/2.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/>部署与配置</a></li><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idea7fec6cb18ef525e992d9adf15c14fc")' href=#idea7fec6cb18ef525e992d9adf15c14fc aria-expanded=false aria-controls=idea7fec6cb18ef525e992d9adf15c14fc aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/2.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E6%8C%81%E4%B9%85%E5%8C%96/>持久化</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idea7fec6cb18ef525e992d9adf15c14fc aria-expanded=false aria-controls=idea7fec6cb18ef525e992d9adf15c14fc><i class="fa-solid fa-angle-right" id=caret-idea7fec6cb18ef525e992d9adf15c14fc></i></a></div><ul class="nav docs-sidenav collapse" id=idea7fec6cb18ef525e992d9adf15c14fc><li class="child level"><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/2.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E6%8C%81%E4%B9%85%E5%8C%96/aof-%E6%9C%BA%E5%88%B6/>AOF 机制</a></li><li class="child level"><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/2.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E6%8C%81%E4%B9%85%E5%8C%96/rdb-%E6%9C%BA%E5%88%B6/>RDB 机制</a></li></ul></div><li class="child level"><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/2.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/>性能优化</a></li><li class="child level"><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/2.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E8%87%AA%E5%AE%9A%E4%B9%89%E8%84%9A%E6%9C%AC/>自定义脚本</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id0c152769ba6129e4f752ce1460387a39")' href=#id0c152769ba6129e4f752ce1460387a39 aria-expanded=false aria-controls=id0c152769ba6129e4f752ce1460387a39 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/3.%E9%9B%86%E7%BE%A4/>3.集群</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id0c152769ba6129e4f752ce1460387a39 aria-expanded=false aria-controls=id0c152769ba6129e4f752ce1460387a39><i class="fa-solid fa-angle-right" id=caret-id0c152769ba6129e4f752ce1460387a39></i></a></div><ul class="nav docs-sidenav collapse" id=id0c152769ba6129e4f752ce1460387a39><li class="child level"><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/3.%E9%9B%86%E7%BE%A4/redis-%E5%88%86%E7%89%87/>Redis 分片</a></li><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id6466a0228748f388ffce4d02bde93267")' href=#id6466a0228748f388ffce4d02bde93267 aria-expanded=false aria-controls=id6466a0228748f388ffce4d02bde93267 aria-hidden=false data-toggle=collapse></div></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idbee05250754e6db2af70351df8aee3f3")' href=#idbee05250754e6db2af70351df8aee3f3 aria-expanded=false aria-controls=idbee05250754e6db2af70351df8aee3f3 aria-hidden=false data-toggle=collapse></div></div></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idc210df43f55769665b9448952adaec68")' href=#idc210df43f55769665b9448952adaec68 aria-expanded=false aria-controls=idc210df43f55769665b9448952adaec68 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/>4.架构机制</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idc210df43f55769665b9448952adaec68 aria-expanded=false aria-controls=idc210df43f55769665b9448952adaec68><i class="fa-solid fa-angle-right" id=caret-idc210df43f55769665b9448952adaec68></i></a></div><ul class="nav docs-sidenav collapse" id=idc210df43f55769665b9448952adaec68><li class="child level"><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%8D%95%E7%BA%BF%E7%A8%8B%E6%9E%B6%E6%9E%84/>单线程架构</a></li><li class="child level"><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%A4%9A%E8%BF%9B%E7%A8%8B%E6%9E%B6%E6%9E%84/>多进程架构</a></li><li class="child level"><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%AE%A2%E6%88%B7%E7%AB%AF%E9%80%9A%E4%BF%A1/>客户端通信</a></li><li class="child level"><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C/>命令执行</a></li><li class="child level"><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E6%B7%B1%E5%85%A5%E4%BA%8B%E4%BB%B6%E5%BE%AA%E7%8E%AF/>深入事件循环</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-ida4f0d3e233ec97b9c76c0c90fbfcddd9")' href=#ida4f0d3e233ec97b9c76c0c90fbfcddd9 aria-expanded=false aria-controls=ida4f0d3e233ec97b9c76c0c90fbfcddd9 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/5.keydb/>5.KeyDB</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#ida4f0d3e233ec97b9c76c0c90fbfcddd9 aria-expanded=false aria-controls=ida4f0d3e233ec97b9c76c0c90fbfcddd9><i class="fa-solid fa-angle-right" id=caret-ida4f0d3e233ec97b9c76c0c90fbfcddd9></i></a></div><ul class="nav docs-sidenav collapse" id=ida4f0d3e233ec97b9c76c0c90fbfcddd9><li class="child level"><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/5.keydb/%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/>架构机制</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idba803803bd2d38fd4a2046615644670b")' href=#idba803803bd2d38fd4a2046615644670b aria-expanded=false aria-controls=idba803803bd2d38fd4a2046615644670b aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/6.%E4%BB%8E%E9%9B%B6%E5%AE%9E%E7%8E%B0-kv-%E6%95%B0%E6%8D%AE%E5%BA%93/>6.从零实现 KV 数据库</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idba803803bd2d38fd4a2046615644670b aria-expanded=false aria-controls=idba803803bd2d38fd4a2046615644670b><i class="fa-solid fa-angle-right" id=caret-idba803803bd2d38fd4a2046615644670b></i></a></div><ul class="nav docs-sidenav collapse" id=idba803803bd2d38fd4a2046615644670b><li class="child level"><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/6.%E4%BB%8E%E9%9B%B6%E5%AE%9E%E7%8E%B0-kv-%E6%95%B0%E6%8D%AE%E5%BA%93/%E5%9F%BA%E4%BA%8E%E5%93%88%E5%B8%8C%E7%B4%A2%E5%BC%95%E7%9A%84-kv-%E6%95%B0%E6%8D%AE%E5%BA%93/>基于哈希索引的 KV 数据库</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents><ul><li><a href=#直接启动>直接启动</a></li><li><a href=#使用指定配置文件启动>使用指定配置文件启动</a></li><li><a href=#使用-redis-启动脚本设置开机自启动>使用 Redis 启动脚本设置开机自启动</a></li></ul></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>部署与配置</h1><div class=article-style><h1 id=部署与配置>部署与配置</h1><p>Redis 的安装还是比较简单的，直接从官网下载好安装包进行编译即可：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>tar zxvf redis-2.8.9.tar.gz
+</span></span><span class=line><span class=cl><span class=nb>cd</span> redis-2.8.9
+</span></span><span class=line><span class=cl><span class=c1>#直接make 编译</span>
+</span></span><span class=line><span class=cl>make
+</span></span><span class=line><span class=cl><span class=c1>#可使用root用户执行`make install`，将可执行文件拷贝到/usr/local/bin目录下。这样就可以直接敲名字运行程序了。</span>
+</span></span><span class=line><span class=cl>make install
+</span></span></code></pre></div><h1 id=启动>启动</h1><h2 id=直接启动>直接启动</h2><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1>#加上`&amp;`号使redis以后台程序方式运行</span>
+</span></span><span class=line><span class=cl>./redis-server <span class=p>&amp;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>#检测后台进程是否存在</span>
+</span></span><span class=line><span class=cl>ps -ef <span class=p>|</span>grep redis
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>#检测6379端口是否在监听</span>
+</span></span><span class=line><span class=cl>netstat -lntp <span class=p>|</span> grep <span class=m>6379</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>#使用`redis-cli`客户端检测连接是否正常</span>
+</span></span><span class=line><span class=cl>./redis-cli
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; keys *
+</span></span><span class=line><span class=cl><span class=o>(</span>empty list or <span class=nb>set</span><span class=o>)</span>
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; <span class=nb>set</span> key <span class=s2>&#34;hello world&#34;</span>
+</span></span><span class=line><span class=cl>OK
+</span></span><span class=line><span class=cl>127.0.0.1:6379&gt; get key
+</span></span><span class=line><span class=cl><span class=s2>&#34;hello world&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>#使用客户端</span>
+</span></span><span class=line><span class=cl>redis-cli shutdown
+</span></span><span class=line><span class=cl><span class=c1>#因为Redis可以妥善处理SIGTERM信号，所以直接kill -9也是可以的</span>
+</span></span><span class=line><span class=cl><span class=nb>kill</span> -9 PID
+</span></span></code></pre></div><h2 id=使用指定配置文件启动>使用指定配置文件启动</h2><p>可为 redis 服务启动指定配置文件，配置文件 <code>redis.conf</code> 在 Redis 根目录下。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1>#修改daemonize为yes，即默认以后台程序方式运行(还记得前面手动使用&amp;号强制后台运行吗)。</span>
+</span></span><span class=line><span class=cl>daemonize no
+</span></span><span class=line><span class=cl><span class=c1>#可修改默认监听端口</span>
+</span></span><span class=line><span class=cl>port <span class=m>6379</span>
+</span></span><span class=line><span class=cl><span class=c1>#修改生成默认日志文件位置</span>
+</span></span><span class=line><span class=cl>logfile <span class=s2>&#34;/home/futeng/logs/redis.log&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1>#配置持久化文件存放位置</span>
+</span></span><span class=line><span class=cl>dir /home/futeng/data/redisData
+</span></span></code></pre></div><p>启动时指定配置文件</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>redis-server ./redis.conf
+</span></span><span class=line><span class=cl><span class=c1>#如果更改了端口，使用`redis-cli`客户端连接时，也需要指定端口，例如：</span>
+</span></span><span class=line><span class=cl>redis-cli -p <span class=m>6380</span>
+</span></span></code></pre></div><pre><code>其他启停同    *直接启动*    方式。配置文件是非常重要的配置工具，随着使用的逐渐深入将显得尤为重要，推荐在一开始就使用配置文件。
+</code></pre><h2 id=使用-redis-启动脚本设置开机自启动>使用 Redis 启动脚本设置开机自启动</h2><p>推荐在生产环境中使用启动脚本方式启动 redis 服务。启动脚本 <code>redis_init_script</code> 位于位于 Redis 的 <code>/utils/</code> 目录下。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1>#大致浏览下该启动脚本，发现redis习惯性用监听的端口名作为配置文件等命名，我们后面也遵循这个约定。</span>
+</span></span><span class=line><span class=cl><span class=c1>#redis服务器监听的端口</span>
+</span></span><span class=line><span class=cl><span class=nv>REDISPORT</span><span class=o>=</span><span class=m>6379</span>
+</span></span><span class=line><span class=cl><span class=c1>#服务端所处位置，在make install后默认存放与`/usr/local/bin/redis-server`，如果未make install则需要修改该路径，下同。</span>
+</span></span><span class=line><span class=cl><span class=nv>EXEC</span><span class=o>=</span>/usr/local/bin/redis-server
+</span></span><span class=line><span class=cl><span class=c1>#客户端位置</span>
+</span></span><span class=line><span class=cl><span class=nv>CLIEXEC</span><span class=o>=</span>/usr/local/bin/redis-cli
+</span></span><span class=line><span class=cl><span class=c1>#Redis的PID文件位置</span>
+</span></span><span class=line><span class=cl><span class=nv>PIDFILE</span><span class=o>=</span>/var/run/redis_<span class=si>${</span><span class=nv>REDISPORT</span><span class=si>}</span>.pid
+</span></span><span class=line><span class=cl><span class=c1>#配置文件位置，需要修改</span>
+</span></span><span class=line><span class=cl><span class=nv>CONF</span><span class=o>=</span><span class=s2>&#34;/etc/redis/</span><span class=si>${</span><span class=nv>REDISPORT</span><span class=si>}</span><span class=s2>.conf&#34;</span>
+</span></span></code></pre></div><h1 id=可配置项>可配置项</h1><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=c1># Redis configuration file example.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Note that in order to read the configuration file, Redis must be</span>
+</span></span><span class=line><span class=cl><span class=c1># started with the file path as first argument:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># ./redis-server /path/to/redis.conf</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Note on units: when memory size is needed, it is possible to specify</span>
+</span></span><span class=line><span class=cl><span class=c1># it in the usual form of 1k 5GB 4M and so forth:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># 1k =&gt; 1000 bytes</span>
+</span></span><span class=line><span class=cl><span class=c1># 1kb =&gt; 1024 bytes</span>
+</span></span><span class=line><span class=cl><span class=c1># 1m =&gt; 1000000 bytes</span>
+</span></span><span class=line><span class=cl><span class=c1># 1mb =&gt; 1024*1024 bytes</span>
+</span></span><span class=line><span class=cl><span class=c1># 1g =&gt; 1000000000 bytes</span>
+</span></span><span class=line><span class=cl><span class=c1># 1gb =&gt; 1024*1024*1024 bytes</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># units are case insensitive so 1GB 1Gb 1gB are all the same.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>################################## INCLUDES ###################################</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Include one or more other config files here.  This is useful if you</span>
+</span></span><span class=line><span class=cl><span class=c1># have a standard template that goes to all Redis servers but also need</span>
+</span></span><span class=line><span class=cl><span class=c1># to customize a few per-server settings.  Include files can include</span>
+</span></span><span class=line><span class=cl><span class=c1># other files, so use this wisely.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Notice option &#34;include&#34; won&#39;t be rewritten by command &#34;CONFIG REWRITE&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1># from admin or Redis Sentinel. Since Redis always uses the last processed</span>
+</span></span><span class=line><span class=cl><span class=c1># line as value of a configuration directive, you&#39;d better put includes</span>
+</span></span><span class=line><span class=cl><span class=c1># at the beginning of this file to avoid overwriting config change at runtime.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># If instead you are interested in using includes to override configuration</span>
+</span></span><span class=line><span class=cl><span class=c1># options, it is better to use include as the last line.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># include /path/to/local.conf</span>
+</span></span><span class=line><span class=cl><span class=c1># include /path/to/other.conf</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>################################ GENERAL  #####################################</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># By default Redis does not run as a daemon. Use &#39;yes&#39; if you need it.</span>
+</span></span><span class=line><span class=cl><span class=c1># Note that Redis will write a pid file in /var/run/redis.pid when daemonized.</span>
+</span></span><span class=line><span class=cl>daemonize no
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># When running daemonized, Redis writes a pid file in /var/run/redis.pid by</span>
+</span></span><span class=line><span class=cl><span class=c1># default. You can specify a custom pid file location here.</span>
+</span></span><span class=line><span class=cl>pidfile /var/run/redis.pid
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Accept connections on the specified port, default is 6379.</span>
+</span></span><span class=line><span class=cl><span class=c1># If port 0 is specified Redis will not listen on a TCP socket.</span>
+</span></span><span class=line><span class=cl>port <span class=m>6379</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># TCP listen() backlog.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># In high requests-per-second environments you need an high backlog in order</span>
+</span></span><span class=line><span class=cl><span class=c1># to avoid slow clients connections issues. Note that the Linux kernel</span>
+</span></span><span class=line><span class=cl><span class=c1># will silently truncate it to the value of /proc/sys/net/core/somaxconn so</span>
+</span></span><span class=line><span class=cl><span class=c1># make sure to raise both the value of somaxconn and tcp_max_syn_backlog</span>
+</span></span><span class=line><span class=cl><span class=c1># in order to get the desired effect.</span>
+</span></span><span class=line><span class=cl>tcp-backlog <span class=m>511</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># By default Redis listens for connections from all the network interfaces</span>
+</span></span><span class=line><span class=cl><span class=c1># available on the server. It is possible to listen to just one or multiple</span>
+</span></span><span class=line><span class=cl><span class=c1># interfaces using the &#34;bind&#34; configuration directive, followed by one or</span>
+</span></span><span class=line><span class=cl><span class=c1># more IP addresses.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Examples:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># bind 192.168.1.100 10.0.0.1</span>
+</span></span><span class=line><span class=cl><span class=c1># bind 127.0.0.1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Specify the path for the Unix socket that will be used to listen for</span>
+</span></span><span class=line><span class=cl><span class=c1># incoming connections. There is no default, so Redis will not listen</span>
+</span></span><span class=line><span class=cl><span class=c1># on a unix socket when not specified.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># unixsocket /tmp/redis.sock</span>
+</span></span><span class=line><span class=cl><span class=c1># unixsocketperm 700</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Close the connection after a client is idle for N seconds (0 to disable)</span>
+</span></span><span class=line><span class=cl>timeout <span class=m>0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># TCP keepalive.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># If non-zero, use SO_KEEPALIVE to send TCP ACKs to clients in absence</span>
+</span></span><span class=line><span class=cl><span class=c1># of communication. This is useful for two reasons:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># 1) Detect dead peers.</span>
+</span></span><span class=line><span class=cl><span class=c1># 2) Take the connection alive from the point of view of network</span>
+</span></span><span class=line><span class=cl><span class=c1>#    equipment in the middle.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># On Linux, the specified value (in seconds) is the period used to send ACKs.</span>
+</span></span><span class=line><span class=cl><span class=c1># Note that to close the connection the double of the time is needed.</span>
+</span></span><span class=line><span class=cl><span class=c1># On other kernels the period depends on the kernel configuration.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># A reasonable value for this option is 60 seconds.</span>
+</span></span><span class=line><span class=cl>tcp-keepalive <span class=m>0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Specify the server verbosity level.</span>
+</span></span><span class=line><span class=cl><span class=c1># This can be one of:</span>
+</span></span><span class=line><span class=cl><span class=c1># debug (a lot of information, useful for development/testing)</span>
+</span></span><span class=line><span class=cl><span class=c1># verbose (many rarely useful info, but not a mess like the debug level)</span>
+</span></span><span class=line><span class=cl><span class=c1># notice (moderately verbose, what you want in production probably)</span>
+</span></span><span class=line><span class=cl><span class=c1># warning (only very important / critical messages are logged)</span>
+</span></span><span class=line><span class=cl>loglevel notice
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Specify the log file name. Also the empty string can be used to force</span>
+</span></span><span class=line><span class=cl><span class=c1># Redis to log on the standard output. Note that if you use standard</span>
+</span></span><span class=line><span class=cl><span class=c1># output for logging but daemonize, logs will be sent to /dev/null</span>
+</span></span><span class=line><span class=cl>logfile <span class=s2>&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># To enable logging to the system logger, just set &#39;syslog-enabled&#39; to yes,</span>
+</span></span><span class=line><span class=cl><span class=c1># and optionally update the other syslog parameters to suit your needs.</span>
+</span></span><span class=line><span class=cl><span class=c1># syslog-enabled no</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Specify the syslog identity.</span>
+</span></span><span class=line><span class=cl><span class=c1># syslog-ident redis</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Specify the syslog facility. Must be USER or between LOCAL0-LOCAL7.</span>
+</span></span><span class=line><span class=cl><span class=c1># syslog-facility local0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Set the number of databases. The default database is DB 0, you can select</span>
+</span></span><span class=line><span class=cl><span class=c1># a different one on a per-connection basis using SELECT &lt;dbid&gt; where</span>
+</span></span><span class=line><span class=cl><span class=c1># dbid is a number between 0 and &#39;databases&#39;-1</span>
+</span></span><span class=line><span class=cl>databases <span class=m>16</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>################################ SNAPSHOTTING  ################################</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Save the DB on disk:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1>#   save &lt;seconds&gt; &lt;changes&gt;</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1>#   Will save the DB if both the given number of seconds and the given</span>
+</span></span><span class=line><span class=cl><span class=c1>#   number of write operations against the DB occurred.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1>#   In the example below the behaviour will be to save:</span>
+</span></span><span class=line><span class=cl><span class=c1>#   after 900 sec (15 min) if at least 1 key changed</span>
+</span></span><span class=line><span class=cl><span class=c1>#   after 300 sec (5 min) if at least 10 keys changed</span>
+</span></span><span class=line><span class=cl><span class=c1>#   after 60 sec if at least 10000 keys changed</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1>#   Note: you can disable saving completely by commenting out all &#34;save&#34; lines.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1>#   It is also possible to remove all the previously configured save</span>
+</span></span><span class=line><span class=cl><span class=c1>#   points by adding a save directive with a single empty string argument</span>
+</span></span><span class=line><span class=cl><span class=c1>#   like in the following example:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1>#   save &#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>save <span class=m>900</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl>save <span class=m>300</span> <span class=m>10</span>
+</span></span><span class=line><span class=cl>save <span class=m>60</span> <span class=m>10000</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># By default Redis will stop accepting writes if RDB snapshots are enabled</span>
+</span></span><span class=line><span class=cl><span class=c1># (at least one save point) and the latest background save failed.</span>
+</span></span><span class=line><span class=cl><span class=c1># This will make the user aware (in a hard way) that data is not persisting</span>
+</span></span><span class=line><span class=cl><span class=c1># on disk properly, otherwise chances are that no one will notice and some</span>
+</span></span><span class=line><span class=cl><span class=c1># disaster will happen.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># If the background saving process will start working again Redis will</span>
+</span></span><span class=line><span class=cl><span class=c1># automatically allow writes again.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># However if you have setup your proper monitoring of the Redis server</span>
+</span></span><span class=line><span class=cl><span class=c1># and persistence, you may want to disable this feature so that Redis will</span>
+</span></span><span class=line><span class=cl><span class=c1># continue to work as usual even if there are problems with disk,</span>
+</span></span><span class=line><span class=cl><span class=c1># permissions, and so forth.</span>
+</span></span><span class=line><span class=cl>stop-writes-on-bgsave-error yes
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Compress string objects using LZF when dump .rdb databases?</span>
+</span></span><span class=line><span class=cl><span class=c1># For default that&#39;s set to &#39;yes&#39; as it&#39;s almost always a win.</span>
+</span></span><span class=line><span class=cl><span class=c1># If you want to save some CPU in the saving child set it to &#39;no&#39; but</span>
+</span></span><span class=line><span class=cl><span class=c1># the dataset will likely be bigger if you have compressible values or keys.</span>
+</span></span><span class=line><span class=cl>rdbcompression yes
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Since version 5 of RDB a CRC64 checksum is placed at the end of the file.</span>
+</span></span><span class=line><span class=cl><span class=c1># This makes the format more resistant to corruption but there is a performance</span>
+</span></span><span class=line><span class=cl><span class=c1># hit to pay (around 10%) when saving and loading RDB files, so you can disable it</span>
+</span></span><span class=line><span class=cl><span class=c1># for maximum performances.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># RDB files created with checksum disabled have a checksum of zero that will</span>
+</span></span><span class=line><span class=cl><span class=c1># tell the loading code to skip the check.</span>
+</span></span><span class=line><span class=cl>rdbchecksum yes
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># The filename where to dump the DB</span>
+</span></span><span class=line><span class=cl>dbfilename dump.rdb
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># The working directory.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># The DB will be written inside this directory, with the filename specified</span>
+</span></span><span class=line><span class=cl><span class=c1># above using the &#39;dbfilename&#39; configuration directive.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># The Append Only File will also be created inside this directory.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Note that you must specify a directory here, not a file name.</span>
+</span></span><span class=line><span class=cl>dir ./
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>################################# REPLICATION #################################</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Master-Slave replication. Use slaveof to make a Redis instance a copy of</span>
+</span></span><span class=line><span class=cl><span class=c1># another Redis server. A few things to understand ASAP about Redis replication.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># 1) Redis replication is asynchronous, but you can configure a master to</span>
+</span></span><span class=line><span class=cl><span class=c1>#    stop accepting writes if it appears to be not connected with at least</span>
+</span></span><span class=line><span class=cl><span class=c1>#    a given number of slaves.</span>
+</span></span><span class=line><span class=cl><span class=c1># 2) Redis slaves are able to perform a partial resynchronization with the</span>
+</span></span><span class=line><span class=cl><span class=c1>#    master if the replication link is lost for a relatively small amount of</span>
+</span></span><span class=line><span class=cl><span class=c1>#    time. You may want to configure the replication backlog size (see the next</span>
+</span></span><span class=line><span class=cl><span class=c1>#    sections of this file) with a sensible value depending on your needs.</span>
+</span></span><span class=line><span class=cl><span class=c1># 3) Replication is automatic and does not need user intervention. After a</span>
+</span></span><span class=line><span class=cl><span class=c1>#    network partition slaves automatically try to reconnect to masters</span>
+</span></span><span class=line><span class=cl><span class=c1>#    and resynchronize with them.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># slaveof &lt;masterip&gt; &lt;masterport&gt;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># If the master is password protected (using the &#34;requirepass&#34; configuration</span>
+</span></span><span class=line><span class=cl><span class=c1># directive below) it is possible to tell the slave to authenticate before</span>
+</span></span><span class=line><span class=cl><span class=c1># starting the replication synchronization process, otherwise the master will</span>
+</span></span><span class=line><span class=cl><span class=c1># refuse the slave request.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># masterauth &lt;master-password&gt;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># When a slave loses its connection with the master, or when the replication</span>
+</span></span><span class=line><span class=cl><span class=c1># is still in progress, the slave can act in two different ways:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># 1) if slave-serve-stale-data is set to &#39;yes&#39; (the default) the slave will</span>
+</span></span><span class=line><span class=cl><span class=c1>#    still reply to client requests, possibly with out of date data, or the</span>
+</span></span><span class=line><span class=cl><span class=c1>#    data set may just be empty if this is the first synchronization.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># 2) if slave-serve-stale-data is set to &#39;no&#39; the slave will reply with</span>
+</span></span><span class=line><span class=cl><span class=c1>#    an error &#34;SYNC with master in progress&#34; to all the kind of commands</span>
+</span></span><span class=line><span class=cl><span class=c1>#    but to INFO and SLAVEOF.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl>slave-serve-stale-data yes
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># You can configure a slave instance to accept writes or not. Writing against</span>
+</span></span><span class=line><span class=cl><span class=c1># a slave instance may be useful to store some ephemeral data (because data</span>
+</span></span><span class=line><span class=cl><span class=c1># written on a slave will be easily deleted after resync with the master) but</span>
+</span></span><span class=line><span class=cl><span class=c1># may also cause problems if clients are writing to it because of a</span>
+</span></span><span class=line><span class=cl><span class=c1># misconfiguration.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Since Redis 2.6 by default slaves are read-only.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Note: read only slaves are not designed to be exposed to untrusted clients</span>
+</span></span><span class=line><span class=cl><span class=c1># on the internet. It&#39;s just a protection layer against misuse of the instance.</span>
+</span></span><span class=line><span class=cl><span class=c1># Still a read only slave exports by default all the administrative commands</span>
+</span></span><span class=line><span class=cl><span class=c1># such as CONFIG, DEBUG, and so forth. To a limited extent you can improve</span>
+</span></span><span class=line><span class=cl><span class=c1># security of read only slaves using &#39;rename-command&#39; to shadow all the</span>
+</span></span><span class=line><span class=cl><span class=c1># administrative / dangerous commands.</span>
+</span></span><span class=line><span class=cl>slave-read-only yes
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Replication SYNC strategy: disk or socket.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># -------------------------------------------------------</span>
+</span></span><span class=line><span class=cl><span class=c1># WARNING: DISKLESS REPLICATION IS EXPERIMENTAL CURRENTLY</span>
+</span></span><span class=line><span class=cl><span class=c1># -------------------------------------------------------</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># New slaves and reconnecting slaves that are not able to continue the replication</span>
+</span></span><span class=line><span class=cl><span class=c1># process just receiving differences, need to do what is called a &#34;full</span>
+</span></span><span class=line><span class=cl><span class=c1># synchronization&#34;. An RDB file is transmitted from the master to the slaves.</span>
+</span></span><span class=line><span class=cl><span class=c1># The transmission can happen in two different ways:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># 1) Disk-backed: The Redis master creates a new process that writes the RDB</span>
+</span></span><span class=line><span class=cl><span class=c1>#                 file on disk. Later the file is transferred by the parent</span>
+</span></span><span class=line><span class=cl><span class=c1>#                 process to the slaves incrementally.</span>
+</span></span><span class=line><span class=cl><span class=c1># 2) Diskless: The Redis master creates a new process that directly writes the</span>
+</span></span><span class=line><span class=cl><span class=c1>#              RDB file to slave sockets, without touching the disk at all.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># With disk-backed replication, while the RDB file is generated, more slaves</span>
+</span></span><span class=line><span class=cl><span class=c1># can be queued and served with the RDB file as soon as the current child producing</span>
+</span></span><span class=line><span class=cl><span class=c1># the RDB file finishes its work. With diskless replication instead once</span>
+</span></span><span class=line><span class=cl><span class=c1># the transfer starts, new slaves arriving will be queued and a new transfer</span>
+</span></span><span class=line><span class=cl><span class=c1># will start when the current one terminates.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># When diskless replication is used, the master waits a configurable amount of</span>
+</span></span><span class=line><span class=cl><span class=c1># time (in seconds) before starting the transfer in the hope that multiple slaves</span>
+</span></span><span class=line><span class=cl><span class=c1># will arrive and the transfer can be parallelized.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># With slow disks and fast (large bandwidth) networks, diskless replication</span>
+</span></span><span class=line><span class=cl><span class=c1># works better.</span>
+</span></span><span class=line><span class=cl>repl-diskless-sync no
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># When diskless replication is enabled, it is possible to configure the delay</span>
+</span></span><span class=line><span class=cl><span class=c1># the server waits in order to spawn the child that transfers the RDB via socket</span>
+</span></span><span class=line><span class=cl><span class=c1># to the slaves.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># This is important since once the transfer starts, it is not possible to serve</span>
+</span></span><span class=line><span class=cl><span class=c1># new slaves arriving, that will be queued for the next RDB transfer, so the server</span>
+</span></span><span class=line><span class=cl><span class=c1># waits a delay in order to let more slaves arrive.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># The delay is specified in seconds, and by default is 5 seconds. To disable</span>
+</span></span><span class=line><span class=cl><span class=c1># it entirely just set it to 0 seconds and the transfer will start ASAP.</span>
+</span></span><span class=line><span class=cl>repl-diskless-sync-delay <span class=m>5</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Slaves send PINGs to server in a predefined interval. It&#39;s possible to change</span>
+</span></span><span class=line><span class=cl><span class=c1># this interval with the repl_ping_slave_period option. The default value is 10</span>
+</span></span><span class=line><span class=cl><span class=c1># seconds.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># repl-ping-slave-period 10</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># The following option sets the replication timeout for:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># 1) Bulk transfer IO during SYNC, from the point of view of slave.</span>
+</span></span><span class=line><span class=cl><span class=c1># 2) Master timeout from the point of view of slaves (data, pings).</span>
+</span></span><span class=line><span class=cl><span class=c1># 3) Slave timeout from the point of view of masters (REPLCONF ACK pings).</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># It is important to make sure that this value is greater than the value</span>
+</span></span><span class=line><span class=cl><span class=c1># specified for repl-ping-slave-period otherwise a timeout will be detected</span>
+</span></span><span class=line><span class=cl><span class=c1># every time there is low traffic between the master and the slave.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># repl-timeout 60</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Disable TCP_NODELAY on the slave socket after SYNC?</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># If you select &#34;yes&#34; Redis will use a smaller number of TCP packets and</span>
+</span></span><span class=line><span class=cl><span class=c1># less bandwidth to send data to slaves. But this can add a delay for</span>
+</span></span><span class=line><span class=cl><span class=c1># the data to appear on the slave side, up to 40 milliseconds with</span>
+</span></span><span class=line><span class=cl><span class=c1># Linux kernels using a default configuration.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># If you select &#34;no&#34; the delay for data to appear on the slave side will</span>
+</span></span><span class=line><span class=cl><span class=c1># be reduced but more bandwidth will be used for replication.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># By default we optimize for low latency, but in very high traffic conditions</span>
+</span></span><span class=line><span class=cl><span class=c1># or when the master and slaves are many hops away, turning this to &#34;yes&#34; may</span>
+</span></span><span class=line><span class=cl><span class=c1># be a good idea.</span>
+</span></span><span class=line><span class=cl>repl-disable-tcp-nodelay no
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Set the replication backlog size. The backlog is a buffer that accumulates</span>
+</span></span><span class=line><span class=cl><span class=c1># slave data when slaves are disconnected for some time, so that when a slave</span>
+</span></span><span class=line><span class=cl><span class=c1># wants to reconnect again, often a full resync is not needed, but a partial</span>
+</span></span><span class=line><span class=cl><span class=c1># resync is enough, just passing the portion of data the slave missed while</span>
+</span></span><span class=line><span class=cl><span class=c1># disconnected.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># The bigger the replication backlog, the longer the time the slave can be</span>
+</span></span><span class=line><span class=cl><span class=c1># disconnected and later be able to perform a partial resynchronization.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># The backlog is only allocated once there is at least a slave connected.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># repl-backlog-size 1mb</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># After a master has no longer connected slaves for some time, the backlog</span>
+</span></span><span class=line><span class=cl><span class=c1># will be freed. The following option configures the amount of seconds that</span>
+</span></span><span class=line><span class=cl><span class=c1># need to elapse, starting from the time the last slave disconnected, for</span>
+</span></span><span class=line><span class=cl><span class=c1># the backlog buffer to be freed.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># A value of 0 means to never release the backlog.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># repl-backlog-ttl 3600</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># The slave priority is an integer number published by Redis in the INFO output.</span>
+</span></span><span class=line><span class=cl><span class=c1># It is used by Redis Sentinel in order to select a slave to promote into a</span>
+</span></span><span class=line><span class=cl><span class=c1># master if the master is no longer working correctly.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># A slave with a low priority number is considered better for promotion, so</span>
+</span></span><span class=line><span class=cl><span class=c1># for instance if there are three slaves with priority 10, 100, 25 Sentinel will</span>
+</span></span><span class=line><span class=cl><span class=c1># pick the one with priority 10, that is the lowest.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># However a special priority of 0 marks the slave as not able to perform the</span>
+</span></span><span class=line><span class=cl><span class=c1># role of master, so a slave with priority of 0 will never be selected by</span>
+</span></span><span class=line><span class=cl><span class=c1># Redis Sentinel for promotion.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># By default the priority is 100.</span>
+</span></span><span class=line><span class=cl>slave-priority <span class=m>100</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># It is possible for a master to stop accepting writes if there are less than</span>
+</span></span><span class=line><span class=cl><span class=c1># N slaves connected, having a lag less or equal than M seconds.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># The N slaves need to be in &#34;online&#34; state.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># The lag in seconds, that must be &lt;= the specified value, is calculated from</span>
+</span></span><span class=line><span class=cl><span class=c1># the last ping received from the slave, that is usually sent every second.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># This option does not GUARANTEE that N replicas will accept the write, but</span>
+</span></span><span class=line><span class=cl><span class=c1># will limit the window of exposure for lost writes in case not enough slaves</span>
+</span></span><span class=line><span class=cl><span class=c1># are available, to the specified number of seconds.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># For example to require at least 3 slaves with a lag &lt;= 10 seconds use:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># min-slaves-to-write 3</span>
+</span></span><span class=line><span class=cl><span class=c1># min-slaves-max-lag 10</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Setting one or the other to 0 disables the feature.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># By default min-slaves-to-write is set to 0 (feature disabled) and</span>
+</span></span><span class=line><span class=cl><span class=c1># min-slaves-max-lag is set to 10.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>################################## SECURITY ###################################</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Require clients to issue AUTH &lt;PASSWORD&gt; before processing any other</span>
+</span></span><span class=line><span class=cl><span class=c1># commands.  This might be useful in environments in which you do not trust</span>
+</span></span><span class=line><span class=cl><span class=c1># others with access to the host running redis-server.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># This should stay commented out for backward compatibility and because most</span>
+</span></span><span class=line><span class=cl><span class=c1># people do not need auth (e.g. they run their own servers).</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Warning: since Redis is pretty fast an outside user can try up to</span>
+</span></span><span class=line><span class=cl><span class=c1># 150k passwords per second against a good box. This means that you should</span>
+</span></span><span class=line><span class=cl><span class=c1># use a very strong password otherwise it will be very easy to break.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># requirepass foobared</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Command renaming.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># It is possible to change the name of dangerous commands in a shared</span>
+</span></span><span class=line><span class=cl><span class=c1># environment. For instance the CONFIG command may be renamed into something</span>
+</span></span><span class=line><span class=cl><span class=c1># hard to guess so that it will still be available for internal-use tools</span>
+</span></span><span class=line><span class=cl><span class=c1># but not available for general clients.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Example:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># rename-command CONFIG b840fc02d524045429941cc15f59e41cb7be6c52</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># It is also possible to completely kill a command by renaming it into</span>
+</span></span><span class=line><span class=cl><span class=c1># an empty string:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># rename-command CONFIG &#34;&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Please note that changing the name of commands that are logged into the</span>
+</span></span><span class=line><span class=cl><span class=c1># AOF file or transmitted to slaves may cause problems.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>################################### LIMITS ####################################</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Set the max number of connected clients at the same time. By default</span>
+</span></span><span class=line><span class=cl><span class=c1># this limit is set to 10000 clients, however if the Redis server is not</span>
+</span></span><span class=line><span class=cl><span class=c1># able to configure the process file limit to allow for the specified limit</span>
+</span></span><span class=line><span class=cl><span class=c1># the max number of allowed clients is set to the current file limit</span>
+</span></span><span class=line><span class=cl><span class=c1># minus 32 (as Redis reserves a few file descriptors for internal uses).</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Once the limit is reached Redis will close all the new connections sending</span>
+</span></span><span class=line><span class=cl><span class=c1># an error &#39;max number of clients reached&#39;.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># maxclients 10000</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Don&#39;t use more memory than the specified amount of bytes.</span>
+</span></span><span class=line><span class=cl><span class=c1># When the memory limit is reached Redis will try to remove keys</span>
+</span></span><span class=line><span class=cl><span class=c1># according to the eviction policy selected (see maxmemory-policy).</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># If Redis can&#39;t remove keys according to the policy, or if the policy is</span>
+</span></span><span class=line><span class=cl><span class=c1># set to &#39;noeviction&#39;, Redis will start to reply with errors to commands</span>
+</span></span><span class=line><span class=cl><span class=c1># that would use more memory, like SET, LPUSH, and so on, and will continue</span>
+</span></span><span class=line><span class=cl><span class=c1># to reply to read-only commands like GET.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># This option is usually useful when using Redis as an LRU cache, or to set</span>
+</span></span><span class=line><span class=cl><span class=c1># a hard memory limit for an instance (using the &#39;noeviction&#39; policy).</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># WARNING: If you have slaves attached to an instance with maxmemory on,</span>
+</span></span><span class=line><span class=cl><span class=c1># the size of the output buffers needed to feed the slaves are subtracted</span>
+</span></span><span class=line><span class=cl><span class=c1># from the used memory count, so that network problems / resyncs will</span>
+</span></span><span class=line><span class=cl><span class=c1># not trigger a loop where keys are evicted, and in turn the output</span>
+</span></span><span class=line><span class=cl><span class=c1># buffer of slaves is full with DELs of keys evicted triggering the deletion</span>
+</span></span><span class=line><span class=cl><span class=c1># of more keys, and so forth until the database is completely emptied.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># In short... if you have slaves attached it is suggested that you set a lower</span>
+</span></span><span class=line><span class=cl><span class=c1># limit for maxmemory so that there is some free RAM on the system for slave</span>
+</span></span><span class=line><span class=cl><span class=c1># output buffers (but this is not needed if the policy is &#39;noeviction&#39;).</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># maxmemory &lt;bytes&gt;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># MAXMEMORY POLICY: how Redis will select what to remove when maxmemory</span>
+</span></span><span class=line><span class=cl><span class=c1># is reached. You can select among five behaviors:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># volatile-lru -&gt; remove the key with an expire set using an LRU algorithm</span>
+</span></span><span class=line><span class=cl><span class=c1># allkeys-lru -&gt; remove any key according to the LRU algorithm</span>
+</span></span><span class=line><span class=cl><span class=c1># volatile-random -&gt; remove a random key with an expire set</span>
+</span></span><span class=line><span class=cl><span class=c1># allkeys-random -&gt; remove a random key, any key</span>
+</span></span><span class=line><span class=cl><span class=c1># volatile-ttl -&gt; remove the key with the nearest expire time (minor TTL)</span>
+</span></span><span class=line><span class=cl><span class=c1># noeviction -&gt; don&#39;t expire at all, just return an error on write operations</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Note: with any of the above policies, Redis will return an error on write</span>
+</span></span><span class=line><span class=cl><span class=c1>#       operations, when there are no suitable keys for eviction.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1>#       At the date of writing these commands are: set setnx setex append</span>
+</span></span><span class=line><span class=cl><span class=c1>#       incr decr rpush lpush rpushx lpushx linsert lset rpoplpush sadd</span>
+</span></span><span class=line><span class=cl><span class=c1>#       sinter sinterstore sunion sunionstore sdiff sdiffstore zadd zincrby</span>
+</span></span><span class=line><span class=cl><span class=c1>#       zunionstore zinterstore hset hsetnx hmset hincrby incrby decrby</span>
+</span></span><span class=line><span class=cl><span class=c1>#       getset mset msetnx exec sort</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># The default is:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># maxmemory-policy noeviction</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># LRU and minimal TTL algorithms are not precise algorithms but approximated</span>
+</span></span><span class=line><span class=cl><span class=c1># algorithms (in order to save memory), so you can tune it for speed or</span>
+</span></span><span class=line><span class=cl><span class=c1># accuracy. For default Redis will check five keys and pick the one that was</span>
+</span></span><span class=line><span class=cl><span class=c1># used less recently, you can change the sample size using the following</span>
+</span></span><span class=line><span class=cl><span class=c1># configuration directive.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># The default of 5 produces good enough results. 10 Approximates very closely</span>
+</span></span><span class=line><span class=cl><span class=c1># true LRU but costs a bit more CPU. 3 is very fast but not very accurate.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># maxmemory-samples 5</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>############################## APPEND ONLY MODE ###############################</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># By default Redis asynchronously dumps the dataset on disk. This mode is</span>
+</span></span><span class=line><span class=cl><span class=c1># good enough in many applications, but an issue with the Redis process or</span>
+</span></span><span class=line><span class=cl><span class=c1># a power outage may result into a few minutes of writes lost (depending on</span>
+</span></span><span class=line><span class=cl><span class=c1># the configured save points).</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># The Append Only File is an alternative persistence mode that provides</span>
+</span></span><span class=line><span class=cl><span class=c1># much better durability. For instance using the default data fsync policy</span>
+</span></span><span class=line><span class=cl><span class=c1># (see later in the config file) Redis can lose just one second of writes in a</span>
+</span></span><span class=line><span class=cl><span class=c1># dramatic event like a server power outage, or a single write if something</span>
+</span></span><span class=line><span class=cl><span class=c1># wrong with the Redis process itself happens, but the operating system is</span>
+</span></span><span class=line><span class=cl><span class=c1># still running correctly.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># AOF and RDB persistence can be enabled at the same time without problems.</span>
+</span></span><span class=line><span class=cl><span class=c1># If the AOF is enabled on startup Redis will load the AOF, that is the file</span>
+</span></span><span class=line><span class=cl><span class=c1># with the better durability guarantees.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Please check http://redis.io/topics/persistence for more information.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>appendonly no
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># The name of the append only file (default: &#34;appendonly.aof&#34;)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>appendfilename <span class=s2>&#34;appendonly.aof&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># The fsync() call tells the Operating System to actually write data on disk</span>
+</span></span><span class=line><span class=cl><span class=c1># instead of waiting for more data in the output buffer. Some OS will really flush</span>
+</span></span><span class=line><span class=cl><span class=c1># data on disk, some other OS will just try to do it ASAP.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Redis supports three different modes:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># no: don&#39;t fsync, just let the OS flush the data when it wants. Faster.</span>
+</span></span><span class=line><span class=cl><span class=c1># always: fsync after every write to the append only log. Slow, Safest.</span>
+</span></span><span class=line><span class=cl><span class=c1># everysec: fsync only one time every second. Compromise.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># The default is &#34;everysec&#34;, as that&#39;s usually the right compromise between</span>
+</span></span><span class=line><span class=cl><span class=c1># speed and data safety. It&#39;s up to you to understand if you can relax this to</span>
+</span></span><span class=line><span class=cl><span class=c1># &#34;no&#34; that will let the operating system flush the output buffer when</span>
+</span></span><span class=line><span class=cl><span class=c1># it wants, for better performances (but if you can live with the idea of</span>
+</span></span><span class=line><span class=cl><span class=c1># some data loss consider the default persistence mode that&#39;s snapshotting),</span>
+</span></span><span class=line><span class=cl><span class=c1># or on the contrary, use &#34;always&#34; that&#39;s very slow but a bit safer than</span>
+</span></span><span class=line><span class=cl><span class=c1># everysec.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># More details please check the following article:</span>
+</span></span><span class=line><span class=cl><span class=c1># http://antirez.com/post/redis-persistence-demystified.html</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># If unsure, use &#34;everysec&#34;.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># appendfsync always</span>
+</span></span><span class=line><span class=cl>appendfsync everysec
+</span></span><span class=line><span class=cl><span class=c1># appendfsync no</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># When the AOF fsync policy is set to always or everysec, and a background</span>
+</span></span><span class=line><span class=cl><span class=c1># saving process (a background save or AOF log background rewriting) is</span>
+</span></span><span class=line><span class=cl><span class=c1># performing a lot of IO against the disk, in some Linux configurations</span>
+</span></span><span class=line><span class=cl><span class=c1># Redis may block too long on the fsync() call. Note that there is no fix for</span>
+</span></span><span class=line><span class=cl><span class=c1># this currently, as even performing fsync in a different thread will block</span>
+</span></span><span class=line><span class=cl><span class=c1># our synchronous write(2) call.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># In order to mitigate this problem it&#39;s possible to use the following option</span>
+</span></span><span class=line><span class=cl><span class=c1># that will prevent fsync() from being called in the main process while a</span>
+</span></span><span class=line><span class=cl><span class=c1># BGSAVE or BGREWRITEAOF is in progress.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># This means that while another child is saving, the durability of Redis is</span>
+</span></span><span class=line><span class=cl><span class=c1># the same as &#34;appendfsync none&#34;. In practical terms, this means that it is</span>
+</span></span><span class=line><span class=cl><span class=c1># possible to lose up to 30 seconds of log in the worst scenario (with the</span>
+</span></span><span class=line><span class=cl><span class=c1># default Linux settings).</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># If you have latency problems turn this to &#34;yes&#34;. Otherwise leave it as</span>
+</span></span><span class=line><span class=cl><span class=c1># &#34;no&#34; that is the safest pick from the point of view of durability.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>no-appendfsync-on-rewrite no
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Automatic rewrite of the append only file.</span>
+</span></span><span class=line><span class=cl><span class=c1># Redis is able to automatically rewrite the log file implicitly calling</span>
+</span></span><span class=line><span class=cl><span class=c1># BGREWRITEAOF when the AOF log size grows by the specified percentage.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># This is how it works: Redis remembers the size of the AOF file after the</span>
+</span></span><span class=line><span class=cl><span class=c1># latest rewrite (if no rewrite has happened since the restart, the size of</span>
+</span></span><span class=line><span class=cl><span class=c1># the AOF at startup is used).</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># This base size is compared to the current size. If the current size is</span>
+</span></span><span class=line><span class=cl><span class=c1># bigger than the specified percentage, the rewrite is triggered. Also</span>
+</span></span><span class=line><span class=cl><span class=c1># you need to specify a minimal size for the AOF file to be rewritten, this</span>
+</span></span><span class=line><span class=cl><span class=c1># is useful to avoid rewriting the AOF file even if the percentage increase</span>
+</span></span><span class=line><span class=cl><span class=c1># is reached but it is still pretty small.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Specify a percentage of zero in order to disable the automatic AOF</span>
+</span></span><span class=line><span class=cl><span class=c1># rewrite feature.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>auto-aof-rewrite-percentage <span class=m>100</span>
+</span></span><span class=line><span class=cl>auto-aof-rewrite-min-size 64mb
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># An AOF file may be found to be truncated at the end during the Redis</span>
+</span></span><span class=line><span class=cl><span class=c1># startup process, when the AOF data gets loaded back into memory.</span>
+</span></span><span class=line><span class=cl><span class=c1># This may happen when the system where Redis is running</span>
+</span></span><span class=line><span class=cl><span class=c1># crashes, especially when an ext4 filesystem is mounted without the</span>
+</span></span><span class=line><span class=cl><span class=c1># data=ordered option (however this can&#39;t happen when Redis itself</span>
+</span></span><span class=line><span class=cl><span class=c1># crashes or aborts but the operating system still works correctly).</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Redis can either exit with an error when this happens, or load as much</span>
+</span></span><span class=line><span class=cl><span class=c1># data as possible (the default now) and start if the AOF file is found</span>
+</span></span><span class=line><span class=cl><span class=c1># to be truncated at the end. The following option controls this behavior.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># If aof-load-truncated is set to yes, a truncated AOF file is loaded and</span>
+</span></span><span class=line><span class=cl><span class=c1># the Redis server starts emitting a log to inform the user of the event.</span>
+</span></span><span class=line><span class=cl><span class=c1># Otherwise if the option is set to no, the server aborts with an error</span>
+</span></span><span class=line><span class=cl><span class=c1># and refuses to start. When the option is set to no, the user requires</span>
+</span></span><span class=line><span class=cl><span class=c1># to fix the AOF file using the &#34;redis-check-aof&#34; utility before to restart</span>
+</span></span><span class=line><span class=cl><span class=c1># the server.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Note that if the AOF file will be found to be corrupted in the middle</span>
+</span></span><span class=line><span class=cl><span class=c1># the server will still exit with an error. This option only applies when</span>
+</span></span><span class=line><span class=cl><span class=c1># Redis will try to read more data from the AOF file but not enough bytes</span>
+</span></span><span class=line><span class=cl><span class=c1># will be found.</span>
+</span></span><span class=line><span class=cl>aof-load-truncated yes
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>################################ LUA SCRIPTING  ###############################</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Max execution time of a Lua script in milliseconds.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># If the maximum execution time is reached Redis will log that a script is</span>
+</span></span><span class=line><span class=cl><span class=c1># still in execution after the maximum allowed time and will start to</span>
+</span></span><span class=line><span class=cl><span class=c1># reply to queries with an error.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># When a long running script exceeds the maximum execution time only the</span>
+</span></span><span class=line><span class=cl><span class=c1># SCRIPT KILL and SHUTDOWN NOSAVE commands are available. The first can be</span>
+</span></span><span class=line><span class=cl><span class=c1># used to stop a script that did not yet called write commands. The second</span>
+</span></span><span class=line><span class=cl><span class=c1># is the only way to shut down the server in the case a write command was</span>
+</span></span><span class=line><span class=cl><span class=c1># already issued by the script but the user doesn&#39;t want to wait for the natural</span>
+</span></span><span class=line><span class=cl><span class=c1># termination of the script.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Set it to 0 or a negative value for unlimited execution without warnings.</span>
+</span></span><span class=line><span class=cl>lua-time-limit <span class=m>5000</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>################################ REDIS CLUSTER  ###############################</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</span>
+</span></span><span class=line><span class=cl><span class=c1># WARNING EXPERIMENTAL: Redis Cluster is considered to be stable code, however</span>
+</span></span><span class=line><span class=cl><span class=c1># in order to mark it as &#34;mature&#34; we need to wait for a non trivial percentage</span>
+</span></span><span class=line><span class=cl><span class=c1># of users to deploy it in production.</span>
+</span></span><span class=line><span class=cl><span class=c1># ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Normal Redis instances can&#39;t be part of a Redis Cluster; only nodes that are</span>
+</span></span><span class=line><span class=cl><span class=c1># started as cluster nodes can. In order to start a Redis instance as a</span>
+</span></span><span class=line><span class=cl><span class=c1># cluster node enable the cluster support uncommenting the following:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># cluster-enabled yes</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Every cluster node has a cluster configuration file. This file is not</span>
+</span></span><span class=line><span class=cl><span class=c1># intended to be edited by hand. It is created and updated by Redis nodes.</span>
+</span></span><span class=line><span class=cl><span class=c1># Every Redis Cluster node requires a different cluster configuration file.</span>
+</span></span><span class=line><span class=cl><span class=c1># Make sure that instances running in the same system do not have</span>
+</span></span><span class=line><span class=cl><span class=c1># overlapping cluster configuration file names.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># cluster-config-file nodes-6379.conf</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Cluster node timeout is the amount of milliseconds a node must be unreachable</span>
+</span></span><span class=line><span class=cl><span class=c1># for it to be considered in failure state.</span>
+</span></span><span class=line><span class=cl><span class=c1># Most other internal time limits are multiple of the node timeout.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># cluster-node-timeout 15000</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># A slave of a failing master will avoid to start a failover if its data</span>
+</span></span><span class=line><span class=cl><span class=c1># looks too old.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># There is no simple way for a slave to actually have a exact measure of</span>
+</span></span><span class=line><span class=cl><span class=c1># its &#34;data age&#34;, so the following two checks are performed:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># 1) If there are multiple slaves able to failover, they exchange messages</span>
+</span></span><span class=line><span class=cl><span class=c1>#    in order to try to give an advantage to the slave with the best</span>
+</span></span><span class=line><span class=cl><span class=c1>#    replication offset (more data from the master processed).</span>
+</span></span><span class=line><span class=cl><span class=c1>#    Slaves will try to get their rank by offset, and apply to the start</span>
+</span></span><span class=line><span class=cl><span class=c1>#    of the failover a delay proportional to their rank.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># 2) Every single slave computes the time of the last interaction with</span>
+</span></span><span class=line><span class=cl><span class=c1>#    its master. This can be the last ping or command received (if the master</span>
+</span></span><span class=line><span class=cl><span class=c1>#    is still in the &#34;connected&#34; state), or the time that elapsed since the</span>
+</span></span><span class=line><span class=cl><span class=c1>#    disconnection with the master (if the replication link is currently down).</span>
+</span></span><span class=line><span class=cl><span class=c1>#    If the last interaction is too old, the slave will not try to failover</span>
+</span></span><span class=line><span class=cl><span class=c1>#    at all.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># The point &#34;2&#34; can be tuned by user. Specifically a slave will not perform</span>
+</span></span><span class=line><span class=cl><span class=c1># the failover if, since the last interaction with the master, the time</span>
+</span></span><span class=line><span class=cl><span class=c1># elapsed is greater than:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1>#   (node-timeout * slave-validity-factor) + repl-ping-slave-period</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># So for example if node-timeout is 30 seconds, and the slave-validity-factor</span>
+</span></span><span class=line><span class=cl><span class=c1># is 10, and assuming a default repl-ping-slave-period of 10 seconds, the</span>
+</span></span><span class=line><span class=cl><span class=c1># slave will not try to failover if it was not able to talk with the master</span>
+</span></span><span class=line><span class=cl><span class=c1># for longer than 310 seconds.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># A large slave-validity-factor may allow slaves with too old data to failover</span>
+</span></span><span class=line><span class=cl><span class=c1># a master, while a too small value may prevent the cluster from being able to</span>
+</span></span><span class=line><span class=cl><span class=c1># elect a slave at all.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># For maximum availability, it is possible to set the slave-validity-factor</span>
+</span></span><span class=line><span class=cl><span class=c1># to a value of 0, which means, that slaves will always try to failover the</span>
+</span></span><span class=line><span class=cl><span class=c1># master regardless of the last time they interacted with the master.</span>
+</span></span><span class=line><span class=cl><span class=c1># (However they&#39;ll always try to apply a delay proportional to their</span>
+</span></span><span class=line><span class=cl><span class=c1># offset rank).</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Zero is the only value able to guarantee that when all the partitions heal</span>
+</span></span><span class=line><span class=cl><span class=c1># the cluster will always be able to continue.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># cluster-slave-validity-factor 10</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Cluster slaves are able to migrate to orphaned masters, that are masters</span>
+</span></span><span class=line><span class=cl><span class=c1># that are left without working slaves. This improves the cluster ability</span>
+</span></span><span class=line><span class=cl><span class=c1># to resist to failures as otherwise an orphaned master can&#39;t be failed over</span>
+</span></span><span class=line><span class=cl><span class=c1># in case of failure if it has no working slaves.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Slaves migrate to orphaned masters only if there are still at least a</span>
+</span></span><span class=line><span class=cl><span class=c1># given number of other working slaves for their old master. This number</span>
+</span></span><span class=line><span class=cl><span class=c1># is the &#34;migration barrier&#34;. A migration barrier of 1 means that a slave</span>
+</span></span><span class=line><span class=cl><span class=c1># will migrate only if there is at least 1 other working slave for its master</span>
+</span></span><span class=line><span class=cl><span class=c1># and so forth. It usually reflects the number of slaves you want for every</span>
+</span></span><span class=line><span class=cl><span class=c1># master in your cluster.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Default is 1 (slaves migrate only if their masters remain with at least</span>
+</span></span><span class=line><span class=cl><span class=c1># one slave). To disable migration just set it to a very large value.</span>
+</span></span><span class=line><span class=cl><span class=c1># A value of 0 can be set but is useful only for debugging and dangerous</span>
+</span></span><span class=line><span class=cl><span class=c1># in production.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># cluster-migration-barrier 1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># By default Redis Cluster nodes stop accepting queries if they detect there</span>
+</span></span><span class=line><span class=cl><span class=c1># is at least an hash slot uncovered (no available node is serving it).</span>
+</span></span><span class=line><span class=cl><span class=c1># This way if the cluster is partially down (for example a range of hash slots</span>
+</span></span><span class=line><span class=cl><span class=c1># are no longer covered) all the cluster becomes, eventually, unavailable.</span>
+</span></span><span class=line><span class=cl><span class=c1># It automatically returns available as soon as all the slots are covered again.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># However sometimes you want the subset of the cluster which is working,</span>
+</span></span><span class=line><span class=cl><span class=c1># to continue to accept queries for the part of the key space that is still</span>
+</span></span><span class=line><span class=cl><span class=c1># covered. In order to do so, just set the cluster-require-full-coverage</span>
+</span></span><span class=line><span class=cl><span class=c1># option to no.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># cluster-require-full-coverage yes</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># In order to setup your cluster make sure to read the documentation</span>
+</span></span><span class=line><span class=cl><span class=c1># available at http://redis.io web site.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>################################## SLOW LOG ###################################</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># The Redis Slow Log is a system to log queries that exceeded a specified</span>
+</span></span><span class=line><span class=cl><span class=c1># execution time. The execution time does not include the IO operations</span>
+</span></span><span class=line><span class=cl><span class=c1># like talking with the client, sending the reply and so forth,</span>
+</span></span><span class=line><span class=cl><span class=c1># but just the time needed to actually execute the command (this is the only</span>
+</span></span><span class=line><span class=cl><span class=c1># stage of command execution where the thread is blocked and can not serve</span>
+</span></span><span class=line><span class=cl><span class=c1># other requests in the meantime).</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># You can configure the slow log with two parameters: one tells Redis</span>
+</span></span><span class=line><span class=cl><span class=c1># what is the execution time, in microseconds, to exceed in order for the</span>
+</span></span><span class=line><span class=cl><span class=c1># command to get logged, and the other parameter is the length of the</span>
+</span></span><span class=line><span class=cl><span class=c1># slow log. When a new command is logged the oldest one is removed from the</span>
+</span></span><span class=line><span class=cl><span class=c1># queue of logged commands.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># The following time is expressed in microseconds, so 1000000 is equivalent</span>
+</span></span><span class=line><span class=cl><span class=c1># to one second. Note that a negative number disables the slow log, while</span>
+</span></span><span class=line><span class=cl><span class=c1># a value of zero forces the logging of every command.</span>
+</span></span><span class=line><span class=cl>slowlog-log-slower-than <span class=m>10000</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># There is no limit to this length. Just be aware that it will consume memory.</span>
+</span></span><span class=line><span class=cl><span class=c1># You can reclaim memory used by the slow log with SLOWLOG RESET.</span>
+</span></span><span class=line><span class=cl>slowlog-max-len <span class=m>128</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>################################ LATENCY MONITOR ##############################</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># The Redis latency monitoring subsystem samples different operations</span>
+</span></span><span class=line><span class=cl><span class=c1># at runtime in order to collect data related to possible sources of</span>
+</span></span><span class=line><span class=cl><span class=c1># latency of a Redis instance.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Via the LATENCY command this information is available to the user that can</span>
+</span></span><span class=line><span class=cl><span class=c1># print graphs and obtain reports.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># The system only logs operations that were performed in a time equal or</span>
+</span></span><span class=line><span class=cl><span class=c1># greater than the amount of milliseconds specified via the</span>
+</span></span><span class=line><span class=cl><span class=c1># latency-monitor-threshold configuration directive. When its value is set</span>
+</span></span><span class=line><span class=cl><span class=c1># to zero, the latency monitor is turned off.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># By default latency monitoring is disabled since it is mostly not needed</span>
+</span></span><span class=line><span class=cl><span class=c1># if you don&#39;t have latency issues, and collecting data has a performance</span>
+</span></span><span class=line><span class=cl><span class=c1># impact, that while very small, can be measured under big load. Latency</span>
+</span></span><span class=line><span class=cl><span class=c1># monitoring can easily be enabled at runtime using the command</span>
+</span></span><span class=line><span class=cl><span class=c1># &#34;CONFIG SET latency-monitor-threshold &lt;milliseconds&gt;&#34; if needed.</span>
+</span></span><span class=line><span class=cl>latency-monitor-threshold <span class=m>0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>############################# EVENT NOTIFICATION ##############################</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Redis can notify Pub/Sub clients about events happening in the key space.</span>
+</span></span><span class=line><span class=cl><span class=c1># This feature is documented at http://redis.io/topics/notifications</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># For instance if keyspace events notification is enabled, and a client</span>
+</span></span><span class=line><span class=cl><span class=c1># performs a DEL operation on key &#34;foo&#34; stored in the Database 0, two</span>
+</span></span><span class=line><span class=cl><span class=c1># messages will be published via Pub/Sub:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># PUBLISH __keyspace@0__:foo del</span>
+</span></span><span class=line><span class=cl><span class=c1># PUBLISH __keyevent@0__:del foo</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># It is possible to select the events that Redis will notify among a set</span>
+</span></span><span class=line><span class=cl><span class=c1># of classes. Every class is identified by a single character:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1>#  K     Keyspace events, published with __keyspace@&lt;db&gt;__ prefix.</span>
+</span></span><span class=line><span class=cl><span class=c1>#  E     Keyevent events, published with __keyevent@&lt;db&gt;__ prefix.</span>
+</span></span><span class=line><span class=cl><span class=c1>#  g     Generic commands (non-type specific) like DEL, EXPIRE, RENAME, ...</span>
+</span></span><span class=line><span class=cl><span class=c1>#  $     String commands</span>
+</span></span><span class=line><span class=cl><span class=c1>#  l     List commands</span>
+</span></span><span class=line><span class=cl><span class=c1>#  s     Set commands</span>
+</span></span><span class=line><span class=cl><span class=c1>#  h     Hash commands</span>
+</span></span><span class=line><span class=cl><span class=c1>#  z     Sorted set commands</span>
+</span></span><span class=line><span class=cl><span class=c1>#  x     Expired events (events generated every time a key expires)</span>
+</span></span><span class=line><span class=cl><span class=c1>#  e     Evicted events (events generated when a key is evicted for maxmemory)</span>
+</span></span><span class=line><span class=cl><span class=c1>#  A     Alias for g$lshzxe, so that the &#34;AKE&#34; string means all the events.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1>#  The &#34;notify-keyspace-events&#34; takes as argument a string that is composed</span>
+</span></span><span class=line><span class=cl><span class=c1>#  of zero or multiple characters. The empty string means that notifications</span>
+</span></span><span class=line><span class=cl><span class=c1>#  are disabled.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1>#  Example: to enable list and generic events, from the point of view of the</span>
+</span></span><span class=line><span class=cl><span class=c1>#           event name, use:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1>#  notify-keyspace-events Elg</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1>#  Example 2: to get the stream of the expired keys subscribing to channel</span>
+</span></span><span class=line><span class=cl><span class=c1>#             name __keyevent@0__:expired use:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1>#  notify-keyspace-events Ex</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1>#  By default all notifications are disabled because most users don&#39;t need</span>
+</span></span><span class=line><span class=cl><span class=c1>#  this feature and the feature has some overhead. Note that if you don&#39;t</span>
+</span></span><span class=line><span class=cl><span class=c1>#  specify at least one of K or E, no events will be delivered.</span>
+</span></span><span class=line><span class=cl>notify-keyspace-events <span class=s2>&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>############################### ADVANCED CONFIG ###############################</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Hashes are encoded using a memory efficient data structure when they have a</span>
+</span></span><span class=line><span class=cl><span class=c1># small number of entries, and the biggest entry does not exceed a given</span>
+</span></span><span class=line><span class=cl><span class=c1># threshold. These thresholds can be configured using the following directives.</span>
+</span></span><span class=line><span class=cl>hash-max-ziplist-entries <span class=m>512</span>
+</span></span><span class=line><span class=cl>hash-max-ziplist-value <span class=m>64</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Similarly to hashes, small lists are also encoded in a special way in order</span>
+</span></span><span class=line><span class=cl><span class=c1># to save a lot of space. The special representation is only used when</span>
+</span></span><span class=line><span class=cl><span class=c1># you are under the following limits:</span>
+</span></span><span class=line><span class=cl>list-max-ziplist-entries <span class=m>512</span>
+</span></span><span class=line><span class=cl>list-max-ziplist-value <span class=m>64</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Sets have a special encoding in just one case: when a set is composed</span>
+</span></span><span class=line><span class=cl><span class=c1># of just strings that happen to be integers in radix 10 in the range</span>
+</span></span><span class=line><span class=cl><span class=c1># of 64 bit signed integers.</span>
+</span></span><span class=line><span class=cl><span class=c1># The following configuration setting sets the limit in the size of the</span>
+</span></span><span class=line><span class=cl><span class=c1># set in order to use this special memory saving encoding.</span>
+</span></span><span class=line><span class=cl>set-max-intset-entries <span class=m>512</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Similarly to hashes and lists, sorted sets are also specially encoded in</span>
+</span></span><span class=line><span class=cl><span class=c1># order to save a lot of space. This encoding is only used when the length and</span>
+</span></span><span class=line><span class=cl><span class=c1># elements of a sorted set are below the following limits:</span>
+</span></span><span class=line><span class=cl>zset-max-ziplist-entries <span class=m>128</span>
+</span></span><span class=line><span class=cl>zset-max-ziplist-value <span class=m>64</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># HyperLogLog sparse representation bytes limit. The limit includes the</span>
+</span></span><span class=line><span class=cl><span class=c1># 16 bytes header. When an HyperLogLog using the sparse representation crosses</span>
+</span></span><span class=line><span class=cl><span class=c1># this limit, it is converted into the dense representation.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># A value greater than 16000 is totally useless, since at that point the</span>
+</span></span><span class=line><span class=cl><span class=c1># dense representation is more memory efficient.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># The suggested value is ~ 3000 in order to have the benefits of</span>
+</span></span><span class=line><span class=cl><span class=c1># the space efficient encoding without slowing down too much PFADD,</span>
+</span></span><span class=line><span class=cl><span class=c1># which is O(N) with the sparse encoding. The value can be raised to</span>
+</span></span><span class=line><span class=cl><span class=c1># ~ 10000 when CPU is not a concern, but space is, and the data set is</span>
+</span></span><span class=line><span class=cl><span class=c1># composed of many HyperLogLogs with cardinality in the 0 - 15000 range.</span>
+</span></span><span class=line><span class=cl>hll-sparse-max-bytes <span class=m>3000</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Active rehashing uses 1 millisecond every 100 milliseconds of CPU time in</span>
+</span></span><span class=line><span class=cl><span class=c1># order to help rehashing the main Redis hash table (the one mapping top-level</span>
+</span></span><span class=line><span class=cl><span class=c1># keys to values). The hash table implementation Redis uses (see dict.c)</span>
+</span></span><span class=line><span class=cl><span class=c1># performs a lazy rehashing: the more operation you run into a hash table</span>
+</span></span><span class=line><span class=cl><span class=c1># that is rehashing, the more rehashing &#34;steps&#34; are performed, so if the</span>
+</span></span><span class=line><span class=cl><span class=c1># server is idle the rehashing is never complete and some more memory is used</span>
+</span></span><span class=line><span class=cl><span class=c1># by the hash table.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># The default is to use this millisecond 10 times every second in order to</span>
+</span></span><span class=line><span class=cl><span class=c1># actively rehash the main dictionaries, freeing memory when possible.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># If unsure:</span>
+</span></span><span class=line><span class=cl><span class=c1># use &#34;activerehashing no&#34; if you have hard latency requirements and it is</span>
+</span></span><span class=line><span class=cl><span class=c1># not a good thing in your environment that Redis can reply from time to time</span>
+</span></span><span class=line><span class=cl><span class=c1># to queries with 2 milliseconds delay.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># use &#34;activerehashing yes&#34; if you don&#39;t have such hard requirements but</span>
+</span></span><span class=line><span class=cl><span class=c1># want to free memory asap when possible.</span>
+</span></span><span class=line><span class=cl>activerehashing yes
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># The client output buffer limits can be used to force disconnection of clients</span>
+</span></span><span class=line><span class=cl><span class=c1># that are not reading data from the server fast enough for some reason (a</span>
+</span></span><span class=line><span class=cl><span class=c1># common reason is that a Pub/Sub client can&#39;t consume messages as fast as the</span>
+</span></span><span class=line><span class=cl><span class=c1># publisher can produce them).</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># The limit can be set differently for the three different classes of clients:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># normal -&gt; normal clients including MONITOR clients</span>
+</span></span><span class=line><span class=cl><span class=c1># slave  -&gt; slave clients</span>
+</span></span><span class=line><span class=cl><span class=c1># pubsub -&gt; clients subscribed to at least one pubsub channel or pattern</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># The syntax of every client-output-buffer-limit directive is the following:</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># client-output-buffer-limit &lt;class&gt; &lt;hard limit&gt; &lt;soft limit&gt; &lt;soft seconds&gt;</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># A client is immediately disconnected once the hard limit is reached, or if</span>
+</span></span><span class=line><span class=cl><span class=c1># the soft limit is reached and remains reached for the specified number of</span>
+</span></span><span class=line><span class=cl><span class=c1># seconds (continuously).</span>
+</span></span><span class=line><span class=cl><span class=c1># So for instance if the hard limit is 32 megabytes and the soft limit is</span>
+</span></span><span class=line><span class=cl><span class=c1># 16 megabytes / 10 seconds, the client will get disconnected immediately</span>
+</span></span><span class=line><span class=cl><span class=c1># if the size of the output buffers reach 32 megabytes, but will also get</span>
+</span></span><span class=line><span class=cl><span class=c1># disconnected if the client reaches 16 megabytes and continuously overcomes</span>
+</span></span><span class=line><span class=cl><span class=c1># the limit for 10 seconds.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># By default normal clients are not limited because they don&#39;t receive data</span>
+</span></span><span class=line><span class=cl><span class=c1># without asking (in a push way), but just after a request, so only</span>
+</span></span><span class=line><span class=cl><span class=c1># asynchronous clients may create a scenario where data is requested faster</span>
+</span></span><span class=line><span class=cl><span class=c1># than it can read.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Instead there is a default limit for pubsub and slave clients, since</span>
+</span></span><span class=line><span class=cl><span class=c1># subscribers and slaves receive data in a push fashion.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Both the hard or the soft limit can be disabled by setting them to zero.</span>
+</span></span><span class=line><span class=cl>client-output-buffer-limit normal <span class=m>0</span> <span class=m>0</span> <span class=m>0</span>
+</span></span><span class=line><span class=cl>client-output-buffer-limit slave 256mb 64mb <span class=m>60</span>
+</span></span><span class=line><span class=cl>client-output-buffer-limit pubsub 32mb 8mb <span class=m>60</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Redis calls an internal function to perform many background tasks, like</span>
+</span></span><span class=line><span class=cl><span class=c1># closing connections of clients in timeout, purging expired keys that are</span>
+</span></span><span class=line><span class=cl><span class=c1># never requested, and so forth.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># Not all tasks are performed with the same frequency, but Redis checks for</span>
+</span></span><span class=line><span class=cl><span class=c1># tasks to perform according to the specified &#34;hz&#34; value.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># By default &#34;hz&#34; is set to 10. Raising the value will use more CPU when</span>
+</span></span><span class=line><span class=cl><span class=c1># Redis is idle, but at the same time will make Redis more responsive when</span>
+</span></span><span class=line><span class=cl><span class=c1># there are many keys expiring at the same time, and timeouts may be</span>
+</span></span><span class=line><span class=cl><span class=c1># handled with more precision.</span>
+</span></span><span class=line><span class=cl><span class=c1>#</span>
+</span></span><span class=line><span class=cl><span class=c1># The range is between 1 and 500, however a value over 100 is usually not</span>
+</span></span><span class=line><span class=cl><span class=c1># a good idea. Most users should use the default of 10 and raise this up to</span>
+</span></span><span class=line><span class=cl><span class=c1># 100 only in environments where very low latency is required.</span>
+</span></span><span class=line><span class=cl>hz <span class=m>10</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># When a child rewrites the AOF file, if the following option is enabled</span>
+</span></span><span class=line><span class=cl><span class=c1># the file will be fsync-ed every 32 MB of data generated. This is useful</span>
+</span></span><span class=line><span class=cl><span class=c1># in order to commit the file to the disk more incrementally and avoid</span>
+</span></span><span class=line><span class=cl><span class=c1># big latency spikes.</span>
+</span></span><span class=line><span class=cl>aof-rewrite-incremental-fsync yes
+</span></span></code></pre></div></div><div class=article-widget><div class="container-xl row post-nav"><div class="col-6 post-nav-item"><div class=meta-nav>下一页</div><a href=/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/2.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/ rel=prev>性能优化</a></div></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div><script type=text/javascript id=clstr_globe async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
+<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
+<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
+<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
+<script id=dsq-count-scr src=https://ngte.disqus.com/count.js async></script>
+<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
+<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
+<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
+<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>

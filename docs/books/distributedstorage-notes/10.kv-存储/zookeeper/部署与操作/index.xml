@@ -1,0 +1,820 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>部署与操作 | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/distributedstorage-notes/10.kv-%E5%AD%98%E5%82%A8/zookeeper/%E9%83%A8%E7%BD%B2%E4%B8%8E%E6%93%8D%E4%BD%9C/</link><atom:link href="https://ng-tech.icu/books/distributedstorage-notes/10.kv-%E5%AD%98%E5%82%A8/zookeeper/%E9%83%A8%E7%BD%B2%E4%B8%8E%E6%93%8D%E4%BD%9C/index.xml" rel="self" type="application/rss+xml"/><description>部署与操作</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>部署与操作</title><link>https://ng-tech.icu/books/distributedstorage-notes/10.kv-%E5%AD%98%E5%82%A8/zookeeper/%E9%83%A8%E7%BD%B2%E4%B8%8E%E6%93%8D%E4%BD%9C/</link></image><item><title>ACL</title><link>https://ng-tech.icu/books/distributedstorage-notes/10.kv-%E5%AD%98%E5%82%A8/zookeeper/%E9%83%A8%E7%BD%B2%E4%B8%8E%E6%93%8D%E4%BD%9C/acl/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/distributedstorage-notes/10.kv-%E5%AD%98%E5%82%A8/zookeeper/%E9%83%A8%E7%BD%B2%E4%B8%8E%E6%93%8D%E4%BD%9C/acl/</guid><description>&lt;h1 id="zookeeper-acl">Zookeeper ACL&lt;/h1>
+&lt;h2 id="一前言">一、前言&lt;/h2>
+&lt;p>为了避免存储在 Zookeeper 上的数据被其他程序或者人为误修改，Zookeeper 提供了 ACL(Access Control Lists) 进行权限控制。只有拥有对应权限的用户才可以对节点进行增删改查等操作。下文分别介绍使用原生的 Shell 命令和 Apache Curator 客户端进行权限设置。&lt;/p>
+&lt;h2 id="二使用-shell-进行权限管理">二、使用 Shell 进行权限管理&lt;/h2>
+&lt;h3 id="21-设置与查看权限">2.1 设置与查看权限&lt;/h3>
+&lt;p>想要给某个节点设置权限 (ACL)，有以下两个可选的命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl"> &lt;span class="c1"># 1.给已有节点赋予权限&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> setAcl path acl
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1"># 2.在创建节点时候指定权限&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> create &lt;span class="o">[&lt;/span>-s&lt;span class="o">]&lt;/span> &lt;span class="o">[&lt;/span>-e&lt;span class="o">]&lt;/span> path data acl
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>查看指定节点的权限命令如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">getAcl path
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="22-权限组成">2.2 权限组成&lt;/h3>
+&lt;p>Zookeeper 的权限由[scheme : id :permissions]三部分组成，其中 Schemes 和 Permissions 内置的可选项分别如下：&lt;/p>
+&lt;p>&lt;strong>Permissions 可选项&lt;/strong>：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>CREATE&lt;/strong>：允许创建子节点；&lt;/li>
+&lt;li>&lt;strong>READ&lt;/strong>：允许从节点获取数据并列出其子节点；&lt;/li>
+&lt;li>&lt;strong>WRITE&lt;/strong>：允许为节点设置数据；&lt;/li>
+&lt;li>&lt;strong>DELETE&lt;/strong>：允许删除子节点；&lt;/li>
+&lt;li>&lt;strong>ADMIN&lt;/strong>：允许为节点设置权限。&lt;/li>
+&lt;/ul>
+&lt;p>&lt;strong>Schemes 可选项&lt;/strong>：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>world&lt;/strong>：默认模式，所有客户端都拥有指定的权限。world 下只有一个 id 选项，就是 anyone，通常组合写法为 &lt;code>world:anyone:[permissons]&lt;/code>；&lt;/li>
+&lt;li>&lt;strong>auth&lt;/strong>：只有经过认证的用户才拥有指定的权限。通常组合写法为 &lt;code>auth:user:password:[permissons]&lt;/code>，使用这种模式时，你需要先进行登录，之后采用 auth 模式设置权限时，&lt;code>user&lt;/code> 和 &lt;code>password&lt;/code> 都将使用登录的用户名和密码；&lt;/li>
+&lt;li>&lt;strong>digest&lt;/strong>：只有经过认证的用户才拥有指定的权限。通常组合写法为 &lt;code>auth:user:BASE64(SHA1(password)):[permissons]&lt;/code>，这种形式下的密码必须通过 SHA1 和 BASE64 进行双重加密；&lt;/li>
+&lt;li>&lt;strong>ip&lt;/strong>：限制只有特定 IP 的客户端才拥有指定的权限。通常组成写法为 &lt;code>ip:182.168.0.168:[permissions]&lt;/code>；&lt;/li>
+&lt;li>&lt;strong>super&lt;/strong>：代表超级管理员，拥有所有的权限，需要修改 Zookeeper 启动脚本进行配置。&lt;/li>
+&lt;/ul>
+&lt;h3 id="23-添加认证信息">2.3 添加认证信息&lt;/h3>
+&lt;p>可以使用如下所示的命令为当前 Session 添加用户认证信息，等价于登录操作。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 格式&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">addauth scheme auth
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">#示例：添加用户名为heibai,密码为root的用户认证信息&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">addauth digest heibai:root
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="24-权限设置示例">2.4 权限设置示例&lt;/h3>
+&lt;h4 id="1-world-模式">1. world 模式&lt;/h4>
+&lt;p>world 是一种默认的模式，即创建时如果不指定权限，则默认的权限就是 world。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 32&lt;span class="o">]&lt;/span> create /hadoop &lt;span class="m">123&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Created /hadoop
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 33&lt;span class="o">]&lt;/span> getAcl /hadoop
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s1">&amp;#39;world,&amp;#39;&lt;/span>anyone &lt;span class="c1">#默认的权限&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">: cdrwa
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 34&lt;span class="o">]&lt;/span> setAcl /hadoop world:anyone:cwda &lt;span class="c1"># 修改节点，不允许所有客户端读&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">....
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 35&lt;span class="o">]&lt;/span> get /hadoop
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Authentication is not valid : /hadoop &lt;span class="c1"># 权限不足&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h4 id="2-auth-模式">2. auth 模式&lt;/h4>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 36&lt;span class="o">]&lt;/span> addauth digest heibai:heibai &lt;span class="c1"># 登录&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 37&lt;span class="o">]&lt;/span> setAcl /hadoop auth::cdrwa &lt;span class="c1"># 设置权限&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 38&lt;span class="o">]&lt;/span> getAcl /hadoop &lt;span class="c1"># 获取权限&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s1">&amp;#39;digest,&amp;#39;&lt;/span>heibai:sCxtVJ1gPG8UW/jzFHR0A1ZKY5s&lt;span class="o">=&lt;/span> &lt;span class="c1">#用户名和密码 (密码经过加密处理)，注意返回的权限类型是 digest&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">: cdrwa
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">#用户名和密码都是使用登录的用户名和密码，即使你在创建权限时候进行指定也是无效的&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 39&lt;span class="o">]&lt;/span> setAcl /hadoop auth:root:root:cdrwa &lt;span class="c1">#指定用户名和密码为 root&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 40&lt;span class="o">]&lt;/span> getAcl /hadoop
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s1">&amp;#39;digest,&amp;#39;&lt;/span>heibai:sCxtVJ1gPG8UW/jzFHR0A1ZKY5s&lt;span class="o">=&lt;/span> &lt;span class="c1">#无效，使用的用户名和密码依然还是 heibai&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">: cdrwa
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h4 id="3-digest-模式">3. digest 模式&lt;/h4>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk:44&lt;span class="o">]&lt;/span> create /spark &lt;span class="s2">&amp;#34;spark&amp;#34;&lt;/span> digest:heibai:sCxtVJ1gPG8UW/jzFHR0A1ZKY5s&lt;span class="o">=&lt;/span>:cdrwa &lt;span class="c1">#指定用户名和加密后的密码&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk:45&lt;span class="o">]&lt;/span> getAcl /spark &lt;span class="c1">#获取权限&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s1">&amp;#39;digest,&amp;#39;&lt;/span>heibai:sCxtVJ1gPG8UW/jzFHR0A1ZKY5s&lt;span class="o">=&lt;/span> &lt;span class="c1"># 返回的权限类型是 digest&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">: cdrwa
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>到这里你可以发现使用 &lt;code>auth&lt;/code> 模式设置的权限和使用 &lt;code>digest&lt;/code> 模式设置的权限，在最终结果上，得到的权限模式都是 &lt;code>digest&lt;/code>。某种程度上，你可以把 &lt;code>auth&lt;/code> 模式理解成是 &lt;code>digest&lt;/code> 模式的一种简便实现。因为在 &lt;code>digest&lt;/code> 模式下，每次设置都需要书写用户名和加密后的密码，这是比较繁琐的，采用 &lt;code>auth&lt;/code> 模式就可以避免这种麻烦。&lt;/p>
+&lt;h4 id="4-ip-模式">4. ip 模式&lt;/h4>
+&lt;p>限定只有特定的 ip 才能访问。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 46&lt;span class="o">]&lt;/span> create /hive &lt;span class="s2">&amp;#34;hive&amp;#34;&lt;/span> ip:192.168.0.108:cdrwa
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 47&lt;span class="o">]&lt;/span> get /hive
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Authentication is not valid : /hive &lt;span class="c1"># 当前主机已经不能访问&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这里可以看到当前主机已经不能访问，想要能够再次访问，可以使用对应 IP 的客户端，或使用下面介绍的 &lt;code>super&lt;/code> 模式。&lt;/p>
+&lt;h4 id="5-super-模式">5. super 模式&lt;/h4>
+&lt;p>需要修改启动脚本 &lt;code>zkServer.sh&lt;/code>，并在指定位置添加超级管理员账户和密码信息：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="s2">&amp;#34;-Dzookeeper.DigestAuthenticationProvider.superDigest=heibai:sCxtVJ1gPG8UW/jzFHR0A1ZKY5s=&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/BigData-Notes/raw/master/pictures/zookeeper-super.png"/> &lt;/div>
+&lt;p>修改完成后需要使用 &lt;code>zkServer.sh restart&lt;/code> 重启服务，此时再次访问限制 IP 的节点：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 0&lt;span class="o">]&lt;/span> get /hive &lt;span class="c1">#访问受限&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Authentication is not valid : /hive
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 1&lt;span class="o">]&lt;/span> addauth digest heibai:heibai &lt;span class="c1"># 登录 (添加认证信息)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 2&lt;span class="o">]&lt;/span> get /hive &lt;span class="c1">#成功访问&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">hive
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">cZxid&lt;/span> &lt;span class="o">=&lt;/span> 0x158
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ctime&lt;/span> &lt;span class="o">=&lt;/span> Sat May &lt;span class="m">25&lt;/span> 09:11:29 CST &lt;span class="m">2019&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">mZxid&lt;/span> &lt;span class="o">=&lt;/span> 0x158
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">mtime&lt;/span> &lt;span class="o">=&lt;/span> Sat May &lt;span class="m">25&lt;/span> 09:11:29 CST &lt;span class="m">2019&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">pZxid&lt;/span> &lt;span class="o">=&lt;/span> 0x158
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">cversion&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">dataVersion&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">aclVersion&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ephemeralOwner&lt;/span> &lt;span class="o">=&lt;/span> 0x0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">dataLength&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">4&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">numChildren&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="三使用-java-客户端进行权限管理">三、使用 Java 客户端进行权限管理&lt;/h2>
+&lt;h3 id="31-主要依赖">3.1 主要依赖&lt;/h3>
+&lt;p>这里以 Apache Curator 为例，使用前需要导入相关依赖，完整依赖如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;dependencies&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!--Apache Curator 相关依赖--&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;groupId&amp;gt;&lt;/span>org.apache.curator&lt;span class="nt">&amp;lt;/groupId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;artifactId&amp;gt;&lt;/span>curator-framework&lt;span class="nt">&amp;lt;/artifactId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;version&amp;gt;&lt;/span>4.0.0&lt;span class="nt">&amp;lt;/version&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;groupId&amp;gt;&lt;/span>org.apache.curator&lt;span class="nt">&amp;lt;/groupId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;artifactId&amp;gt;&lt;/span>curator-recipes&lt;span class="nt">&amp;lt;/artifactId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;version&amp;gt;&lt;/span>4.0.0&lt;span class="nt">&amp;lt;/version&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;groupId&amp;gt;&lt;/span>org.apache.zookeeper&lt;span class="nt">&amp;lt;/groupId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;artifactId&amp;gt;&lt;/span>zookeeper&lt;span class="nt">&amp;lt;/artifactId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;version&amp;gt;&lt;/span>3.4.13&lt;span class="nt">&amp;lt;/version&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!--单元测试相关依赖--&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;groupId&amp;gt;&lt;/span>junit&lt;span class="nt">&amp;lt;/groupId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;artifactId&amp;gt;&lt;/span>junit&lt;span class="nt">&amp;lt;/artifactId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;version&amp;gt;&lt;/span>4.12&lt;span class="nt">&amp;lt;/version&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/dependencies&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="32-权限管理-api">3.2 权限管理 API&lt;/h3>
+&lt;p>Apache Curator 权限设置的示例如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">AclOperation&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="n">CuratorFramework&lt;/span> &lt;span class="n">client&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="kc">null&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kd">final&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="n">zkServerPath&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s">&amp;#34;192.168.0.226:2181&amp;#34;&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kd">final&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="n">nodePath&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s">&amp;#34;/hadoop/hdfs&amp;#34;&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nd">@Before&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">prepare&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">RetryPolicy&lt;/span> &lt;span class="n">retryPolicy&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">RetryNTimes&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="mi">5000&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">client&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">CuratorFrameworkFactory&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">builder&lt;/span>&lt;span class="o">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">authorization&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;digest&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;heibai:123456&amp;#34;&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getBytes&lt;/span>&lt;span class="o">())&lt;/span> &lt;span class="c1">//等价于 addauth 命令
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="o">.&lt;/span>&lt;span class="na">connectString&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">zkServerPath&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">sessionTimeoutMs&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">10000&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">retryPolicy&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">retryPolicy&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">namespace&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;workspace&amp;#34;&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">build&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">client&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">start&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cm">/**
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * 新建节点并赋予权限
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nd">@Test&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">createNodesWithAcl&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="kd">throws&lt;/span> &lt;span class="n">Exception&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">List&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">ACL&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">aclList&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">ArrayList&lt;/span>&lt;span class="o">&amp;lt;&amp;gt;();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 对密码进行加密
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="n">digest1&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">DigestAuthenticationProvider&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">generateDigest&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;heibai:123456&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">String&lt;/span> &lt;span class="n">digest2&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">DigestAuthenticationProvider&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">generateDigest&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;ying:123456&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Id&lt;/span> &lt;span class="n">user01&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">Id&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;digest&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">digest1&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Id&lt;/span> &lt;span class="n">user02&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">Id&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;digest&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">digest2&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 指定所有权限
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">aclList&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">add&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="k">new&lt;/span> &lt;span class="n">ACL&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">Perms&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">ALL&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">user01&lt;/span>&lt;span class="o">));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 如果想要指定权限的组合，中间需要使用 | ,这里的|代表的是位运算中的 按位或
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">aclList&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">add&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="k">new&lt;/span> &lt;span class="n">ACL&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">Perms&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">DELETE&lt;/span> &lt;span class="o">|&lt;/span> &lt;span class="n">Perms&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">CREATE&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">user02&lt;/span>&lt;span class="o">));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 创建节点
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="kt">byte&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">data&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s">&amp;#34;abc&amp;#34;&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getBytes&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">client&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">create&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">creatingParentsIfNeeded&lt;/span>&lt;span class="o">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">withMode&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">CreateMode&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">PERSISTENT&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">withACL&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">aclList&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kc">true&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">forPath&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">nodePath&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">data&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cm">/**
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * 给已有节点设置权限,注意这会删除所有原来节点上已有的权限设置
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nd">@Test&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">SetAcl&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="kd">throws&lt;/span> &lt;span class="n">Exception&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">String&lt;/span> &lt;span class="n">digest&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">DigestAuthenticationProvider&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">generateDigest&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;admin:admin&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Id&lt;/span> &lt;span class="n">user&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">Id&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;digest&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">digest&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">client&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">setACL&lt;/span>&lt;span class="o">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">withACL&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">Collections&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">singletonList&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="k">new&lt;/span> &lt;span class="n">ACL&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">Perms&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">READ&lt;/span> &lt;span class="o">|&lt;/span> &lt;span class="n">Perms&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">DELETE&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">user&lt;/span>&lt;span class="o">)))&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">forPath&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">nodePath&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cm">/**
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * 获取权限
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nd">@Test&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">getAcl&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="kd">throws&lt;/span> &lt;span class="n">Exception&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">List&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">ACL&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">aclList&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">client&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getACL&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">forPath&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">nodePath&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">ACL&lt;/span> &lt;span class="n">acl&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">aclList&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">get&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">acl&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getId&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">getId&lt;/span>&lt;span class="o">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">+&lt;/span> &lt;span class="s">&amp;#34;是否有删读权限:&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">acl&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getPerms&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">==&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">Perms&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">READ&lt;/span> &lt;span class="o">|&lt;/span> &lt;span class="n">Perms&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">DELETE&lt;/span>&lt;span class="o">)));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nd">@After&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">destroy&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">client&lt;/span> &lt;span class="o">!=&lt;/span> &lt;span class="kc">null&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">client&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">close&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;blockquote>
+&lt;p>完整源码见本仓库： &lt;a href="https://github.com/heibaiying/BigData-Notes/tree/master/code/Zookeeper/curator" target="_blank" rel="noopener">https://github.com/heibaiying/BigData-Notes/tree/master/code/Zookeeper/curator&lt;/a>&lt;/p>
+&lt;/blockquote>
+&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/BigData-Notes/raw/master/pictures/weixin-desc.png"/> &lt;/div></description></item><item><title>Apache Curator</title><link>https://ng-tech.icu/books/distributedstorage-notes/10.kv-%E5%AD%98%E5%82%A8/zookeeper/%E9%83%A8%E7%BD%B2%E4%B8%8E%E6%93%8D%E4%BD%9C/apache-curator/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/distributedstorage-notes/10.kv-%E5%AD%98%E5%82%A8/zookeeper/%E9%83%A8%E7%BD%B2%E4%B8%8E%E6%93%8D%E4%BD%9C/apache-curator/</guid><description>&lt;h1 id="zookeeper-java-客户端-apache-curator">Zookeeper Java 客户端 ——Apache Curator&lt;/h1>
+&lt;h2 id="一基本依赖">一、基本依赖&lt;/h2>
+&lt;p>Curator 是 Netflix 公司开源的一个 Zookeeper 客户端，目前由 Apache 进行维护。与 Zookeeper 原生客户端相比，Curator 的抽象层次更高，功能也更加丰富，是目前 Zookeeper 使用范围最广的 Java 客户端。本篇文章主要讲解其基本使用，项目采用 Maven 构建，以单元测试的方法进行讲解，相关依赖如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;dependencies&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!--Curator 相关依赖--&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;groupId&amp;gt;&lt;/span>org.apache.curator&lt;span class="nt">&amp;lt;/groupId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;artifactId&amp;gt;&lt;/span>curator-framework&lt;span class="nt">&amp;lt;/artifactId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;version&amp;gt;&lt;/span>4.0.0&lt;span class="nt">&amp;lt;/version&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;groupId&amp;gt;&lt;/span>org.apache.curator&lt;span class="nt">&amp;lt;/groupId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;artifactId&amp;gt;&lt;/span>curator-recipes&lt;span class="nt">&amp;lt;/artifactId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;version&amp;gt;&lt;/span>4.0.0&lt;span class="nt">&amp;lt;/version&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;groupId&amp;gt;&lt;/span>org.apache.zookeeper&lt;span class="nt">&amp;lt;/groupId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;artifactId&amp;gt;&lt;/span>zookeeper&lt;span class="nt">&amp;lt;/artifactId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;version&amp;gt;&lt;/span>3.4.13&lt;span class="nt">&amp;lt;/version&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!--单元测试相关依赖--&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;groupId&amp;gt;&lt;/span>junit&lt;span class="nt">&amp;lt;/groupId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;artifactId&amp;gt;&lt;/span>junit&lt;span class="nt">&amp;lt;/artifactId&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;version&amp;gt;&lt;/span>4.12&lt;span class="nt">&amp;lt;/version&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/dependency&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/dependencies&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;blockquote>
+&lt;p>完整源码见本仓库： &lt;a href="https://github.com/heibaiying/BigData-Notes/tree/master/code/Zookeeper/curator" target="_blank" rel="noopener">https://github.com/heibaiying/BigData-Notes/tree/master/code/Zookeeper/curator&lt;/a>&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="二客户端相关操作">二、客户端相关操作&lt;/h2>
+&lt;h3 id="21-创建客户端实例">2.1 创建客户端实例&lt;/h3>
+&lt;p>这里使用 &lt;code>@Before&lt;/code> 在单元测试执行前创建客户端实例，并使用 &lt;code>@After&lt;/code> 在单元测试后关闭客户端连接。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">BasicOperation&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="n">CuratorFramework&lt;/span> &lt;span class="n">client&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="kc">null&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kd">final&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="n">zkServerPath&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s">&amp;#34;192.168.0.226:2181&amp;#34;&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kd">final&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="n">nodePath&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s">&amp;#34;/hadoop/yarn&amp;#34;&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nd">@Before&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">prepare&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 重试策略
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">RetryPolicy&lt;/span> &lt;span class="n">retryPolicy&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">RetryNTimes&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="mi">5000&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">client&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">CuratorFrameworkFactory&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">builder&lt;/span>&lt;span class="o">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">connectString&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">zkServerPath&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">sessionTimeoutMs&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">10000&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">retryPolicy&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">retryPolicy&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">namespace&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;workspace&amp;#34;&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">build&lt;/span>&lt;span class="o">();&lt;/span> &lt;span class="c1">//指定命名空间后，client 的所有路径操作都会以/workspace 开头
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">client&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">start&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nd">@After&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">destroy&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">client&lt;/span> &lt;span class="o">!=&lt;/span> &lt;span class="kc">null&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">client&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">close&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="22-重试策略">2.2 重试策略&lt;/h3>
+&lt;p>在连接 Zookeeper 时，Curator 提供了多种重试策略以满足各种需求，所有重试策略均继承自 &lt;code>RetryPolicy&lt;/code> 接口，如下图：&lt;/p>
+&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/BigData-Notes/raw/master/pictures/curator-retry-policy.png"/> &lt;/div>
+&lt;p>这些重试策略类主要分为以下两类：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>RetryForever&lt;/strong> ：代表一直重试，直到连接成功；&lt;/li>
+&lt;li>&lt;strong>SleepingRetry&lt;/strong> ： 基于一定间隔时间的重试。这里以其子类 &lt;code>ExponentialBackoffRetry&lt;/code> 为例说明，其构造器如下：&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="cm">/**
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * @param baseSleepTimeMs 重试之间等待的初始时间
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * @param maxRetries 最大重试次数
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * @param maxSleepMs 每次重试间隔的最长睡眠时间（毫秒）
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">ExponentialBackoffRetry&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">baseSleepTimeMs&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">maxRetries&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">maxSleepMs&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="23-判断服务状态">2.3 判断服务状态&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-scala" data-lang="scala">&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@Test&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">public&lt;/span> &lt;span class="n">void&lt;/span> &lt;span class="n">getStatus&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nc">CuratorFrameworkState&lt;/span> &lt;span class="n">state&lt;/span> &lt;span class="k">=&lt;/span> &lt;span class="n">client&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">getState&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nc">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;服务是否已经启动:&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">state&lt;/span> &lt;span class="o">==&lt;/span> &lt;span class="nc">CuratorFrameworkState&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="nc">STARTED&lt;/span>&lt;span class="o">));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="三节点增删改查">三、节点增删改查&lt;/h2>
+&lt;h3 id="31-创建节点">3.1 创建节点&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@Test&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">createNodes&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="kd">throws&lt;/span> &lt;span class="n">Exception&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">byte&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">data&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s">&amp;#34;abc&amp;#34;&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getBytes&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">client&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">create&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">creatingParentsIfNeeded&lt;/span>&lt;span class="o">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">withMode&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">CreateMode&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">PERSISTENT&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="c1">//节点类型
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="o">.&lt;/span>&lt;span class="na">withACL&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">ZooDefs&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">Ids&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">OPEN_ACL_UNSAFE&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">forPath&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">nodePath&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">data&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>创建时可以指定节点类型，这里的节点类型和 Zookeeper 原生的一致，全部类型定义在枚举类 &lt;code>CreateMode&lt;/code> 中：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">enum&lt;/span> &lt;span class="n">CreateMode&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 永久节点
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">PERSISTENT&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kc">false&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kc">false&lt;/span>&lt;span class="o">),&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">//永久有序节点
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">PERSISTENT_SEQUENTIAL&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kc">false&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kc">true&lt;/span>&lt;span class="o">),&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 临时节点
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">EPHEMERAL&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kc">true&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kc">false&lt;/span>&lt;span class="o">),&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 临时有序节点
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">EPHEMERAL_SEQUENTIAL&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kc">true&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kc">true&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">....&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="22-获取节点信息">2.2 获取节点信息&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-scala" data-lang="scala">&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@Test&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">public&lt;/span> &lt;span class="n">void&lt;/span> &lt;span class="n">getNode&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="n">throws&lt;/span> &lt;span class="nc">Exception&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nc">Stat&lt;/span> &lt;span class="n">stat&lt;/span> &lt;span class="k">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="nc">Stat&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">byte&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">data&lt;/span> &lt;span class="k">=&lt;/span> &lt;span class="n">client&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">getData&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="n">storingStatIn&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">stat&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="n">forPath&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">nodePath&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nc">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;节点数据:&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="nc">String&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">data&lt;/span>&lt;span class="o">));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nc">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;节点信息:&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">stat&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">toString&lt;/span>&lt;span class="o">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>如上所示，节点信息被封装在 &lt;code>Stat&lt;/code> 类中，其主要属性如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">Stat&lt;/span> &lt;span class="kd">implements&lt;/span> &lt;span class="n">Record&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kt">long&lt;/span> &lt;span class="n">czxid&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kt">long&lt;/span> &lt;span class="n">mzxid&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kt">long&lt;/span> &lt;span class="n">ctime&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kt">long&lt;/span> &lt;span class="n">mtime&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">version&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">cversion&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">aversion&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kt">long&lt;/span> &lt;span class="n">ephemeralOwner&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">dataLength&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">numChildren&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kt">long&lt;/span> &lt;span class="n">pzxid&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">...&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>每个属性的含义如下：&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>&lt;strong>状态属性&lt;/strong>&lt;/th>
+&lt;th>&lt;strong>说明&lt;/strong>&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>czxid&lt;/td>
+&lt;td>数据节点创建时的事务 ID&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>ctime&lt;/td>
+&lt;td>数据节点创建时的时间&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mzxid&lt;/td>
+&lt;td>数据节点最后一次更新时的事务 ID&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mtime&lt;/td>
+&lt;td>数据节点最后一次更新时的时间&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>pzxid&lt;/td>
+&lt;td>数据节点的子节点最后一次被修改时的事务 ID&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>cversion&lt;/td>
+&lt;td>子节点的更改次数&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>version&lt;/td>
+&lt;td>节点数据的更改次数&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>aversion&lt;/td>
+&lt;td>节点的 ACL 的更改次数&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>ephemeralOwner&lt;/td>
+&lt;td>如果节点是临时节点，则表示创建该节点的会话的 SessionID；如果节点是持久节点，则该属性值为 0&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>dataLength&lt;/td>
+&lt;td>数据内容的长度&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>numChildren&lt;/td>
+&lt;td>数据节点当前的子节点个数&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h3 id="23-获取子节点列表">2.3 获取子节点列表&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@Test&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">getChildrenNodes&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="kd">throws&lt;/span> &lt;span class="n">Exception&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">List&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">childNodes&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">client&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getChildren&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">forPath&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;/hadoop&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">s&lt;/span> &lt;span class="o">:&lt;/span> &lt;span class="n">childNodes&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">s&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="24-更新节点">2.4 更新节点&lt;/h3>
+&lt;p>更新时可以传入版本号也可以不传入，如果传入则类似于乐观锁机制，只有在版本号正确的时候才会被更新。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-scala" data-lang="scala">&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@Test&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">public&lt;/span> &lt;span class="n">void&lt;/span> &lt;span class="n">updateNode&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="n">throws&lt;/span> &lt;span class="nc">Exception&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">byte&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">newData&lt;/span> &lt;span class="k">=&lt;/span> &lt;span class="s">&amp;#34;defg&amp;#34;&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">getBytes&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">client&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">setData&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="n">withVersion&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="c1">// 传入版本号，如果版本号错误则拒绝更新操作,并抛出 BadVersion 异常
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="o">.&lt;/span>&lt;span class="n">forPath&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">nodePath&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">newData&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="25-删除节点">2.5 删除节点&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@Test&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">deleteNodes&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="kd">throws&lt;/span> &lt;span class="n">Exception&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">client&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">delete&lt;/span>&lt;span class="o">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">.&lt;/span>&lt;span class="na">guaranteed&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="c1">// 如果删除失败，那么在会继续执行，直到成功
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="o">.&lt;/span>&lt;span class="na">deletingChildrenIfNeeded&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="c1">// 如果有子节点，则递归删除
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="o">.&lt;/span>&lt;span class="na">withVersion&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="c1">// 传入版本号，如果版本号错误则拒绝删除操作,并抛出 BadVersion 异常
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="o">.&lt;/span>&lt;span class="na">forPath&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">nodePath&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="26-判断节点是否存在">2.6 判断节点是否存在&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@Test&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">existNode&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="kd">throws&lt;/span> &lt;span class="n">Exception&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 如果节点存在则返回其状态信息如果不存在则为 null
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">Stat&lt;/span> &lt;span class="n">stat&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">client&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">checkExists&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">forPath&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">nodePath&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="s">&amp;#34;aa/bb/cc&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;节点是否存在:&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="o">!(&lt;/span>&lt;span class="n">stat&lt;/span> &lt;span class="o">==&lt;/span> &lt;span class="kc">null&lt;/span>&lt;span class="o">));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="三监听事件">三、监听事件&lt;/h2>
+&lt;h3 id="31-创建一次性监听">3.1 创建一次性监听&lt;/h3>
+&lt;p>和 Zookeeper 原生监听一样，使用 &lt;code>usingWatcher&lt;/code> 注册的监听是一次性的，即监听只会触发一次，触发后就销毁。示例如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@Test&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">DisposableWatch&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="kd">throws&lt;/span> &lt;span class="n">Exception&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">client&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getData&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">usingWatcher&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="k">new&lt;/span> &lt;span class="n">CuratorWatcher&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">process&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">WatchedEvent&lt;/span> &lt;span class="n">event&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;节点&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">event&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getPath&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="s">&amp;#34;发生了事件:&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">event&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getType&lt;/span>&lt;span class="o">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}).&lt;/span>&lt;span class="na">forPath&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">nodePath&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Thread&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">sleep&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">1000&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="mi">1000&lt;/span>&lt;span class="o">);&lt;/span> &lt;span class="c1">//休眠以观察测试效果
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="32-创建永久监听">3.2 创建永久监听&lt;/h3>
+&lt;p>Curator 还提供了创建永久监听的 API，其使用方式如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@Test&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">permanentWatch&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="kd">throws&lt;/span> &lt;span class="n">Exception&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 使用 NodeCache 包装节点，对其注册的监听作用于节点，且是永久性的
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">NodeCache&lt;/span> &lt;span class="n">nodeCache&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">NodeCache&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">client&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">nodePath&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 通常设置为 true, 代表创建 nodeCache 时,就去获取对应节点的值并缓存
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">nodeCache&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">start&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">nodeCache&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getListenable&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">addListener&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="k">new&lt;/span> &lt;span class="n">NodeCacheListener&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">nodeChanged&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">ChildData&lt;/span> &lt;span class="n">currentData&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">nodeCache&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getCurrentData&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">currentData&lt;/span> &lt;span class="o">!=&lt;/span> &lt;span class="kc">null&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;节点路径：&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">currentData&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getPath&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">+&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s">&amp;#34;数据：&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">currentData&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getData&lt;/span>&lt;span class="o">()));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">});&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Thread&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">sleep&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">1000&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="mi">1000&lt;/span>&lt;span class="o">);&lt;/span> &lt;span class="c1">//休眠以观察测试效果
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="33-监听子节点">3.3 监听子节点&lt;/h3>
+&lt;p>这里以监听 &lt;code>/hadoop&lt;/code> 下所有子节点为例，实现方式如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-scala" data-lang="scala">&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@Test&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">public&lt;/span> &lt;span class="n">void&lt;/span> &lt;span class="n">permanentChildrenNodesWatch&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="n">throws&lt;/span> &lt;span class="nc">Exception&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 第三个参数代表除了节点状态外，是否还缓存节点内容
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nc">PathChildrenCache&lt;/span> &lt;span class="n">childrenCache&lt;/span> &lt;span class="k">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="nc">PathChildrenCache&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">client&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;/hadoop&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kc">true&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="cm">/*
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * StartMode 代表初始化方式:
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * NORMAL: 异步初始化
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * BUILD_INITIAL_CACHE: 同步初始化
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * POST_INITIALIZED_EVENT: 异步并通知,初始化之后会触发 INITIALIZED 事件
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> */&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">childrenCache&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">start&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="nc">StartMode&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="nc">POST_INITIALIZED_EVENT&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nc">List&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="nc">ChildData&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">childDataList&lt;/span> &lt;span class="k">=&lt;/span> &lt;span class="n">childrenCache&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">getCurrentData&lt;/span>&lt;span class="o">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nc">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;当前数据节点的子节点列表：&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">childDataList&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">forEach&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">x&lt;/span> &lt;span class="o">-&amp;gt;&lt;/span> &lt;span class="nc">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">x&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">getPath&lt;/span>&lt;span class="o">()));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">childrenCache&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">getListenable&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="n">addListener&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="k">new&lt;/span> &lt;span class="nc">PathChildrenCacheListener&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">public&lt;/span> &lt;span class="n">void&lt;/span> &lt;span class="n">childEvent&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="nc">CuratorFramework&lt;/span> &lt;span class="n">client&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="nc">PathChildrenCacheEvent&lt;/span> &lt;span class="n">event&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">switch&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">event&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">getType&lt;/span>&lt;span class="o">())&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">case&lt;/span> &lt;span class="nc">INITIALIZED&lt;/span>&lt;span class="k">:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">System.out.println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="err">&amp;#34;&lt;/span>&lt;span class="kt">childrenCache&lt;/span> &lt;span class="kt">初始化完成&lt;/span>&lt;span class="err">&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">break&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">case&lt;/span> &lt;span class="nc">CHILD_ADDED&lt;/span>&lt;span class="k">:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 需要注意的是: 即使是之前已经存在的子节点，也会触发该监听，因为会把该子节点加入 childrenCache 缓存中
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nc">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;增加子节点:&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">event&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">getData&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="n">getPath&lt;/span>&lt;span class="o">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">break&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">case&lt;/span> &lt;span class="nc">CHILD_REMOVED&lt;/span>&lt;span class="k">:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">System.out.println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="err">&amp;#34;&lt;/span>&lt;span class="kt">删除子节点:&lt;/span>&lt;span class="err">&amp;#34;&lt;/span> &lt;span class="kt">+&lt;/span> &lt;span class="kt">event.getData&lt;/span>&lt;span class="o">()&lt;/span>&lt;span class="kt">.getPath&lt;/span>&lt;span class="o">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">break&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">case&lt;/span> &lt;span class="nc">CHILD_UPDATED&lt;/span>&lt;span class="k">:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">System.out.println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="err">&amp;#34;&lt;/span>&lt;span class="kt">被修改的子节点的路径:&lt;/span>&lt;span class="err">&amp;#34;&lt;/span> &lt;span class="kt">+&lt;/span> &lt;span class="kt">event.getData&lt;/span>&lt;span class="o">()&lt;/span>&lt;span class="kt">.getPath&lt;/span>&lt;span class="o">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nc">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;修改后的数据:&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="nc">String&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">event&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">getData&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="n">getData&lt;/span>&lt;span class="o">()));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">break&lt;/span>&lt;span class="o">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">});&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nc">Thread&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">sleep&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">1000&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="mi">1000&lt;/span>&lt;span class="o">);&lt;/span> &lt;span class="c1">//休眠以观察测试效果
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/BigData-Notes/raw/master/pictures/weixin-desc.png"/> &lt;/div></description></item><item><title>部署与配置</title><link>https://ng-tech.icu/books/distributedstorage-notes/10.kv-%E5%AD%98%E5%82%A8/zookeeper/%E9%83%A8%E7%BD%B2%E4%B8%8E%E6%93%8D%E4%BD%9C/%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/distributedstorage-notes/10.kv-%E5%AD%98%E5%82%A8/zookeeper/%E9%83%A8%E7%BD%B2%E4%B8%8E%E6%93%8D%E4%BD%9C/%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/</guid><description>&lt;h1 id="zookeeper-单机环境和集群环境搭建">Zookeeper 单机环境和集群环境搭建&lt;/h1>
+&lt;h2 id="一单机环境搭建">一、单机环境搭建&lt;/h2>
+&lt;h3 id="11-下载">1.1 下载&lt;/h3>
+&lt;p>下载对应版本 Zookeeper，这里我下载的版本 &lt;code>3.4.14&lt;/code>。官方下载地址：https://archive.apache.org/dist/zookeeper/&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># wget https://archive.apache.org/dist/zookeeper/zookeeper-3.4.14/zookeeper-3.4.14.tar.gz&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="12-解压">1.2 解压&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># tar -zxvf zookeeper-3.4.14.tar.gz&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="13-配置环境变量">1.3 配置环境变量&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># vim /etc/profile&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>添加环境变量：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="nb">export&lt;/span> &lt;span class="nv">ZOOKEEPER_HOME&lt;/span>&lt;span class="o">=&lt;/span>/usr/app/zookeeper-3.4.14
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nb">export&lt;/span> &lt;span class="nv">PATH&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="nv">$ZOOKEEPER_HOME&lt;/span>/bin:&lt;span class="nv">$PATH&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>使得配置的环境变量生效：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># source /etc/profile&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="14-修改配置">1.4 修改配置&lt;/h3>
+&lt;p>进入安装目录的 &lt;code>conf/&lt;/code> 目录下，拷贝配置样本并进行修改：&lt;/p>
+&lt;pre tabindex="0">&lt;code># cp zoo_sample.cfg zoo.cfg
+&lt;/code>&lt;/pre>&lt;p>指定数据存储目录和日志文件目录（目录不用预先创建，程序会自动创建），修改后完整配置如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-properties" data-lang="properties">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># The number of milliseconds of each tick&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">tickTime&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s">2000&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># The number of ticks that the initial&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># synchronization phase can take&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">initLimit&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s">10&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># The number of ticks that can pass between&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># sending a request and getting an acknowledgement&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">syncLimit&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s">5&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># the directory where the snapshot is stored.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># do not use /tmp for storage, /tmp here is just&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># example sakes.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">dataDir&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s">/usr/local/zookeeper/data&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">dataLogDir&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s">/usr/local/zookeeper/log&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># the port at which the clients will connect&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">clientPort&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s">2181&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># the maximum number of client connections.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># increase this if you need to handle more clients&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">#maxClientCnxns=60&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">#&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Be sure to read the maintenance section of the&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># administrator guide before turning on autopurge.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">#&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># http://zookeeper.apache.org/doc/current/zookeeperAdmin.html#sc_maintenance&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">#&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># The number of snapshots to retain in dataDir&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">#autopurge.snapRetainCount=3&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Purge task interval in hours&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Set to &amp;#34;0&amp;#34; to disable auto purge feature&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">#autopurge.purgeInterval=1&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;blockquote>
+&lt;p>配置参数说明：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>tickTime&lt;/strong>：用于计算的基础时间单元。比如 session 超时：N*tickTime；&lt;/li>
+&lt;li>&lt;strong>initLimit&lt;/strong>：用于集群，允许从节点连接并同步到 master 节点的初始化连接时间，以 tickTime 的倍数来表示；&lt;/li>
+&lt;li>&lt;strong>syncLimit&lt;/strong>：用于集群， master 主节点与从节点之间发送消息，请求和应答时间长度（心跳机制）；&lt;/li>
+&lt;li>&lt;strong>dataDir&lt;/strong>：数据存储位置；&lt;/li>
+&lt;li>&lt;strong>dataLogDir&lt;/strong>：日志目录；&lt;/li>
+&lt;li>&lt;strong>clientPort&lt;/strong>：用于客户端连接的端口，默认 2181&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;h3 id="15-启动">1.5 启动&lt;/h3>
+&lt;p>由于已经配置过环境变量，直接使用下面命令启动即可：&lt;/p>
+&lt;pre tabindex="0">&lt;code>zkServer.sh start
+&lt;/code>&lt;/pre>&lt;h3 id="16-验证">1.6 验证&lt;/h3>
+&lt;p>使用 JPS 验证进程是否已经启动，出现 &lt;code>QuorumPeerMain&lt;/code> 则代表启动成功。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@hadoop001 bin&lt;span class="o">]&lt;/span>&lt;span class="c1"># jps&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="m">3814&lt;/span> QuorumPeerMain
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="二集群环境搭建">二、集群环境搭建&lt;/h2>
+&lt;p>为保证集群高可用，Zookeeper 集群的节点数最好是奇数，最少有三个节点，所以这里演示搭建一个三个节点的集群。这里我使用三台主机进行搭建，主机名分别为 hadoop001，hadoop002，hadoop003。&lt;/p>
+&lt;h3 id="21-修改配置">2.1 修改配置&lt;/h3>
+&lt;p>解压一份 zookeeper 安装包，修改其配置文件 &lt;code>zoo.cfg&lt;/code>，内容如下。之后使用 scp 命令将安装包分发到三台服务器上：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="nv">tickTime&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">2000&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">initLimit&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">10&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">syncLimit&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">5&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">dataDir&lt;/span>&lt;span class="o">=&lt;/span>/usr/local/zookeeper-cluster/data/
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">dataLogDir&lt;/span>&lt;span class="o">=&lt;/span>/usr/local/zookeeper-cluster/log/
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">clientPort&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">2181&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># server.1 这个1是服务器的标识，可以是任意有效数字，标识这是第几个服务器节点，这个标识要写到dataDir目录下面myid文件里&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 指名集群间通讯端口和选举端口&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">server.1&lt;span class="o">=&lt;/span>hadoop001:2287:3387
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">server.2&lt;span class="o">=&lt;/span>hadoop002:2287:3387
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">server.3&lt;span class="o">=&lt;/span>hadoop003:2287:3387
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="22-标识节点">2.2 标识节点&lt;/h3>
+&lt;p>分别在三台主机的 &lt;code>dataDir&lt;/code> 目录下新建 &lt;code>myid&lt;/code> 文件,并写入对应的节点标识。Zookeeper 集群通过 &lt;code>myid&lt;/code> 文件识别集群节点，并通过上文配置的节点通信端口和选举端口来进行节点通信，选举出 Leader 节点。&lt;/p>
+&lt;p>创建存储目录：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 三台主机均执行该命令&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mkdir -vp /usr/local/zookeeper-cluster/data/
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>创建并写入节点标识到 &lt;code>myid&lt;/code> 文件：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># hadoop001主机&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nb">echo&lt;/span> &lt;span class="s2">&amp;#34;1&amp;#34;&lt;/span> &amp;gt; /usr/local/zookeeper-cluster/data/myid
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># hadoop002主机&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nb">echo&lt;/span> &lt;span class="s2">&amp;#34;2&amp;#34;&lt;/span> &amp;gt; /usr/local/zookeeper-cluster/data/myid
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># hadoop003主机&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nb">echo&lt;/span> &lt;span class="s2">&amp;#34;3&amp;#34;&lt;/span> &amp;gt; /usr/local/zookeeper-cluster/data/myid
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="23-启动集群">2.3 启动集群&lt;/h3>
+&lt;p>分别在三台主机上，执行如下命令启动服务：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">/usr/app/zookeeper-cluster/zookeeper/bin/zkServer.sh start
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="24-集群验证">2.4 集群验证&lt;/h3>
+&lt;p>启动后使用 &lt;code>zkServer.sh status&lt;/code> 查看集群各个节点状态。如图所示：三个节点进程均启动成功，并且 hadoop002 为 leader 节点，hadoop001 和 hadoop003 为 follower 节点。&lt;/p>
+&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/BigData-Notes/raw/master/pictures/zookeeper-hadoop001.png"/> &lt;/div>
+&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/BigData-Notes/raw/master/pictures/zookeeper-hadoop002.png"/> &lt;/div>
+&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/BigData-Notes/raw/master/pictures/zookeeper-hadoop003.png"/> &lt;/div>
+&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/BigData-Notes/raw/master/pictures/weixin-desc.png"/> &lt;/div></description></item><item><title>数据操作</title><link>https://ng-tech.icu/books/distributedstorage-notes/10.kv-%E5%AD%98%E5%82%A8/zookeeper/%E9%83%A8%E7%BD%B2%E4%B8%8E%E6%93%8D%E4%BD%9C/%E6%95%B0%E6%8D%AE%E6%93%8D%E4%BD%9C/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/distributedstorage-notes/10.kv-%E5%AD%98%E5%82%A8/zookeeper/%E9%83%A8%E7%BD%B2%E4%B8%8E%E6%93%8D%E4%BD%9C/%E6%95%B0%E6%8D%AE%E6%93%8D%E4%BD%9C/</guid><description>&lt;h1 id="zookeeper-常用-shell-命令">Zookeeper 常用 Shell 命令&lt;/h1>
+&lt;h2 id="一节点增删改查">一、节点增删改查&lt;/h2>
+&lt;h3 id="11-启动服务和连接服务">1.1 启动服务和连接服务&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 启动服务&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">bin/zkServer.sh start
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">#连接服务 不指定服务地址则默认连接到localhost:2181&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">zkCli.sh -server hadoop001:2181
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="12-help-命令">1.2 help 命令&lt;/h3>
+&lt;p>使用 &lt;code>help&lt;/code> 可以查看所有命令及格式。&lt;/p>
+&lt;h3 id="13-查看节点列表">1.3 查看节点列表&lt;/h3>
+&lt;p>查看节点列表有 &lt;code>ls path&lt;/code> 和 &lt;code>ls2 path&lt;/code> 两个命令，后者是前者的增强，不仅可以查看指定路径下的所有节点，还可以查看当前节点的信息。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 0&lt;span class="o">]&lt;/span> ls /
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>cluster, controller_epoch, brokers, storm, zookeeper, admin, ...&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 1&lt;span class="o">]&lt;/span> ls2 /
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>cluster, controller_epoch, brokers, storm, zookeeper, admin, ....&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">cZxid&lt;/span> &lt;span class="o">=&lt;/span> 0x0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ctime&lt;/span> &lt;span class="o">=&lt;/span> Thu Jan &lt;span class="m">01&lt;/span> 08:00:00 CST &lt;span class="m">1970&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">mZxid&lt;/span> &lt;span class="o">=&lt;/span> 0x0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">mtime&lt;/span> &lt;span class="o">=&lt;/span> Thu Jan &lt;span class="m">01&lt;/span> 08:00:00 CST &lt;span class="m">1970&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">pZxid&lt;/span> &lt;span class="o">=&lt;/span> 0x130
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">cversion&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">19&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">dataVersion&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">aclVersion&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ephemeralOwner&lt;/span> &lt;span class="o">=&lt;/span> 0x0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">dataLength&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">numChildren&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">11&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="14-新增节点">1.4 新增节点&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">create &lt;span class="o">[&lt;/span>-s&lt;span class="o">]&lt;/span> &lt;span class="o">[&lt;/span>-e&lt;span class="o">]&lt;/span> path data acl &lt;span class="c1">#其中-s 为有序节点，-e 临时节点&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>创建节点并写入数据：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">create /hadoop &lt;span class="m">123456&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>创建有序节点，此时创建的节点名为指定节点名 + 自增序号：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 23&lt;span class="o">]&lt;/span> create -s /a &lt;span class="s2">&amp;#34;aaa&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Created /a0000000022
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 24&lt;span class="o">]&lt;/span> create -s /b &lt;span class="s2">&amp;#34;bbb&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Created /b0000000023
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 25&lt;span class="o">]&lt;/span> create -s /c &lt;span class="s2">&amp;#34;ccc&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Created /c0000000024
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>创建临时节点，临时节点会在会话过期后被删除：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 26&lt;span class="o">]&lt;/span> create -e /tmp &lt;span class="s2">&amp;#34;tmp&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Created /tmp
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="15-查看节点">1.5 查看节点&lt;/h3>
+&lt;h4 id="1-获取节点数据">1. 获取节点数据&lt;/h4>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 格式&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">get path &lt;span class="o">[&lt;/span>watch&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 31&lt;span class="o">]&lt;/span> get /hadoop
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="m">123456&lt;/span> &lt;span class="c1">#节点数据&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">cZxid&lt;/span> &lt;span class="o">=&lt;/span> 0x14b
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ctime&lt;/span> &lt;span class="o">=&lt;/span> Fri May &lt;span class="m">24&lt;/span> 17:03:06 CST &lt;span class="m">2019&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">mZxid&lt;/span> &lt;span class="o">=&lt;/span> 0x14b
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">mtime&lt;/span> &lt;span class="o">=&lt;/span> Fri May &lt;span class="m">24&lt;/span> 17:03:06 CST &lt;span class="m">2019&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">pZxid&lt;/span> &lt;span class="o">=&lt;/span> 0x14b
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">cversion&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">dataVersion&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">aclVersion&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ephemeralOwner&lt;/span> &lt;span class="o">=&lt;/span> 0x0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">dataLength&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">6&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">numChildren&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>节点各个属性如下表。其中一个重要的概念是 Zxid(ZooKeeper Transaction Id)，ZooKeeper 节点的每一次更改都具有唯一的 Zxid，如果 Zxid1 小于 Zxid2，则 Zxid1 的更改发生在 Zxid2 更改之前。&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>&lt;strong>状态属性&lt;/strong>&lt;/th>
+&lt;th>&lt;strong>说明&lt;/strong>&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>cZxid&lt;/td>
+&lt;td>数据节点创建时的事务 ID&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>ctime&lt;/td>
+&lt;td>数据节点创建时的时间&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mZxid&lt;/td>
+&lt;td>数据节点最后一次更新时的事务 ID&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>mtime&lt;/td>
+&lt;td>数据节点最后一次更新时的时间&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>pZxid&lt;/td>
+&lt;td>数据节点的子节点最后一次被修改时的事务 ID&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>cversion&lt;/td>
+&lt;td>子节点的更改次数&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>dataVersion&lt;/td>
+&lt;td>节点数据的更改次数&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>aclVersion&lt;/td>
+&lt;td>节点的 ACL 的更改次数&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>ephemeralOwner&lt;/td>
+&lt;td>如果节点是临时节点，则表示创建该节点的会话的 SessionID；如果节点是持久节点，则该属性值为 0&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>dataLength&lt;/td>
+&lt;td>数据内容的长度&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>numChildren&lt;/td>
+&lt;td>数据节点当前的子节点个数&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h4 id="2-查看节点状态">2. 查看节点状态&lt;/h4>
+&lt;p>可以使用 &lt;code>stat&lt;/code> 命令查看节点状态，它的返回值和 &lt;code>get&lt;/code> 命令类似，但不会返回节点数据。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 32&lt;span class="o">]&lt;/span> stat /hadoop
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">cZxid&lt;/span> &lt;span class="o">=&lt;/span> 0x14b
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ctime&lt;/span> &lt;span class="o">=&lt;/span> Fri May &lt;span class="m">24&lt;/span> 17:03:06 CST &lt;span class="m">2019&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">mZxid&lt;/span> &lt;span class="o">=&lt;/span> 0x14b
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">mtime&lt;/span> &lt;span class="o">=&lt;/span> Fri May &lt;span class="m">24&lt;/span> 17:03:06 CST &lt;span class="m">2019&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">pZxid&lt;/span> &lt;span class="o">=&lt;/span> 0x14b
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">cversion&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">dataVersion&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">aclVersion&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ephemeralOwner&lt;/span> &lt;span class="o">=&lt;/span> 0x0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">dataLength&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">6&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">numChildren&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="16-更新节点">1.6 更新节点&lt;/h3>
+&lt;p>更新节点的命令是 &lt;code>set&lt;/code>，可以直接进行修改，如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 33&lt;span class="o">]&lt;/span> &lt;span class="nb">set&lt;/span> /hadoop &lt;span class="m">345&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">cZxid&lt;/span> &lt;span class="o">=&lt;/span> 0x14b
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ctime&lt;/span> &lt;span class="o">=&lt;/span> Fri May &lt;span class="m">24&lt;/span> 17:03:06 CST &lt;span class="m">2019&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">mZxid&lt;/span> &lt;span class="o">=&lt;/span> 0x14c
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">mtime&lt;/span> &lt;span class="o">=&lt;/span> Fri May &lt;span class="m">24&lt;/span> 17:13:05 CST &lt;span class="m">2019&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">pZxid&lt;/span> &lt;span class="o">=&lt;/span> 0x14b
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">cversion&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">dataVersion&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">1&lt;/span> &lt;span class="c1"># 注意更改后此时版本号为 1，默认创建时为 0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">aclVersion&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ephemeralOwner&lt;/span> &lt;span class="o">=&lt;/span> 0x0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">dataLength&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">3&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">numChildren&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>也可以基于版本号进行更改，此时类似于乐观锁机制，当你传入的数据版本号 (dataVersion) 和当前节点的数据版本号不符合时，zookeeper 会拒绝本次修改：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 34&lt;span class="o">]&lt;/span> &lt;span class="nb">set&lt;/span> /hadoop &lt;span class="m">678&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">version No is not valid : /hadoop &lt;span class="c1">#无效的版本号&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="17-删除节点">1.7 删除节点&lt;/h3>
+&lt;p>删除节点的语法如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">delete path &lt;span class="o">[&lt;/span>version&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>和更新节点数据一样，也可以传入版本号，当你传入的数据版本号 (dataVersion) 和当前节点的数据版本号不符合时，zookeeper 不会执行删除操作。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 36&lt;span class="o">]&lt;/span> delete /hadoop &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">version No is not valid : /hadoop &lt;span class="c1">#无效的版本号&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 37&lt;span class="o">]&lt;/span> delete /hadoop &lt;span class="m">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 38&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>要想删除某个节点及其所有后代节点，可以使用递归删除，命令为 &lt;code>rmr path&lt;/code>。&lt;/p>
+&lt;h2 id="二监听器">二、监听器&lt;/h2>
+&lt;h3 id="21-get-path-watch">2.1 get path [watch]&lt;/h3>
+&lt;p>使用 &lt;code>get path [watch]&lt;/code> 注册的监听器能够在节点内容发生改变的时候，向客户端发出通知。需要注意的是 zookeeper 的触发器是一次性的 (One-time trigger)，即触发一次后就会立即失效。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 4&lt;span class="o">]&lt;/span> get /hadoop watch
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 5&lt;span class="o">]&lt;/span> &lt;span class="nb">set&lt;/span> /hadoop &lt;span class="m">45678&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">WATCHER::
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">WatchedEvent state:SyncConnected type:NodeDataChanged path:/hadoop &lt;span class="c1">#节点值改变&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="22-stat-path-watch">2.2 stat path [watch]&lt;/h3>
+&lt;p>使用 &lt;code>stat path [watch]&lt;/code> 注册的监听器能够在节点状态发生改变的时候，向客户端发出通知。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 7&lt;span class="o">]&lt;/span> stat /hadoop watch
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 8&lt;span class="o">]&lt;/span> &lt;span class="nb">set&lt;/span> /hadoop &lt;span class="m">112233&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">WATCHER::
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">WatchedEvent state:SyncConnected type:NodeDataChanged path:/hadoop &lt;span class="c1">#节点值改变&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="23-lsls2-path-watch">2.3 ls\ls2 path [watch]&lt;/h3>
+&lt;p>使用 &lt;code>ls path [watch]&lt;/code> 或 &lt;code>ls2 path [watch]&lt;/code> 注册的监听器能够监听该节点下所有&lt;strong>子节点&lt;/strong>的增加和删除操作。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 9&lt;span class="o">]&lt;/span> ls /hadoop watch
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>zk: localhost:2181&lt;span class="o">(&lt;/span>CONNECTED&lt;span class="o">)&lt;/span> 10&lt;span class="o">]&lt;/span> create /hadoop/yarn &lt;span class="s2">&amp;#34;aaa&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">WATCHER::
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">WatchedEvent state:SyncConnected type:NodeChildrenChanged path:/hadoop
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="三-zookeeper-四字命令">三、 zookeeper 四字命令&lt;/h2>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>命令&lt;/th>
+&lt;th>功能描述&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>conf&lt;/td>
+&lt;td>打印服务配置的详细信息。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>cons&lt;/td>
+&lt;td>列出连接到此服务器的所有客户端的完整连接/会话详细信息。包括接收/发送的数据包数量，会话 ID，操作延迟，上次执行的操作等信息。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>dump&lt;/td>
+&lt;td>列出未完成的会话和临时节点。这只适用于 Leader 节点。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>envi&lt;/td>
+&lt;td>打印服务环境的详细信息。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>ruok&lt;/td>
+&lt;td>测试服务是否处于正确状态。如果正确则返回“imok”，否则不做任何相应。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>stat&lt;/td>
+&lt;td>列出服务器和连接客户端的简要详细信息。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>wchs&lt;/td>
+&lt;td>列出所有 watch 的简单信息。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>wchc&lt;/td>
+&lt;td>按会话列出服务器 watch 的详细信息。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>wchp&lt;/td>
+&lt;td>按路径列出服务器 watch 的详细信息。&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;blockquote>
+&lt;p>更多四字命令可以参阅官方文档：https://zookeeper.apache.org/doc/current/zookeeperAdmin.html&lt;/p>
+&lt;/blockquote>
+&lt;p>使用前需要使用 &lt;code>yum install nc&lt;/code> 安装 nc 命令，使用示例如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">[&lt;/span>root@hadoop001 bin&lt;span class="o">]&lt;/span>&lt;span class="c1"># echo stat | nc localhost 2181&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Zookeeper version: 3.4.13-2d71af4dbe22557fda74f9a9b4309b15a7487f03,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">built on 06/29/2018 04:05 GMT
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Clients:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> /0:0:0:0:0:0:0:1:50584&lt;span class="o">[&lt;/span>1&lt;span class="o">](&lt;/span>&lt;span class="nv">queued&lt;/span>&lt;span class="o">=&lt;/span>0,recved&lt;span class="o">=&lt;/span>371,sent&lt;span class="o">=&lt;/span>371&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> /0:0:0:0:0:0:0:1:50656&lt;span class="o">[&lt;/span>0&lt;span class="o">](&lt;/span>&lt;span class="nv">queued&lt;/span>&lt;span class="o">=&lt;/span>0,recved&lt;span class="o">=&lt;/span>1,sent&lt;span class="o">=&lt;/span>0&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Latency min/avg/max: 0/0/19
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Received: &lt;span class="m">372&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Sent: &lt;span class="m">371&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Connections: &lt;span class="m">2&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Outstanding: &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Zxid: 0x150
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Mode: standalone
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Node count: &lt;span class="m">167&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/BigData-Notes/raw/master/pictures/weixin-desc.png"/> &lt;/div></description></item></channel></rss>

@@ -1,0 +1,808 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>_index | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/</link><atom:link href="https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/index.xml" rel="self" type="application/rss+xml"/><description>_index</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>_index</title><link>https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/</link></image><item><title>docker-cli-to-kubectl</title><link>https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/docker-cli-to-kubectl/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/docker-cli-to-kubectl/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 79
+title: Docker 用户过渡到 kubectl 命令行指南
+date: &amp;ldquo;2022-05-21T00:00:00+08:00&amp;rdquo;
+type: book&lt;/h2>
+&lt;p>对于没有使用过 Kubernetes 的 Docker 用户，如何快速掌握 kubectl 命令？&lt;/p>
+&lt;p>在本文中，我们将向 docker-cli 用户介绍 Kubernetes 命令行如何与 api 进行交互。该命令行工具——kubectl，被设计成 docker-cli 用户所熟悉的样子，但是它们之间又存在一些必要的差异。该文档将向您展示每个 docker 子命令和 kubectl 与其等效的命令。&lt;/p>
+&lt;p>在使用 kubernetes 集群的时候，docker 命令通常情况是不需要用到的，只有在调试程序或者容器的时候用到，我们基本上使用 kubectl 命令即可，所以在操作 kubernetes 的时候我们抛弃原先使用 docker 时的一些观念。&lt;/p>
+&lt;h2 id="docker-run">docker run&lt;/h2>
+&lt;p>如何运行一个 nginx Deployment 并将其暴露出来？ 查看 &lt;a href="https://kubernetes.io/docs/user-guide/kubectl/#run" target="_blank" rel="noopener">kubectl run&lt;/a> 。&lt;/p>
+&lt;p>使用 docker 命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ docker run -d --restart&lt;span class="o">=&lt;/span>always -e &lt;span class="nv">DOMAIN&lt;/span>&lt;span class="o">=&lt;/span>cluster --name nginx-app -p 80:80 nginx
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">a9ec34d9878748d2f33dc20cb25c714ff21da8d40558b45bfaec9955859075d0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ docker ps
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS NAMES
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">a9ec34d98787 nginx &lt;span class="s2">&amp;#34;nginx -g &amp;#39;daemon of 2 seconds ago Up 2 seconds 0.0.0.0:80-&amp;gt;80/tcp, 443/tcp nginx-app
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>使用 kubectl 命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># start the pod running nginx&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl run --image&lt;span class="o">=&lt;/span>nginx nginx-app --port&lt;span class="o">=&lt;/span>&lt;span class="m">80&lt;/span> --env&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;DOMAIN=cluster&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">deployment &lt;span class="s2">&amp;#34;nginx-app&amp;#34;&lt;/span> created
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在大于等于 1.2 版本 Kubernetes 集群中，使用&lt;code>kubectl run&lt;/code> 命令将创建一个名为 &amp;ldquo;nginx-app&amp;rdquo; 的 Deployment。如果您运行的是老版本，将会创建一个 replication controller。如果您想沿用旧的行为，使用 &lt;code>--generation=run/v1&lt;/code> 参数，这样就会创建 replication controller。查看 &lt;a href="https://kubernetes.io/docs/user-guide/kubectl/#run" target="_blank" rel="noopener">&lt;code>kubectl run&lt;/code>&lt;/a> 获取更多详细信息。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># expose a port through with a service&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl expose deployment nginx-app --port&lt;span class="o">=&lt;/span>&lt;span class="m">80&lt;/span> --name&lt;span class="o">=&lt;/span>nginx-http
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">service &lt;span class="s2">&amp;#34;nginx-http&amp;#34;&lt;/span> exposed
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在 kubectl 命令中，我们创建了一个 &lt;a href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment" target="_blank" rel="noopener">Deployment&lt;/a>，这将保证有 N 个运行 nginx 的 pod（N 代表 spec 中声明的 replica 数，默认为 1）。我们还创建了一个 &lt;a href="https://kubernetes.io/docs/user-guide/services" target="_blank" rel="noopener">service&lt;/a>，使用 selector 匹配具有相应的 selector 的 Deployment。查看 &lt;a href="https://kubernetes.io/docs/user-guide/quick-start" target="_blank" rel="noopener">快速开始&lt;/a> 获取更多信息。&lt;/p>
+&lt;p>默认情况下镜像会在后台运行，与&lt;code>docker run -d ...&lt;/code> 类似，如果您想在前台运行，使用：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">kubectl run &lt;span class="o">[&lt;/span>-i&lt;span class="o">]&lt;/span> &lt;span class="o">[&lt;/span>--tty&lt;span class="o">]&lt;/span> --attach &amp;lt;name&amp;gt; --image&lt;span class="o">=&lt;/span>&amp;lt;image&amp;gt;
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>与 &lt;code>docker run ...&lt;/code> 不同的是，如果指定了 &lt;code>--attach&lt;/code> ，我们将连接到 &lt;code>stdin&lt;/code>，&lt;code>stdout&lt;/code> 和 &lt;code>stderr&lt;/code>，而不能控制具体连接到哪个输出流（&lt;code>docker -a ...&lt;/code>）。&lt;/p>
+&lt;p>因为我们使用 Deployment 启动了容器，如果您终止了连接到的进程（例如 &lt;code>ctrl-c&lt;/code>），容器将会重启，这跟 &lt;code>docker run -it&lt;/code>不同。如果想销毁该 Deployment（和它的 pod），您需要运行 &lt;code>kubectl delete deployment &amp;lt;name&amp;gt;&lt;/code>。&lt;/p>
+&lt;h2 id="docker-ps">docker ps&lt;/h2>
+&lt;p>如何列出哪些正在运行？查看 &lt;a href="https://kubernetes.io/docs/user-guide/kubectl/#get" target="_blank" rel="noopener">kubectl get&lt;/a>。&lt;/p>
+&lt;p>使用 docker 命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ docker ps
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS NAMES
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">a9ec34d98787 nginx &lt;span class="s2">&amp;#34;nginx -g &amp;#39;daemon of About an hour ago Up About an hour 0.0.0.0:80-&amp;gt;80/tcp, 443/tcp nginx-app
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>使用 kubectl 命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl get po
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">NAME READY STATUS RESTARTS AGE
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">nginx-app-5jyvm 1/1 Running &lt;span class="m">0&lt;/span> 1h
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="docker-attach">docker attach&lt;/h2>
+&lt;p>如何连接到已经运行在容器中的进程？查看 &lt;a href="https://kubernetes.io/docs/user-guide/kubectl/#attach" target="_blank" rel="noopener">kubectl attach&lt;/a>。&lt;/p>
+&lt;p>使用 docker 命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ docker ps
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS NAMES
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">a9ec34d98787 nginx &lt;span class="s2">&amp;#34;nginx -g &amp;#39;daemon of 8 minutes ago Up 8 minutes 0.0.0.0:80-&amp;gt;80/tcp, 443/tcp nginx-app
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s2">&lt;/span>$&lt;span class="s2"> docker attach a9ec34d98787
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s2">...
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>使用 kubectl 命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl get pods
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">NAME READY STATUS RESTARTS AGE
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">nginx-app-5jyvm 1/1 Running &lt;span class="m">0&lt;/span> 10m
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl attach -it nginx-app-5jyvm
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">...
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="docker-exec">docker exec&lt;/h2>
+&lt;p>如何在容器中执行命令？查看 &lt;a href="https://kubernetes.io/docs/user-guide/kubectl/#exec" target="_blank" rel="noopener">kubectl exec&lt;/a>。&lt;/p>
+&lt;p>使用 docker 命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ docker ps
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS NAMES
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">a9ec34d98787 nginx &lt;span class="s2">&amp;#34;nginx -g &amp;#39;daemon of 8 minutes ago Up 8 minutes 0.0.0.0:80-&amp;gt;80/tcp, 443/tcp nginx-app
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s2">&lt;/span>$&lt;span class="s2"> docker exec a9ec34d98787 cat /etc/hostname
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s2">a9ec34d98787
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>使用 kubectl 命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl get po
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">NAME READY STATUS RESTARTS AGE
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">nginx-app-5jyvm 1/1 Running &lt;span class="m">0&lt;/span> 10m
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl &lt;span class="nb">exec&lt;/span> nginx-app-5jyvm -- cat /etc/hostname
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">nginx-app-5jyvm
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>执行交互式命令怎么办？&lt;/p>
+&lt;p>使用 docker 命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ docker &lt;span class="nb">exec&lt;/span> -ti a9ec34d98787 /bin/sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># exit&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>使用 kubectl 命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl &lt;span class="nb">exec&lt;/span> -ti nginx-app-5jyvm -- /bin/sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># exit&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="docker-logs">docker logs&lt;/h2>
+&lt;p>如何查看运行中进程的 stdout/stderr？查看 &lt;a href="https://kubernetes.io/docs/user-guide/kubectl/#logs" target="_blank" rel="noopener">kubectl logs&lt;/a>。&lt;/p>
+&lt;p>使用 docker 命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ docker logs -f a9e
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">192.168.9.1 - - &lt;span class="o">[&lt;/span>14/Jul/2015:01:04:02 +0000&lt;span class="o">]&lt;/span> &lt;span class="s2">&amp;#34;GET / HTTP/1.1&amp;#34;&lt;/span> &lt;span class="m">200&lt;/span> &lt;span class="m">612&lt;/span> &lt;span class="s2">&amp;#34;-&amp;#34;&lt;/span> &lt;span class="s2">&amp;#34;curl/7.35.0&amp;#34;&lt;/span> &lt;span class="s2">&amp;#34;-&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">192.168.9.1 - - &lt;span class="o">[&lt;/span>14/Jul/2015:01:04:03 +0000&lt;span class="o">]&lt;/span> &lt;span class="s2">&amp;#34;GET / HTTP/1.1&amp;#34;&lt;/span> &lt;span class="m">200&lt;/span> &lt;span class="m">612&lt;/span> &lt;span class="s2">&amp;#34;-&amp;#34;&lt;/span> &lt;span class="s2">&amp;#34;curl/7.35.0&amp;#34;&lt;/span> &lt;span class="s2">&amp;#34;-&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>使用 kubectl 命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl logs -f nginx-app-zibvs
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">10.240.63.110 - - &lt;span class="o">[&lt;/span>14/Jul/2015:01:09:01 +0000&lt;span class="o">]&lt;/span> &lt;span class="s2">&amp;#34;GET / HTTP/1.1&amp;#34;&lt;/span> &lt;span class="m">200&lt;/span> &lt;span class="m">612&lt;/span> &lt;span class="s2">&amp;#34;-&amp;#34;&lt;/span> &lt;span class="s2">&amp;#34;curl/7.26.0&amp;#34;&lt;/span> &lt;span class="s2">&amp;#34;-&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">10.240.63.110 - - &lt;span class="o">[&lt;/span>14/Jul/2015:01:09:02 +0000&lt;span class="o">]&lt;/span> &lt;span class="s2">&amp;#34;GET / HTTP/1.1&amp;#34;&lt;/span> &lt;span class="m">200&lt;/span> &lt;span class="m">612&lt;/span> &lt;span class="s2">&amp;#34;-&amp;#34;&lt;/span> &lt;span class="s2">&amp;#34;curl/7.26.0&amp;#34;&lt;/span> &lt;span class="s2">&amp;#34;-&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>现在是时候提一下 pod 和容器之间的细微差别了；默认情况下如果 pod 中的进程退出 pod 也不会终止，相反它将会重启该进程。这类似于 docker run 时的 &lt;code>--restart=always&lt;/code> 选项， 这是主要差别。在 docker 中，进程的每个调用的输出都是被连接起来的，但是对于 kubernetes，每个调用都是分开的。要查看以前在 kubernetes 中执行的输出，请执行以下操作：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl logs --previous nginx-app-zibvs
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">10.240.63.110 - - &lt;span class="o">[&lt;/span>14/Jul/2015:01:09:01 +0000&lt;span class="o">]&lt;/span> &lt;span class="s2">&amp;#34;GET / HTTP/1.1&amp;#34;&lt;/span> &lt;span class="m">200&lt;/span> &lt;span class="m">612&lt;/span> &lt;span class="s2">&amp;#34;-&amp;#34;&lt;/span> &lt;span class="s2">&amp;#34;curl/7.26.0&amp;#34;&lt;/span> &lt;span class="s2">&amp;#34;-&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">10.240.63.110 - - &lt;span class="o">[&lt;/span>14/Jul/2015:01:09:02 +0000&lt;span class="o">]&lt;/span> &lt;span class="s2">&amp;#34;GET / HTTP/1.1&amp;#34;&lt;/span> &lt;span class="m">200&lt;/span> &lt;span class="m">612&lt;/span> &lt;span class="s2">&amp;#34;-&amp;#34;&lt;/span> &lt;span class="s2">&amp;#34;curl/7.26.0&amp;#34;&lt;/span> &lt;span class="s2">&amp;#34;-&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>查看 &lt;a href="https://kubernetes.io/docs/concepts/cluster-administration/logging" target="_blank" rel="noopener">记录和监控集群活动&lt;/a> 获取更多信息。&lt;/p>
+&lt;h2 id="docker-stop-和-docker-rm">docker stop 和 docker rm&lt;/h2>
+&lt;p>如何停止和删除运行中的进程？查看 &lt;a href="https://kubernetes.io/docs/user-guide/kubectl/#delete" target="_blank" rel="noopener">kubectl delete&lt;/a>。&lt;/p>
+&lt;p>使用 docker 命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ docker ps
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS NAMES
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">a9ec34d98787 nginx &lt;span class="s2">&amp;#34;nginx -g &amp;#39;daemon of 22 hours ago Up 22 hours 0.0.0.0:80-&amp;gt;80/tcp, 443/tcp nginx-app
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s2">&lt;/span>$&lt;span class="s2"> docker stop a9ec34d98787
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s2">a9ec34d98787
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s2">&lt;/span>$&lt;span class="s2"> docker rm a9ec34d98787
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s2">a9ec34d98787
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>使用 kubectl 命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl get deployment nginx-app
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">NAME DESIRED CURRENT UP-TO-DATE AVAILABLE AGE
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">nginx-app &lt;span class="m">1&lt;/span> &lt;span class="m">1&lt;/span> &lt;span class="m">1&lt;/span> &lt;span class="m">1&lt;/span> 2m
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl get po -l &lt;span class="nv">run&lt;/span>&lt;span class="o">=&lt;/span>nginx-app
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">NAME READY STATUS RESTARTS AGE
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">nginx-app-2883164633-aklf7 1/1 Running &lt;span class="m">0&lt;/span> 2m
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl delete deployment nginx-app
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">deployment &lt;span class="s2">&amp;#34;nginx-app&amp;#34;&lt;/span> deleted
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl get po -l &lt;span class="nv">run&lt;/span>&lt;span class="o">=&lt;/span>nginx-app
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Return nothing&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>请注意，我们不直接删除 pod。使用 kubectl 命令，我们要删除拥有该 pod 的 Deployment。如果我们直接删除 pod，Deployment 将会重新创建该 pod。&lt;/p>
+&lt;h2 id="docker-login">docker login&lt;/h2>
+&lt;p>在 kubectl 中没有对 &lt;code>docker login&lt;/code> 的直接模拟。如果您有兴趣在私有镜像仓库中使用 Kubernetes，请参阅 &lt;a href="https://kubernetes.io/docs/concepts/containers/images/#using-a-private-registry" target="_blank" rel="noopener">使用私有镜像仓库&lt;/a>。&lt;/p>
+&lt;h2 id="docker-version">docker version&lt;/h2>
+&lt;p>如何查看客户端和服务端的版本？查看 &lt;a href="https://kubernetes.io/docs/user-guide/kubectl/#version" target="_blank" rel="noopener">kubectl version&lt;/a>。&lt;/p>
+&lt;p>使用 docker 命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ docker version
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Client version: 1.7.0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Client API version: 1.19
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Go version &lt;span class="o">(&lt;/span>client&lt;span class="o">)&lt;/span>: go1.4.2
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Git commit &lt;span class="o">(&lt;/span>client&lt;span class="o">)&lt;/span>: 0baf609
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">OS/Arch &lt;span class="o">(&lt;/span>client&lt;span class="o">)&lt;/span>: linux/amd64
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Server version: 1.7.0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Server API version: 1.19
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Go version &lt;span class="o">(&lt;/span>server&lt;span class="o">)&lt;/span>: go1.4.2
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Git commit &lt;span class="o">(&lt;/span>server&lt;span class="o">)&lt;/span>: 0baf609
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">OS/Arch &lt;span class="o">(&lt;/span>server&lt;span class="o">)&lt;/span>: linux/amd64
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>使用 kubectl 命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl version
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Client Version: version.Info&lt;span class="o">{&lt;/span>Major:&lt;span class="s2">&amp;#34;1&amp;#34;&lt;/span>, Minor:&lt;span class="s2">&amp;#34;6&amp;#34;&lt;/span>, GitVersion:&lt;span class="s2">&amp;#34;v1.6.9+a3d1dfa6f4335&amp;#34;&lt;/span>, GitCommit:&lt;span class="s2">&amp;#34;9b77fed11a9843ce3780f70dd251e92901c43072&amp;#34;&lt;/span>, GitTreeState:&lt;span class="s2">&amp;#34;dirty&amp;#34;&lt;/span>, BuildDate:&lt;span class="s2">&amp;#34;2017-08-29T20:32:58Z&amp;#34;&lt;/span>, OpenPaasKubernetesVersion:&lt;span class="s2">&amp;#34;v1.03.02&amp;#34;&lt;/span>, GoVersion:&lt;span class="s2">&amp;#34;go1.7.5&amp;#34;&lt;/span>, Compiler:&lt;span class="s2">&amp;#34;gc&amp;#34;&lt;/span>, Platform:&lt;span class="s2">&amp;#34;linux/amd64&amp;#34;&lt;/span>&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Server Version: version.Info&lt;span class="o">{&lt;/span>Major:&lt;span class="s2">&amp;#34;1&amp;#34;&lt;/span>, Minor:&lt;span class="s2">&amp;#34;6&amp;#34;&lt;/span>, GitVersion:&lt;span class="s2">&amp;#34;v1.6.9+a3d1dfa6f4335&amp;#34;&lt;/span>, GitCommit:&lt;span class="s2">&amp;#34;9b77fed11a9843ce3780f70dd251e92901c43072&amp;#34;&lt;/span>, GitTreeState:&lt;span class="s2">&amp;#34;dirty&amp;#34;&lt;/span>, BuildDate:&lt;span class="s2">&amp;#34;2017-08-29T20:32:58Z&amp;#34;&lt;/span>, OpenPaasKubernetesVersion:&lt;span class="s2">&amp;#34;v1.03.02&amp;#34;&lt;/span>, GoVersion:&lt;span class="s2">&amp;#34;go1.7.5&amp;#34;&lt;/span>, Compiler:&lt;span class="s2">&amp;#34;gc&amp;#34;&lt;/span>, Platform:&lt;span class="s2">&amp;#34;linux/amd64&amp;#34;&lt;/span>&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="docker-info">docker info&lt;/h2>
+&lt;p>如何获取有关环境和配置的各种信息？查看 &lt;a href="https://kubernetes.io/docs/user-guide/kubectl/#cluster-info" target="_blank" rel="noopener">kubectl cluster-info&lt;/a>。&lt;/p>
+&lt;p>使用 docker 命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ docker info
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Containers: &lt;span class="m">40&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Images: &lt;span class="m">168&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Storage Driver: aufs
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Root Dir: /usr/local/google/docker/aufs
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Backing Filesystem: extfs
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Dirs: &lt;span class="m">248&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Dirperm1 Supported: &lt;span class="nb">false&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Execution Driver: native-0.2
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Logging Driver: json-file
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Kernel Version: 3.13.0-53-generic
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Operating System: Ubuntu 14.04.2 LTS
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">CPUs: &lt;span class="m">12&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Total Memory: 31.32 GiB
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Name: k8s-is-fun.mtv.corp.google.com
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">ID: ADUV:GCYR:B3VJ:HMPO:LNPQ:KD5S:YKFQ:76VN:IANZ:7TFV:ZBF4:BYJO
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">WARNING: No swap limit support
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>使用 kubectl 命令：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl cluster-info
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Kubernetes master is running at https://108.59.85.141
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">KubeDNS is running at https://108.59.85.141/api/v1/namespaces/kube-system/services/kube-dns/proxy
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">KubeUI is running at https://108.59.85.141/api/v1/namespaces/kube-system/services/kube-ui/proxy
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Grafana is running at https://108.59.85.141/api/v1/namespaces/kube-system/services/monitoring-grafana/proxy
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Heapster is running at https://108.59.85.141/api/v1/namespaces/kube-system/services/monitoring-heapster/proxy
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">InfluxDB is running at https://108.59.85.141/api/v1/namespaces/kube-system/services/monitoring-influxdb/proxy
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item><item><title>etcdctl</title><link>https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/etcdctl/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/etcdctl/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 82
+title: 使用 etcdctl 访问 Kubernetes 数据
+date: &amp;lsquo;2022-05-21T00:00:00+08:00&amp;rsquo;
+type: book&lt;/h2>
+&lt;p>Kubenretes1.6 中使用 etcd V3 版本的 API，使用 &lt;code>etcdctl&lt;/code> 直接 &lt;code>ls&lt;/code> 的话只能看到 &lt;code>/kube-centos&lt;/code> 一个路径。需要在命令前加上 &lt;code>ETCDCTL_API=3&lt;/code> 这个环境变量才能看到 kuberentes 在 etcd 中保存的数据。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ETCDCTL_API&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">3&lt;/span> etcdctl get /registry/namespaces/default -w&lt;span class="o">=&lt;/span>json&lt;span class="p">|&lt;/span>python -m json.tool
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>如果是使用 kubeadm 创建的集群，在 Kubenretes 1.11 中，etcd 默认使用 tls ，这时你可以在 master 节点上使用以下命令来访问 etcd ：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ETCDCTL_API&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">3&lt;/span> etcdctl --cacert&lt;span class="o">=&lt;/span>/etc/kubernetes/pki/etcd/ca.crt &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span>--cert&lt;span class="o">=&lt;/span>/etc/kubernetes/pki/etcd/peer.crt &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span>--key&lt;span class="o">=&lt;/span>/etc/kubernetes/pki/etcd/peer.key &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span>get /registry/namespaces/default -w&lt;span class="o">=&lt;/span>json &lt;span class="p">|&lt;/span> jq .
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ul>
+&lt;li>&lt;code>-w&lt;/code> 指定输出格式&lt;/li>
+&lt;/ul>
+&lt;p>将得到这样的 json 的结果：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-json" data-lang="json">&lt;span class="line">&lt;span class="cl">&lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;count&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;header&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;cluster_id&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">12091028579527406772&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;member_id&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">16557816780141026208&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;raft_term&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">36&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;revision&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">29253467&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">},&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;kvs&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">[&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;create_revision&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">5&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;key&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;L3JlZ2lzdHJ5L25hbWVzcGFjZXMvZGVmYXVsdA==&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;mod_revision&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">5&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;value&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;azhzAAoPCgJ2MRIJTmFtZXNwYWNlEmIKSAoHZGVmYXVsdBIAGgAiACokZTU2YzMzMDgtMWVhOC0xMWU3LThjZDctZjRlOWQ0OWY4ZWQwMgA4AEILCIn4sscFEKOg9xd6ABIMCgprdWJlcm5ldGVzGggKBkFjdGl2ZRoAIgA=&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;version&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>使用 &lt;code>--prefix&lt;/code> 可以看到所有的子目录，如查看集群中的 namespace：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ETCDCTL_API&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">3&lt;/span> etcdctl get /registry/namespaces --prefix -w&lt;span class="o">=&lt;/span>json&lt;span class="p">|&lt;/span>python -m json.tool
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>输出结果中可以看到所有的 namespace。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;count&amp;#34;&lt;/span>: 8,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;header&amp;#34;&lt;/span>: &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;cluster_id&amp;#34;&lt;/span>: 12091028579527406772,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;member_id&amp;#34;&lt;/span>: 16557816780141026208,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;raft_term&amp;#34;&lt;/span>: 36,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;revision&amp;#34;&lt;/span>: &lt;span class="m">29253722&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;kvs&amp;#34;&lt;/span>: &lt;span class="o">[&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;create_revision&amp;#34;&lt;/span>: 24310883,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;key&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;L3JlZ2lzdHJ5L25hbWVzcGFjZXMvYXV0b21vZGVs&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;mod_revision&amp;#34;&lt;/span>: 24310883,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;value&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;azhzAAoPCgJ2MRIJTmFtZXNwYWNlEmQKSgoJYXV0b21vZGVsEgAaACIAKiQ1MjczOTU1ZC1iMzEyLTExZTctOTcwYy1mNGU5ZDQ5ZjhlZDAyADgAQgsI7fSWzwUQ6Jv1Z3oAEgwKCmt1YmVybmV0ZXMaCAoGQWN0aXZlGgAiAA==&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;version&amp;#34;&lt;/span>: &lt;span class="m">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;create_revision&amp;#34;&lt;/span>: 21387676,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;key&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;L3JlZ2lzdHJ5L25hbWVzcGFjZXMvYnJhbmQ=&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;mod_revision&amp;#34;&lt;/span>: 21387676,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;value&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;azhzAAoPCgJ2MRIJTmFtZXNwYWNlEmEKRwoFYnJhbmQSABoAIgAqJGNkZmQ1Y2NmLWExYzktMTFlNy05NzBjLWY0ZTlkNDlmOGVkMDIAOABCDAjR9qLOBRDYn83XAXoAEgwKCmt1YmVybmV0ZXMaCAoGQWN0aXZlGgAiAA==&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;version&amp;#34;&lt;/span>: &lt;span class="m">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;create_revision&amp;#34;&lt;/span>: 5,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;key&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;L3JlZ2lzdHJ5L25hbWVzcGFjZXMvZGVmYXVsdA==&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;mod_revision&amp;#34;&lt;/span>: 5,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;value&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;azhzAAoPCgJ2MRIJTmFtZXNwYWNlEmIKSAoHZGVmYXVsdBIAGgAiACokZTU2YzMzMDgtMWVhOC0xMWU3LThjZDctZjRlOWQ0OWY4ZWQwMgA4AEILCIn4sscFEKOg9xd6ABIMCgprdWJlcm5ldGVzGggKBkFjdGl2ZRoAIgA=&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;version&amp;#34;&lt;/span>: &lt;span class="m">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;create_revision&amp;#34;&lt;/span>: 18504694,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;key&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;L3JlZ2lzdHJ5L25hbWVzcGFjZXMvZGV2&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;mod_revision&amp;#34;&lt;/span>: 24310213,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;value&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;azhzAAoPCgJ2MRIJTmFtZXNwYWNlEmwKUgoDZGV2EgAaACIAKiQyOGRlMGVjNS04ZTEzLTExZTctOTcwYy1mNGU5ZDQ5ZjhlZDAyADgAQgwI89CezQUQ0v2fuQNaCwoEbmFtZRIDZGV2egASDAoKa3ViZXJuZXRlcxoICgZBY3RpdmUaACIA&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;version&amp;#34;&lt;/span>: &lt;span class="m">4&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;create_revision&amp;#34;&lt;/span>: 10,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;key&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;L3JlZ2lzdHJ5L25hbWVzcGFjZXMva3ViZS1wdWJsaWM=&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;mod_revision&amp;#34;&lt;/span>: 10,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;value&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;azhzAAoPCgJ2MRIJTmFtZXNwYWNlEmcKTQoLa3ViZS1wdWJsaWMSABoAIgAqJGU1ZjhkY2I1LTFlYTgtMTFlNy04Y2Q3LWY0ZTlkNDlmOGVkMDIAOABCDAiJ+LLHBRDdrsDPA3oAEgwKCmt1YmVybmV0ZXMaCAoGQWN0aXZlGgAiAA==&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;version&amp;#34;&lt;/span>: &lt;span class="m">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;create_revision&amp;#34;&lt;/span>: 2,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;key&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;L3JlZ2lzdHJ5L25hbWVzcGFjZXMva3ViZS1zeXN0ZW0=&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;mod_revision&amp;#34;&lt;/span>: 2,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;value&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;azhzAAoPCgJ2MRIJTmFtZXNwYWNlEmYKTAoLa3ViZS1zeXN0ZW0SABoAIgAqJGU1NmFhMDVkLTFlYTgtMTFlNy04Y2Q3LWY0ZTlkNDlmOGVkMDIAOABCCwiJ+LLHBRDoq9ASegASDAoKa3ViZXJuZXRlcxoICgZBY3RpdmUaACIA&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;version&amp;#34;&lt;/span>: &lt;span class="m">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;create_revision&amp;#34;&lt;/span>: 3774247,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;key&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;L3JlZ2lzdHJ5L25hbWVzcGFjZXMvc3BhcmstY2x1c3Rlcg==&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;mod_revision&amp;#34;&lt;/span>: 3774247,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;value&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;azhzAAoPCgJ2MRIJTmFtZXNwYWNlEoABCmYKDXNwYXJrLWNsdXN0ZXISABoAIgAqJDMyNjY3ZDVjLTM0YWMtMTFlNy1iZmJkLThhZjFlM2E3YzViZDIAOABCDAiA1cbIBRDU3YuAAVoVCgRuYW1lEg1zcGFyay1jbHVzdGVyegASDAoKa3ViZXJuZXRlcxoICgZBY3RpdmUaACIA&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;version&amp;#34;&lt;/span>: &lt;span class="m">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;create_revision&amp;#34;&lt;/span>: 15212191,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;key&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;L3JlZ2lzdHJ5L25hbWVzcGFjZXMveWFybi1jbHVzdGVy&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;mod_revision&amp;#34;&lt;/span>: 15212191,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;value&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;azhzAAoPCgJ2MRIJTmFtZXNwYWNlEn0KYwoMeWFybi1jbHVzdGVyEgAaACIAKiQ2YWNhNjk1Yi03N2Y5LTExZTctYmZiZC04YWYxZTNhN2M1YmQyADgAQgsI1qiKzAUQkoqxDloUCgRuYW1lEgx5YXJuLWNsdXN0ZXJ6ABIMCgprdWJlcm5ldGVzGggKBkFjdGl2ZRoAIgA=&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="s2">&amp;#34;version&amp;#34;&lt;/span>: &lt;span class="m">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>key 的值是经过 base64 编码，需要解码后才能看到实际值，如：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ &lt;span class="nb">echo&lt;/span> L3JlZ2lzdHJ5L25hbWVzcGFjZXMvYXV0b21vZGVs&lt;span class="p">|&lt;/span>base64 -d
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">/registry/namespaces/automodel
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="etcd-中-kubernetes-的元数据">etcd 中 kubernetes 的元数据&lt;/h2>
+&lt;p>我们使用 kubectl 命令获取的 kubernetes 的对象状态实际上是保存在 etcd 中的，使用下面的脚本可以获取 etcd 中的所有 kubernetes 对象的 key：&lt;/p>
+&lt;blockquote>
+&lt;p>注意，我们使用了 ETCD v3 版本的客户端命令来访问 etcd。&lt;/p>
+&lt;/blockquote>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="cp">#!/bin/bash
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&lt;/span>&lt;span class="c1"># Get kubernetes keys from etcd&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nb">export&lt;/span> &lt;span class="nv">ETCDCTL_API&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">3&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">keys&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="sb">`&lt;/span>etcdctl get /registry --prefix -w json&lt;span class="p">|&lt;/span>python -m json.tool&lt;span class="p">|&lt;/span>grep key&lt;span class="p">|&lt;/span>cut -d &lt;span class="s2">&amp;#34;:&amp;#34;&lt;/span> -f2&lt;span class="p">|&lt;/span>tr -d &lt;span class="s1">&amp;#39;&amp;#34;&amp;#39;&lt;/span>&lt;span class="p">|&lt;/span>tr -d &lt;span class="s2">&amp;#34;,&amp;#34;&lt;/span>&lt;span class="sb">`&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">for&lt;/span> x in &lt;span class="nv">$keys&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="k">do&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nb">echo&lt;/span> &lt;span class="nv">$x&lt;/span>&lt;span class="p">|&lt;/span>base64 -d&lt;span class="p">|&lt;/span>sort
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">done&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>通过输出的结果我们可以看到 kubernetes 的原数据是按何种结构包括在 kuberentes 中的，输出结果如下所示：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-ini" data-lang="ini">&lt;span class="line">&lt;span class="cl">&lt;span class="na">/registry/ThirdPartyResourceData/istio.io/istioconfigs/default/route-rule-details-default&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">/registry/ThirdPartyResourceData/istio.io/istioconfigs/default/route-rule-productpage-default&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">/registry/ThirdPartyResourceData/istio.io/istioconfigs/default/route-rule-ratings-default&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">...&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">/registry/configmaps/default/namerctl-script&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">/registry/configmaps/default/namerd-config&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">/registry/configmaps/default/nginx-config&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">...&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">/registry/deployments/default/sdmk-page-sdmk&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">/registry/deployments/default/sdmk-payment-web&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">/registry/deployments/default/sdmk-report&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">...&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>我们可以看到所有的 Kuberentes 的所有元数据都保存在 &lt;code>/registry&lt;/code> 目录下，下一层就是 API 对象类型（复数形式），再下一层是 &lt;code>namespace&lt;/code>，最后一层是对象的名字。&lt;/p>
+&lt;p>以下是 etcd 中存储的 kubernetes 所有的元数据类型：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-ini" data-lang="ini">&lt;span class="line">&lt;span class="cl">&lt;span class="na">ThirdPartyResourceData&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">apiextensions.k8s.io&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">apiregistration.k8s.io&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">certificatesigningrequests&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">clusterrolebindings&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">clusterroles&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">configmaps&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">controllerrevisions&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">controllers&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">daemonsets&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">deployments&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">events&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">horizontalpodautoscalers&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">ingress&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">limitranges&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">minions&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">monitoring.coreos.com&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">namespaces&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">persistentvolumeclaims&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">persistentvolumes&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">poddisruptionbudgets&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">pods&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">ranges&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">replicasets&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">resourcequotas&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">rolebindings&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">roles&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">secrets&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">serviceaccounts&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">services&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">statefulsets&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">storageclasses&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">thirdpartyresources&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item><item><title>kubectl-cheatsheet</title><link>https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/kubectl-cheatsheet/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/kubectl-cheatsheet/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 81
+title: Kubectl 命令技巧大全
+date: &amp;ldquo;2022-05-21T00:00:00+08:00&amp;rdquo;
+type: book&lt;/h2>
+&lt;p>&lt;code>kubectl&lt;/code> 命令是操作 Kubernetes 集群的最直接和最高效的途径，这个 60 多 MB 大小的二进制文件，到底有啥能耐呢？&lt;/p>
+&lt;h2 id="kubectl-自动补全">Kubectl 自动补全&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ &lt;span class="nb">source&lt;/span> &amp;lt;&lt;span class="o">(&lt;/span>kubectl completion bash&lt;span class="o">)&lt;/span> &lt;span class="c1"># setup autocomplete in bash, bash-completion package should be installed first.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ &lt;span class="nb">source&lt;/span> &amp;lt;&lt;span class="o">(&lt;/span>kubectl completion zsh&lt;span class="o">)&lt;/span> &lt;span class="c1"># setup autocomplete in zsh&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="kubectl-上下文和配置">Kubectl 上下文和配置&lt;/h2>
+&lt;p>设置 &lt;code>kubectl&lt;/code> 命令交互的 kubernetes 集群并修改配置信息。参阅 &lt;a href="https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters" target="_blank" rel="noopener">使用 kubeconfig 文件进行跨集群验证&lt;/a> 获取关于配置文件的详细信息。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl config view &lt;span class="c1"># 显示合并后的 kubeconfig 配置&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 同时使用多个 kubeconfig 文件并查看合并后的配置&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ &lt;span class="nv">KUBECONFIG&lt;/span>&lt;span class="o">=&lt;/span>~/.kube/config:~/.kube/kubconfig2 kubectl config view
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 获取 e2e 用户的密码&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl config view -o &lt;span class="nv">jsonpath&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;{.users[?(@.name == &amp;#34;e2e&amp;#34;)].user.password}&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl config current-context &lt;span class="c1"># 显示当前的上下文&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl config use-context my-cluster-name &lt;span class="c1"># 设置默认上下文为 my-cluster-name&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 向 kubeconf 中增加支持基本认证的新集群&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl config set-credentials kubeuser/foo.kubernetes.com --username&lt;span class="o">=&lt;/span>kubeuser --password&lt;span class="o">=&lt;/span>kubepassword
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 使用指定的用户名和 namespace 设置上下文&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl config set-context gce --user&lt;span class="o">=&lt;/span>cluster-admin --namespace&lt;span class="o">=&lt;/span>foo &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> kubectl config use-context gce
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="创建对象">创建对象&lt;/h2>
+&lt;p>Kubernetes 的清单文件可以使用 json 或 yaml 格式定义。可以以 &lt;code>.yaml&lt;/code>、&lt;code>.yml&lt;/code>、或者 &lt;code>.json&lt;/code> 为扩展名。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="l">$ kubectl create -f ./my-manifest.yaml &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># 创建资源&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="l">$ kubectl create -f ./my1.yaml -f ./my2.yaml &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># 使用多个文件创建资源&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="l">$ kubectl create -f ./dir &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># 使用目录下的所有清单文件来创建资源&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="l">$ kubectl create -f https://git.io/vPieo &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># 使用 url 来创建资源&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="l">$ kubectl run nginx --image=nginx &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># 启动一个 nginx 实例&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="l">$ kubectl explain pods,svc &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># 获取 pod 和 svc 的文档&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c"># 从 stdin 输入中创建多个 YAML 对象&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="l">$ cat &amp;lt;&amp;lt;EOF | kubectl create -f -&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Pod&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">busybox-sleep&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">containers&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">busybox&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">busybox&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">args&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="l">sleep&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="s2">&amp;#34;1000000&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nn">---&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Pod&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">busybox-sleep-less&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">containers&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">busybox&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">busybox&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">args&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="l">sleep&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="s2">&amp;#34;1000&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="l">EOF&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c"># 创建包含几个 key 的 Secret&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="l">$ cat &amp;lt;&amp;lt;EOF | kubectl create -f -&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Secret&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">mysecret&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Opaque&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">data&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">password&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">$(echo &amp;#34;s33msi4&amp;#34; | base64)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">username&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">$(echo &amp;#34;jane&amp;#34; | base64)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="l">EOF&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="显示和查找资源">显示和查找资源&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Get commands with basic output&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl get services &lt;span class="c1"># 列出所有 namespace 中的所有 service&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl get pods --all-namespaces &lt;span class="c1"># 列出所有 namespace 中的所有 pod&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl get pods -o wide &lt;span class="c1"># 列出所有 pod 并显示详细信息&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl get deployment my-dep &lt;span class="c1"># 列出指定 deployment&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl get pods --include-uninitialized &lt;span class="c1"># 列出该 namespace 中的所有 pod 包括未初始化的&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 使用详细输出来描述命令&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl describe nodes my-node
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl describe pods my-pod
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl get services --sort-by&lt;span class="o">=&lt;/span>.metadata.name &lt;span class="c1"># List Services Sorted by Name&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 根据重启次数排序列出 pod&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl get pods --sort-by&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;.status.containerStatuses[0].restartCount&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 获取所有具有 app=cassandra 的 pod 中的 version 标签&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl get pods --selector&lt;span class="o">=&lt;/span>&lt;span class="nv">app&lt;/span>&lt;span class="o">=&lt;/span>cassandra rc -o &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> &lt;span class="nv">jsonpath&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;{.items[*].metadata.labels.version}&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 获取所有节点的 ExternalIP&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl get nodes -o &lt;span class="nv">jsonpath&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;{.items[*].status.addresses[?(@.type==&amp;#34;ExternalIP&amp;#34;)].address}&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 列出属于某个 PC 的 Pod 的名字&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># “jq”命令用于转换复杂的 jsonpath，参考 https://stedolan.github.io/jq/&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ &lt;span class="nv">sel&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="si">${&lt;/span>&lt;span class="k">$(&lt;/span>kubectl get rc my-rc --output&lt;span class="o">=&lt;/span>json &lt;span class="p">|&lt;/span> jq -j &lt;span class="s1">&amp;#39;.spec.selector | to_entries | .[] | &amp;#34;\(.key)=\(.value),&amp;#34;&amp;#39;&lt;/span>&lt;span class="k">)&lt;/span>&lt;span class="p">%?&lt;/span>&lt;span class="si">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ &lt;span class="nb">echo&lt;/span> &lt;span class="k">$(&lt;/span>kubectl get pods --selector&lt;span class="o">=&lt;/span>&lt;span class="nv">$sel&lt;/span> --output&lt;span class="o">=&lt;/span>&lt;span class="nv">jsonpath&lt;/span>&lt;span class="o">={&lt;/span>.items..metadata.name&lt;span class="o">}&lt;/span>&lt;span class="k">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 查看哪些节点已就绪&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ &lt;span class="nv">JSONPATH&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}&amp;#39;&lt;/span> &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> kubectl get nodes -o &lt;span class="nv">jsonpath&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span>&lt;span class="nv">$JSONPATH&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span> &lt;span class="p">|&lt;/span> grep &lt;span class="s2">&amp;#34;Ready=True&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 列出当前 Pod 中使用的 Secret&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl get pods -o json &lt;span class="p">|&lt;/span> jq &lt;span class="s1">&amp;#39;.items[].spec.containers[].env[]?.valueFrom.secretKeyRef.name&amp;#39;&lt;/span> &lt;span class="p">|&lt;/span> grep -v null &lt;span class="p">|&lt;/span> sort &lt;span class="p">|&lt;/span> uniq
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="更新资源">更新资源&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl rolling-update frontend-v1 -f frontend-v2.json &lt;span class="c1"># 滚动更新 pod frontend-v1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl rolling-update frontend-v1 frontend-v2 --image&lt;span class="o">=&lt;/span>image:v2 &lt;span class="c1"># 更新资源名称并更新镜像&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl rolling-update frontend --image&lt;span class="o">=&lt;/span>image:v2 &lt;span class="c1"># 更新 frontend pod 中的镜像&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl rolling-update frontend-v1 frontend-v2 --rollback &lt;span class="c1"># 退出已存在的进行中的滚动更新&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ cat pod.json &lt;span class="p">|&lt;/span> kubectl replace -f - &lt;span class="c1"># 基于 stdin 输入的 JSON 替换 pod&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 强制替换，删除后重新创建资源。会导致服务中断。&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl replace --force -f ./pod.json
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 为 nginx RC 创建服务，启用本地 80 端口连接到容器上的 8000 端口&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl expose rc nginx --port&lt;span class="o">=&lt;/span>&lt;span class="m">80&lt;/span> --target-port&lt;span class="o">=&lt;/span>&lt;span class="m">8000&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 更新单容器 pod 的镜像版本（tag）到 v4&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl get pod mypod -o yaml &lt;span class="p">|&lt;/span> sed &lt;span class="s1">&amp;#39;s/\(image: myimage\):.*$/\1:v4/&amp;#39;&lt;/span> &lt;span class="p">|&lt;/span> kubectl replace -f -
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl label pods my-pod new-label&lt;span class="o">=&lt;/span>awesome &lt;span class="c1"># 添加标签&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl annotate pods my-pod icon-url&lt;span class="o">=&lt;/span>http://goo.gl/XXBTWq &lt;span class="c1"># 添加注解&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl autoscale deployment foo --min&lt;span class="o">=&lt;/span>&lt;span class="m">2&lt;/span> --max&lt;span class="o">=&lt;/span>&lt;span class="m">10&lt;/span> &lt;span class="c1"># 自动扩展 deployment “foo”&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="修补资源">修补资源&lt;/h2>
+&lt;p>使用策略合并补丁并修补资源。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl patch node k8s-node-1 -p &lt;span class="s1">&amp;#39;{&amp;#34;spec&amp;#34;:{&amp;#34;unschedulable&amp;#34;:true}}&amp;#39;&lt;/span> &lt;span class="c1"># 部分更新节点&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 更新容器镜像； spec.containers[*].name 是必须的，因为这是合并的关键字&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl patch pod valid-pod -p &lt;span class="s1">&amp;#39;{&amp;#34;spec&amp;#34;:{&amp;#34;containers&amp;#34;:[{&amp;#34;name&amp;#34;:&amp;#34;kubernetes-serve-hostname&amp;#34;,&amp;#34;image&amp;#34;:&amp;#34;new image&amp;#34;}]}}&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 使用具有位置数组的 json 补丁更新容器镜像&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl patch pod valid-pod --type&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;json&amp;#39;&lt;/span> -p&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;[{&amp;#34;op&amp;#34;: &amp;#34;replace&amp;#34;, &amp;#34;path&amp;#34;: &amp;#34;/spec/containers/0/image&amp;#34;, &amp;#34;value&amp;#34;:&amp;#34;new image&amp;#34;}]&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 使用具有位置数组的 json 补丁禁用 deployment 的 livenessProbe&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl patch deployment valid-deployment --type json -p&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;[{&amp;#34;op&amp;#34;: &amp;#34;remove&amp;#34;, &amp;#34;path&amp;#34;: &amp;#34;/spec/template/spec/containers/0/livenessProbe&amp;#34;}]&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="编辑资源">编辑资源&lt;/h2>
+&lt;p>在编辑器中编辑任何 API 资源。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl edit svc/docker-registry &lt;span class="c1"># 编辑名为 docker-registry 的 service&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ &lt;span class="nv">KUBE_EDITOR&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;nano&amp;#34;&lt;/span> kubectl edit svc/docker-registry &lt;span class="c1"># 使用其它编辑器&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="scale-资源">Scale 资源&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl scale --replicas&lt;span class="o">=&lt;/span>&lt;span class="m">3&lt;/span> rs/foo &lt;span class="c1"># Scale a replicaset named &amp;#39;foo&amp;#39; to 3&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl scale --replicas&lt;span class="o">=&lt;/span>&lt;span class="m">3&lt;/span> -f foo.yaml &lt;span class="c1"># Scale a resource specified in &amp;#34;foo.yaml&amp;#34; to 3&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl scale --current-replicas&lt;span class="o">=&lt;/span>&lt;span class="m">2&lt;/span> --replicas&lt;span class="o">=&lt;/span>&lt;span class="m">3&lt;/span> deployment/mysql &lt;span class="c1"># If the deployment named mysql&amp;#39;s current size is 2, scale mysql to 3&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl scale --replicas&lt;span class="o">=&lt;/span>&lt;span class="m">5&lt;/span> rc/foo rc/bar rc/baz &lt;span class="c1"># Scale multiple replication controllers&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="删除资源">删除资源&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl delete -f ./pod.json &lt;span class="c1"># 删除 pod.json 文件中定义的类型和名称的 pod&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl delete pod,service baz foo &lt;span class="c1"># 删除名为“baz”的 pod 和名为“foo”的 service&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl delete pods,services -l &lt;span class="nv">name&lt;/span>&lt;span class="o">=&lt;/span>myLabel &lt;span class="c1"># 删除具有 name=myLabel 标签的 pod 和 serivce&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl delete pods,services -l &lt;span class="nv">name&lt;/span>&lt;span class="o">=&lt;/span>myLabel --include-uninitialized &lt;span class="c1"># 删除具有 name=myLabel 标签的 pod 和 service，包括尚未初始化的&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl -n my-ns delete po,svc --all &lt;span class="c1"># 删除 my-ns namespace 下的所有 pod 和 serivce，包括尚未初始化的&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="与运行中的-pod-交互">与运行中的 Pod 交互&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl logs my-pod &lt;span class="c1"># dump 输出 pod 的日志（stdout）&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl logs my-pod -c my-container &lt;span class="c1"># dump 输出 pod 中容器的日志（stdout，pod 中有多个容器的情况下使用）&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl logs -f my-pod &lt;span class="c1"># 流式输出 pod 的日志（stdout）&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl logs -f my-pod -c my-container &lt;span class="c1"># 流式输出 pod 中容器的日志（stdout，pod 中有多个容器的情况下使用）&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl run -i --tty busybox --image&lt;span class="o">=&lt;/span>busybox -- sh &lt;span class="c1"># 交互式 shell 的方式运行 pod&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl attach my-pod -i &lt;span class="c1"># 连接到运行中的容器&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl port-forward my-pod 5000:6000 &lt;span class="c1"># 转发 pod 中的 6000 端口到本地的 5000 端口&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl &lt;span class="nb">exec&lt;/span> my-pod -- ls / &lt;span class="c1"># 在已存在的容器中执行命令（只有一个容器的情况下）&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl &lt;span class="nb">exec&lt;/span> my-pod -c my-container -- ls / &lt;span class="c1"># 在已存在的容器中执行命令（pod 中有多个容器的情况下）&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl top pod POD_NAME --containers &lt;span class="c1"># 显示指定 pod 和容器的指标度量&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="与节点和集群交互">与节点和集群交互&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ kubectl cordon my-node &lt;span class="c1"># 标记 my-node 不可调度&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl drain my-node &lt;span class="c1"># 清空 my-node 以待维护&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl uncordon my-node &lt;span class="c1"># 标记 my-node 可调度&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl top node my-node &lt;span class="c1"># 显示 my-node 的指标度量&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl cluster-info &lt;span class="c1"># 显示 master 和服务的地址&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl cluster-info dump &lt;span class="c1"># 将当前集群状态输出到 stdout&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl cluster-info dump --output-directory&lt;span class="o">=&lt;/span>/path/to/cluster-state &lt;span class="c1"># 将当前集群状态输出到 /path/to/cluster-state&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 如果该键和影响的污点（taint）已存在，则使用指定的值替换&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl taint nodes foo &lt;span class="nv">dedicated&lt;/span>&lt;span class="o">=&lt;/span>special-user:NoSchedule
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="资源类型">资源类型&lt;/h2>
+&lt;p>下表列出的是 kubernetes 中所有支持的类型和缩写的别名。&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>资源类型&lt;/th>
+&lt;th>缩写别名&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>&lt;code>clusters&lt;/code>&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>componentstatuses&lt;/code>&lt;/td>
+&lt;td>&lt;code>cs&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>configmaps&lt;/code>&lt;/td>
+&lt;td>&lt;code>cm&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>daemonsets&lt;/code>&lt;/td>
+&lt;td>&lt;code>ds&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>deployments&lt;/code>&lt;/td>
+&lt;td>&lt;code>deploy&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>endpoints&lt;/code>&lt;/td>
+&lt;td>&lt;code>ep&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>event&lt;/code>&lt;/td>
+&lt;td>&lt;code>ev&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>horizontalpodautoscalers&lt;/code>&lt;/td>
+&lt;td>&lt;code>hpa&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>ingresses&lt;/code>&lt;/td>
+&lt;td>&lt;code>ing&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>jobs&lt;/code>&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>limitranges&lt;/code>&lt;/td>
+&lt;td>&lt;code>limits&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>namespaces&lt;/code>&lt;/td>
+&lt;td>&lt;code>ns&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>networkpolicies&lt;/code>&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>nodes&lt;/code>&lt;/td>
+&lt;td>&lt;code>no&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>statefulsets&lt;/code>&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>persistentvolumeclaims&lt;/code>&lt;/td>
+&lt;td>&lt;code>pvc&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>persistentvolumes&lt;/code>&lt;/td>
+&lt;td>&lt;code>pv&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>pods&lt;/code>&lt;/td>
+&lt;td>&lt;code>po&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>podsecuritypolicies&lt;/code>&lt;/td>
+&lt;td>&lt;code>psp&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>podtemplates&lt;/code>&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>replicasets&lt;/code>&lt;/td>
+&lt;td>&lt;code>rs&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>replicationcontrollers&lt;/code>&lt;/td>
+&lt;td>&lt;code>rc&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>resourcequotas&lt;/code>&lt;/td>
+&lt;td>&lt;code>quota&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>cronjob&lt;/code>&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>secrets&lt;/code>&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>serviceaccount&lt;/code>&lt;/td>
+&lt;td>&lt;code>sa&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>services&lt;/code>&lt;/td>
+&lt;td>&lt;code>svc&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>storageclasses&lt;/code>&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>thirdpartyresources&lt;/code>&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h3 id="格式化输出">格式化输出&lt;/h3>
+&lt;p>要以特定的格式向终端窗口输出详细信息，可以在 &lt;code>kubectl&lt;/code> 命令中添加 &lt;code>-o&lt;/code> 或者 &lt;code>-output&lt;/code> 标志。&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>输出格式&lt;/th>
+&lt;th>描述&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>&lt;code>-o=custom-columns=&amp;lt;spec&amp;gt;&lt;/code>&lt;/td>
+&lt;td>使用逗号分隔的自定义列列表打印表格&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>-o=custom-columns-file=&amp;lt;filename&amp;gt;&lt;/code>&lt;/td>
+&lt;td>使用 文件中的自定义列模板打印表格&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>-o=json&lt;/code>&lt;/td>
+&lt;td>输出 JSON 格式的 API 对象&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>-o=jsonpath=&amp;lt;template&amp;gt;&lt;/code>&lt;/td>
+&lt;td>打印 &lt;a href="https://kubernetes.io/docs/user-guide/jsonpath" target="_blank" rel="noopener">jsonpath&lt;/a> 表达式中定义的字段&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>-o=jsonpath-file=&amp;lt;filename&amp;gt;&lt;/code>&lt;/td>
+&lt;td>打印由 文件中的 &lt;a href="https://kubernetes.io/docs/user-guide/jsonpath" target="_blank" rel="noopener">jsonpath&lt;/a> 表达式定义的字段&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>-o=name&lt;/code>&lt;/td>
+&lt;td>仅打印资源名称&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>-o=wide&lt;/code>&lt;/td>
+&lt;td>以纯文本格式输出任何附加信息，对于 Pod ，包含节点名称&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>-o=yaml&lt;/code>&lt;/td>
+&lt;td>输出 YAML 格式的 API 对象&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h3 id="kubectl-详细输出和调试">Kubectl 详细输出和调试&lt;/h3>
+&lt;p>使用 &lt;code>-v&lt;/code> 或 &lt;code>--v&lt;/code> 标志跟着一个整数来指定日志级别。&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>详细等级&lt;/th>
+&lt;th>描述&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>&lt;code>--v=0&lt;/code>&lt;/td>
+&lt;td>总是对操作人员可见。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>--v=1&lt;/code>&lt;/td>
+&lt;td>合理的默认日志级别，如果您不需要详细输出。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>--v=2&lt;/code>&lt;/td>
+&lt;td>可能与系统的重大变化相关的，有关稳定状态的信息和重要的日志信息。这是对大多数系统推荐的日志级别。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>--v=3&lt;/code>&lt;/td>
+&lt;td>有关更改的扩展信息。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>--v=4&lt;/code>&lt;/td>
+&lt;td>调试级别详细输出。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>--v=6&lt;/code>&lt;/td>
+&lt;td>显示请求的资源。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>--v=7&lt;/code>&lt;/td>
+&lt;td>显示 HTTP 请求的 header。&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>--v=8&lt;/code>&lt;/td>
+&lt;td>显示 HTTP 请求的内容。&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h2 id="参考">参考&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://kubernetes.io/docs/user-guide/kubectl-overview" target="_blank" rel="noopener">Kubectl 概览 - kubernetes.io&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://kubernetes.io/docs/user-guide/jsonpath" target="_blank" rel="noopener">JsonPath 手册 - kubernetes.io&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://kubernetes.io/docs/user-guide/kubectl-cheatsheet/" target="_blank" rel="noopener">Cheatsheet - kubernetes.io&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>using-kubectl</title><link>https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/using-kubectl/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/using-kubectl/</guid><description>&lt;hr>
+&lt;h2 id="type-book">weight: 80
+title: Kubectl 命令概览
+date: &amp;ldquo;2022-05-21T00:00:00+08:00&amp;rdquo;
+type: book&lt;/h2>
+&lt;p>Kubernetes 提供的 kubectl 命令是与集群交互最直接的方式，v1.6 版本的 kubectl 命令参考图如下：&lt;/p>
+&lt;p>
+&lt;figure id="figure-kubectl-cheatsheet">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/book/kubernetes-handbook/kubernetes-kubectl-cheatsheet.png" alt="kubectl cheatsheet" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+kubectl cheatsheet
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;p>Kubectl 的子命令主要分为 8 个类别：&lt;/p>
+&lt;ul>
+&lt;li>基础命令（初学者都会使用的）&lt;/li>
+&lt;li>基础命令（中级）&lt;/li>
+&lt;li>部署命令&lt;/li>
+&lt;li>集群管理命令&lt;/li>
+&lt;li>故障排查和调试命令&lt;/li>
+&lt;li>高级命令&lt;/li>
+&lt;li>设置命令&lt;/li>
+&lt;li>其他命令&lt;/li>
+&lt;/ul>
+&lt;p>熟悉这些命令有助于大家来操作和管理 kubernetes 集群。&lt;/p>
+&lt;h2 id="命令行提示">命令行提示&lt;/h2>
+&lt;p>为了使用 kubectl 命令更加高效，我们可以选择安装一下开源软件来增加操作 kubectl 命令的快捷方式，同时为 kubectl 命令增加命令提示。&lt;/p>
+&lt;p>
+&lt;figure id="figure-增加kubeclt命令的工具图片来自网络">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/book/kubernetes-handbook/tools-to-supercharge-kubectl.jpg" alt="增加kubeclt命令的工具（图片来自网络）" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+增加kubeclt命令的工具（图片来自网络）
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;ul>
+&lt;li>&lt;a href="https://github.com/ahmetb/kubectx" target="_blank" rel="noopener">kubectx&lt;/a>：用于切换 Kubernetes context&lt;/li>
+&lt;li>&lt;a href="https://github.com/jonmosco/kube-ps1" target="_blank" rel="noopener">kube-ps1&lt;/a>：为命令行终端增加&lt;code>$PROMPT&lt;/code>字段&lt;/li>
+&lt;li>&lt;a href="https://github.com/cloudnativelabs/kube-shell" target="_blank" rel="noopener">kube-shell&lt;/a>：交互式带命令提示的 kubectl 终端&lt;/li>
+&lt;/ul>
+&lt;p>全部配置完成后的 kubectl 终端如下图所示：&lt;/p>
+&lt;p>
+&lt;figure id="figure-增强的kubectl命令">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/book/kubernetes-handbook/supercharged-kubectl.jpg" alt="增强的kubectl命令" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+增强的kubectl命令
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;p>开源项目 &lt;a href="https://github.com/cloudnativelabs/kube-shell" target="_blank" rel="noopener">kube-shell&lt;/a> 可以为 kubectl 提供自动的命令提示和补全，使用起来特别方便，推荐给大家。&lt;/p>
+&lt;p>Kube-shell 有以下特性：&lt;/p>
+&lt;ul>
+&lt;li>命令提示，给出命令的使用说明&lt;/li>
+&lt;li>自动补全，列出可选命令并可以通过 tab 键自动补全，支持模糊搜索&lt;/li>
+&lt;li>高亮&lt;/li>
+&lt;li>使用 tab 键可以列出可选的对象&lt;/li>
+&lt;li>vim 模式&lt;/li>
+&lt;/ul>
+&lt;p>&lt;strong>Mac 下安装&lt;/strong>&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">pip install kube-shell --user -U
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>
+&lt;figure id="figure-kube-shell页面">
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/book/kubernetes-handbook/kube-shell.jpg" alt="kube-shell页面" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;figcaption>
+kube-shell页面
+&lt;/figcaption>&lt;/figure>&lt;/p>
+&lt;h2 id="kubectl-的身份认证">kubectl 的身份认证&lt;/h2>
+&lt;p>Kubernetes 中存在三种安全认证方式：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>CA 证书&lt;/strong>：API server 与其它几个组件之间都是通过这种方式认证的&lt;/li>
+&lt;li>&lt;strong>HTTP base&lt;/strong>：即在 API server 的启动参数中指定的 &lt;code>--token-auth-file=/etc/kubernetes/token.csv&lt;/code> 文件中明文的用户、组、密码和 UID 配置&lt;/li>
+&lt;li>&lt;strong>bearer token&lt;/strong>：HTTP 请求中 &lt;code>header&lt;/code> 中传递的 &lt;code>Autorization:Bearer token&lt;/code>，这个 token 通常保存在创建角色跟 &lt;code>serviceaccount&lt;/code> 绑定的时候生成的 secret 中。&lt;/li>
+&lt;/ul>
+&lt;p>kubectl 通过读取 &lt;code>kubeconfig&lt;/code> 文件中的配置信息在向 API server 发送请求的时候同时传递认证信息，同时支持 CA 证书和 bearer token 的认证方式。&lt;/p>
+&lt;h2 id="终端下-kubectl-命令自动补全">终端下 kubectl 命令自动补全&lt;/h2>
+&lt;p>建议使用 &lt;a href="http://ohmyz.sh/" target="_blank" rel="noopener">oh-my-zsh&lt;/a>，增加对 kubectl 命令自动补全支持。&lt;/p>
+&lt;p>修改 &lt;code>~/.zshrc&lt;/code> 文件，增加如下两行：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="nv">plugins&lt;/span>&lt;span class="o">=(&lt;/span>kubectl&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nb">source&lt;/span> &amp;lt;&lt;span class="o">(&lt;/span>kubectl completion zsh&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>保存后重启终端即可生效。&lt;/p>
+&lt;h2 id="参考">参考&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://kubernetes.io/docs/tasks/tools/install-kubectl/#using-zsh" target="_blank" rel="noopener">Install and Set Up kubectl - kubernetes.io&lt;/a>&lt;/li>
+&lt;/ul></description></item></channel></rss>

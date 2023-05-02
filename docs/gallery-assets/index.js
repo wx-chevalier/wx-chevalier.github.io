@@ -157,8 +157,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "Java 实战",
-            repo: "Java-Series",
-            previewLink: "/books/Java-Series/#/",
+            repo: "Java-Notes",
+            previewLink: "/books/Java-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Java Series"),
             },
@@ -168,8 +168,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "JavaScript 实战",
-            repo: "JavaScript-Series",
-            previewLink: "/books/JavaScript-Series/#/",
+            repo: "JavaScript-Notes",
+            previewLink: "/books/JavaScript-Notes/#/",
             imageLinks: {
               thumbnail: getCover("JavaScript Series"),
             },
@@ -179,8 +179,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "Python 实战",
-            repo: "Python-Series",
-            previewLink: "/books/Python-Series/#/",
+            repo: "Python-Notes",
+            previewLink: "/books/Python-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Python Series"),
             },
@@ -190,8 +190,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "Go 实战",
-            repo: "Go-Series",
-            previewLink: "/books/Go-Series/#/",
+            repo: "Go-Notes",
+            previewLink: "/books/Go-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Go Series"),
             },
@@ -201,8 +201,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "Rust 实战",
-            repo: "Rust-Series",
-            previewLink: "/books/Rust-Series/#/",
+            repo: "Rust-Notes",
+            previewLink: "/books/Rust-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Rust Series"),
             },
@@ -212,8 +212,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "数据结构与算法",
-            repo: "Algorithm-Series",
-            previewLink: "/books/Algorithm-Series/",
+            repo: "Algorithm-Notes",
+            previewLink: "/books/Algorithm-Notes/",
             imageLinks: {
               thumbnail: getCover("Algorithm & DataStructure"),
             },
@@ -223,8 +223,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "编程范式与设计模式",
-            repo: "DesignPattern-Series",
-            previewLink: "/books/DesignPattern-Series/",
+            repo: "DesignPattern-Notes",
+            previewLink: "/books/DesignPattern-Notes/",
             imageLinks: {
               thumbnail: getCover("Design Patterns"),
             },
@@ -234,8 +234,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "并发编程实战",
-            repo: "Concurrent-Series",
-            previewLink: "/books/Concurrent-Series/#/",
+            repo: "Concurrent-Notes",
+            previewLink: "/books/Concurrent-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Concurrent Series"),
             },
@@ -250,8 +250,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "大前端",
-            repo: "Frontend-Series",
-            previewLink: "/books/Frontend-Series/",
+            repo: "Frontend-Notes",
+            previewLink: "/books/Frontend-Notes/",
             imageLinks: {
               thumbnail: getCover("Data Visualization"),
             },
@@ -261,8 +261,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "现代 Web 全栈",
-            repo: "Web-Series",
-            previewLink: "/books/Web-Series/",
+            repo: "Web-Notes",
+            previewLink: "/books/Web-Notes/",
             imageLinks: {
               thumbnail: getCover("Web Series"),
             },
@@ -272,8 +272,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "Web 工程化架构",
-            repo: "Web-Engineering-Series",
-            previewLink: "/books/Web-Engineering-Series/",
+            repo: "Web-Engineering-Notes",
+            previewLink: "/books/Web-Engineering-Notes/",
             imageLinks: {
               thumbnail: getCover("Web Series"),
             },
@@ -283,8 +283,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "Web 调优",
-            repo: "Web-Tuning-Series",
-            previewLink: "/books/Web-Tuning-Series/",
+            repo: "Web-Tuning-Notes",
+            previewLink: "/books/Web-Tuning-Notes/",
             imageLinks: {
               thumbnail: getCover("Web Series"),
             },
@@ -294,8 +294,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "React",
-            repo: "React-Series",
-            previewLink: "/books/React-Series/",
+            repo: "React-Notes",
+            previewLink: "/books/React-Notes/",
             imageLinks: {
               thumbnail: getCover("React"),
             },
@@ -305,8 +305,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "Node.js 全栈开发",
-            repo: "Node-Series",
-            previewLink: "/books/Node-Series/",
+            repo: "Node-Notes",
+            previewLink: "/books/Node-Notes/",
             imageLinks: {
               thumbnail: getCover("Node Series"),
             },
@@ -316,8 +316,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "视觉与可视化",
-            repo: "CG-Series",
-            previewLink: "/books/CG-Series/",
+            repo: "CG-Notes",
+            previewLink: "/books/CG-Notes/",
             imageLinks: {
               thumbnail: getCover("视觉与可视化"),
             },
@@ -332,8 +332,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "软件架构设计",
-            repo: "Architecture-Series",
-            previewLink: "/books/Architecture-Series/",
+            repo: "Architecture-Notes",
+            previewLink: "/books/Architecture-Notes/",
             imageLinks: {
               thumbnail: getCover("Software Architecture"),
             },
@@ -343,8 +343,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "微服务与云原生",
-            repo: "MicroCN-Series",
-            previewLink: "/books/MicroCN-Series/",
+            repo: "MicroCN-Notes",
+            previewLink: "/books/MicroCN-Notes/",
             imageLinks: {
               thumbnail: getCover("MicroService Series"),
             },
@@ -354,8 +354,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "Spring 实战",
-            repo: "Spring-Series",
-            previewLink: "/books/Spring-Series/",
+            repo: "Spring-Notes",
+            previewLink: "/books/Spring-Notes/",
             imageLinks: {
               thumbnail: getCover("Spring Series"),
             },
@@ -365,8 +365,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "测试与高可用保障",
-            repo: "HA-Series",
-            previewLink: "/books/HA-Series/",
+            repo: "HA-Notes",
+            previewLink: "/books/HA-Notes/",
             imageLinks: {
               thumbnail: getCover("测试与高可用保障"),
             },
@@ -376,8 +376,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "DevOps 实战",
-            repo: "DevOps-Series",
-            previewLink: "/books/DevOps-Series/",
+            repo: "DevOps-Notes",
+            previewLink: "/books/DevOps-Notes/",
             imageLinks: {
               thumbnail: getCover("DevOps Series"),
             },
@@ -387,8 +387,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "软件工程：整洁与重构",
-            repo: "SoftwareEngineering-Series",
-            previewLink: "/books/SoftwareEngineering-Series/",
+            repo: "SoftwareEngineering-Notes",
+            previewLink: "/books/SoftwareEngineering-Notes/",
             imageLinks: {
               thumbnail: getCover("Refactor"),
             },
@@ -398,8 +398,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "数据库",
-            repo: "Database-Series",
-            previewLink: "/books/Database-Series/#/",
+            repo: "Database-Notes",
+            previewLink: "/books/Database-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Database Series"),
             },
@@ -409,8 +409,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "大数据实战",
-            repo: "DataEngineering-Series",
-            previewLink: "/books/DataEngineering-Series/#/",
+            repo: "DataEngineering-Notes",
+            previewLink: "/books/DataEngineering-Notes/#/",
             imageLinks: {
               thumbnail: getCover("DataEngineering Series"),
             },
@@ -420,8 +420,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "消息中间件实践",
-            repo: "MessageQueue-Series",
-            previewLink: "/books/MessageQueue-Series/#/",
+            repo: "MessageQueue-Notes",
+            previewLink: "/books/MessageQueue-Notes/#/",
             imageLinks: {
               thumbnail: getCover("MessageQueue Series"),
             },
@@ -431,8 +431,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "信息安全与渗透测试",
-            repo: "InfoSecurity-Series",
-            previewLink: "/books/InfoSecurity-Series/",
+            repo: "InfoSecurity-Notes",
+            previewLink: "/books/InfoSecurity-Notes/",
             imageLinks: {
               thumbnail: getCover("InfoSecurity Series"),
             },
@@ -442,8 +442,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "解决方案",
-            repo: "Solutions-Series",
-            previewLink: "/books/Solutions-Series/",
+            repo: "Solutions-Notes",
+            previewLink: "/books/Solutions-Notes/",
             imageLinks: {
               thumbnail: getCover("Solutions Series"),
             },
@@ -458,8 +458,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "网络",
-            repo: "Network-Series",
-            previewLink: "/books/Network-Series/#/",
+            repo: "Network-Notes",
+            previewLink: "/books/Network-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Network Series"),
             },
@@ -469,8 +469,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "虚拟化与云计算",
-            repo: "Cloud-Series",
-            previewLink: "/books/Cloud-Series/#/",
+            repo: "Cloud-Notes",
+            previewLink: "/books/Cloud-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Cloud Series"),
             },
@@ -480,8 +480,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "Linux 与操作系统",
-            repo: "Linux-Series",
-            previewLink: "/books/Linux-Series/#/",
+            repo: "Linux-Notes",
+            previewLink: "/books/Linux-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Linux Series"),
             },
@@ -491,8 +491,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "深入浅出 K8s",
-            repo: "K8s-Series",
-            previewLink: "/books/K8s-Series/#/",
+            repo: "K8s-Notes",
+            previewLink: "/books/K8s-Notes/#/",
             imageLinks: {
               thumbnail: getCover("K8s Series"),
             },
@@ -502,8 +502,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "分布式系统",
-            repo: "DistributedSystem-Series",
-            previewLink: "/books/DistributedSystem-Series/#/",
+            repo: "DistributedSystem-Notes",
+            previewLink: "/books/DistributedSystem-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Distributed System Series"),
             },
@@ -518,8 +518,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "分布式计算",
-            repo: "DistributedCompute-Series",
-            previewLink: "/books/DistributedCompute-Series/#/",
+            repo: "DistributedCompute-Notes",
+            previewLink: "/books/DistributedCompute-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Distributed Compute Series"),
             },
@@ -529,8 +529,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "分布式存储",
-            repo: "DistributedStorage-Series",
-            previewLink: "/books/DistributedStorage-Series/#/",
+            repo: "DistributedStorage-Notes",
+            previewLink: "/books/DistributedStorage-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Distributed Storage Series"),
             },
@@ -545,8 +545,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "数理统计",
-            repo: "Mathematics-Series",
-            previewLink: "/books/Mathematics-Series/#/",
+            repo: "Mathematics-Notes",
+            previewLink: "/books/Mathematics-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Mathematics Series"),
             },
@@ -556,8 +556,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "人工智能",
-            repo: "AI-Series",
-            previewLink: "/books/AI-Series/#/",
+            repo: "AI-Notes",
+            previewLink: "/books/AI-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Data Series"),
             },
@@ -567,8 +567,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "机器学习",
-            repo: "MachineLearning-Series",
-            previewLink: "/books/MachineLearning-Series/#/",
+            repo: "MachineLearning-Notes",
+            previewLink: "/books/MachineLearning-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Machine Learning Series"),
             },
@@ -578,8 +578,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "深度学习",
-            repo: "DeepLearning-Series",
-            previewLink: "/books/DeepLearning-Series/#/",
+            repo: "DeepLearning-Notes",
+            previewLink: "/books/DeepLearning-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Deep Learning Series"),
             },
@@ -589,8 +589,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "自然语言处理",
-            repo: "NLP-Series",
-            previewLink: "/books/NLP-Series/#/",
+            repo: "NLP-Notes",
+            previewLink: "/books/NLP-Notes/#/",
             imageLinks: {
               thumbnail: getCover("NLP Series"),
             },
@@ -600,8 +600,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "人工智能框架",
-            repo: "AI-Toolkits-Series",
-            previewLink: "/books/AI-Toolkits-Series/#/",
+            repo: "AI-Toolkits-Notes",
+            previewLink: "/books/AI-Toolkits-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Data Series"),
             },
@@ -611,8 +611,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "TensorFlow 实战",
-            repo: "TensorFlow-Series",
-            previewLink: "/books/TensorFlow-Series/#/",
+            repo: "TensorFlow-Notes",
+            previewLink: "/books/TensorFlow-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Data Series"),
             },
@@ -627,8 +627,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "产品设计",
-            repo: "Product-Series",
-            previewLink: "/books/Product-Series/#/",
+            repo: "Product-Notes",
+            previewLink: "/books/Product-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Product Series"),
             },
@@ -638,8 +638,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "创业",
-            repo: "Business-Series",
-            previewLink: "/books/Business-Series/#/",
+            repo: "Business-Notes",
+            previewLink: "/books/Business-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Business Series"),
             },
@@ -649,8 +649,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "行业迷思",
-            repo: "Industry-Series",
-            previewLink: "/books/Industry-Series/#/",
+            repo: "Industry-Notes",
+            previewLink: "/books/Industry-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Industry Series"),
             },
@@ -660,8 +660,8 @@ const getBooks = async (book) => {
         {
           volumeInfo: {
             title: "投资理财",
-            repo: "Financial-Series",
-            previewLink: "/books/Financial-Series/#/",
+            repo: "Financial-Notes",
+            previewLink: "/books/Financial-Notes/#/",
             imageLinks: {
               thumbnail: getCover("Financial Series"),
             },

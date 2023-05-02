@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>事务消息 | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/distributedsystem-notes/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF/</link><atom:link href="https://ng-tech.icu/books/distributedsystem-notes/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF/index.xml" rel="self" type="application/rss+xml"/><description>事务消息</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>事务消息</title><link>https://ng-tech.icu/books/distributedsystem-notes/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF/</link></image><item><title>流处理方案</title><link>https://ng-tech.icu/books/distributedsystem-notes/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF/%E6%B5%81%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/distributedsystem-notes/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF/%E6%B5%81%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88/</guid><description>&lt;h1 id="流处理方案">流处理方案&lt;/h1>
+&lt;p>当系统变得越来越复杂，数据库会被拆分为多个更小的库，如果借助这些衍生库实现像全文搜索这样的功能，那么如何保证所有的数据保持同步就是一项很有挑战性的任务了。使用多个数据库时，最大的问题在于它们并不是互相独立的。相同的数据会以不同的形式进行存储，所以当数据更新的时候，具有对应数据的所有数据库都需要进行更新。保证数据同步的最常用方案就是将其视为应用程序逻辑的责任，通常会对每个数据库进行独立的写操作。这是一个脆弱的方案，如果发生像网络故障或服务器宕机这样的失败场景，那么对一些数据库的更新可能会失败，从而导致这些数据库之间出现不一致性。Kleppmann 认为这并不是能够进行自我纠正的最终一致性，至少相同的数据再次进行写操作之前，无法实现一致性。&lt;/p>
+&lt;p>在 leader(主)数据库中，同时会将所有的写入操作按照处理的顺序存储为流，然后一个或多个 follower 数据库就能读取这个流并按照完全相同的顺序执行写入。这样的话，这些数据库就能更新自己的数据并成为 leader 数据库的一致性备份。对于 Kleppmann 来说，这是一个非常具有容错性的方案。每个 follower 都遵循它在流中的顺序，在出现网络故障或宕机时，follower 数据库能够从上一次的保存点开始继续进行处理。Kleppmann 还提到在实现上述场景时，使用 Kafka 作为工具之一。目前，他正在编写一个实现，Bottled Water，在这个实现中，他使用了 PostgreSQL 来抽取数据变化，然后将其中继到 Kafka 中，代码可以在&lt;a href="https://github.com/confluentinc/bottledwater-pg" target="_blank" rel="noopener">GitHub&lt;/a> 上获取到。&lt;/p></description></item><item><title>消息队列方案</title><link>https://ng-tech.icu/books/distributedsystem-notes/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E6%96%B9%E6%A1%88/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/distributedsystem-notes/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E6%96%B9%E6%A1%88/</guid><description>&lt;h1 id="利用事务消息实现分布式事务">利用事务消息实现分布式事务&lt;/h1>
+&lt;p>我们常见的分布式系统中，往往是通知另外一个系统或者模块去更新数据，消息队列中的“事务”，主要解决的是消息生产者和消息消费者的数据一致性问题。依然拿我们熟悉的电商来举个例子。一般来说，用户在电商 APP 上购物时，先把商品加到购物车里，然后几件商品一起下单，最后支付，完成购物流程，就可以愉快地等待收货了。&lt;/p>
+&lt;p>这个过程中有一个需要用到消息队列的步骤，订单系统创建订单后，发消息给购物车系统，将已下单的商品从购物车中删除。因为从购物车删除已下单商品这个步骤，并不是用户下单支付这个主要流程中必需的步骤，使用消息队列来异步清理购物车是更加合理的设计。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/60856d05d1a9ae528f0134b1.jpg" alt="不同系统通过消息沟通" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>对于订单系统来说，它创建订单的过程中实际上执行了 2 个步骤的操作：&lt;/p>
+&lt;ol>
+&lt;li>在订单库中插入一条订单数据，创建订单；&lt;/li>
+&lt;li>发消息给消息队列，消息的内容就是刚刚创建的订单。&lt;/li>
+&lt;/ol>
+&lt;p>购物车系统订阅相应的主题，接收订单创建的消息，然后清理购物车，在购物车中删除订单中的商品。在分布式系统中，上面提到的这些步骤，任何一个步骤都有可能失败，如果不做任何处理，那就有可能出现订单数据与购物车数据不一致的情况，比如说：&lt;/p>
+&lt;ul>
+&lt;li>创建了订单，没有清理购物车；&lt;/li>
+&lt;li>订单没创建成功，购物车里面的商品却被清掉了。&lt;/li>
+&lt;/ul>
+&lt;p>那我们需要解决的问题可以总结为：在上述任意步骤都有可能失败的情况下，还要保证订单库和购物车库这两个库的数据一致性。对于购物车系统收到订单创建成功消息清理购物车这个操作来说，失败的处理比较简单，只要成功执行购物车清理后再提交消费确认即可，如果失败，由于没有提交消费确认，消息队列会自动重试。问题的关键点集中在订单系统，创建订单和发送消息这两个步骤要么都操作成功，要么都操作失败，不允许一个成功而另一个失败的情况出现。&lt;/p>
+&lt;h1 id="消息队列中分布式事务的实现">消息队列中分布式事务的实现&lt;/h1>
+&lt;p>事务消息需要消息队列提供相应的功能才能实现，Kafka 和 RocketMQ 都提供了事务相关功能。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/608573ffd1a9ae528f4ae2c7.jpg" alt="消息队列" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>首先，订单系统在消息队列上开启一个事务。然后订单系统给消息服务器发送一个“半消息”，这个半消息不是说消息内容不完整，它包含的内容就是完整的消息内容，半消息和普通消息的唯一区别是，在事务提交之前，对于消费者来说，这个消息是不可见的。&lt;/p>
+&lt;p>半消息发送成功后，订单系统就可以执行本地事务了，在订单库中创建一条订单记录，并提交订单库的数据库事务。然后根据本地事务的执行结果决定提交或者回滚事务消息。如果订单创建成功，那就提交事务消息，购物车系统就可以消费到这条消息继续后续的流程。如果订单创建失败，那就回滚事务消息，购物车系统就不会收到这条消息。这样就基本实现了“要么都成功，要么都失败”的一致性要求。&lt;/p>
+&lt;p>如果你足够细心，可能已经发现了，这个实现过程中，有一个问题是没有解决的。如果在第四步提交事务消息时失败了怎么办？对于这个问题，Kafka 和 RocketMQ 给出了 2 种不同的解决方案。Kafka 的解决方案比较简单粗暴，直接抛出异常，让用户自行处理。我们可以在业务代码中反复重试提交，直到提交成功，或者删除之前创建的订单进行补偿。RocketMQ 则给出了另外一种解决方案。&lt;/p>
+&lt;h1 id="rocketmq-中的分布式事务实现">RocketMQ 中的分布式事务实现&lt;/h1>
+&lt;p>在 RocketMQ 中的事务实现中，增加了事务反查的机制来解决事务消息提交失败的问题。如果 Producer 也就是订单系统，在提交或者回滚事务消息时发生网络异常，RocketMQ 的 Broker 没有收到提交或者回滚的请求，Broker 会定期去 Producer 上反查这个事务对应的本地事务的状态，然后根据反查结果决定提交或者回滚这个事务。&lt;/p>
+&lt;p>为了支撑这个事务反查机制，我们的业务代码需要实现一个反查本地事务状态的接口，告知 RocketMQ 本地事务是成功还是失败。在我们这个例子中，反查本地事务的逻辑也很简单，我们只要根据消息中的订单 ID，在订单库中查询这个订单是否存在即可，如果订单存在则返回成功，否则返回失败。RocketMQ 会自动根据事务反查的结果提交或者回滚事务消息。&lt;/p>
+&lt;p>这个反查本地事务的实现，并不依赖消息的发送方，也就是订单服务的某个实例节点上的任何数据。这种情况下，即使是发送事务消息的那个订单服务节点宕机了，RocketMQ 依然可以通过其他订单服务的节点来执行反查，确保事务的完整性。综合上面讲的通用事务消息的实现和 RocketMQ 的事务反查机制，使用 RocketMQ 事务消息功能实现分布式事务的流程如下图：&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/60861c19d1a9ae528f92c992.jpg" alt="Rocket MQ 中事务流程" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p></description></item></channel></rss>

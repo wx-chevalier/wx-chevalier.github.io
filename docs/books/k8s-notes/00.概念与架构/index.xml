@@ -1,0 +1,866 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>00.概念与架构 | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/k8s-notes/00.%E6%A6%82%E5%BF%B5%E4%B8%8E%E6%9E%B6%E6%9E%84/</link><atom:link href="https://ng-tech.icu/books/k8s-notes/00.%E6%A6%82%E5%BF%B5%E4%B8%8E%E6%9E%B6%E6%9E%84/index.xml" rel="self" type="application/rss+xml"/><description>00.概念与架构</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>00.概念与架构</title><link>https://ng-tech.icu/books/k8s-notes/00.%E6%A6%82%E5%BF%B5%E4%B8%8E%E6%9E%B6%E6%9E%84/</link></image><item><title>01.设计理念</title><link>https://ng-tech.icu/books/k8s-notes/00.%E6%A6%82%E5%BF%B5%E4%B8%8E%E6%9E%B6%E6%9E%84/01.%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-notes/00.%E6%A6%82%E5%BF%B5%E4%B8%8E%E6%9E%B6%E6%9E%84/01.%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5/</guid><description>&lt;h1 id="kubernetes-设计理念">Kubernetes 设计理念&lt;/h1>
+&lt;p>分析和理解 Kubernetes 的设计理念可以使我们更深入地了解 Kubernetes 系统，更好地利用它管理分布式部署的云原生应用，另一方面也可以让我们借鉴其在分布式系统设计方面的经验。&lt;/p>
+&lt;h1 id="能力抽象">能力抽象&lt;/h1>
+&lt;p>与一般的 PaaS 平台相比，K8s 也是支持服务部署、自动运维、资源调度、扩缩容、自我修复、负载均衡，服务发现等功能，而其独特之处就是其对于基础设施层进行了较好的能力抽象。K8s 并没有处理具体的存储、网络这些差异性极大的部分，而是做云无关，开始实现各类 interface，做各种抽象。比如容器运行时接口（CRI）、容器网络接口（CNI）、容器存储接口（CSI）。这些接口让 Kubernetes 变得无比开放，而其本身则可以专注于内部部署及容器调度。&lt;/p>
+&lt;p>Kubernetes 生态中也会有很多通用的功能，比如服务发现、负载均衡、日志系统、监控系统等，这些都有提供默认方案，且这些方案都是可选、可插拔的。这些也都可以看作是 PaaS 平台的基础设施，在 Kubernetes 上也没有强绑强销的买卖，给用户提供了高度的灵活性。&lt;/p>
+&lt;p>Kubernetes 的各种功能都离不开它定义的资源对象，这些对象都可以通过 API 被提交到集群的 Etcd 中。API 的定义和实现都符合 HTTP REST 的格式，用户可以通过标准的 HTTP 动词（POST、PUT、GET、DELETE）来完成对相关资源对象的增删改查。常用的资源对象，比如 Deployment、DaemonSet、Job、PV 等。API 的抽象也意在这部分资源对象的定义。Kubernetes 有新的功能实现，一般会创建新的资源对象，而功能也依托于该对象进行实现。&lt;/p>
+&lt;h1 id="分层架构">分层架构&lt;/h1>
+&lt;p>Kubernetes 有类似于 Linux 的分层架构，如下图所示：&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/611142ad5132923bf8c9620d.jpg" alt="K8s 分层架构" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>基础设施层：包括容器运行时、网络、存储等。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>核心层：Kubernetes 最核心的功能，对外提供 API 构建高层的应用，对内提供插件式应用执行环境。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>应用层：部署（无状态、有状态应用、Job 等）和路由（服务发现、负载均衡等）&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>管理层：系统度量（如基础设施、容器和网络的度量），自动化（如自动扩展、动态 Provision 等）以及策略管理（RBAC、Quota、PSP、NetworkPolicy 等）&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>接口层：kubectl 命令行工具、客户端 SDK 以及集群联邦&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>生态系统：在接口层之上的庞大容器集群管理调度的生态系统，可以划分为两个范畴：日志、监控、配置管理、CI、CD、Workflow、FaaS、OTS 应用、ChatOps 等外部生态以及 CRI、CNI、CSI、镜像仓库、Cloud Provider、集群自身的配置和管理等内部生态。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h1 id="声明式设计与控制闭环">声明式设计与控制闭环&lt;/h1>
+&lt;p>Kubernetes 采用了声明式（Declarative）的资源管理模式，该模式会有如下几个步骤：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>声明：用户通过声明式的配置文件（json/yaml 等）向 Kubernetes 告诉所期望达到的应用状态。（比如：运行 2 个副本的 Nginx 服务）&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>观测：Kubernetes 会观测到用户的声明，并自动分析出需要执行的操作及用户所期望达到的应用状态。（比如选取合适的节点，配置相应的负载均衡策略等）&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>行动：Kubernetes 控制器会负责具体的工作执行，以达到用户声明的应用状态，该过程是全自动化。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>持续观测与收敛：大型分布式系统必然会存在各种异常，比如系统崩溃、容器退出等。Kubernetes 自然会持续关注系统的实时状态，当遇到异常时能够及时的进行自我修复。比如用户声明了 2 个 Nginx 服务，当其中有个 Nginx 挂了，或者所在的宿主机挂了，Kubernetes 会自动发现，并寻找合适的节点，再运行一个新的 Nginx 服务，以维持用户所期望达到的应用状态。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/item/20230417214442.png" alt="K8s 声明式设计图解" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>相对于命令式操作，声明式操作会更稳定且更容易被用户接受，因为该 API 中隐含了用户想要操作的目标对象，而这些对象刚好都是名词性质的，比如 Service、Deployment、PV 等；且声明式的配置文件更贴近“人类语言”，比如 YAML、JSON。&lt;/p>
+&lt;p>声明式的设计理念有助于实现控制闭环，持续观测、校正，最终将运行状态达到用户期望的状态；感知用户的行为并执行。比如修改 Pod 数量，应用升级/回滚等等。调度器是核心，但它只是负责从集群节点中选择合适的 node 来运行 pods，显然让调度器来实现上诉的功能不太合适，而需要有专门的控制器组件来实现。&lt;/p>
+&lt;p>Kubernetes 中所有的配置都是通过 API 对象的 spec 去设置的，也就是用户通过配置系统的理想状态来改变系统，这是 Kubernetes 重要设计理念之一，即所有的操作都是声明式（Declarative）的而不是命令式（Imperative）的。声明式操作在分布式系统中的好处是稳定，不怕丢操作或运行多次，例如设置副本数为 3 的操作运行多次也还是一个结果，而给副本数加 1 的操作就不是声明式的，运行多次结果就错了。&lt;/p>
+&lt;p>Kubernetes 实现了大量的 Controllers，它们通过 list-watch etcd 来感知集群数据的更新，然后 24 小时不间断的工作以达到期待的状态，在该过程中它们也会把创建的各类数据反馈回 kube-apiserver &amp;amp; etcd，从而形成了数据流的闭环。kube-controller-manager 不仅完成了 Kubernetes 集群功能的大部分，还提供很强大的扩展能力，可以让用户轻松的实现自己的 controllers。&lt;/p>
+&lt;h1 id="api-设计原则">API 设计原则&lt;/h1>
+&lt;p>Kubernetes 集群系统每支持一项新功能，引入一项新技术，一定会新引入对应的 API 对象，支持对该功能的管理操作，理解掌握的 API，就好比抓住了 Kubernetes 系统的牛鼻子。Kubernetes 系统 API 的设计有以下几条原则：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>所有 API 应该是声明式的。正如前文所说，声明式的操作，相对于命令式操作，对于重复操作的效果是稳定的，这对于容易出现数据丢失或重复的分布式环境来说是很重要的。另外，声明式操作更容易被用户使用，可以使系统向用户隐藏实现的细节，隐藏实现的细节的同时，也就保留了系统未来持续优化的可能性。此外，声明式的 API，同时隐含了所有的 API 对象都是名词性质的，例如 Service、Volume 这些 API 都是名词，这些名词描述了用户所期望得到的一个目标分布式对象。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>API 对象是彼此互补而且可组合的。这里面实际是鼓励 API 对象尽量实现面向对象设计时的要求，即“高内聚，松耦合”，对业务相关的概念有一个合适的分解，提高分解出来的对象的可重用性。事实上，Kubernetes 这种分布式系统管理平台，也是一种业务系统，只不过它的业务就是调度和管理容器服务。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>高层 API 以操作意图为基础设计。如何能够设计好 API，跟如何能用面向对象的方法设计好应用系统有相通的地方，高层设计一定是从业务出发，而不是过早的从技术实现出发。因此，针对 Kubernetes 的高层 API 设计，一定是以 Kubernetes 的业务为基础出发，也就是以系统调度管理容器的操作意图为基础设计。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>低层 API 根据高层 API 的控制需要设计。设计实现低层 API 的目的，是为了被高层 API 使用，考虑减少冗余、提高重用性的目的，低层 API 的设计也要以需求为基础，要尽量抵抗受技术实现影响的诱惑。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>尽量避免简单封装，不要有在外部 API 无法显式知道的内部隐藏的机制。简单的封装，实际没有提供新的功能，反而增加了对所封装 API 的依赖性。内部隐藏的机制也是非常不利于系统维护的设计方式，例如 StatefulSet 和 ReplicaSet，本来就是两种 Pod 集合，那么 Kubernetes 就用不同 API 对象来定义它们，而不会说只用同一个 ReplicaSet，内部通过特殊的算法再来区分这个 ReplicaSet 是有状态的还是无状态。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>API 操作复杂度与对象数量成正比。这一条主要是从系统性能角度考虑，要保证整个系统随着系统规模的扩大，性能不会迅速变慢到无法使用，那么最低的限定就是 API 的操作复杂度不能超过 O(N)，N 是对象的数量，否则系统就不具备水平伸缩性了。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>API 对象状态不能依赖于网络连接状态。由于众所周知，在分布式环境下，网络连接断开是经常发生的事情，因此要保证 API 对象状态能应对网络的不稳定，API 对象的状态就不能依赖于网络连接状态。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>尽量避免让操作机制依赖于全局状态，因为在分布式系统中要保证全局状态的同步是非常困难的。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h1 id="控制机制设计原则">控制机制设计原则&lt;/h1>
+&lt;ul>
+&lt;li>
+&lt;p>控制逻辑应该只依赖于当前状态。这是为了保证分布式系统的稳定可靠，对于经常出现局部错误的分布式系统，如果控制逻辑只依赖当前状态，那么就非常容易将一个暂时出现故障的系统恢复到正常状态，因为你只要将该系统重置到某个稳定状态，就可以自信的知道系统的所有控制逻辑会开始按照正常方式运行。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>假设任何错误的可能，并做容错处理。在一个分布式系统中出现局部和临时错误是大概率事件。错误可能来自于物理系统故障，外部系统故障也可能来自于系统自身的代码错误，依靠自己实现的代码不会出错来保证系统稳定其实也是难以实现的，因此要设计对任何可能错误的容错处理。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>尽量避免复杂状态机，控制逻辑不要依赖无法监控的内部状态。因为分布式系统各个子系统都是不能严格通过程序内部保持同步的，所以如果两个子系统的控制逻辑如果互相有影响，那么子系统就一定要能互相访问到影响控制逻辑的状态，否则，就等同于系统里存在不确定的控制逻辑。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>假设任何操作都可能被任何操作对象拒绝，甚至被错误解析。由于分布式系统的复杂性以及各子系统的相对独立性，不同子系统经常来自不同的开发团队，所以不能奢望任何操作被另一个子系统以正确的方式处理，要保证出现错误的时候，操作级别的错误不会影响到系统稳定性。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>每个模块都可以在出错后自动恢复。由于分布式系统中无法保证系统各个模块是始终连接的，因此每个模块要有自我修复的能力，保证不会因为连接不到其他模块而自我崩溃。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>每个模块都可以在必要时优雅地降级服务。所谓优雅地降级服务，是对系统鲁棒性的要求，即要求在设计实现模块时划分清楚基本功能和高级功能，保证基本功能不会依赖高级功能，这样同时就保证了不会因为高级功能出现故障而导致整个模块崩溃。根据这种理念实现的系统，也更容易快速地增加新的高级功能，因为不必担心引入高级功能影响原有的基本功能。&lt;/p>
+&lt;/li>
+&lt;/ul></description></item><item><title>02.为何使用 K8s</title><link>https://ng-tech.icu/books/k8s-notes/00.%E6%A6%82%E5%BF%B5%E4%B8%8E%E6%9E%B6%E6%9E%84/02.%E4%B8%BA%E4%BD%95%E4%BD%BF%E7%94%A8-k8s/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-notes/00.%E6%A6%82%E5%BF%B5%E4%B8%8E%E6%9E%B6%E6%9E%84/02.%E4%B8%BA%E4%BD%95%E4%BD%BF%E7%94%A8-k8s/</guid><description>&lt;h1 id="为何使用-k8s">为何使用 K8s&lt;/h1>
+&lt;h1 id="k8s-的功能特性">K8s 的功能特性&lt;/h1>
+&lt;p>Kubernates 是建立在扩展性的具备二次开发的功能层次丰富的体系化系统，首先其最核心的功能是管理容器集群，能管理容器化的集群（包括存储，计算），当然这个是建立在对容器运行时（CRI），网络接口（CNI）,存储服务接口（CSI/FV）的基础上；其次是面向应用(包括无状态/有状态,批处理/服务型应用)的部署和路由能力，特别是基于微服务架构的应用管理，具备了其服务定义和服务发现，以及基于 configmap 的统一配置能力；在基础资源（主要是抽象底层 IaaS 的资源）和应用层的抽象模型之上是治理层，包含弹性扩容，命名空间/租户，等。当然，基于其原子内核的基础能力，在 K8s 的核心之上搭建统一的日志中心和全方位监控等服务是水到渠成的，CNCF 更是有其认定推荐。&lt;/p>
+&lt;h2 id="功能">功能&lt;/h2>
+&lt;ul>
+&lt;li>
+&lt;p>服务发现和负载平衡：K8s 可以使用 DNS 名称或使用自己的 IP 地址暴露容器。如果容器的流量很高，K8s 能够负载均衡并分配网络流量，以便部署稳定。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>存储编排：K8s 允许您自动安装您选择的存储系统，例如本地存储，公共云提供商等。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>自动部署和回滚：您可以使用 K8s 描述已部署容器的所需状态，并且可以以受控速率将实际状态更改为所需状态。例如，您可以自动化 K8s 为您的部署创建新容器，删除现有容器并将所有资源用于新容器。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>自动装箱：K8s 允许您指定每个容器需要多少 CPU 和内存（RAM）。当容器指定了资源请求时，K8s 可以更好地决定管理容器的资源。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>自我修复：K8s 重新启动失败的容器，替换容器，杀死不响应用户定义的运行状况检查的容器，并且在它们准备好服务之前不会将它们通告给客户端。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>密钥和配置管理：K8s 允许您存储和管理敏感信息，例如密码，OAuth 令牌和 ssh 密钥。您可以部署和更新机密和应用程序配置，而无需重建容器映像，也不会在堆栈配置中暴露机密。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h2 id="优势">优势&lt;/h2>
+&lt;ul>
+&lt;li>
+&lt;p>它的速度很快：在不停机的情况下持续部署新功能时，K8s 是一个完美的选择。K8s 的目标是以恒定的正常运行时间更新应用程序。它的速度通过您每小时可以运送的许多功能来衡量，同时保持可用的服务。以正确的方式使用 K8s 可帮助 DevOps 即服务团队自动扩展应用程序并以零停机时间进行更新。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>遵循不可变基础架构的原则：以传统方式，如果多个更新出现任何问题，您就没有任何记录显示您部署了多少更新以及发生了哪个错误。在不可变基础结构中，如果您希望更新任何应用程序，则需要使用新标记构建容器映像并进行部署，从而使用旧映像版本终止旧容器。通过这种方式，您将获得一份记录，并了解您所做的事情以及是否有任何错误; 您可以轻松回滚到上一个图像。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>提供声明性配置：用户可以知道系统应该处于什么状态以避免错误。作为传统工具的源代码控制，单元测试等不能与命令式配置一起使用，但可以与声明性配置一起使用。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>大规模部署和更新软件：由于 K8s 具有不可变的声明性，因此扩展很容易。K8s 提供了一些用于扩展目的的有用功能：&lt;/p>
+&lt;ul>
+&lt;li>水平基础架构缩放：在单个服务器级别执行操作以应用水平缩放。可以毫不费力地添加或分离 atest 服务器。&lt;/li>
+&lt;li>自动扩展：根据 CPU 资源或其他应用程序指标的使用情况，您可以更改正在运行的容器数&lt;/li>
+&lt;li>手动缩放：您可以通过命令或界面手动缩放正在运行的容器的数量&lt;/li>
+&lt;li>复制控制器：复制控制器确保群集在运行条件下具有指定数量的等效窗格。如果存在太多 Pod，则复制控制器可以删除额外的 Pod，反之亦然。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>处理应用程序的可用性：K8s 检查节点和容器的运行状况，并在由于错误导致的盒中崩溃时提供自我修复和自动替换。此外，它在多个 Pod 之间分配负载，以便在意外流量期间快速平衡资源。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>存储卷：在 K8s 中，数据在容器之间共享，但如果 Pod 被杀死，则会自动删除卷。此外，数据是远程存储的，因此如果将 Pod 移动到另一个节点，数据将保留，直到用户删除为止。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h2 id="不足">不足&lt;/h2>
+&lt;ul>
+&lt;li>
+&lt;p>初始过程需要时间：创建新进程时，您必须等待应用程序开始，然后才能供用户使用。如果要迁移到 K8s，则需要对代码库进行修改，以使启动过程更有效，这样用户就不会有糟糕的体验。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>迁移到无状态需要付出很多努力：如果您的应用程序是群集或无状态的，则不会配置额外的 Pod，并且必须在应用程序中重新配置。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>安装过程繁琐：如果您不使用 Azure，Google 或 Amazon 等任何云提供商，则很难在群集上设置 K8s；不过在有 Rancher 这样的工具辅助下，安装效率也有了大幅度的提高。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h1 id="云操作系统">云操作系统&lt;/h1>
+&lt;p>在 Kubernetes 诞生之前，很多产品也做过此类尝试，例如 Mesos；Mesos 早期甚至并不支持容器，主要设计的目标也是短任务（后通过 Marathon Framework 支持长服务），更像一个分布式的工作流和任务管理（或者是分布式进程管理）系统，但是已经体现了 Workload 和硬件资源分离的思想。在前 Kubernetes 时代，Mesos 的设计更像是传统的系统工程师对分布式任务调度的思考和实践；K8s 从设计之初就是要在硬件层之上去抽象所有类型的 workload，构建自己的生态系统。如果说 Mesos 还是个工具的话，那么 K8s 的目标其实是奔着做一个分布式操作系统去的。&lt;/p>
+&lt;p>简单做个类比：整个集群的计算资源统一管控起来就像一个单机的物理计算资源，容器就像一个个进程，Overlay network 就像进程通信，镜像就像一个个可执行文件，Controller 就像 Systemd，Kubectl 就像 Shell 等。从另一方面看，Kubernetes 为各种 IaaS 层提供了一套标准的抽象，不管你底层是自己的数据中心的物理机，还是某个公有云的 VM，只要你的服务是构建在 K8s 之上，那么就获得了无缝迁移的能力。&lt;/p>
+&lt;h2 id="微服务">微服务&lt;/h2>
+&lt;p>现在我们都习惯了使用微服务来构建服务端架构，K8s 它不仅仅提供了对于基础云资源的管控，它还为我们在设计微服务之中所需的设计要素提供了对应的解决方案：&lt;/p>
+&lt;ul>
+&lt;li>API 网关：Ingress&lt;/li>
+&lt;li>无状态化：区分有状态与无状态的应用，K8s 中无状态对应 Deployment，有状态对应 StatefulSet&lt;/li>
+&lt;li>数据库的横向扩展：Headless Service 指向 PaaS 服务，或者 StatefulSet 部署&lt;/li>
+&lt;li>缓存：Headless Service 指向 PaaS 服务，或者 StatefulSet 部署&lt;/li>
+&lt;li>服务拆分与服务发现：Service&lt;/li>
+&lt;li>服务编排与弹性伸缩：Deployment 的 Replicas&lt;/li>
+&lt;li>统一配置中心：ConfigMap&lt;/li>
+&lt;li>统一的日志中心：DaemonSet 部署日志 Agent&lt;/li>
+&lt;li>熔断，限流，降级：Service Mesh&lt;/li>
+&lt;li>全方位的监控：Cadvisor，DaemonSet 部署监控&lt;/li>
+&lt;/ul>
+&lt;p>Kubernetes、Service Mesh 和 Serverless 三者共同演绎不同层次的封装和向上屏蔽下面的细节。Kubernetes 引入了不同的设计模式，实现对各种云资源全新、有效和优雅的抽象和管理模式，让集群的管理和应用发布变成了件相当轻松且不易出错的事。被广泛采用的微服务软件架构将分布式应用的各种复杂度迁移到了服务之间，如何通过全局一致、体系化、规范化和无侵入的手段进行治理就变成了微服务软件架构下至关重要的内容。Kubernetes 细化的应用程序的分解粒度，同时将服务发现、配置管理、负载均衡和健康检查等作为基础设施的功能，简化了应用程序的开发。而 Kubernetes 这种声明式配置尤其适合 CI/CD 流程，况且现在还有如 Helm、Draft、Spinnaker、Skaffold 等开源工具可以帮助我们发布 Kuberentes 应用。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/item/20230417214510.png" alt="CI/CD Pipeline Workflow with K8s" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>Service Mesh 通过将各服务所共用和与环境相关的内容剥离到部署于每个服务边上的 Sidecar 进程而轻松地做到了。这一剥离动作使得服务与平台能充分解耦而方便各自演进与发展，也使得服务变轻而有助于改善服务启停的及时性。Service Mesh 因为将那些服务治理相关的逻辑剥离到了 Sidecar 中且作为独立进程，所以 Sidecar 所实现的功能天然地支持多语言，为上面的服务采用多语言开发创造了更为有利的条件。通过 Service Mesh 对整个网络的服务流量进行技术收口，让异地多活这样涉及流量调度的系统工程实现起来更加优雅、简洁与有效，也能更加方便地实现服务版本升级时的灰度、回滚而改善安全生产质量。由于技术收口，给服务流量的治理和演进、排错、日志采集的经济性等疑难问题创造了新的发展空间。&lt;/p>
+&lt;h1 id="基础设施使用-yaml-表达">基础设施使用 YAML 表达&lt;/h1>
+&lt;p>从 Puppet 和 Chef 的世界里走出来，Kubernetes 的一个重要转变是，从以代码为基础的基础架构转向了以数据为基础的基础架构。具体来说，就是 YAML。Kubernetes 中的所有资源，包括 Pod、Configurations、Deployments、Volumes 等，都可以简单地用 YAML 文件来表达。比如：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Pod&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">site&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">labels&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">web&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">containers&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">front-end&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">nginx&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">ports&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">containerPort&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">80&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这种表示方式使 DevOps 或 SRE 工程师更容易完全表达工作负载，而不需要在 Python、Ruby 或 Javascript 等语言中用代码表示。将基础架构作为数据的好处还包括：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>GitOps 或 Git 操作版本控制。使用这种方法，你可以将所有的 Kubernetes YAML 文件都保存在 git 仓库下，这样你就可以准确地知道何时进行了更改，谁做了更改，以及具体更改了什么。这使得整个组织的透明度更高，并且通过避免团队成员弄不清楚去哪里寻找配置，从而提高了效率。同时，只需合并一个拉动请求，就可以更方便地自动化更改 Kubernetes 资源。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>可扩展性。将资源定义为 YAML，使得集群操作人员在 Kubernetes 资源中改变一两个数字来扩容或者缩容集群。Kubernetes 有水平 pod 自动缩放器，可以指定给定部署所需要的最小和最大 pod 数量，以便能自动缩容/扩容应对流量低谷/高峰。例如，如果你正在运行的部署可能因为流量突增而需要更多的容量，你可以将 maxReplicas 从 10 个改为 20 个。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yml" data-lang="yml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">autoscaling/v2beta2&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">HorizontalPodAutoscaler&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">myapp&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">namespace&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">default&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">scaleTargetRef&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">apps/v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Deployment&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">myapp-deployment&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">minReplicas&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">maxReplicas&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">20&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">metrics&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Resource&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">resource&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">cpu&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">target&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Utilization&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">averageUtilization&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">50&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ul>
+&lt;li>安全和控制。YAML 是验证在 Kubernetes 中部署什么和如何部署的好方法。例如，当涉及到安全问题时，一个重要的关注点就是你的工作负载是否以非 root 用户的身份运行。我们可以利用像 conftest 这样的工具（YAML/JSON 验证器），再加上 Open Policy Agent 这样的策略验证器，来检查你的工作负载的 SecurityContext 是否不允许容器作为 root 用户运行。为此，用户可以使用一个简单的 Open Policy Agent rego 策略，如下。&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kn">package&lt;/span> &lt;span class="nx">main&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">deny&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="nx">msg&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">input&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">kind&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="s">&amp;#34;Deployment&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">not&lt;/span> &lt;span class="nx">input&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">spec&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">template&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">spec&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">securityContext&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">runAsNonRoot&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="kc">true&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">msg&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="s">&amp;#34;Containers must not run as root&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ul>
+&lt;li>云供应商的整合。科技行业的主要趋势之一就是在公有云供应商中运行工作负载。在云供应商组件的帮助下，Kubernetes 允许每个集群与它所运行的云供应商进行集成。例如，如果用户在 AWS 中的 Kubernetes 中运行某应用程序，并希望该应用程序可以通过服务访问，云供应商会帮助自动创建一个 LoadBalancer 服务，该服务会自动提供一个 Amazon Elastic Load Balancer 来将流量转发到应用程序的 pods。&lt;/li>
+&lt;/ul>
+&lt;h1 id="可扩展性">可扩展性&lt;/h1>
+&lt;p>Kubernetes 的可扩展性很强，开发者很喜欢这一点。Kubernetes 已经内置了很多资源，如 Pods、Deployments、StatefulSets、Secrets、ConfigMaps 等。然而用户和开发者可以通过自定义资源定义的形式添加更多的资源。例如，如果我们想定义一个 CronTab 资源，我们可以这样做。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yml" data-lang="yml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">apiextensions.k8s.io/v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CustomResourceDefinition&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontabs.my.org&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">group&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my.org&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">versions&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">served&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">storage&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">Schema&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">openAPIV3Schema&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">object&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">properties&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">object&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">properties&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">cronSpec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">string&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">pattern&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;^(\d+|\*)(/\d+)?(\s+(\d+|\*)(/\d+)?){4}$&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">replicas&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">type&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">integer&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">minimum&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">maximum&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">10&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">scope&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Namespaced&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">names&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">plural&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontabs&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">singular&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">crontab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CronTab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">shortNames&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="l">ct&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>我们以后可以用如下的方式创建一个 CronTab 资源。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yml" data-lang="yml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;my.org/v1&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">CronTab&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-cron-object&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">cronSpec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;* * * * */5&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">my-cron-image&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">replicas&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">5&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Kubernetes 可扩展性的另一种形式是开发者可以编写自己的 Operator，这是一个在 Kubernetes 集群中运行的特定进程，遵循控制循环模式。一个 Operator 允许用户通过与 Kubernetes API 对话来自动管理 CRD（自定义资源定义）。社区有几个工具，允许开发者创建自己的 Operator。其中一个工具是 Operator Framework 及其 Operator SDK。该 SDK 为开发者提供了一个框架，让他们可以非常快速地开始创建 Operator。例如，您可以通过以下命令行开始创建 Operator。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-s" data-lang="s">&lt;span class="line">&lt;span class="cl">&lt;span class="o">$&lt;/span> &lt;span class="n">operator&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">sdk&lt;/span> &lt;span class="n">new&lt;/span> &lt;span class="n">my&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">operator&lt;/span> &lt;span class="o">--&lt;/span>&lt;span class="n">repo&lt;/span> &lt;span class="n">github.com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">myuser&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">my&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">operator&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这就为你的 Operator 创建了包括 YAML 文件和 Golang 代码在内的整个样板。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-s" data-lang="s">&lt;span class="line">&lt;span class="cl">&lt;span class="n">.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="n">____cmd&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span>&lt;span class="n">____manager&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span>&lt;span class="n">____main.go&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span>&lt;span class="n">____go.mod&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span>&lt;span class="n">____deploy&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span>&lt;span class="n">____role.yaml&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span>&lt;span class="n">____role_binding.yaml&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span>&lt;span class="n">____service_account.yaml&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span>&lt;span class="n">____operator.yaml&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span>&lt;span class="n">____tools.go&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span>&lt;span class="n">____go.sum&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span>&lt;span class="n">____.gitignore&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span>&lt;span class="n">____version&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span>&lt;span class="n">____version.go&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span>&lt;span class="n">____build&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span>&lt;span class="n">____bin&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span>&lt;span class="n">____user_setup&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span>&lt;span class="n">____entrypoint&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span>&lt;span class="n">____Dockerfile&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span>&lt;span class="n">____pkg&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span>&lt;span class="n">____apis&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span>&lt;span class="n">____apis.go&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span>&lt;span class="n">____controller&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span> &lt;span class="o">|&lt;/span>&lt;span class="n">____controller.go&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>添加 API 和控制器的方式如下。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-s" data-lang="s">&lt;span class="line">&lt;span class="cl">&lt;span class="o">$&lt;/span> &lt;span class="n">operator&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">sdk&lt;/span> &lt;span class="n">add&lt;/span> &lt;span class="n">api&lt;/span> &lt;span class="o">--&lt;/span>&lt;span class="n">api&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">version&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="n">myapp.com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">v1alpha1&lt;/span> &lt;span class="o">--&lt;/span>&lt;span class="n">kind&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="n">MyAppService&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">$&lt;/span> &lt;span class="n">operator&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">sdk&lt;/span> &lt;span class="n">add&lt;/span> &lt;span class="n">controller&lt;/span> &lt;span class="o">--&lt;/span>&lt;span class="n">api&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">version&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="n">myapp.com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">v1alpha1&lt;/span> &lt;span class="o">--&lt;/span>&lt;span class="n">kind&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="n">MyAppService&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>最后构建并推送 Operator 到你的容器注册表中。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-s" data-lang="s">&lt;span class="line">&lt;span class="cl">&lt;span class="o">$&lt;/span> &lt;span class="n">operator&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">sdk&lt;/span> &lt;span class="n">build&lt;/span> &lt;span class="n">your.container.registry&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">youruser&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">myapp&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">operator&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>如果开发者需要更多的控制权，他们可以修改 Golang 文件中的样板代码。例如，要修改控制器的具体内容，他们可以对 controller.go 文件进行修改。&lt;/p>
+&lt;p>另一个项目 KUDO 只需使用声明式的 YAML 文件就可以创建 Operator。例如，Apache Kafka 的 Operator 就是这样定义的，它允许用户在 Kubernetes 上面安装一个 Kafka 集群，只需要几条命令就可以了。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-s" data-lang="s">&lt;span class="line">&lt;span class="cl">&lt;span class="o">$&lt;/span> &lt;span class="n">kubectl&lt;/span> &lt;span class="n">kudo&lt;/span> &lt;span class="n">install&lt;/span> &lt;span class="n">zookeeper&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">$&lt;/span> &lt;span class="n">kubectl&lt;/span> &lt;span class="n">kudo&lt;/span> &lt;span class="n">install&lt;/span> &lt;span class="n">kafka&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>然后用另一个命令来调整 kafka 参数。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-s" data-lang="s">&lt;span class="line">&lt;span class="cl">&lt;span class="o">$&lt;/span> &lt;span class="n">kubectl&lt;/span> &lt;span class="n">kudo&lt;/span> &lt;span class="n">install&lt;/span> &lt;span class="n">kafka&lt;/span> &lt;span class="o">--&lt;/span>&lt;span class="n">instance&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="n">my&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">kafka&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">name&lt;/span> &lt;span class="n">\&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">-&lt;/span>&lt;span class="n">p&lt;/span> &lt;span class="n">ZOOKEEPER_URI&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="n">zk&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">zookeeper&lt;/span>&lt;span class="m">-0&lt;/span>&lt;span class="n">.zk&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">hs&lt;/span>&lt;span class="o">:&lt;/span>&lt;span class="m">2181&lt;/span> &lt;span class="n">\&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">-&lt;/span>&lt;span class="n">p&lt;/span> &lt;span class="n">ZOOKEEPER_PATH&lt;/span>&lt;span class="o">=/&lt;/span>&lt;span class="n">my&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">path&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">p&lt;/span> &lt;span class="n">BROKER_CPUS&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">3000&lt;/span>&lt;span class="n">m&lt;/span> &lt;span class="n">\&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">-&lt;/span>&lt;span class="n">p&lt;/span> &lt;span class="n">BROKER_COUNT&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">5&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">p&lt;/span> &lt;span class="n">BROKER_MEM&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">4096&lt;/span>&lt;span class="n">m&lt;/span> &lt;span class="n">\&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">-&lt;/span>&lt;span class="n">p&lt;/span> &lt;span class="n">DISK_SIZE&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">40&lt;/span>&lt;span class="n">Gi&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">p&lt;/span> &lt;span class="n">MIN_INSYNC_REPLICAS&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">3&lt;/span> &lt;span class="n">\&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">-&lt;/span>&lt;span class="n">p&lt;/span> &lt;span class="n">NUM_NETWORK_THREADS&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">10&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">p&lt;/span> &lt;span class="n">NUM_IO_THREADS&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">20&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item><item><title>3.集群组件</title><link>https://ng-tech.icu/books/k8s-notes/00.%E6%A6%82%E5%BF%B5%E4%B8%8E%E6%9E%B6%E6%9E%84/3.%E9%9B%86%E7%BE%A4%E7%BB%84%E4%BB%B6/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-notes/00.%E6%A6%82%E5%BF%B5%E4%B8%8E%E6%9E%B6%E6%9E%84/3.%E9%9B%86%E7%BE%A4%E7%BB%84%E4%BB%B6/</guid><description>&lt;h1 id="kubernetes-集群组件">Kubernetes 集群组件&lt;/h1>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://s2.ax1x.com/2020/01/04/ld7zdg.png" alt="K8s 集群主从架构" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;h2 id="master-components">Master Components&lt;/h2>
+&lt;p>Kubernetes 主要由以下几个核心组件组成：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>etcd：是高可用的 key/value 存储系统，用于持久化存储集群中的所有资源对象，比如：Node，Pod，Serivce，RC,namespace 等。API server 提供了操作 etcd 的封装接口 API，以 Rest 的方式提供，这些 API 基本上都是集群中资源对象的增删改查及监听资源变化的接口，比如创建 Pod、RC，监听 Pod 的变化等接口。API server 是连接其他所有服务组件的中间枢纽。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>kube-apiserver：提供了资源对象的唯一操作入口，其他组件都必须通过它提供的 API 来操作资源数据，通过对相关的资源数据全量查询与变化监听，这些组件可以近乎实时地完成相关的业务功能。比如提交一个新的 Pod 到 kube-apiserve 中，kube-controller-manger 可以立即就发现并开始作用。它还有一套完备的安全机制，包括认证、授权及准入控制等相关模块。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>kube-controller-manger：集群内部的管理控制中心，主要完成了集群的故障检测和恢复的自动化工作。比如对 RC 定义的 Pod 进行维护；根据 Service 和 Pod 的关系，完成服务的 Endpoints 对象的创建和更新；还有 Node 的发现、管理和状态监控，死亡容器所占资源及本地缓存的镜像文件的清理等工作。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>kube-scheduler: 集群的调度器，负责 Pod 在集群节点中的调度分配，也负责 Volume（CVI）和网络（CNI）的管理，按照预定的调度策略将 Pod 调度到相应的机器上；&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h2 id="node-components">Node Components&lt;/h2>
+&lt;ul>
+&lt;li>
+&lt;p>kubelet：负责本地节点上 Pod 的创建、修改、监控、删除等生命周期管理，同时会上报本 Node 的状态信息到 API server。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>kube-proxy：实现 Service 的代理及软件模式的负载均衡器。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>kubectl：集群内部的客户端可以直接使用 kubectl 命令管理集群；集群外的客户端需要使用 kubectl Porxy 进行反向代理来访问 API server。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>cAdvisor: 在 Node 节点运行的 kubectl 服务中内嵌了一个 cAdvisor 服务，cAdvisor 是谷歌的开源项目，用于实时监控 Docker 上运行的容器的性能指标。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h1 id="组件通信">组件通信&lt;/h1>
+&lt;p>Kubernetes 多组件之间的通信原理为 apiserver 负责 etcd 存储的所有操作，且只有 apiserver 才直接操作 etcd 集群。apiserver 对内（集群中的其他组件）和对外（用户）提供统一的 REST API，其他组件均通过 apiserver 进行通信。controller manager、scheduler、kube-proxy 和 kubelet 等均通过 apiserver watch API 监测资源变化情况，并对资源作相应的操作。所有需要更新资源状态的操作均通过 apiserver 的 REST API 进行。apiserver 也会直接调用 kubelet API（如 logs, exec, attach 等），默认不校验 kubelet 证书，但可以通过 &lt;code>--kubelet-certificate-authority&lt;/code> 开启（而 GKE 通过 SSH 隧道保护 它们之间的通信）。&lt;/p>
+&lt;p>比如典型的创建 Pod 的流程为：&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/item/20230417214531.png" alt="Pod 创建流程" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>用户通过 REST API 创建一个 Pod，apiserver 将其写入 etcd。scheduluer 检测到未绑定 Node 的 Pod，开始调度并更新 Pod 的 Node 绑定，kubelet 检测到有新的 Pod 调度过来，通过 container runtime 运行该 Pod，kubelet 通过 container runtime 取到 Pod 状态，并更新到 apiserver 中。&lt;/p>
+&lt;h1 id="使用的端口号">使用的端口号&lt;/h1>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://i.postimg.cc/yxX6wGJC/image.png" alt="端口之间数据流动" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;h2 id="master-nodes">Master node(s)&lt;/h2>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>Protocol&lt;/th>
+&lt;th>Direction&lt;/th>
+&lt;th>Port Range&lt;/th>
+&lt;th>Purpose&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>TCP&lt;/td>
+&lt;td>Inbound&lt;/td>
+&lt;td>&lt;code>6443*&lt;/code>&lt;/td>
+&lt;td>Kubernetes API server&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>TCP&lt;/td>
+&lt;td>Inbound&lt;/td>
+&lt;td>8080&lt;/td>
+&lt;td>Kubernetes API insecure server&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>TCP&lt;/td>
+&lt;td>Inbound&lt;/td>
+&lt;td>2379-2380&lt;/td>
+&lt;td>etcd server client API&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>TCP&lt;/td>
+&lt;td>Inbound&lt;/td>
+&lt;td>10250&lt;/td>
+&lt;td>Kubelet API&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>TCP&lt;/td>
+&lt;td>Inbound&lt;/td>
+&lt;td>10251&lt;/td>
+&lt;td>kube-scheduler healthz&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>TCP&lt;/td>
+&lt;td>Inbound&lt;/td>
+&lt;td>10252&lt;/td>
+&lt;td>kube-controller-manager healthz&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>TCP&lt;/td>
+&lt;td>Inbound&lt;/td>
+&lt;td>10253&lt;/td>
+&lt;td>cloud-controller-manager healthz&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>TCP&lt;/td>
+&lt;td>Inbound&lt;/td>
+&lt;td>10255&lt;/td>
+&lt;td>Read-only Kubelet API&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>TCP&lt;/td>
+&lt;td>Inbound&lt;/td>
+&lt;td>10256&lt;/td>
+&lt;td>kube-proxy healthz&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h2 id="worker-nodes">Worker node(s)&lt;/h2>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>Protocol&lt;/th>
+&lt;th>Direction&lt;/th>
+&lt;th>Port Range&lt;/th>
+&lt;th>Purpose&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>TCP&lt;/td>
+&lt;td>Inbound&lt;/td>
+&lt;td>4194&lt;/td>
+&lt;td>Kubelet cAdvisor&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>TCP&lt;/td>
+&lt;td>Inbound&lt;/td>
+&lt;td>10248&lt;/td>
+&lt;td>Kubelet healthz&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>TCP&lt;/td>
+&lt;td>Inbound&lt;/td>
+&lt;td>10249&lt;/td>
+&lt;td>kube-proxy metrics&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>TCP&lt;/td>
+&lt;td>Inbound&lt;/td>
+&lt;td>10250&lt;/td>
+&lt;td>Kubelet API&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>TCP&lt;/td>
+&lt;td>Inbound&lt;/td>
+&lt;td>10255&lt;/td>
+&lt;td>Read-only Kubelet API&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>TCP&lt;/td>
+&lt;td>Inbound&lt;/td>
+&lt;td>10256&lt;/td>
+&lt;td>kube-proxy healthz&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>TCP&lt;/td>
+&lt;td>Inbound&lt;/td>
+&lt;td>30000-32767&lt;/td>
+&lt;td>NodePort &lt;code>Services**&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table></description></item><item><title>4.开放接口</title><link>https://ng-tech.icu/books/k8s-notes/00.%E6%A6%82%E5%BF%B5%E4%B8%8E%E6%9E%B6%E6%9E%84/4.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-notes/00.%E6%A6%82%E5%BF%B5%E4%B8%8E%E6%9E%B6%E6%9E%84/4.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/</guid><description>&lt;h1 id="开放接口">开放接口&lt;/h1>
+&lt;p>Kubernetes 作为云原生应用的基础调度平台，相当于云原生的操作系统，为了便于系统的扩展，Kubernetes 中开放的以下接口，可以分别对接不同的后端，来实现自己的业务逻辑：&lt;/p>
+&lt;ul>
+&lt;li>CRI（Container Runtime Interface）：容器运行时接口，提供计算资源&lt;/li>
+&lt;li>CNI（Container Network Interface）：容器网络接口，提供网络资源&lt;/li>
+&lt;li>CSI（Container Storage Interface）：容器存储接口，提供存储资源&lt;/li>
+&lt;/ul>
+&lt;h1 id="cri">CRI&lt;/h1>
+&lt;p>CRI，Container Runtime Interface（容器运行时接口）中定义了容器和镜像的服务的接口，因为容器运行时与镜像的生命周期是彼此隔离的，因此需要定义两个服务。该接口使用 Protocol Buffer，基于 gRPC，在 Kubernetes v1.10+版本中是在 pkg/kubelet/apis/cri/runtime/v1alpha2 的 api.proto 中定义的。&lt;/p>
+&lt;p>Container Runtime 实现了 CRI gRPC Server，包括 RuntimeService 和 ImageService。该 gRPC Server 需要监听本地的 Unix socket，而 kubelet 则作为 gRPC Client 运行。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://i.postimg.cc/66SSwFpK/image.png" alt="" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;h1 id="cni">CNI&lt;/h1>
+&lt;p>CNI（Container Network Interface）是 CNCF 旗下的一个项目，由一组用于配置 Linux 容器的网络接口的规范和库组成，同时还包含了一些插件。CNI 仅关心容器创建时的网络分配，和当容器被删除时释放网络资源。Kubernetes 源码的 vendor/github.com/containernetworking/cni/libcni 目录中已经包含了 CNI 的代码，也就是说 Kubernetes 中已经内置了 CNI。&lt;/p>
+&lt;h1 id="csi">CSI&lt;/h1>
+&lt;p>CSI, Container Storage Interface（容器存储接口）CSI 代表容器存储接口，CSI 试图建立一个行业标准接口的规范，借助 CSI 容器编排系统（CO）可以将任意存储系统暴露给自己的容器工作负载。有关详细信息，请查看设计方案。&lt;/p>
+&lt;p>CSI 卷类型是一种 out-tree（即跟其它存储插件在同一个代码路径下，随 Kubernetes 的代码同时编译的）的 CSI 卷插件，用于 Pod 与在同一节点上运行的外部 CSI 卷驱动程序交互。部署 CSI 兼容卷驱动后，用户可以使用 CSI 作为卷类型来挂载驱动提供的存储。&lt;/p></description></item><item><title>5.资源对象</title><link>https://ng-tech.icu/books/k8s-notes/00.%E6%A6%82%E5%BF%B5%E4%B8%8E%E6%9E%B6%E6%9E%84/5.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-notes/00.%E6%A6%82%E5%BF%B5%E4%B8%8E%E6%9E%B6%E6%9E%84/5.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/</guid><description>&lt;h1 id="应用对象">应用对象&lt;/h1>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://i.postimg.cc/PrF8smNg/image.png" alt="K8s 对象协作图" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th style="text-align:left">类别&lt;/th>
+&lt;th>名称&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td style="text-align:left">资源对象&lt;/td>
+&lt;td>Pod、ReplicaSet、ReplicationController、Deployment、StatefulSet、DaemonSet、Job、CronJob、HorizontalPodAutoscaling、Node、Namespace、Service、Ingress、Label、CustomResourceDefinition&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td style="text-align:left">存储对象&lt;/td>
+&lt;td>Volume、PersistentVolume、Secret、ConfigMap&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td style="text-align:left">策略对象&lt;/td>
+&lt;td>SecurityContext、ResourceQuota、LimitRange&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td style="text-align:left">身份对象&lt;/td>
+&lt;td>ServiceAccount、Role、ClusterRole&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h1 id="对象基础">对象基础&lt;/h1>
+&lt;p>Kubernetes 使用对象去描述整个集群的状态，集群的状态包括了：什么容器化应用在运行以及在哪个 Node 上、可以被应用使用的资源、关于应用如何表现的策略，比如重启策略、升级策略，以及容错策略等。一旦创建对象，Kubernetes 系统将持续工作以确保对象存在。通过创建对象，可以有效地告知 Kubernetes 系统，所需要的集群工作负载看起来是什么样子的，这就是 Kubernetes 集群的期望状态。
+API 对象是 Kubernetes 集群中的管理操作单元。Kubernetes 集群系统每支持一项新功能，引入一项新技术，一定会新引入对应的 API 对象，支持对该功能的管理操作。例如副本集 Replica Set 对应的 API 对象是 RS。每个 API 对象都有 3 大类属性：元数据 metadata、规范 spec 和状态 status。&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>元数据是用来标识 API 对象的，每个对象都至少有 3 个元数据：namespace，name 和 uid；除此以外还有各种各样的标签 labels 用来标识和匹配不同的对象，例如用户可以用标签 env 来标识区分不同的服务部署环境，分别用 env=dev、env=testing、env=production 来标识开发、测试、生产的不同服务。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>spec 规范描述了用户期望 Kubernetes 集群中的分布式系统达到的理想状态（Desired State），例如用户可以通过复制控制器 Replication Controller 设置期望的 Pod 副本数为 3；&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>status 描述了系统实际当前达到的状态（Status），例如系统当前实际的 Pod 副本数为 2；那么复制控制器当前的程序逻辑就是自动启动新的 Pod，争取达到副本数为 3。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;p>spec 必须提供，它描述了对象的期望状态，即希望对象所具有的特征，而 status 描述了对象的实际状态，它是由 Kubernetes 系统提供和更新。在任何时刻，Kubernetes 控制平面一直处于活跃状态，管理着对象的实际状态以与我们所期望的状态相匹配。当创建 Kubernetes 对象时，必须提供对象的 spec，用来描述该对象的期望状态，以及关于对象的一些基本信息（例如，名称）。当使用 Kubernetes API 创建对象时（或者直接创建，或者基于 kubectl），API 请求必须在请求体中包含 JSON 格式的信息。更常用的是，需要在 .yaml 文件中为 kubectl 提供这些信息。kubectl 在执行 API 请求时，将这些信息转换成 JSON 格式。这里有一个 .yaml 示例文件，展示了 Kubernetes Deployment 的必需字段和对象 spec：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">apps/v1&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># for versions before 1.9.0 use apps/v1beta2&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Deployment&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">nginx-deployment&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">replicas&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">3&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">template&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">labels&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">nginx&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">containers&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">nginx&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">nginx:1.7.9&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">ports&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">containerPort&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">80&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="资源对象">资源对象&lt;/h1>
+&lt;h2 id="basic">Basic&lt;/h2>
+&lt;h3 id="pod">Pod&lt;/h3>
+&lt;p>Pod 可谓 Kubernetes 中最为基础与重要的概念，Pod 是在 Kubernetes 集群中运行部署应用或服务的最小单元，可以支持包含多容器。Pod 的设计理念是支持多个容器在一个 Pod 中共享网络地址和文件系统，可以通过进程间通信和文件共享这种简单高效的方式组合完成服务。&lt;/p>
+&lt;p>每个 Pod 都包含一个“根容器”（Pause 容器）和多个紧密相关的用户业务容器。每个 Pod 都会提供一个独立的 Endpoint（Pod IP + Container Port）以供调用方访问。在一组容器作为一个单元的情况下难以对这个“整体”简单进行判断以及进行行动。Pod 内用一个业务无关的容器来代表这个整体的状态。业务容器之间的通信与文件共享问题。Pod 基于虚拟二层网络技术（Flannel）实现任意两个跨主机的 Pod 之间可直接通信；同一个 Pod 里的容器共享同一个网络命名空间，可以使用 localhost 互相通信。Pod 是短暂的，不是持续性实体。&lt;/p>
+&lt;h3 id="命名空间namespace">命名空间（Namespace）&lt;/h3>
+&lt;p>命名空间为 Kubernetes 集群提供虚拟的隔离作用，Kubernetes 集群初始有两个命名空间，分别是默认命名空间 default 和系统命名空间 kube-system，除此以外，管理员可以可以创建新的命名空间满足需要。&lt;/p>
+&lt;h3 id="节点node">节点（Node）&lt;/h3>
+&lt;p>Kubernetes 集群中的计算能力由 Node 提供，最初 Node 称为服务节点 Minion，后来改名为 Node。Kubernetes 集群中的 Node 也就等同于 Mesos 集群中的 Slave 节点，是所有 Pod 运行所在的工作主机，可以是物理机也可以是虚拟机。不论是物理机还是虚拟机，工作主机的统一特征是上面要运行 kubelet 管理节点上运行的容器。&lt;/p>
+&lt;h3 id="label">Label&lt;/h3>
+&lt;p>一个 Label 是 attach 到 Pod 的一对键/值对，用来传递用户定义的属性。比如，你可能创建了一个&amp;quot;tier&amp;quot;和“app”标签，通过 Label（tier=frontend, app=myapp）来标记前端 Pod 容器，使用 Label（tier=backend, app=myapp）标记后台 Pod。然后可以使用 Selectors 选择带有特定 Label 的 Pod，并且将 Service 或者 Replication Controller 应用到上面。&lt;/p>
+&lt;p>一个 Label 是一个 key=value 的键值对，由用于自行指定。Label 可以附加到各种 Kubernetes 资源上，例如 Node、Pod、Service、RC 等，Label 与资源对象是多对多的关系，其可以在资源对象定义是确定，也可以在资源对象创建后动态添加、删除。Kubernetes 中非常核心重要的功能之一，用于分类、检索资源。重要使用场景有以下几处：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>kube-controller 进程通过 RC 上定义的 Label Selector 来筛选要监控的 Pod 副本数量，从而实现 Pod 副本数量始终符合预期设定的全自动控制流程。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>kube-proxy 进程通过 Service 的 Label Selector 来选择对应的 Pod，自动建立起每个 Service 到对应 Pod 的请求转发路由表，从而实现 Service 的智能负载均衡机制。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>kube-scheduler 基于 Pod 的 NodeSelector 标签调度策略实现 Pod“定向调度”的特性。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h2 id="workloads">Workloads&lt;/h2>
+&lt;p>Pods 通常由更高级的抽象对象进行控制，进行常见的副本、认证、持久化存储、自定义调度、滚动更新等操作。&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>Deployments (Stateless Applications): replication + rollouts&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>StatefulSets (Stateful Applications): replication + rollouts + persistent storage + identity&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Jobs (Batch Work): run to completion&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>CronJobs (Scheduled Batch Work): scheduled run to completion&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>DaemonSets (Per-Machine): per-Node scheduling&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h3 id="rc--rs">RC &amp;amp; RS&lt;/h3>
+&lt;p>副本控制器（Replication Controller，RC）是 Kubernetes 集群中最早的保证 Pod 高可用的 API 对象。通过监控运行中的 Pod 来保证集群中运行指定数目的 Pod 副本。指定的数目可以是多个也可以是 1 个；少于指定数目，RC 就会启动运行新的 Pod 副本；多于指定数目，RC 就会杀死多余的 Pod 副本。即使在指定数目为 1 的情况下，通过 RC 运行 Pod 也比直接运行 Pod 更明智，因为 RC 也可以发挥它高可用的能力，保证永远有 1 个 Pod 在运行。RC 是 Kubernetes 较早期的技术概念，只适用于长期伺服型的业务类型。&lt;/p>
+&lt;p>副本集（Replication Set，RS）是新一代 RC，提供同样的高可用能力，区别主要在于 RS 后来居上，能支持更多种类的匹配模式。副本集对象一般不单独使用，而是作为 Deployment 的理想状态参数使用。&lt;/p>
+&lt;h3 id="部署deployment">部署（Deployment）&lt;/h3>
+&lt;p>部署表示用户对 Kubernetes 集群的一次更新操作。部署是一个比 RS 应用模式更广的 API 对象，可以是创建一个新的服务，更新一个新的服务，也可以是滚动升级一个服务。滚动升级一个服务，实际是创建一个新的 RS，然后逐渐将新 RS 中副本数增加到理想状态，将旧 RS 中的副本数减小到 0 的复合操作；这样一个复合操作用一个 RS 是不太好描述的，所以用一个更通用的 Deployment 来描述。以 Kubernetes 的发展方向，未来对所有长期伺服型的的业务的管理，都会通过 Deployment 来管理。&lt;/p>
+&lt;h3 id="任务job-定时任务cronjob">任务（Job）&amp;amp; 定时任务（CronJob）&lt;/h3>
+&lt;p>Job 是 Kubernetes 用来控制批处理型任务的 API 对象。批处理业务与长期伺服业务的主要区别是批处理业务的运行有头有尾，而长期伺服业务在用户不停止的情况下永远运行。Job 管理的 Pod 根据用户的设置把任务成功完成就自动退出了。成功完成的标志根据不同的 spec.completions 策略而不同：单 Pod 型任务有一个 Pod 成功就标志完成；定数成功型任务保证有 N 个任务全部成功；工作队列型任务根据应用确认的全局成功而标志成功。&lt;/p>
+&lt;h3 id="后台支撑服务集daemonset">后台支撑服务集（DaemonSet）&lt;/h3>
+&lt;p>长期伺服型和批处理型服务的核心在业务应用，可能有些节点运行多个同类业务的 Pod，有些节点上又没有这类 Pod 运行；而后台支撑型服务的核心关注点在 Kubernetes 集群中的节点（物理机或虚拟机），要保证每个节点上都有一个此类 Pod 运行。节点可能是所有集群节点也可能是通过 nodeSelector 选定的一些特定节点。典型的后台支撑型服务包括，存储，日志和监控等在每个节点上支持 Kubernetes 集群运行的服务。&lt;/p>
+&lt;h3 id="有状态服务集statefulset">有状态服务集（StatefulSet）&lt;/h3>
+&lt;p>RC 和 RS 主要是控制提供无状态服务的，其所控制的 Pod 的名字是随机设置的，一个 Pod 出故障了就被丢弃掉，在另一个地方重启一个新的 Pod，名字变了。名字和启动在哪儿都不重要，重要的只是 Pod 总数；而 StatefulSet 是用来控制有状态服务，StatefulSet 中的每个 Pod 的名字都是事先确定的，不能更改。&lt;/p>
+&lt;p>对于 RC 和 RS 中的 Pod，一般不挂载存储或者挂载共享存储，保存的是所有 Pod 共享的状态，Pod 像牲畜一样没有分别（这似乎也确实意味着失去了人性特征）；对于 StatefulSet 中的 Pod，每个 Pod 挂载自己独立的存储，如果一个 Pod 出现故障，从其他节点启动一个同样名字的 Pod，要挂载上原来 Pod 的存储继续以它的状态提供服务。&lt;/p>
+&lt;p>适合于 StatefulSet 的业务包括数据库服务 MySQL 和 PostgreSQL，集群化管理服务 ZooKeeper、etcd 等有状态服务。StatefulSet 的另一种典型应用场景是作为一种比普通容器更稳定可靠的模拟虚拟机的机制。传统的虚拟机正是一种有状态的宠物，运维人员需要不断地维护它，容器刚开始流行时，我们用容器来模拟虚拟机使用，所有状态都保存在容器里，而这已被证明是非常不安全、不可靠的。使用 StatefulSet，Pod 仍然可以通过漂移到不同节点提供高可用，而存储也可以通过外挂的存储来提供高可靠性，StatefulSet 做的只是将确定的 Pod 与确定的存储关联起来保证状态的连续性。&lt;/p>
+&lt;h2 id="服务发现与负载均衡service-discovery--load-balancing">服务发现与负载均衡（Service Discovery &amp;amp; Load Balancing）&lt;/h2>
+&lt;p>服务发现与负载均衡往往是由某个 Service 对象所管理，Service 听了某个虚拟 IP 地址，并且允许以 Label 等选择方式将流量重定向到后端的 Pods。&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>Services Resources (L4) may expose Pods internally within a cluster or externally through an HA proxy.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Ingress Resources (L7) may expose URI endpoints and route them to Services.&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h3 id="服务service">服务（Service）&lt;/h3>
+&lt;p>RC、RS 和 Deployment 只是保证了支撑服务的微服务 Pod 的数量，但是没有解决如何访问这些服务的问题。如果说 Deployment 是负责保证 Pod 组的正常运行，那么 Service 就是用于保证以合理的网络来连接到该组 Pod。一个 Pod 只是一个运行服务的实例，随时可能在一个节点上停止，在另一个节点以一个新的 IP 启动一个新的 Pod，因此不能以确定的 IP 和端口号提供服务。要稳定地提供服务需要服务发现和负载均衡能力。服务发现完成的工作，是针对客户端访问的服务，找到对应的的后端服务实例。&lt;/p>
+&lt;p>在 K8 集群中，客户端需要访问的服务就是 Service 对象。每个 Service 会对应一个集群内部有效的虚拟 IP，集群内部通过虚拟 IP 访问一个服务。Service 由 kube-proxy 实现软件负载均衡器，负责将对 Service 的请求转发到后端的某个 Pod 实例上。且 Kubernetes 为每个 Service 分配了一个全局唯一的虚拟 IP 地址(Cluster IP)，每个服务在 Kubernetes 架构上即变成了具备唯一 IP 地址的通信节点。Service 有三种类型：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>ClusterIP：默认类型，自动分配一个仅 Cluster 内部可以访问的虚拟 IP。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>NodePort：在 ClusterIP 基础上为 Service 在每台机器上绑定一个端口，这样就可以通过 &lt;code>&amp;lt;NodeIP&amp;gt;:NodePort&lt;/code> 来访问该服务。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>LoadBalancer：在 NodePort 的基础上，借助 Cloud Provider 创建一个外部的负载均衡器，并将请求转发到 &lt;code>&amp;lt;NodeIP&amp;gt;:NodePort&lt;/code>。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;p>基于上述这点，Kubernetes 将 Service Name 与 Service Cluster IP 做一个 DNS 域名映射，优雅的解决了服务发现的问题。Kubernetes 提供了内置的 dns 机制和 ClusterIP 机制，每个 Service 都自动注册域名，分配 ClusterIP，这样服务间的依赖可以从 IP 变为 name。DNS server 通过 kubernetes api server 来观测是否有新 Service 建立，并为其建立对应的 dns 记录。如果集群已经 enable DNS，那么 Pod 可以自动对 Service 做 name 解析。&lt;/p>
+&lt;h3 id="ingress">Ingress&lt;/h3>
+&lt;p>Ingress 是从 Kubernetes 集群外部访问集群内部服务的入口。Service 虽然解决了服务发现和负载均衡的问题，但它在使用上还是有一些限制，比如对外访问的时候，NodePort 类型需要在外部搭建额外的负载均衡，而 LoadBalancer 要求 Kubernetes 必须跑在支持的 Cloud Provider 上面。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://user-images.githubusercontent.com/5803001/50947031-4cc4c980-14d7-11e9-8bb4-5da3b9da1dea.png" alt="Ingress 访问架构" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>Ingress 就是为了解决这些限制而引入的新资源，主要用来将服务暴露到 Cluster 外面，并且可以自定义服务的访问策略。比如想要通过负载均衡器实现不同子域名到不同服务的访问：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">foo.bar.com --| |-&amp;gt; foo.bar.com s1:80
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> | 178.91.123.132 |
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">bar.foo.com --| |-&amp;gt; bar.foo.com s2:80
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="存储对象">存储对象&lt;/h1>
+&lt;h2 id="存储卷volume">存储卷（Volume）&lt;/h2>
+&lt;p>Kubernetes 集群中的存储卷跟 Docker 的存储卷有些类似，只不过 Docker 的存储卷作用范围为一个容器，而 Kubernetes 的存储卷的生命周期和作用范围是一个 Pod。每个 Pod 中声明的存储卷由 Pod 中的所有容器共享。Kubernetes 支持非常多的存储卷类型，特别的，支持多种公有云平台的存储，包括 AWS，Google 和 Azure 云；支持多种分布式存储包括 GlusterFS 和 Ceph；也支持较容易使用的主机本地目录 emptyDir, hostPath 和 NFS。&lt;/p>
+&lt;p>Kubernetes 还支持使用 Persistent Volume Claim 即 PVC 这种逻辑存储，使用这种存储，使得存储的使用者可以忽略后台的实际存储技术（例如 AWS，Google 或 GlusterFS 和 Ceph），而将有关存储实际技术的配置交给存储管理员通过 Persistent Volume 来配置。&lt;/p>
+&lt;h2 id="持久存储卷persistent-volumepv和持久存储卷声明persistent-volume-claimpvc">持久存储卷（Persistent Volume，PV）和持久存储卷声明（Persistent Volume Claim，PVC）&lt;/h2>
+&lt;p>PV 和 PVC 使得 Kubernetes 集群具备了存储的逻辑抽象能力，使得在配置 Pod 的逻辑里可以忽略对实际后台存储技术的配置，而把这项配置的工作交给 PV 的配置者，即集群的管理者。存储的 PV 和 PVC 的这种关系，跟计算的 Node 和 Pod 的关系是非常类似的；PV 和 Node 是资源的提供者，根据集群的基础设施变化而变化，由 Kubernetes 集群管理员配置；而 PVC 和 Pod 是资源的使用者，根据业务服务的需求变化而变化，有 Kubernetes 集群的使用者即服务的管理员来配置。&lt;/p>
+&lt;h2 id="配置对象configmap">配置对象（ConfigMap）&lt;/h2>
+&lt;p>为 Pod 提供了非敏感的数据。&lt;/p>
+&lt;h2 id="密钥对象secret">密钥对象（Secret）&lt;/h2>
+&lt;p>Secret 是用来保存和传递密码、密钥、认证凭证这些敏感信息的对象。使用 Secret 的好处是可以避免把敏感信息明文写在配置文件里。在 Kubernetes 集群中配置和使用服务不可避免的要用到各种敏感信息实现登录、认证等功能，例如访问 AWS 存储的用户名密码。为了避免将类似的敏感信息明文写在所有需要使用的配置文件中，可以将这些信息存入一个 Secret 对象，而在配置文件中通过 Secret 对象引用这些敏感信息。这种方式的好处包括：意图明确，避免重复，减少暴漏机会。&lt;/p>
+&lt;h1 id="身份对象">身份对象&lt;/h1>
+&lt;h2 id="用户帐户user-account和服务帐户service-account">用户帐户（User Account）和服务帐户（Service Account）&lt;/h2>
+&lt;p>顾名思义，用户帐户为人提供账户标识，而服务账户为计算机进程和 Kubernetes 集群中运行的 Pod 提供账户标识。用户帐户和服务帐户的一个区别是作用范围；用户帐户对应的是人的身份，人的身份与服务的 namespace 无关，所以用户账户是跨 namespace 的；而服务帐户对应的是一个运行中程序的身份，与特定 namespace 是相关的。&lt;/p>
+&lt;h2 id="rbac-访问授权">RBAC 访问授权&lt;/h2>
+&lt;p>Kubernetes 在 1.3 版本中发布了 alpha 版的基于角色的访问控制（Role-based Access Control，RBAC）的授权模式。相对于基于属性的访问控制（Attribute-based Access Control，ABAC），RBAC 主要是引入了角色（Role）和角色绑定（RoleBinding）的抽象概念。在 ABAC 中，Kubernetes 集群中的访问策略只能跟用户直接关联；而在 RBAC 中，访问策略可以跟某个角色关联，具体的用户在跟一个或多个角色相关联。显然，RBAC 像其他新功能一样，每次引入新功能，都会引入新的 API 对象，从而引入新的概念抽象，而这一新的概念抽象一定会使集群服务管理和使用更容易扩展和重用。&lt;/p>
+&lt;h1 id="集群联邦federation">集群联邦（Federation）&lt;/h1>
+&lt;p>Kubernetes 在 1.3 版本里发布了 beta 版的 Federation 功能。在云计算环境中，服务的作用距离范围从近到远一般可以有：同主机（Host，Node）、跨主机同可用区（Available Zone）、跨可用区同地区（Region）、跨地区同服务商（Cloud Service Provider）、跨云平台。Kubernetes 的设计定位是单一集群在同一个地域内，因为同一个地区的网络性能才能满足 Kubernetes 的调度和计算存储连接要求。而联合集群服务就是为提供跨 Region 跨服务商 Kubernetes 集群服务而设计的。&lt;/p>
+&lt;p>每个 Kubernetes Federation 有自己的分布式存储、API Server 和 Controller Manager。用户可以通过 Federation 的 API Server 注册该 Federation 的成员 Kubernetes Cluster。当用户通过 Federation 的 API Server 创建、更改 API 对象时，Federation API Server 会在自己所有注册的子 Kubernetes Cluster 都创建一份对应的 API 对象。在提供业务请求服务时，Kubernetes Federation 会先在自己的各个子 Cluster 之间做负载均衡，而对于发送到某个具体 Kubernetes Cluster 的业务请求，会依照这个 Kubernetes Cluster 独立提供服务时一样的调度模式去做 Kubernetes Cluster 内部的负载均衡。而 Cluster 之间的负载均衡是通过域名服务的负载均衡来实现的。&lt;/p>
+&lt;p>Federation V1 的设计是尽量不影响 Kubernetes Cluster 现有的工作机制，这样对于每个子 Kubernetes 集群来说，并不需要更外层的有一个 Kubernetes Federation，也就是意味着所有现有的 Kubernetes 代码和机制不需要因为 Federation 功能有任何变化。&lt;/p></description></item><item><title>Label 与 Selector</title><link>https://ng-tech.icu/books/k8s-notes/00.%E6%A6%82%E5%BF%B5%E4%B8%8E%E6%9E%B6%E6%9E%84/label-%E4%B8%8E-selector/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/k8s-notes/00.%E6%A6%82%E5%BF%B5%E4%B8%8E%E6%9E%B6%E6%9E%84/label-%E4%B8%8E-selector/</guid><description>&lt;h1 id="label">Label&lt;/h1>
+&lt;p>元数据围绕应用（Application）的概念进行组织，Kubernetes 不是平台即服务（PaaS），没有或强制执行正式的应用程序概念相反，应用程序是非正式的，并使用元数据进行描述。应用程序包含的定义是松散的。一组通用的标签可以让多个工具之间相互操作，用所有工具都能理解的通用方式描述对象。&lt;/p>
+&lt;p>Label 是附着到 object 上（例如 Pod）的键值对。可以在创建 object 的时候指定，也可以在 object 创建后随时指定。Labels 的值对系统本身并没有什么含义，只是对用户才有意义。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-json" data-lang="json">&lt;span class="line">&lt;span class="cl">&lt;span class="s2">&amp;#34;labels&amp;#34;&lt;/span>&lt;span class="err">:&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;key1&amp;#34;&lt;/span> &lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;value1&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;#34;key2&amp;#34;&lt;/span> &lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;value2&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Kubernetes 最终将对 labels 最终索引和反向索引用来优化查询和 watch，在 UI 和命令行中会对它们排序。不要在 label 中使用大型、非标识的结构化数据，记录这样的数据应该用 annotation。Label 能够将组织架构映射到系统架构上（就像是康威定律），这样能够更便于微服务的管理，你可以给 object 打上如下类型的 label：&lt;/p>
+&lt;ul>
+&lt;li>&amp;ldquo;release&amp;rdquo; : &amp;ldquo;stable&amp;rdquo;, &amp;ldquo;release&amp;rdquo; : &amp;ldquo;canary&amp;rdquo;&lt;/li>
+&lt;li>&amp;ldquo;environment&amp;rdquo; : &amp;ldquo;dev&amp;rdquo;, &amp;ldquo;environment&amp;rdquo; : &amp;ldquo;qa&amp;rdquo;, &amp;ldquo;environment&amp;rdquo; : &amp;ldquo;production&amp;rdquo;&lt;/li>
+&lt;li>&amp;ldquo;tier&amp;rdquo; : &amp;ldquo;frontend&amp;rdquo;, &amp;ldquo;tier&amp;rdquo; : &amp;ldquo;backend&amp;rdquo;, &amp;ldquo;tier&amp;rdquo; : &amp;ldquo;cache&amp;rdquo;&lt;/li>
+&lt;li>&amp;ldquo;partition&amp;rdquo; : &amp;ldquo;customerA&amp;rdquo;, &amp;ldquo;partition&amp;rdquo; : &amp;ldquo;customerB&amp;rdquo;&lt;/li>
+&lt;li>&amp;ldquo;track&amp;rdquo; : &amp;ldquo;daily&amp;rdquo;, &amp;ldquo;track&amp;rdquo; : &amp;ldquo;weekly&amp;rdquo;&lt;/li>
+&lt;li>&amp;ldquo;team&amp;rdquo; : &amp;ldquo;teamA&amp;rdquo;,&amp;ldquo;team:&amp;rdquo; : &amp;ldquo;teamB&amp;rdquo;&lt;/li>
+&lt;/ul>
+&lt;h1 id="label-selector">Label Selector&lt;/h1>
+&lt;p>Label 不是唯一的，很多 object 可能有相同的 label。通过 label selector，客户端／用户可以指定一个 object 集合，通过 label selector 对 object 的集合进行操作。Label selector 有两种类型：&lt;/p>
+&lt;ul>
+&lt;li>equality-based：可以使用=、==、!=操作符，可以使用逗号分隔多个表达式&lt;/li>
+&lt;li>set-based：可以使用 in、notin、!操作符，另外还可以没有操作符，直接写出某个 label 的 key，表示过滤有某个 key 的 object 而不管该 key 的 value 是何值，! 表示没有该 label 的 object&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">$ kubectl get pods -l &lt;span class="nv">environment&lt;/span>&lt;span class="o">=&lt;/span>production,tier&lt;span class="o">=&lt;/span>frontend
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl get pods -l &lt;span class="s1">&amp;#39;environment in (production),tier in (frontend)&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl get pods -l &lt;span class="s1">&amp;#39;environment in (production, qa)&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ kubectl get pods -l &lt;span class="s1">&amp;#39;environment,environment notin (frontend)&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="api-object">API Object&lt;/h2>
+&lt;p>在 service、replicationcontroller 等 object 中有对 Pod 的 label selector，使用方法只能使用等于操作，例如：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yml" data-lang="yml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">selector&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">component&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">redis&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在 Job、Deployment、ReplicaSet 和 DaemonSet 这些 object 中，支持 set-based 的过滤，例如：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yml" data-lang="yml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">selector&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">matchLabels&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">component&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">redis&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">matchExpressions&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- {&lt;span class="w"> &lt;/span>&lt;span class="nt">key: tier, operator: In, values&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="l">cache] }&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- {&lt;span class="w"> &lt;/span>&lt;span class="nt">key: environment, operator: NotIn, values&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="l">dev] }&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>如 Service 通过 label selector 将同一类型的 Pod 作为一个服务 expose 出来。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yml" data-lang="yml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">affinity&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">nodeAffinity&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">requiredDuringSchedulingIgnoredDuringExecution&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">nodeSelectorTerms&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">matchExpressions&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">key&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">kubernetes.io/e2e-az-name&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">operator&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">In&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">values&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="l">e2e-az1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="l">e2e-az2&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">preferredDuringSchedulingIgnoredDuringExecution&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">weight&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">preference&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">matchExpressions&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="nt">key&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">another-node-label-key&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">operator&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">In&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">values&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>- &lt;span class="l">another-node-label-value&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="推荐的标签">推荐的标签&lt;/h1>
+&lt;p>共享标签和注解都使用同一个前缀：app.kubernetes.io。没有前缀的标签是用户私有的。共享前缀可以确保共享标签不会干扰用户自定义的标签。为了充分利用这些标签，应该在每个资源对象上都使用它们：&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th style="text-align:left">键&lt;/th>
+&lt;th style="text-align:left">描述&lt;/th>
+&lt;th style="text-align:left">示例&lt;/th>
+&lt;th style="text-align:left">类型&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td style="text-align:left">&lt;code>app.kubernetes.io/name&lt;/code>&lt;/td>
+&lt;td style="text-align:left">应用程序的名称&lt;/td>
+&lt;td style="text-align:left">&lt;code>mysql&lt;/code>&lt;/td>
+&lt;td style="text-align:left">字符串&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td style="text-align:left">&lt;code>app.kubernetes.io/instance&lt;/code>&lt;/td>
+&lt;td style="text-align:left">用于唯一确定应用实例的名称&lt;/td>
+&lt;td style="text-align:left">&lt;code>wordpress-abcxzy&lt;/code>&lt;/td>
+&lt;td style="text-align:left">字符串&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td style="text-align:left">&lt;code>app.kubernetes.io/version&lt;/code>&lt;/td>
+&lt;td style="text-align:left">应用程序的当前版本（例如，语义版本，修订版哈希等）&lt;/td>
+&lt;td style="text-align:left">&lt;code>5.7.21&lt;/code>&lt;/td>
+&lt;td style="text-align:left">字符串&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td style="text-align:left">&lt;code>app.kubernetes.io/component&lt;/code>&lt;/td>
+&lt;td style="text-align:left">架构中的组件&lt;/td>
+&lt;td style="text-align:left">&lt;code>database&lt;/code>&lt;/td>
+&lt;td style="text-align:left">字符串&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td style="text-align:left">&lt;code>app.kubernetes.io/part-of&lt;/code>&lt;/td>
+&lt;td style="text-align:left">此级别的更高级别应用程序的名称&lt;/td>
+&lt;td style="text-align:left">&lt;code>wordpress&lt;/code>&lt;/td>
+&lt;td style="text-align:left">字符串&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td style="text-align:left">&lt;code>app.kubernetes.io/managed-by&lt;/code>&lt;/td>
+&lt;td style="text-align:left">用于管理应用程序的工具&lt;/td>
+&lt;td style="text-align:left">&lt;code>helm&lt;/code>&lt;/td>
+&lt;td style="text-align:left">字符串&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>应用可以在 Kubernetes 集群中安装一次或多次。在某些情况下，可以安装在同一命名空间中。例如，可以不止一次地为不同的站点安装不同的 WordPress。应用的名称和实例的名称是分别记录的。例如，某 WordPress 实例的 app.kubernetes.io/name 为 wordpress，而其实例名称表现为 app.kubernetes.io/instance 的属性值 wordpress-abcxzy。这使应用程序和应用程序的实例成为可能是可识别的。应用程序的每个实例都必须具有唯一的名称。&lt;/p>
+&lt;h2 id="案例简单的无状态服务">案例：简单的无状态服务&lt;/h2>
+&lt;p>考虑使用 Deployment 和 Service 对象部署的简单无状态服务的情况。以下两个代码段表示如何以最简单的形式使用标签。下面的 Deployment 用于监督运行应用本身的 pods。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yml" data-lang="yml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">apps/v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Deployment&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">labels&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">myservice&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/instance&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">myservice-abcxzy&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>下面的 Service 用于暴露应用。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yml" data-lang="yml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Service&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">labels&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">myservice&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/instance&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">myservice-abcxzy&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="案例带有一个数据库的-web-应用程序">案例：带有一个数据库的 Web 应用程序&lt;/h2>
+&lt;p>考虑一个稍微复杂的应用：一个使用 Helm 安装的 Web 应用（WordPress），其中 使用了数据库（MySQL）。以下代码片段说明用于部署此应用程序的对象的开始。以下 Deployment 的开头用于 WordPress：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yml" data-lang="yml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">apps/v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Deployment&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">labels&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">wordpress&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/instance&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">wordpress-abcxzy&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;4.9.4&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/managed-by&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">helm&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/component&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">server&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/part-of&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">wordpress&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这个 Service 用于暴露 WordPress：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yml" data-lang="yml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Service&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">labels&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">wordpress&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/instance&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">wordpress-abcxzy&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;4.9.4&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/managed-by&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">helm&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/component&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">server&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/part-of&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">wordpress&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>MySQL 作为一个 StatefulSet 暴露，包含它和它所属的较大应用程序的元数据：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yml" data-lang="yml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">apps/v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">StatefulSet&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">labels&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">mysql&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/instance&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">mysql-abcxzy&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;5.7.21&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/managed-by&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">helm&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/component&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">database&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/part-of&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">wordpress&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;code>Service&lt;/code> 用于将 MySQL 作为 WordPress 的一部分暴露：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Service&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">labels&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">mysql&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/instance&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">mysql-abcxzy&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;5.7.21&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/managed-by&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">helm&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/component&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">database&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="nt">app.kubernetes.io/part-of&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">wordpress&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>使用 MySQL &lt;code>StatefulSet&lt;/code> 和 &lt;code>Service&lt;/code>，您会注意到有关 MySQL 和 Wordpress 的信息，包括更广泛的应用程序。&lt;/p></description></item></channel></rss>

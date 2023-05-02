@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Goroutine | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/go-notes/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/goroutine/</link><atom:link href="https://ng-tech.icu/books/go-notes/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/goroutine/index.xml" rel="self" type="application/rss+xml"/><description>Goroutine</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>Goroutine</title><link>https://ng-tech.icu/books/go-notes/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/goroutine/</link></image><item><title>并行计算</title><link>https://ng-tech.icu/books/go-notes/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/goroutine/%E5%B9%B6%E8%A1%8C%E8%AE%A1%E7%AE%97/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/go-notes/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/goroutine/%E5%B9%B6%E8%A1%8C%E8%AE%A1%E7%AE%97/</guid><description>&lt;h1 id="并行计算">并行计算&lt;/h1>
+&lt;p>如果计算过程能够被分为几块可独立执行的过程，它就可以在每块计算结束时向信道发送信号，从而实现并行处理。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">type&lt;/span> &lt;span class="nx">Vector&lt;/span> &lt;span class="p">[]&lt;/span>&lt;span class="kt">float64&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// 将此操应用至 v[i], v[i+1] ... 直到 v[n-1]
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="kd">func&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">v&lt;/span> &lt;span class="nx">Vector&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="nf">DoSome&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">i&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">n&lt;/span> &lt;span class="kt">int&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">u&lt;/span> &lt;span class="nx">Vector&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">c&lt;/span> &lt;span class="kd">chan&lt;/span> &lt;span class="kt">int&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="p">;&lt;/span> &lt;span class="nx">i&lt;/span> &lt;span class="p">&amp;lt;&lt;/span> &lt;span class="nx">n&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="nx">i&lt;/span>&lt;span class="o">++&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">v&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="nx">i&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="o">+=&lt;/span> &lt;span class="nx">u&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Op&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">v&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="nx">i&lt;/span>&lt;span class="p">])&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">c&lt;/span> &lt;span class="o">&amp;lt;-&lt;/span> &lt;span class="mi">1&lt;/span> &lt;span class="c1">// 发信号表示这一块计算完成。
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>我们在循环中启动了独立的处理块，每个 CPU 将执行一个处理。它们有可能以乱序的形式完成并结束，但这没有关系；我们只需在所有协程开始后接收，并统计信道中的完成信号即可。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">const&lt;/span> &lt;span class="nx">NCPU&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="mi">4&lt;/span> &lt;span class="c1">// CPU核心数
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">v&lt;/span> &lt;span class="nx">Vector&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="nf">DoAll&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">u&lt;/span> &lt;span class="nx">Vector&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">c&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nb">make&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kd">chan&lt;/span> &lt;span class="kt">int&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">NCPU&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1">// 缓冲区是可选的，但明显用上更好
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">for&lt;/span> &lt;span class="nx">i&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="nx">i&lt;/span> &lt;span class="p">&amp;lt;&lt;/span> &lt;span class="nx">NCPU&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="nx">i&lt;/span>&lt;span class="o">++&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">go&lt;/span> &lt;span class="nx">v&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">DoSome&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">i&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="nb">len&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">v&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="nx">NCPU&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">i&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="nb">len&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">v&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="nx">NCPU&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">u&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">c&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 排空信道。
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">for&lt;/span> &lt;span class="nx">i&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="nx">i&lt;/span> &lt;span class="p">&amp;lt;&lt;/span> &lt;span class="nx">NCPU&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="nx">i&lt;/span>&lt;span class="o">++&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">&amp;lt;-&lt;/span>&lt;span class="nx">c&lt;/span> &lt;span class="c1">// 等待任务完成
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 一切完成。
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item><item><title>调度模型</title><link>https://ng-tech.icu/books/go-notes/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/goroutine/%E8%B0%83%E5%BA%A6%E6%A8%A1%E5%9E%8B/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/go-notes/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/goroutine/%E8%B0%83%E5%BA%A6%E6%A8%A1%E5%9E%8B/</guid><description>&lt;h1 id="go-线程与调度模型">Go 线程与调度模型&lt;/h1>
+&lt;p>目前 Go 运行时的实现默认并不会并行执行代码，它只为用户层代码提供单一的处理核心。任意数量的协程都可能在系统调用中被阻塞，而在任意时刻默认只有一个会执行用户层代码。若你希望 CPU 并行执行，就必须告诉运行时你希望同时有多少协程能执行代码。有两种途径可意识形态，要么在运行你的工作时将 GOMAXPROCS 环境变量设为你要使用的核心数，要么导入 runtime 包并调用 runtime.GOMAXPROCS(NCPU)。runtime.NumCPU() 的值可能很有用，它会返回当前机器的逻辑 CPU 核心数。当然，随着调度算法和运行时的改进，将来会不再需要这种方法。&lt;/p>
+&lt;h1 id="系统栈">系统栈&lt;/h1>
+&lt;p>每个系统级线程都会有一个固定大小的栈（一般默认可能是 2MB），这个栈主要用来保存函数递归调用时参数和局部变量。固定了栈的大小导致了两个问题：一是对于很多只需要很小的栈空间的线程来说是一个巨大的浪费，二是对于少数需要巨大栈空间的线程来说又面临栈溢出的风险。针对这两个问题的解决方案是：要么降低固定的栈大小，提升空间的利用率；要么增大栈的大小以允许更深的函数递归调用，但这两者是没法同时兼得的。&lt;/p>
+&lt;p>Go 的栈是动态分配大小的，随着存储数据的数量而增长和收缩。每个新建的 Goroutine 只有大约 4KB 的栈。每个栈只有 4KB，那么在一个 1GB 的 RAM 上，我们就可以有 256 万个 Goroutine 了，相对于 Java 中每个线程的 1MB，这是巨大的提升。Golang 实现了自己的调度器，允许众多的 Goroutines 运行在相同的 OS 线程上。就算 Go 会运行与内核相同的上下文切换，但是它能够避免切换至 ring-0 以运行内核，然后再切换回来，这样就会节省大量的时间。&lt;/p>
+&lt;h1 id="调度模型">调度模型&lt;/h1>
+&lt;p>在 Go 中存在两级调度:&lt;/p>
+&lt;ul>
+&lt;li>一级是操作系统的调度系统，该调度系统调度逻辑处理器占用 CPU 时间片运行；&lt;/li>
+&lt;li>一级是 Go 的运行时调度系统，该调度系统调度某个 Goroutine 在逻辑处理上运行。&lt;/li>
+&lt;/ul>
+&lt;p>使用 Go 语句创建一个 Goroutine 后，创建的 Goroutine 会被放入 Go 运行时调度器的全局运行队列中，然后 Go 运行时调度器会把全局队列中的 Goroutine 分配给不同的逻辑处理器（P），分配的 Goroutine 会被放到逻辑处理器（P)的本地队列中，当本地队列中某个 Goroutine 就绪后待分配到时间片后就可以在逻辑处理器上运行了。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://i.postimg.cc/W3GqWRTN/image.png" alt="Go 调度到操作系统调度" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;h2 id="从-g-m-到-g-p-m">从 G-M 到 G-P-M&lt;/h2>
+&lt;p>在 Go 1.0 发布的时候，它的调度器其实 G-M 模型，也就是没有 P 的，调度过程全由 G 和 M 完成，这个模型暴露出一些问题：&lt;/p>
+&lt;ul>
+&lt;li>单一全局互斥锁(Sched.Lock)和集中状态存储的存在导致所有 goroutine 相关操作，比如：创建、重新调度等都要上锁；&lt;/li>
+&lt;li>goroutine 传递问题：M 经常在 M 之间传递可运行的 goroutine，这导致调度延迟增大以及额外的性能损耗；&lt;/li>
+&lt;li>每个 M 做内存缓存，导致内存占用过高，数据局部性较差；&lt;/li>
+&lt;li>由于 syscall 调用而形成的剧烈的 worker thread 阻塞和解除阻塞，导致额外的性能损耗。&lt;/li>
+&lt;/ul>
+&lt;p>这些问题导致 Go1.0 虽然号称原生支持并发，却在并发性能上一直饱受诟病，然后，重新设计和实现了 Go 调度器（在原有的 G-M 模型中引入了 P）并且实现了一个叫做 work-stealing 的调度算法：&lt;/p>
+&lt;ul>
+&lt;li>每个 P 维护一个 G 的本地队列；&lt;/li>
+&lt;li>当一个 G 被创建出来，或者变为可执行状态时，就把他放到 P 的可执行队列中；&lt;/li>
+&lt;li>当一个 G 在 M 里执行结束后，P 会从队列中把该 G 取出；如果此时 P 的队列为空，即没有其他 G 可以执行，M 就随机选择另外一个 P，从其可执行的 G 队列中取走一半。&lt;/li>
+&lt;/ul>
+&lt;h2 id="g-p-m-调度模型">G-P-M 调度模型&lt;/h2>
+&lt;p>Go 线程模型属于多对多线程模型，在操作系统提供的内核线程之上，Go 搭建了一个特有的两级线程模型。Go 中使用使用 Go 语句创建的 Goroutine 可以认为是轻量级的用户线程，Go 线程模型包含三个概念：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>G: 表示 Goroutine，每个 Goroutine 对应一个 G 结构体，G 存储 Goroutine 的运行堆栈、状态以及任务函数，可重用。G 并非执行体，每个 G 需要绑定到 P 才能被调度执行。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>P: Processor，表示逻辑处理器，对 G 来说，P 相当于 CPU 核，G 只有绑定到 P(在 P 的 local runq 中)才能被调度。对 M 来说，P 提供了相关的执行环境（Context），如内存分配状态（mcache），任务队列（G）等，P 的数量决定了系统内最大可并行的 G 的数量（物理 CPU 核数 &amp;gt;= P 的数量），P 的数量由用户设置的 GOMAXPROCS 决定，但是不论 GOMAXPROCS 设置为多大，P 的数量最大为 256。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>M: Machine，OS 线程抽象，代表着真正执行计算的资源，在绑定有效的 P 后，进入 schedule 循环；M 的数量是不定的，由 Go Runtime 调整，为了防止创建过多 OS 线程导致系统调度不过来，目前默认最大限制为 10000 个。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;p>在 Go 中每个逻辑处理器(P)会绑定到某一个内核线程上，每个逻辑处理器（P）内有一个本地队列，用来存放 Go 运行时分配的 goroutine。多对多线程模型中是操作系统调度线程在物理 CPU 上运行，在 Go 中则是 Go 的运行时调度 Goroutine 在逻辑处理器（P）上运行。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://i.postimg.cc/Hnyj7QKJ/image.png" alt="G-P-M 模型调度" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;h2 id="调度过程">调度过程&lt;/h2>
+&lt;p>需要注意的是为了避免某些 Goroutine 出现饥饿现象，被分配到某一个逻辑处理器（P)上的多个 Goroutine 是分时在该逻辑处理器运行的，而不是独占运行直到结束，比如每个 Goroutine 从开始到运行结束需要 10 分钟，那么当前逻辑处理器下的 goroutine1，goroutine2，goroutine3，并不是顺序执行，而是交叉并发运行的。&lt;/p>
+&lt;p>Goroutine 内部实现与在多个操作系统线程（OS 线程）之间复用的协程(coroutines)一样。如果一个 Goroutine 阻塞 OS 线程，例如等待输入，则该 OS 线程对应的逻辑处理器 P 中的其他 Goroutine 将迁移到其他 OS 线程，以便它们可以继续运行：&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://i.postimg.cc/76NKr2X2/image.png" alt="G-M-P 调度过程" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>如上图左侧假设 goroutine1 在执行文件文件读取操作，则 goroutine1 会导致内核线程 1 阻塞，这时候 Go 运行时调度器会把 goroutine1 所在的逻辑处理器 1 迁移到其他的内核线程上（这里是内核线程 2 上），这时候逻辑处理器 1 上的 goroutine2 和 goroutine3 就不会受 goroutine1 的影响了。等 goroutine1 文件读取操作完成后 goroutine1 又会被 Go 运行时调度系统重新放入到逻辑处理器 1 的本地队列。&lt;/p>
+&lt;p>默认情况下，Go 默认是给每个可用的物理处理器都分配一个逻辑处理器（P）,如果你需要修改逻辑处理器(P)个数可以使用 runtime 包的 runtime.GOMAXPROCS 函数设置。至于 goroutine（G）的数量则是由用户程序自己来确定，理论只要内存够大，可以无限制创建。&lt;/p>
+&lt;h1 id="m内核线程">M（内核线程）&lt;/h1>
+&lt;h1 id="p执行一个-go-代码片段所必需的资源">P（执行一个 Go 代码片段所必需的资源）&lt;/h1>
+&lt;h1 id="ggo-代码片段">G（Go 代码片段）&lt;/h1>
+&lt;h1 id="links">Links&lt;/h1>
+&lt;ul>
+&lt;li>&lt;a href="http://www.ituring.com.cn/book/tupubarticle/16048" target="_blank" rel="noopener">http://www.ituring.com.cn/book/tupubarticle/16048&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://studygolang.com/articles/13344" target="_blank" rel="noopener">https://studygolang.com/articles/13344&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.jianshu.com/p/790384768317" target="_blank" rel="noopener">https://www.jianshu.com/p/790384768317&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>内存模型</title><link>https://ng-tech.icu/books/go-notes/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/goroutine/%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/go-notes/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/goroutine/%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/</guid><description>&lt;h1 id="go-内存模型">Go 内存模型&lt;/h1>
+&lt;p>内存模型是非常重要的，理解 Go 的内存模型会就可以明白很多奇怪的竞态条件问题。参考 &lt;a href="http://golang.org/ref/mem" target="_blank" rel="noopener">The Go Memory Model&lt;/a> 一文中的描述，Go 内存模型描述的是：在某个 Goroutine 中对变量进行读操作，其同时能够监测到其他 Goroutine 中对该变量进行写操作的条件。&lt;/p>
+&lt;h1 id="顺序一致性内存模型">顺序一致性内存模型&lt;/h1>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">var&lt;/span> &lt;span class="nx">a&lt;/span> &lt;span class="kt">string&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">var&lt;/span> &lt;span class="nx">done&lt;/span> &lt;span class="kt">bool&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">setup&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">a&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="s">&amp;#34;hello, world&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">done&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="kc">true&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">go&lt;/span> &lt;span class="nf">setup&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="p">!&lt;/span>&lt;span class="nx">done&lt;/span> &lt;span class="p">{}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nb">print&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">a&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>我们创建了 setup 线程，用于对字符串 a 的初始化工作，初始化完成之后设置 done 标志为 true。main 函数所在的主线程中，通过 for !done {}检测 done 变为 true 时，认为字符串初始化工作完成，然后进行字符串的打印工作。但是 Go 语言并不保证在 main 函数中观测到的对 done 的写入操作发生在对字符串 a 的写入的操作之后，因此程序很可能打印一个空字符串。更糟糕的是，因为两个线程之间没有同步事件，setup 线程对 done 的写入操作甚至无法被 main 线程看到，main 函数有可能陷入死循环中。&lt;/p>
+&lt;p>在 Go 语言中，同一个 Goroutine 线程内部，顺序一致性内存模型是得到保证的。但是不同的 Goroutine 之间，并不满足顺序一致性内存模型，需要通过明确定义的同步事件来作为同步的参考。如果两个事件不可排序，那么就说这两个事件是并发的。为了最大化并行，Go 语言的编译器和处理器在不影响上述规定的前提下可能会对执行语句重新排序（CPU 也会对一些指令进行乱序执行）。&lt;/p>
+&lt;p>因此，如果在一个 Goroutine 中顺序执行 a = 1; b = 2;两个语句，虽然在当前的 Goroutine 中可以认为 a = 1;语句先于 b = 2;语句执行，但是在另一个 Goroutine 中 b = 2;语句可能会先于 a = 1;语句执行，甚至在另一个 Goroutine 中无法看到它们的变化（可能始终在寄存器中）。也就是说在另一个 Goroutine 看来, a = 1; b = 2;两个语句的执行顺序是不确定的。如果一个并发程序无法确定事件的顺序关系，那么程序的运行结果往往会有不确定的结果。比如下面这个程序：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">go&lt;/span> &lt;span class="nb">println&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;你好, 世界&amp;#34;&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>根据 Go 语言规范，main 函数退出时程序结束，不会等待任何后台线程。因为 Goroutine 的执行和 main 函数的返回事件是并发的，谁都有可能先发生，所以什么时候打印，能否打印都是未知的。用前面的原子操作并不能解决问题，因为我们无法确定两个原子操作之间的顺序。&lt;/p>
+&lt;h1 id="链接">链接&lt;/h1>
+&lt;ul>
+&lt;li>&lt;a href="https://mp.weixin.qq.com/s/vvKNAarcc3kz1hz9o4B1ZQ" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/vvKNAarcc3kz1hz9o4B1ZQ&lt;/a> Golang 并发编程核心篇 —— 内存可见性&lt;/li>
+&lt;/ul></description></item><item><title>性能评测</title><link>https://ng-tech.icu/books/go-notes/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/goroutine/%E6%80%A7%E8%83%BD%E8%AF%84%E6%B5%8B/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/go-notes/03.%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/goroutine/%E6%80%A7%E8%83%BD%E8%AF%84%E6%B5%8B/</guid><description>&lt;h1 id="协程评测">协程评测&lt;/h1>
+&lt;h1 id="上下文切换">上下文切换&lt;/h1>
+&lt;p>上下文切换，即当某个并发进程承载的某些内容必须保存其状态以切换到其他进程时。如果我们有太多的并发进程，上下文切换可能花费所有的 CPU 时间，并且无法完成任何实际工作。在操作系统级别，使用线程，这样做代价可能会非常高昂。操作系统线程必须保存寄存器值，查找表和内存映射等内容，才能在操作成功后切换回当前线程。然后它必须为传入线程加载相同的信息。在软件中的上下文切换代价相对小得多。在软件定义的调度程序下，运行时可以更具选择性地进行持久检索，例如如何持久化以及何时发生持续化。我们来看看操作系统线程和 goroutines 之间上下文切换的相对性能。首先，我们将利用 Linux 内置的基准测试套件来测量在同一内核的两个线程之间发送消息需要多长时间：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">$ taskset -c &lt;span class="m">0&lt;/span> perf bench sched pipe -T
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Running &amp;#39;sched/pipe&amp;#39; benchmark:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Executed 1000000 pipe operations between two threads&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> Total time: 2.935 &lt;span class="o">[&lt;/span>sec&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> 2.935784 usecs/op
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="m">340624&lt;/span> ops/sec
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这个基准测量实际上是衡量在一个线程上发送和接收消息所需的时间，所以我们将把结果分成两部分。每个上下文切换 1.467 微秒。这看起来不算太坏，但让我们先别急着下判断，再来比较下 goroutine 之间的上下文切换。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">BenchmarkContextSwitch&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">b&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">testing&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">B&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">var&lt;/span> &lt;span class="nx">wg&lt;/span> &lt;span class="nx">sync&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">WaitGroup&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">begin&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nb">make&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kd">chan&lt;/span> &lt;span class="kd">struct&lt;/span>&lt;span class="p">{})&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">c&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nb">make&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kd">chan&lt;/span> &lt;span class="kd">struct&lt;/span>&lt;span class="p">{})&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">var&lt;/span> &lt;span class="nx">token&lt;/span> &lt;span class="kd">struct&lt;/span>&lt;span class="p">{}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">sender&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="kd">func&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">defer&lt;/span> &lt;span class="nx">wg&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Done&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">&amp;lt;-&lt;/span>&lt;span class="nx">begin&lt;/span> &lt;span class="c1">//1
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">for&lt;/span> &lt;span class="nx">i&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="nx">i&lt;/span> &lt;span class="p">&amp;lt;&lt;/span> &lt;span class="nx">b&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">N&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="nx">i&lt;/span>&lt;span class="o">++&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">c&lt;/span> &lt;span class="o">&amp;lt;-&lt;/span> &lt;span class="nx">token&lt;/span> &lt;span class="c1">//2
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">receiver&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="kd">func&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">defer&lt;/span> &lt;span class="nx">wg&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Done&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">&amp;lt;-&lt;/span>&lt;span class="nx">begin&lt;/span> &lt;span class="c1">//1
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">for&lt;/span> &lt;span class="nx">i&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="nx">i&lt;/span> &lt;span class="p">&amp;lt;&lt;/span> &lt;span class="nx">b&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">N&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="nx">i&lt;/span>&lt;span class="o">++&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">&amp;lt;-&lt;/span>&lt;span class="nx">c&lt;/span> &lt;span class="c1">//3
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">wg&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Add&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">go&lt;/span> &lt;span class="nf">sender&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">go&lt;/span> &lt;span class="nf">receiver&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">b&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">StartTimer&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="c1">//4
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nb">close&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">begin&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1">//5
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nx">wg&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Wait&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>我们运行该基准测试，指定只使用一个 CPU，以便与之前的 Linux 基准测试想比较，我们来看看结果：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">$ go &lt;span class="nb">test&lt;/span> -bench&lt;span class="o">=&lt;/span>. -cpu&lt;span class="o">=&lt;/span>&lt;span class="m">1&lt;/span> /src/gos-concurrency-building-blocks/goroutines/fig-ctx-switch_test.go
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">|&lt;/span> BenchmarkContextSwitch &lt;span class="p">|&lt;/span> &lt;span class="m">5000000&lt;/span> &lt;span class="p">|&lt;/span> 225ns/op &lt;span class="p">|&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">|&lt;/span> :--------------------- &lt;span class="p">|&lt;/span> :--------------------- &lt;span class="p">|&lt;/span> :------- &lt;span class="p">|&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">|&lt;/span> PASS &lt;span class="p">|&lt;/span> &lt;span class="p">|&lt;/span> &lt;span class="p">|&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">|&lt;/span> ok &lt;span class="p">|&lt;/span> command-line-arguments &lt;span class="p">|&lt;/span> 1.393s &lt;span class="p">|&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="links">Links&lt;/h1>
+&lt;ul>
+&lt;li>&lt;a href="https://zhuanlan.zhihu.com/p/80037638" target="_blank" rel="noopener">https://zhuanlan.zhihu.com/p/80037638&lt;/a> 协程究竟比线程能省多少开销？&lt;/li>
+&lt;li>&lt;a href="https://mp.weixin.qq.com/s/uWP2X6iFu7BtwjIv5H55vw" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/uWP2X6iFu7BtwjIv5H55vw&lt;/a> Goroutine 数量控制在多少合适，会影响 GC 和调度？&lt;/li>
+&lt;/ul></description></item></channel></rss>
