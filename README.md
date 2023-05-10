@@ -9,6 +9,7 @@
 - [x] 添加 https://github.com/sivan/heti 作为排版
 - [x] 迁移到 Algolia Search
 - [ ] 移除重复的一级标题
+- [ ] 移动端浏览的时候移除 Github Card
 - [x] 调整页面权重的填入方式，解决 10 比 2 的问题
   - [x] 将所有的 1 统一变为 01
 - [ ] 允许尾部添加自定义的 meta 描述块，以支持 permalink 等
