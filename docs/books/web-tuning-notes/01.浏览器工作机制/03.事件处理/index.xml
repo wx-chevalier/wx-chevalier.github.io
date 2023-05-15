@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>03.事件处理 | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/web-tuning-notes/01.%E6%B5%8F%E8%A7%88%E5%99%A8%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6/03.%E4%BA%8B%E4%BB%B6%E5%A4%84%E7%90%86/</link><atom:link href="https://ng-tech.icu/books/web-tuning-notes/01.%E6%B5%8F%E8%A7%88%E5%99%A8%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6/03.%E4%BA%8B%E4%BB%B6%E5%A4%84%E7%90%86/index.xml" rel="self" type="application/rss+xml"/><description>03.事件处理</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>03.事件处理</title><link>https://ng-tech.icu/books/web-tuning-notes/01.%E6%B5%8F%E8%A7%88%E5%99%A8%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6/03.%E4%BA%8B%E4%BB%B6%E5%A4%84%E7%90%86/</link></image><item><title>浏览器对事件的优化</title><link>https://ng-tech.icu/books/web-tuning-notes/01.%E6%B5%8F%E8%A7%88%E5%99%A8%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6/03.%E4%BA%8B%E4%BB%B6%E5%A4%84%E7%90%86/%E6%B5%8F%E8%A7%88%E5%99%A8%E5%AF%B9%E4%BA%8B%E4%BB%B6%E7%9A%84%E4%BC%98%E5%8C%96/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/web-tuning-notes/01.%E6%B5%8F%E8%A7%88%E5%99%A8%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6/03.%E4%BA%8B%E4%BB%B6%E5%A4%84%E7%90%86/%E6%B5%8F%E8%A7%88%E5%99%A8%E5%AF%B9%E4%BA%8B%E4%BB%B6%E7%9A%84%E4%BC%98%E5%8C%96/</guid><description>&lt;h1 id="浏览器对事件的优化">浏览器对事件的优化&lt;/h1>
+&lt;h2 id="最小化发送给主线程的事件数">最小化发送给主线程的事件数&lt;/h2>
+&lt;p>一般我们屏幕的帧率是每秒 60 帧，也就是 60fps，但是某些事件触发的频率超过了这个数值，比如 wheel，mousewheel，mousemove，pointermove，touchmove，这些连续性的事件一般每秒会触发 60~120 次，假如每一次触发事件都将事件发送到主线程处理，由于屏幕的刷新速率相对来说较低，这样使得主线程会触发过量的命中测试以及 JS 代码，使得性能有了没必要是损耗。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://s1.ax1x.com/2020/11/07/B4cQMT.png" alt="事件分发优化前" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>出于优化的目的，浏览器会合并这些连续的事件，延迟到下一帧渲染是执行，也就是 requestAnimationFrame 之前。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://s1.ax1x.com/2020/11/07/B4cwQK.png" alt="浏览器事件优化后" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>而对于非连续性的事件，如 keydown，keyup，mousedown，mouseup，touchstart，touchend 等，会直接派发给主线程去执行。&lt;/p>
+&lt;h2 id="使用-getcoalesecedevents-来获取帧内intra-frame事件">使用 getCoalesecedEvents 来获取帧内（intra-frame）事件&lt;/h2>
+&lt;p>对于大多数 web 应用来说，合并事件应该已经足够用来提供很好的用户体验了，然而，如果你正在构建的是一个根据用户的 touchmove 坐标来进行绘图的应用的话，合并事件可能会使页面画的线不够顺畅和连续。在这种情况下，你可以使用鼠标事件的 getCoalescedEvents 来获取被合成的事件的详细信息。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://s1.ax1x.com/2020/11/07/B44WND.md.png" alt="左边是顺畅的触摸手势，右边是事件合成后不那么连续的手势" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="nb">window&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">addEventListener&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s2">&amp;#34;pointermove&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">event&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">=&amp;gt;&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">const&lt;/span> &lt;span class="nx">events&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">event&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">getCoalescedEvents&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kd">let&lt;/span> &lt;span class="nx">event&lt;/span> &lt;span class="k">of&lt;/span> &lt;span class="nx">events&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">const&lt;/span> &lt;span class="nx">x&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">event&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">pageX&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">const&lt;/span> &lt;span class="nx">y&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">event&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">pageY&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// draw a line using x and y coordinates.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">});&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item></channel></rss>

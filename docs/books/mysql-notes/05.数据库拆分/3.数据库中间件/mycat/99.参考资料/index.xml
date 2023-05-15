@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>99.参考资料 | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/mysql-notes/05.%E6%95%B0%E6%8D%AE%E5%BA%93%E6%8B%86%E5%88%86/3.%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%AD%E9%97%B4%E4%BB%B6/mycat/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/</link><atom:link href="https://ng-tech.icu/books/mysql-notes/05.%E6%95%B0%E6%8D%AE%E5%BA%93%E6%8B%86%E5%88%86/3.%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%AD%E9%97%B4%E4%BB%B6/mycat/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/index.xml" rel="self" type="application/rss+xml"/><description>99.参考资料</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>99.参考资料</title><link>https://ng-tech.icu/books/mysql-notes/05.%E6%95%B0%E6%8D%AE%E5%BA%93%E6%8B%86%E5%88%86/3.%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%AD%E9%97%B4%E4%BB%B6/mycat/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/</link></image><item><title>2020-heibaiying-Mycat 基础</title><link>https://ng-tech.icu/books/mysql-notes/05.%E6%95%B0%E6%8D%AE%E5%BA%93%E6%8B%86%E5%88%86/3.%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%AD%E9%97%B4%E4%BB%B6/mycat/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-heibaiying-mycat-%E5%9F%BA%E7%A1%80/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/mysql-notes/05.%E6%95%B0%E6%8D%AE%E5%BA%93%E6%8B%86%E5%88%86/3.%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%AD%E9%97%B4%E4%BB%B6/mycat/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-heibaiying-mycat-%E5%9F%BA%E7%A1%80/</guid><description>&lt;h1 id="mycat-基础">Mycat 基础&lt;/h1>
+&lt;h2 id="一mycat-简介">一、Mycat 简介&lt;/h2>
+&lt;p>Mycat 是一个开源的数据库中间件，可以解决分布式数据库环境下的大多数问题，如读写分离、分库分表等，除此之外，它还具备以下特性：&lt;/p>
+&lt;ul>
+&lt;li>支持 MySQL、Oracle、DB2、SQL Server、PostgreSQL 等数据库常见的 SQL 语法。&lt;/li>
+&lt;li>能够基于心跳机制进行自动地故障切换，支持读写分离，支持 MySQL 主从架构，以及 galera cluster 集群。&lt;/li>
+&lt;li>支持数据的多片自动路由与聚合，支持 sum，count，max 等常用的聚合函数，支持跨库分页。&lt;/li>
+&lt;li>支持单库内部任意 join，支持跨库两表 join，也支持基于 caltlet 的多表 join。&lt;/li>
+&lt;li>支持通过全局表，ER 关系表等分片策略来实现多表 join 查询。&lt;/li>
+&lt;li>支持 XA 分布式事务（1.6.5 +）。&lt;/li>
+&lt;li>支持全局序列号，能够解决分布式环境下的主键生成问题。&lt;/li>
+&lt;li>支持使用 zookeeper 来协调主从切换、统一管理配置数据以及使用 zookeeper 来生成全局唯一 ID。( 1.6+ )&lt;/li>
+&lt;li>提供了 Web 监控界面，来对 Mycat、MySQL 以及服务器的状态进行监控。&lt;/li>
+&lt;/ul>
+&lt;h2 id="二mycat-核心概念">二、Mycat 核心概念&lt;/h2>
+&lt;p>在引入 Mycat 后，所有的客户端请求需要经过中间件进行转发上，此时客户端直接面向的是 Mycat 上的逻辑库或逻辑表：&lt;/p>
+&lt;h3 id="逻辑库">逻辑库&lt;/h3>
+&lt;p>在 Mycat 的配置文件中进行定义，它对应一个或者多个实际的数据库或数据库集群。&lt;/p>
+&lt;h3 id="逻辑表">逻辑表&lt;/h3>
+&lt;p>可以对应一张实际的表，也可以表示为多个分片表的集合。按其特性可以分为以下四类：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>分片表&lt;/strong>：表按照指定键进行拆分，并散落到多个数据库实例上，从而可以解决单表过大的问题。&lt;/li>
+&lt;li>&lt;strong>非分片表&lt;/strong>：通常情况下，只有大表需要分片，小表并没有分片的必要，所以在 Mycat 中它们也被称为非分片表，主要是为了在概念上与分片表进行区分。&lt;/li>
+&lt;li>&lt;strong>ER 表&lt;/strong>：基于实体关系模型进行分片的表，如订单表和订单明细表通常都是大表，此时可以按照订单号进行 ER 分片，从而保证同一单号的订单记录和明细记录都处于同一分片上，进而避免跨分片查询。&lt;/li>
+&lt;li>&lt;strong>全局表&lt;/strong>：同样也是用于避免跨分片查询。假设在查询订单明细时需要查询产品所属分类 （如家电产品、生活用品），产品类别表通常是小表，此时可以声明为全局表，之后 Mycat 会将其拷贝到所有分片上，从而避免跨分片查询。&lt;/li>
+&lt;/ul>
+&lt;h3 id="分片节点">分片节点&lt;/h3>
+&lt;p>将表按照分片键进行分片后，一个表中的所有数据就会被分发到不同的数据库上，这些数据库节点就称为分片节点。&lt;/p>
+&lt;h2 id="三mycat-安装">三、Mycat 安装&lt;/h2>
+&lt;p>Mycat 所有版本的安装包都可以从 &lt;a href="http://dl.mycat.io/" target="_blank" rel="noopener">http://dl.mycat.io/&lt;/a> 上进行下载，下载后进行解压即可，其主要文件目录如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">mycat
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">├── bin
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│ ├── mycat &lt;span class="c1">#mycat程序的执行脚本，如 mycat start 用于启动mycat服务，mycat stop用于停止mycat服务&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">├── conf
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│ ├── rule.xml
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│ ├── schema.xml
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│ ├── server.xml
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">├── logs &lt;span class="c1">#日志存放目录&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">└── version.txt &lt;span class="c1">#版本信息&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="四mycat-基本配置">四、Mycat 基本配置&lt;/h2>
+&lt;p>在 Mycat 的安装目录的 &lt;code>conf&lt;/code> 目录下，有以下三个核心配置文件：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>server.xml&lt;/strong>：主要用于定义用户信息，全局 SQL 防火墙、以及与 Mycat 自身相关的配置。&lt;/li>
+&lt;li>&lt;strong>schema.xml&lt;/strong>：主要用于定义逻辑库，逻辑表，逻辑数据节点以及实际的物理数据库的信息。&lt;/li>
+&lt;li>&lt;strong>rule.xml&lt;/strong>：主要用于定义分片规则，并提供给 schema.xml 标签中的分片表使用。&lt;/li>
+&lt;/ul>
+&lt;h3 id="41-serverxml">4.1 server.xml&lt;/h3>
+&lt;p>一个 server.xml 的配置示例如下，主要包含以下标签：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>&amp;lt;system&amp;gt;&lt;/strong> ：定义 Mycat 相关的配置。&lt;/li>
+&lt;li>&lt;strong>&amp;lt;firewall&amp;gt;&lt;/strong>：配置全局 SQL 防火墙，可以在其下通过子标签定义 IP 白名单和黑名单。&lt;/li>
+&lt;li>&lt;strong>&amp;lt;user&amp;gt;&lt;/strong>：用于设置默认账户或普通账户，并为其分配在逻辑库或逻辑表上的权限。权限通过 dml 属性来指定，如 dml=&amp;ldquo;0110&amp;rdquo; ，四个位置上的数值分别对应 insert，update，select，delete 权限，1 为具有该权限，0 为不具有。&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;system&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!-- 0为需要密码登陆、1为不需要密码登陆 ,默认为0，设置为1则需要指定默认账户--&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;property&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;nonePasswordLogin&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>0&lt;span class="nt">&amp;lt;/property&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;property&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;charset&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>utf8&lt;span class="nt">&amp;lt;/property&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/system&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;firewall&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;whitehost&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;host&lt;/span> &lt;span class="na">host=&lt;/span>&lt;span class="s">&amp;#34;1*7.0.0.*&amp;#34;&lt;/span> &lt;span class="na">user=&lt;/span>&lt;span class="s">&amp;#34;root&amp;#34;&lt;/span>&lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/whitehost&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;blacklist&lt;/span> &lt;span class="na">check=&lt;/span>&lt;span class="s">&amp;#34;false&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/blacklist&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/firewall&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c">&amp;lt;!-- 定义默认账户--&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;user&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;root&amp;#34;&lt;/span> &lt;span class="na">defaultAccount=&lt;/span>&lt;span class="s">&amp;#34;true&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;property&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;password&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>123456&lt;span class="nt">&amp;lt;/property&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;property&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;schemas&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>TESTDB&lt;span class="nt">&amp;lt;/property&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!-- 权限设置 --&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;privileges&lt;/span> &lt;span class="na">check=&lt;/span>&lt;span class="s">&amp;#34;true&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;schema&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;TESTDB&amp;#34;&lt;/span> &lt;span class="na">dml=&lt;/span>&lt;span class="s">&amp;#34;0110&amp;#34;&lt;/span> &lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;table&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;tb01&amp;#34;&lt;/span> &lt;span class="na">dml=&lt;/span>&lt;span class="s">&amp;#34;0000&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&amp;lt;/table&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;table&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;tb02&amp;#34;&lt;/span> &lt;span class="na">dml=&lt;/span>&lt;span class="s">&amp;#34;1111&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&amp;lt;/table&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/schema&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/privileges&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/user&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c">&amp;lt;!-- 定义默认账户--&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;user&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;user&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;property&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;password&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>123456&lt;span class="nt">&amp;lt;/property&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;property&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;schemas&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>TESTDB&lt;span class="nt">&amp;lt;/property&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;property&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;readOnly&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>true&lt;span class="nt">&amp;lt;/property&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/user&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在上面的示例中，用户配置的是明文密码，这样会存在安全隐患，因此 Mycat 也支持对密码进行加密，示例如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 该jar包在Mycat安装目录的lib目录下&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">shell &amp;gt; java -cp Mycat-server-1.6.7.1-release.jar io.mycat.util.DecryptUtil 0:root:123456
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">GO0bnFVWrAuFgr1JMuMZkvfDNyTpoiGU7n/Wlsa151CirHQnANVk3NzE3FErx8v6pAcO0ctX3xFecmSr+976QA&lt;span class="o">==&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>可以将明文密码替换为加密密码，但此时还需在对应用户的 user 标签下增加如下配置，代表启用加密功能：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;property&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;usingDecrypt&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>1&lt;span class="nt">&amp;lt;/property&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="42-schemaxml">4.2 schema.xml&lt;/h3>
+&lt;p>下面是一个示例的 schema.xml 配置文件，主要包含以下标签：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>&amp;lt;schema&amp;gt;&lt;/strong>：主要用于定义逻辑库，checkSQLschema 表明是否检查 schema，当其为 true 时，如果发送 &lt;code>select * from db.table1&lt;/code> 等查询时，会自动修改为 &lt;code>select * from table1&lt;/code> 。sqlMaxLimit 用于限制返回数据的行数。&lt;/li>
+&lt;li>&lt;strong>&amp;lt;table&amp;gt;&lt;/strong>：主要用于定义逻辑表。这里以分片表为例，定义了订单表的分片节点及分片规则。&lt;/li>
+&lt;li>&lt;strong>&amp;lt;dataNode&amp;gt;&lt;/strong>：定义逻辑数据节点。下面示例配置中的每个节点分别对应主从复制集群上的一个数据库实例。&lt;/li>
+&lt;li>&lt;strong>&amp;lt;dataHost&amp;gt;&lt;/strong>：实际的单台物理数据库或数据库集群，下面的示例配置中对应的是一个 maser-slave 集群。&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;schema&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;TESTDB&amp;#34;&lt;/span> &lt;span class="na">checkSQLschema=&lt;/span>&lt;span class="s">&amp;#34;false&amp;#34;&lt;/span> &lt;span class="na">sqlMaxLimit=&lt;/span>&lt;span class="s">&amp;#34;100&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!-- mod-long 分片规则在下文的 rule.xml中定义 --&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;table&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;order&amp;#34;&lt;/span> &lt;span class="na">dataNode=&lt;/span>&lt;span class="s">&amp;#34;dn1,dn2,dn3&amp;#34;&lt;/span> &lt;span class="na">rule=&lt;/span>&lt;span class="s">&amp;#34;mod-long&amp;#34;&lt;/span> &lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/schema&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;dataNode&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;dn1&amp;#34;&lt;/span> &lt;span class="na">dataHost=&lt;/span>&lt;span class="s">&amp;#34;cluster01&amp;#34;&lt;/span> &lt;span class="na">database=&lt;/span>&lt;span class="s">&amp;#34;order_db&amp;#34;&lt;/span> &lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;dataNode&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;dn2&amp;#34;&lt;/span> &lt;span class="na">dataHost=&lt;/span>&lt;span class="s">&amp;#34;cluster02&amp;#34;&lt;/span> &lt;span class="na">database=&lt;/span>&lt;span class="s">&amp;#34;order_db&amp;#34;&lt;/span> &lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;dataNode&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;dn3&amp;#34;&lt;/span> &lt;span class="na">dataHost=&lt;/span>&lt;span class="s">&amp;#34;cluster03&amp;#34;&lt;/span> &lt;span class="na">database=&lt;/span>&lt;span class="s">&amp;#34;order_db&amp;#34;&lt;/span> &lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;dataHost&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;cluster01&amp;#34;&lt;/span> &lt;span class="na">maxCon=&lt;/span>&lt;span class="s">&amp;#34;1000&amp;#34;&lt;/span> &lt;span class="na">minCon=&lt;/span>&lt;span class="s">&amp;#34;10&amp;#34;&lt;/span> &lt;span class="na">balance=&lt;/span>&lt;span class="s">&amp;#34;0&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">dbType=&lt;/span>&lt;span class="s">&amp;#34;mysql&amp;#34;&lt;/span> &lt;span class="na">dbDriver=&lt;/span>&lt;span class="s">&amp;#34;native&amp;#34;&lt;/span> &lt;span class="na">switchType=&lt;/span>&lt;span class="s">&amp;#34;1&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!-- 心跳检查 --&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;heartbeat&amp;gt;&lt;/span>select user()&lt;span class="nt">&amp;lt;/heartbeat&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;writeHost&lt;/span> &lt;span class="na">host=&lt;/span>&lt;span class="s">&amp;#34;master&amp;#34;&lt;/span> &lt;span class="na">url=&lt;/span>&lt;span class="s">&amp;#34;192.168.0.226:3306&amp;#34;&lt;/span> &lt;span class="na">user=&lt;/span>&lt;span class="s">&amp;#34;root&amp;#34;&lt;/span> &lt;span class="na">password=&lt;/span>&lt;span class="s">&amp;#34;123456&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;readHost&lt;/span> &lt;span class="na">host=&lt;/span>&lt;span class="s">&amp;#34;salve&amp;#34;&lt;/span> &lt;span class="na">url=&lt;/span>&lt;span class="s">&amp;#34;192.168.0.227:3306&amp;#34;&lt;/span> &lt;span class="na">user=&lt;/span>&lt;span class="s">&amp;#34;root&amp;#34;&lt;/span> &lt;span class="na">password=&lt;/span>&lt;span class="s">&amp;#34;123456&amp;#34;&lt;/span> &lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/writeHost&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/dataHost&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">...... 省略 cluster02，cluster03
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这里解释一下 dataHost 标签的相关属性：maxCon 表示最大连接数，minCon 表示最小连接数，dbType 表示数据库类型 ( 如 mysql、oracle 等)，其他属性都有多个可选值，具体如下：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>&lt;strong>dbDriver&lt;/strong>：数据库类型，可选的值有 native 和 JDBC，如果是 mysql，maridb，postgresql 等数据库，直接可以使用 native 即可。其他数据库则需要将对应的驱动包拷贝到 Mycat 安装目录的 lib 目录下，并写上完整的驱动类的类名。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;strong>switchType&lt;/strong>：&lt;/p>
+&lt;ul>
+&lt;li>默认值为 1，代表自动切换；&lt;/li>
+&lt;li>设置为 2，代表基于 MySQL 主从同步的状态来决定是否切换；&lt;/li>
+&lt;li>设置为 3，代表基于 MySQL galary cluster 的切换机制进行切换；&lt;/li>
+&lt;li>如果你的集群基于 MMM 或 MHA 等高可用架构实现自动切换，则可以将该值设置为 -1，代表不切换。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;strong>balance&lt;/strong>：&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>balance=&amp;quot;0&amp;quot;&lt;/code> ：不开启读写分离机制，所有读请求都发送到当前可用的 writeHost 上。&lt;/li>
+&lt;li>&lt;code>balance=&amp;quot;1&amp;quot;&lt;/code> ：全部的 readHost 与 stand by writeHost 参与读操作。stand by writeHost 通常指的是双主复制中处于 stand 状态的主节点，即假设集群复制架构为 Master1 -&amp;gt; Slave1，Master2 -&amp;gt; Slave2，并且 M1 与 M2 互为主备 )，此时 Master2 ，Slave1，Slave2 都会参与读的负载。&lt;/li>
+&lt;li>&lt;code>balance=&amp;quot;2&amp;quot;&lt;/code> ：所有读请求随机在 writeHost、 readhost 上进行分发。&lt;/li>
+&lt;li>&lt;code>balance=&amp;quot;3&amp;quot;&lt;/code> ：所有读请求随机分发到 writeHost 对应的 readhost 执行，writerHost 不负担读压力。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;h3 id="43-rulexml">4.3 rule.xml&lt;/h3>
+&lt;p>rule.xml 文件中定义的是分片规则，主要包含以下标签：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>&amp;lt;tableRule&amp;gt;&lt;/strong>：定义分片规则的名称，分片键和分片算法。以下分片规则表示对订单 Id 按照取模算法进行分片。&lt;/li>
+&lt;li>&lt;strong>&amp;lt;function&amp;gt;&lt;/strong>：定义分片算法的具体实现类，以及所需要的参数。&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;tableRule&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;mod-long&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;rule&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;columns&amp;gt;&lt;/span>order_id&lt;span class="nt">&amp;lt;/columns&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;algorithm&amp;gt;&lt;/span>mod-long&lt;span class="nt">&amp;lt;/algorithm&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/rule&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/tableRule&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;function&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;mod-long&amp;#34;&lt;/span> &lt;span class="na">class=&lt;/span>&lt;span class="s">&amp;#34;io.mycat.route.function.PartitionByMod&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!-- nodes 节点的数量--&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;property&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;count&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>3&lt;span class="nt">&amp;lt;/property&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/function&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Mycat 内置支持十几种分片算法，如 取模分片，枚举分片，范围分片，字符串 hash 分片，一致性 hash 分片，日期分片等。关于这些分片算法的详细说明可以参考官方文档：&lt;a href="http://www.mycat.io/document/mycat-definitive-guide.pdf" target="_blank" rel="noopener">Mycat 官方指南&lt;/a>&lt;/p>
+&lt;h2 id="五mycat-读写分离">五、Mycat 读写分离&lt;/h2>
+&lt;p>Mycat 读写分离的配置非常简单，只需要通过配置 balance，writeHost 和 readHost 就可以实现，示例如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;dataHost&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;localhost1&amp;#34;&lt;/span> &lt;span class="na">maxCon=&lt;/span>&lt;span class="s">&amp;#34;1000&amp;#34;&lt;/span> &lt;span class="na">minCon=&lt;/span>&lt;span class="s">&amp;#34;10&amp;#34;&lt;/span> &lt;span class="na">balance=&lt;/span>&lt;span class="s">&amp;#34;1&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">writeType=&lt;/span>&lt;span class="s">&amp;#34;0&amp;#34;&lt;/span> &lt;span class="na">dbType=&lt;/span>&lt;span class="s">&amp;#34;mysql&amp;#34;&lt;/span> &lt;span class="na">dbDriver=&lt;/span>&lt;span class="s">&amp;#34;native&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;heartbeat&amp;gt;&lt;/span>select user()&lt;span class="nt">&amp;lt;/heartbeat&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!-- 可以配置多个writeHost --&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;writeHost&lt;/span> &lt;span class="na">host=&lt;/span>&lt;span class="s">&amp;#34;Master&amp;#34;&lt;/span> &lt;span class="na">url=&lt;/span>&lt;span class="s">&amp;#34;hostname1:3306&amp;#34;&lt;/span> &lt;span class="na">user=&lt;/span>&lt;span class="s">&amp;#34;root&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">password=&lt;/span>&lt;span class="s">&amp;#34;123456&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!-- 可以配置多个readHost--&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;readHost&lt;/span> &lt;span class="na">host=&lt;/span>&lt;span class="s">&amp;#34;Slave&amp;#34;&lt;/span> &lt;span class="na">url=&lt;/span>&lt;span class="s">&amp;#34;hostname2:3306&amp;#34;&lt;/span> &lt;span class="na">user=&lt;/span>&lt;span class="s">&amp;#34;root&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">password=&lt;/span>&lt;span class="s">&amp;#34;123456&amp;#34;&lt;/span> &lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/writeHost&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/dataHost&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>但是需要注意的是如上的配置还是会存在单点问题，因为只有一个 writeHost ，Mycat 支持配置多个 writeHost，示例如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;writeHost&lt;/span> &lt;span class="na">host=&lt;/span>&lt;span class="s">&amp;#34;Master&amp;#34;&lt;/span> &lt;span class="na">url=&lt;/span>&lt;span class="s">&amp;#34;hostname1:3306&amp;#34;&lt;/span> &lt;span class="na">user=&lt;/span>&lt;span class="s">&amp;#34;root&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">password=&lt;/span>&lt;span class="s">&amp;#34;123456&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!-- 可以配置多个readHost--&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;readHost&lt;/span> &lt;span class="na">host=&lt;/span>&lt;span class="s">&amp;#34;Slave1&amp;#34;&lt;/span> &lt;span class="na">url=&lt;/span>&lt;span class="s">&amp;#34;hostname2:3306&amp;#34;&lt;/span> &lt;span class="na">user=&lt;/span>&lt;span class="s">&amp;#34;root&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">password=&lt;/span>&lt;span class="s">&amp;#34;123456&amp;#34;&lt;/span> &lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;readHost&lt;/span> &lt;span class="na">host=&lt;/span>&lt;span class="s">&amp;#34;Slave2&amp;#34;&lt;/span> &lt;span class="na">url=&lt;/span>&lt;span class="s">&amp;#34;hostname3:3306&amp;#34;&lt;/span> &lt;span class="na">user=&lt;/span>&lt;span class="s">&amp;#34;root&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">password=&lt;/span>&lt;span class="s">&amp;#34;123456&amp;#34;&lt;/span> &lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/writeHost&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;writeHost&lt;/span> &lt;span class="na">host=&lt;/span>&lt;span class="s">&amp;#34;Slave3&amp;#34;&lt;/span> &lt;span class="na">url=&lt;/span>&lt;span class="s">&amp;#34;hostname4:3306&amp;#34;&lt;/span> &lt;span class="na">user=&lt;/span>&lt;span class="s">&amp;#34;root&amp;#34;&lt;/span> &lt;span class="na">password=&lt;/span>&lt;span class="s">&amp;#34;123456&amp;#34;&lt;/span> &lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>以上是 Mycat 官方指南中给出的配置，即在一主三从的复制架构下，可以选择其中一个 Slave 为备用的写入节点，此时当 Master 节点宕机后，会继续在该备用节点执行写入操作。这个配置和架构存在以下两个问题：&lt;/p>
+&lt;ul>
+&lt;li>第一 Mycat 并不能让 Slave 1 和 Slave 2 自动将自己的复制主节点变更为 Slave 3，这个过程仍需要你自己来实现。&lt;/li>
+&lt;li>第二你很难确定哪个节点该作为备用的主节点，在上面的配置中我们设置 Slave 3 为备用节点，但在主节点宕机后，可能 Slave 1 和 Slave 2 的复制偏移量都要大于 Slave 3，显然它们更适合成为新的主节点。&lt;/li>
+&lt;/ul>
+&lt;p>基于以上两个原因，如果想要实现高可用，并不建议配置多个 writeHost ，而是配置一个 writeHost ，但其指向的是虚拟的读 IP 地址，此时复制架构由 MMM 或者 MHA 架构来实现，并由它们来提供虚拟机的读 IP。&lt;/p>
+&lt;h2 id="六mycat-分库分表">六、Mycat 分库分表&lt;/h2>
+&lt;p>综合以上全部内容，这里给出一个分库分表的示例，其架构如下：&lt;/p>
+&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/mysql-mycat-分库分表实战.png"/> &lt;/div>
+如上图所示，这里模拟的是一个电商数据库，并对其执行分库分表操作：
+&lt;ul>
+&lt;li>将用户相关表，订单相关表，商品相关表分表拆分到单独的数据库中；&lt;/li>
+&lt;li>将订单表和订单明细表进行横向分表，拆分到不同的数据库中。同时为了避免订单表关联订单明细表时出现跨分片查询的情况，需要将其配置为 ER 表；&lt;/li>
+&lt;li>由于地址表，在查询用户信息（如家庭地址），订单信息（收货地址），商品信息（商品产地）的时候都需要用到，所以会将其声明为全局表，它会存在于以上所有分片上，从而避免跨分片查询。&lt;/li>
+&lt;/ul>
+&lt;p>为节省篇幅，以上所有测试表和测试库的建立语句单独整理至：&lt;a href="https://github.com/heibaiying/Full-Stack-Notes/blob/master/resources/ec_shop.sql" target="_blank" rel="noopener">ec_shop.sql&lt;/a> 。分库分表的具体操作如下：&lt;/p>
+&lt;h3 id="61-serverxml">6.1 server.xml&lt;/h3>
+&lt;p>这里新增一个 Mycat 用户，并定义其管理的逻辑数据库为 ec_shop，另外使用 fakeMySQLVersion 来定义你所需要模拟的 MySQL 数据库的版本。如果没有特殊需求， Mycat 自带的 server.xml 中的其他配置可不做更改：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;system&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;property&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;fakeMySQLVersion&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>5.7.20&lt;span class="nt">&amp;lt;/property&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/system&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;user&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;heibaiying&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;property&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;password&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> B+BlA/U17pjyzHslglpDgYUxpgqK8qC62IRt/S74RBW6R7dZFJAXVb5tJDgmhzM4fj14MMhLnNmvKko6D73+iA==
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/property&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;property&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;schemas&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>ec_shop&lt;span class="nt">&amp;lt;/property&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;property&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;usingDecrypt&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>1&lt;span class="nt">&amp;lt;/property&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/user&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="62-schemaxml">6.2 schema.xml&lt;/h3>
+&lt;p>这里使用 childTable 来将订单表和订单明细表定义为 ER 表，避免跨分片查询。并将地址表 area_info 使用 &lt;code>type=&amp;quot;global&amp;quot;&lt;/code> 声明为全局，同样也是为了避免跨分片查询：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&amp;lt;?xml version=&amp;#34;1.0&amp;#34;?&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&amp;lt;!DOCTYPE mycat:schema SYSTEM &amp;#34;schema.dtd&amp;#34;&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;mycat:schema&lt;/span> &lt;span class="na">xmlns:mycat=&lt;/span>&lt;span class="s">&amp;#34;http://io.mycat/&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;schema&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;ec_shop&amp;#34;&lt;/span> &lt;span class="na">checkSQLschema=&lt;/span>&lt;span class="s">&amp;#34;false&amp;#34;&lt;/span> &lt;span class="na">sqlMaxLimit=&lt;/span>&lt;span class="s">&amp;#34;100&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;table&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;customers&amp;#34;&lt;/span> &lt;span class="na">primaryKey=&lt;/span>&lt;span class="s">&amp;#34;customer_id&amp;#34;&lt;/span> &lt;span class="na">dataNode=&lt;/span>&lt;span class="s">&amp;#34;dn01&amp;#34;&lt;/span>&lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;table&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;products&amp;#34;&lt;/span> &lt;span class="na">primaryKey=&lt;/span>&lt;span class="s">&amp;#34;product_id&amp;#34;&lt;/span> &lt;span class="na">dataNode=&lt;/span>&lt;span class="s">&amp;#34;dn02&amp;#34;&lt;/span>&lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;table&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;orders&amp;#34;&lt;/span> &lt;span class="na">primaryKey=&lt;/span>&lt;span class="s">&amp;#34;order_id&amp;#34;&lt;/span> &lt;span class="na">dataNode=&lt;/span>&lt;span class="s">&amp;#34;dn03,dn04&amp;#34;&lt;/span> &lt;span class="na">rule=&lt;/span>&lt;span class="s">&amp;#34;mod-long&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;childTable&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;order_detail&amp;#34;&lt;/span> &lt;span class="na">primaryKey=&lt;/span>&lt;span class="s">&amp;#34;order_detail_id&amp;#34;&lt;/span> &lt;span class="na">joinKey=&lt;/span>&lt;span class="s">&amp;#34;order_id&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">parentKey=&lt;/span>&lt;span class="s">&amp;#34;order_id&amp;#34;&lt;/span>&lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/table&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;table&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;area_info&amp;#34;&lt;/span> &lt;span class="na">primaryKey=&lt;/span>&lt;span class="s">&amp;#34;area_id&amp;#34;&lt;/span> &lt;span class="na">type=&lt;/span>&lt;span class="s">&amp;#34;global&amp;#34;&lt;/span> &lt;span class="na">dataNode=&lt;/span>&lt;span class="s">&amp;#34;dn01,dn02,dn03,dn04&amp;#34;&lt;/span>&lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/schema&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dataNode&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;dn01&amp;#34;&lt;/span> &lt;span class="na">dataHost=&lt;/span>&lt;span class="s">&amp;#34;host01&amp;#34;&lt;/span> &lt;span class="na">database=&lt;/span>&lt;span class="s">&amp;#34;ec_shop_customer&amp;#34;&lt;/span>&lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dataNode&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;dn02&amp;#34;&lt;/span> &lt;span class="na">dataHost=&lt;/span>&lt;span class="s">&amp;#34;host02&amp;#34;&lt;/span> &lt;span class="na">database=&lt;/span>&lt;span class="s">&amp;#34;ec_shop_product&amp;#34;&lt;/span>&lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dataNode&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;dn03&amp;#34;&lt;/span> &lt;span class="na">dataHost=&lt;/span>&lt;span class="s">&amp;#34;host03&amp;#34;&lt;/span> &lt;span class="na">database=&lt;/span>&lt;span class="s">&amp;#34;ec_shop_order&amp;#34;&lt;/span>&lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dataNode&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;dn04&amp;#34;&lt;/span> &lt;span class="na">dataHost=&lt;/span>&lt;span class="s">&amp;#34;host04&amp;#34;&lt;/span> &lt;span class="na">database=&lt;/span>&lt;span class="s">&amp;#34;ec_shop_order&amp;#34;&lt;/span>&lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dataHost&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;host01&amp;#34;&lt;/span> &lt;span class="na">maxCon=&lt;/span>&lt;span class="s">&amp;#34;1000&amp;#34;&lt;/span> &lt;span class="na">minCon=&lt;/span>&lt;span class="s">&amp;#34;10&amp;#34;&lt;/span> &lt;span class="na">balance=&lt;/span>&lt;span class="s">&amp;#34;0&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">dbType=&lt;/span>&lt;span class="s">&amp;#34;mysql&amp;#34;&lt;/span> &lt;span class="na">dbDriver=&lt;/span>&lt;span class="s">&amp;#34;native&amp;#34;&lt;/span> &lt;span class="na">switchType=&lt;/span>&lt;span class="s">&amp;#34;1&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;heartbeat&amp;gt;&lt;/span>select user()&lt;span class="nt">&amp;lt;/heartbeat&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;writeHost&lt;/span> &lt;span class="na">host=&lt;/span>&lt;span class="s">&amp;#34;master&amp;#34;&lt;/span> &lt;span class="na">url=&lt;/span>&lt;span class="s">&amp;#34;192.168.0.226:3306&amp;#34;&lt;/span> &lt;span class="na">user=&lt;/span>&lt;span class="s">&amp;#34;root&amp;#34;&lt;/span> &lt;span class="na">password=&lt;/span>&lt;span class="s">&amp;#34;123456&amp;#34;&lt;/span>&lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/dataHost&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dataHost&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;host02&amp;#34;&lt;/span> &lt;span class="na">maxCon=&lt;/span>&lt;span class="s">&amp;#34;1000&amp;#34;&lt;/span> &lt;span class="na">minCon=&lt;/span>&lt;span class="s">&amp;#34;10&amp;#34;&lt;/span> &lt;span class="na">balance=&lt;/span>&lt;span class="s">&amp;#34;0&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">dbType=&lt;/span>&lt;span class="s">&amp;#34;mysql&amp;#34;&lt;/span> &lt;span class="na">dbDriver=&lt;/span>&lt;span class="s">&amp;#34;native&amp;#34;&lt;/span> &lt;span class="na">switchType=&lt;/span>&lt;span class="s">&amp;#34;1&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;heartbeat&amp;gt;&lt;/span>select user()&lt;span class="nt">&amp;lt;/heartbeat&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;writeHost&lt;/span> &lt;span class="na">host=&lt;/span>&lt;span class="s">&amp;#34;master&amp;#34;&lt;/span> &lt;span class="na">url=&lt;/span>&lt;span class="s">&amp;#34;192.168.0.227:3306&amp;#34;&lt;/span> &lt;span class="na">user=&lt;/span>&lt;span class="s">&amp;#34;root&amp;#34;&lt;/span> &lt;span class="na">password=&lt;/span>&lt;span class="s">&amp;#34;123456&amp;#34;&lt;/span>&lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/dataHost&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dataHost&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;host03&amp;#34;&lt;/span> &lt;span class="na">maxCon=&lt;/span>&lt;span class="s">&amp;#34;1000&amp;#34;&lt;/span> &lt;span class="na">minCon=&lt;/span>&lt;span class="s">&amp;#34;10&amp;#34;&lt;/span> &lt;span class="na">balance=&lt;/span>&lt;span class="s">&amp;#34;0&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">dbType=&lt;/span>&lt;span class="s">&amp;#34;mysql&amp;#34;&lt;/span> &lt;span class="na">dbDriver=&lt;/span>&lt;span class="s">&amp;#34;native&amp;#34;&lt;/span> &lt;span class="na">switchType=&lt;/span>&lt;span class="s">&amp;#34;1&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;heartbeat&amp;gt;&lt;/span>select user()&lt;span class="nt">&amp;lt;/heartbeat&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;writeHost&lt;/span> &lt;span class="na">host=&lt;/span>&lt;span class="s">&amp;#34;master&amp;#34;&lt;/span> &lt;span class="na">url=&lt;/span>&lt;span class="s">&amp;#34;192.168.0.228:3306&amp;#34;&lt;/span> &lt;span class="na">user=&lt;/span>&lt;span class="s">&amp;#34;root&amp;#34;&lt;/span> &lt;span class="na">password=&lt;/span>&lt;span class="s">&amp;#34;123456&amp;#34;&lt;/span>&lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/dataHost&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;dataHost&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;host04&amp;#34;&lt;/span> &lt;span class="na">maxCon=&lt;/span>&lt;span class="s">&amp;#34;1000&amp;#34;&lt;/span> &lt;span class="na">minCon=&lt;/span>&lt;span class="s">&amp;#34;10&amp;#34;&lt;/span> &lt;span class="na">balance=&lt;/span>&lt;span class="s">&amp;#34;0&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">dbType=&lt;/span>&lt;span class="s">&amp;#34;mysql&amp;#34;&lt;/span> &lt;span class="na">dbDriver=&lt;/span>&lt;span class="s">&amp;#34;native&amp;#34;&lt;/span> &lt;span class="na">switchType=&lt;/span>&lt;span class="s">&amp;#34;1&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;heartbeat&amp;gt;&lt;/span>select user()&lt;span class="nt">&amp;lt;/heartbeat&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;writeHost&lt;/span> &lt;span class="na">host=&lt;/span>&lt;span class="s">&amp;#34;master&amp;#34;&lt;/span> &lt;span class="na">url=&lt;/span>&lt;span class="s">&amp;#34;192.168.0.229:3306&amp;#34;&lt;/span> &lt;span class="na">user=&lt;/span>&lt;span class="s">&amp;#34;root&amp;#34;&lt;/span> &lt;span class="na">password=&lt;/span>&lt;span class="s">&amp;#34;123456&amp;#34;&lt;/span>&lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/dataHost&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/mycat:schema&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="63-rulexml">6.3 rule.xml&lt;/h3>
+&lt;p>定义订单表所使用的分片规则，这里使用取模算法作为示例：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&amp;lt;?xml version=&amp;#34;1.0&amp;#34; encoding=&amp;#34;UTF-8&amp;#34;?&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&amp;lt;!DOCTYPE mycat:rule SYSTEM &amp;#34;rule.dtd&amp;#34;&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;mycat:rule&lt;/span> &lt;span class="na">xmlns:mycat=&lt;/span>&lt;span class="s">&amp;#34;http://io.mycat/&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;tableRule&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;mod-long&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;rule&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;columns&amp;gt;&lt;/span>order_id&lt;span class="nt">&amp;lt;/columns&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;algorithm&amp;gt;&lt;/span>mod-long&lt;span class="nt">&amp;lt;/algorithm&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/rule&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/tableRule&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;function&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;mod-long&amp;#34;&lt;/span> &lt;span class="na">class=&lt;/span>&lt;span class="s">&amp;#34;io.mycat.route.function.PartitionByMod&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!-- nodes 节点的数量--&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;property&lt;/span> &lt;span class="na">name=&lt;/span>&lt;span class="s">&amp;#34;count&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>2&lt;span class="nt">&amp;lt;/property&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/function&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/mycat:rule&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="七mycat-与-mysql-80">七、Mycat 与 MySQL 8.0&lt;/h2>
+&lt;p>这里我后端使用的数据库是 MySQL 8.0.17 ，相比于使用 MySQL 5.6 或 5.7 来整合 Mycat ，多了一些注意事项，主要如下：&lt;/p>
+&lt;h3 id="71-密码错误">7.1 密码错误&lt;/h3>
+&lt;p>即便你在 server.xml 中正确的配置了用户名和密码，但在使用 mysql shell 连接 Mycat 时，还是会抛出密码错误的异常：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">Access denied &lt;span class="k">for&lt;/span> user &lt;span class="s1">&amp;#39;xxx&amp;#39;&lt;/span>, because password is error
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这是由于从 MySQL 8.0.4 开始使用 &lt;code>caching_sha2_password&lt;/code> 作为认证的插件，而之前版本的插件为 &lt;code>mysql_native_password&lt;/code>，我在测试中使用的 Mycat 版本为 1.6.7，它并不支持 &lt;code>caching_sha2_password&lt;/code> 。因此在登录时候需要通过 &lt;code>--default_auth&lt;/code> 来指定使用原有的认证插件：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 1.6.7 版本 Mycat 默认的连接端口号为 8066&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mysql -uheibaiying -p -h127.0.0.1 -P8066 --default_auth&lt;span class="o">=&lt;/span>mysql_native_password
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="72-数据库连接失败">7.2 数据库连接失败&lt;/h3>
+&lt;p>Mycat 和 MySQL 都正常启动，但是在 Mycat 上执行 SQL 语句失败，提示无效的数据库。此时可以查看 Mycat logs 目录下的 mycat.log 文件，通常会出现下面所示的异常：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-shell" data-lang="shell">&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>io.mycat.backend.mysql.nio.MySQLConnectionAuthenticator.handle&lt;span class="o">(&lt;/span>MySQLConnectionAuthenticator.java:91&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">- can&lt;span class="err">&amp;#39;&lt;/span>t connect to mysql server ,errmsg:Client does not support authentication protocol requested by
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">server&lt;span class="p">;&lt;/span> consider upgrading MySQL client MySQLConnection
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这和上面是同样的原因，都是因为认证插件而导致的问题。此时需要修改账户所使用的认证插件：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="k">ALTER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;root&amp;#39;&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="s1">&amp;#39;%&amp;#39;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">IDENTIFIED&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">WITH&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql_native_password&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">BY&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;xxxx&amp;#39;&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">FLUSH&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">PRIVILEGES&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>修改后可以使用如下命令进行查看：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">Host&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="k">User&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="n">plugin&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="k">user&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">---------------+------------------+-----------------------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">Host&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">User&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">plugin&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">---------------+------------------+-----------------------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">%&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">root&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql_native_password&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">192&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">168&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">200&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="o">%&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">repl&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql_native_password&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">infoschema&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">caching_sha2_password&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="k">session&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">caching_sha2_password&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">sys&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">caching_sha2_password&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">root&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql_native_password&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">---------------+------------------+-----------------------+
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>之后再重启 Mycat 服务就可以正常连接。&lt;/p>
+&lt;h2 id="参考资料">参考资料&lt;/h2>
+&lt;p>Mycat 官方指南：http://www.mycat.io/document/mycat-definitive-guide.pdf&lt;/p></description></item></channel></rss>

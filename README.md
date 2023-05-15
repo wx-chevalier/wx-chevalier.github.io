@@ -16,6 +16,7 @@
 - [x] 添加 clustrmaps
 - [x] 将全部的 -Series 切换为 -Notes
   - [ ] 移除全部的 postimg.cc
+  - [ ] 支持微信公众号图片迁移
 - [ ] 从 Algolia Search 迁移到 MeiliSearch
 - [ ] 迁移文章全部的图片到自己的 AliOss
 - [ ] 将思维脑图静态图片转化为 MindMap 

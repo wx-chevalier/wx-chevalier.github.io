@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>4.架构机制 | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/</link><atom:link href="https://ng-tech.icu/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/index.xml" rel="self" type="application/rss+xml"/><description>4.架构机制</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>4.架构机制</title><link>https://ng-tech.icu/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/</link></image><item><title>单线程架构</title><link>https://ng-tech.icu/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%8D%95%E7%BA%BF%E7%A8%8B%E6%9E%B6%E6%9E%84/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%8D%95%E7%BA%BF%E7%A8%8B%E6%9E%B6%E6%9E%84/</guid><description>&lt;h1 id="redis-单线程架构">Redis 单线程架构&lt;/h1>
+&lt;h1 id="links">Links&lt;/h1>
+&lt;ul>
+&lt;li>
+&lt;p>&lt;a href="https://sctrack.sendcloud.net/track/click/eyJuZXRlYXNlIjogImZhbHNlIiwgIm1haWxsaXN0X2lkIjogMCwgInRhc2tfaWQiOiAiIiwgImVtYWlsX2lkIjogIjE2MTYxNDk0OTY4NzNfMTg3XzEyNTAzXzg5MTIuc2MtMTBfOV81NV8xMi1pbmJvdW5kMCQzODQ5MjQ1NTJAcXEuY29tIiwgInNpZ24iOiAiNTBlMzMyOTY4NTEyMGU1ZGM2NDE5YTBiMTk0ZThlZjIiLCAidXNlcl9oZWFkZXJzIjoge30sICJsYWJlbCI6ICI2MTkyMDMwIiwgInRyYWNrX2RvbWFpbiI6ICJzY3RyYWNrLnNlbmRjbG91ZC5uZXQiLCAicmVhbF90eXBlIjogIiIsICJsaW5rIjogImh0dHBzJTNBLy92aXAubWFub25nLmlvL2JvdW5jZSUzRm5pZCUzRDQ1JTI2YWlkJTNEMTg5MCUyNnVybCUzRGh0dHBzJTI1M0ElMjUyRiUyNTJGdG91dGlhby5pbyUyNTJGayUyNTJGdnN4d2pwZiUyNm4lM0RNVE15Ljcwa3lyQmNnSXU4c0lkeWdYMThFWFFkUkVhSSIsICJvdXRfaXAiOiAiMTA2Ljc1LjIuMzIiLCAiY29udGVudF90eXBlIjogIjAiLCAidXNlcl9pZCI6IDE4NywgIm92ZXJzZWFzIjogImZhbHNlIiwgImNhdGVnb3J5X2lkIjogNjAzNDl9.html" target="_blank" rel="noopener">https://sctrack.sendcloud.net/track/click/eyJuZXRlYXNlIjogImZhbHNlIiwgIm1haWxsaXN0X2lkIjogMCwgInRhc2tfaWQiOiAiIiwgImVtYWlsX2lkIjogIjE2MTYxNDk0OTY4NzNfMTg3XzEyNTAzXzg5MTIuc2MtMTBfOV81NV8xMi1pbmJvdW5kMCQzODQ5MjQ1NTJAcXEuY29tIiwgInNpZ24iOiAiNTBlMzMyOTY4NTEyMGU1ZGM2NDE5YTBiMTk0ZThlZjIiLCAidXNlcl9oZWFkZXJzIjoge30sICJsYWJlbCI6ICI2MTkyMDMwIiwgInRyYWNrX2RvbWFpbiI6ICJzY3RyYWNrLnNlbmRjbG91ZC5uZXQiLCAicmVhbF90eXBlIjogIiIsICJsaW5rIjogImh0dHBzJTNBLy92aXAubWFub25nLmlvL2JvdW5jZSUzRm5pZCUzRDQ1JTI2YWlkJTNEMTg5MCUyNnVybCUzRGh0dHBzJTI1M0ElMjUyRiUyNTJGdG91dGlhby5pbyUyNTJGayUyNTJGdnN4d2pwZiUyNm4lM0RNVE15Ljcwa3lyQmNnSXU4c0lkeWdYMThFWFFkUkVhSSIsICJvdXRfaXAiOiAiMTA2Ljc1LjIuMzIiLCAiY29udGVudF90eXBlIjogIjAiLCAidXNlcl9pZCI6IDE4NywgIm92ZXJzZWFzIjogImZhbHNlIiwgImNhdGVnb3J5X2lkIjogNjAzNDl9.html&lt;/a> Redis不是一直号称单线程效率也很高吗，为什么又采用多线程了？&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;a href="https://cubox.pro/c/Szrm3D" target="_blank" rel="noopener">https://cubox.pro/c/Szrm3D&lt;/a> Redis 是单线程凭什么能支撑高并发？&lt;/p>
+&lt;/li>
+&lt;/ul></description></item><item><title>多进程架构</title><link>https://ng-tech.icu/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%A4%9A%E8%BF%9B%E7%A8%8B%E6%9E%B6%E6%9E%84/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%A4%9A%E8%BF%9B%E7%A8%8B%E6%9E%B6%E6%9E%84/</guid><description>&lt;h1 id="redis-线程架构">Redis 线程架构&lt;/h1>
+&lt;h1 id="单进程架构">单进程架构&lt;/h1>
+&lt;p>我们在使用 Redis 的时候，通常是多个客户端连接 Redis 服务器，然后各自发送命令请求(例如 Get、Set)到 Redis 服务器，最后 Redis 处理这些请求返回结果。Redis 除了处理客户端的命令请求还有诸如 RDB 持久化、AOF 重写这样的事情要做，而在做这些事情的时候，Redis 会 fork 子进程去完成。但对于 accept 客户端连接、处理客户端请求、返回命令结果等等这些，Redis 是使用主进程及主线程来完成的。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/item/20230416204329.png" alt="" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;h1 id="reactor-架构">Reactor 架构&lt;/h1>
+&lt;p>Redis 如此高效的原因就是其使用了 IO 多路复用的模式 Reactor。首先，Redis 服务器中有两类事件，文件事件和时间事件：&lt;/p>
+&lt;ul>
+&lt;li>文件事件(file event)：Redis 客户端通过 socket 与 Redis 服务器连接，而文件事件就是服务器对套接字操作的抽象。例如，客户端发了一个 GET 命令请求，对于 Redis 服务器来说就是一个文件事件。&lt;/li>
+&lt;li>时间事件(time event)：服务器定时或周期性执行的事件。例如，定期执行 RDB 持久化。&lt;/li>
+&lt;/ul>
+&lt;p>在这个模型中，Redis 服务器用主线程执行 IO 多路复用程序、文件事件分派器以及事件处理器。而且，尽管多个文件事件可能会并发出现，Redis 服务器是顺序处理各个文件事件的。Redis 服务器主线程的执行流程在 Redis.c 的 main 函数中体现，而关于处理文件事件的主要的有这几行：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="line">&lt;span class="cl">&lt;span class="kt">int&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">argc&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">char&lt;/span> &lt;span class="o">**&lt;/span>&lt;span class="n">argv&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">...&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">initServer&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">...&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">aeMain&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">...&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">aeDeleteEventLoop&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">server&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">el&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在 &lt;code>initServer()&lt;/code> 中，建立各个事件处理器；在 &lt;code>aeMain()&lt;/code> 中，执行事件处理循环；在 &lt;code>aeDeleteEventLoop(server.el)&lt;/code> 中关闭停止事件处理循环；最后退出。&lt;/p>
+&lt;h1 id="多进程架构">多进程架构&lt;/h1>
+&lt;h1 id="links">Links&lt;/h1>
+&lt;ul>
+&lt;li>多进程架构 &lt;a href="https://www.alibabacloud.com/blog/improving-redis-performance-through-multi-thread-processing_594150" target="_blank" rel="noopener">https://www.alibabacloud.com/blog/improving-redis-performance-through-multi-thread-processing_594150&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>客户端通信</title><link>https://ng-tech.icu/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%AE%A2%E6%88%B7%E7%AB%AF%E9%80%9A%E4%BF%A1/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%AE%A2%E6%88%B7%E7%AB%AF%E9%80%9A%E4%BF%A1/</guid><description>&lt;h1 id="客户端通信">客户端通信&lt;/h1>
+&lt;p>每个 Redis 客户端(以下简称”Client”)都有多个状态属性，而理解和分析这些属性，对于我们设计 Redis 键空间和运营管理都有帮助。使用 redis client 命令可查看当前 Redis 实例的所有客户端；每行数据对应一个客户端。&lt;/p>
+&lt;pre tabindex="0">&lt;code>127.0.0.1:6390&amp;gt; client list
+id=2 addr=127.0.0.1:53184 fd=8 name= age=33 idle=24 flags=N db=0 sub=0 psub=0 multi=-1 qbuf=0 qbuf-free=0 obl=0 oll=0 omem=0 events=r cmd=client
+id=3 addr=127.0.0.1:53190 fd=7 name= age=2 idle=0 flags=N db=0 sub=0 psub=0 multi=-1 qbuf=0 qbuf-free=32768 obl=0 oll=0 omem=0 events=r cmd=client
+&lt;/code>&lt;/pre>&lt;p>以上为两个客户端，每个包含 18 个字段属性；其中属性的基本含义此处简单说明，后文会对重启指标深入分析。&lt;/p>
+&lt;pre tabindex="0">&lt;code>id：客户端唯一标识, 每新创建一个连接就自增1；redis重启后重置1。
+addr: 客户端源ip:port;用于分析异常的客户端，定位是由哪个服务器哪个进程引起的；如id=2的客户端 netstat -anp | grep 53184
+fd: socket的文件描述符；数值同lsof的FD字段相同
+name: 客户端的名字，默认不会设置，一般用处不大。可手动执行[clientsetname](http://redis.io/commands/client-setname)
+age: 客户端存活的秒数
+idle: 空闲的秒数；用于回收客户端和分析大量连接时有用
+flages:客户端类型的标志, 共13种，常用的几种：N(普通客户端),M(master),S(slave),O(执行monitor)
+db:客户端当前使用的database序号
+sub/psub: 快订阅的频道/模式数
+multi:当前事务中已执行命令个数
+qbuf: query buffer的字节数 重要
+qbuf-free: query buffer的剩余字节数
+obl:定长Output buffer的使用字节数
+oll:可变大小output buffer的对象个数
+omem:可变大小output buffer的内存使用字节数 重要
+events: 文件描述符事作件(r/w)
+cmd:客户端最近一次执行的命令，不包含参数
+&lt;/code>&lt;/pre>&lt;h2 id="buffer">Buffer&lt;/h2>
+&lt;h3 id="query-buffer">Query Buffer&lt;/h3>
+&lt;p>每个 Client 都有一个 query buffer(查询缓存区或输入缓存区), 它用于保存客户端的发送命令，redis server 从 query buffer 获取命令并执行。每个客户端 query buffer 自动动态调整使用内存大小的，范围在 0~1GB 之间；当某个客户端的 query buffer 使用超过 1GB, server 会立即关闭它，为避免过度使用内存，触发 oom killer。query buffer 的大小限制是硬编码的 1GB,没法控制配置参数修改。&lt;/p>
+&lt;pre tabindex="0">&lt;code>server.h#163
+/* Protocol and IO related defines */
+#define PROTO_MAX_QUERYBUF_LEN (1024*1024*1024) /* 1GB max query buffer. */
+&lt;/code>&lt;/pre>&lt;p>用 client list 命令，观察 qbuf 和 qbuf-free 两个字段，就是 client query buffer 使用内存大小。
+如下示例(省去部分字段)：&lt;/p>
+&lt;pre tabindex="0">&lt;code>127.0.0.1:6390&amp;gt; client list
+id=169 qbuf=128679888 qbuf-free=425984 obl=0 oll=0 omem=0 events=r cmd=NULL
+id=171 qbuf=128679888 qbuf-free=425984 obl=0 oll=0 omem=0 events=r cmd=NULL
+id=218 qbuf=128679888 qbuf-free=425984 obl=0 oll=0 omem=0 events=r cmd=NULL
+id=151 qbuf=128696272 qbuf-free=425984 obl=0 oll=0 omem=0 events=r cmd=NULL
+&lt;/code>&lt;/pre>&lt;h4 id="query-buffer-过载">Query Buffer 过载&lt;/h4>
+&lt;p>模拟 100 个客户端，连续写入大小为 500MB(生产建议小于 1KB)的 Key; redis server 设置 maxmemory 为 4gb,但 redis 实际已用内存 43gb(见 used_memory)。结论是 query buffer 使用内存不受 maxmemory 的限制，这 BUG 已经提给官方, 如不能限制 redis 使用的内存量，很易导致 redis 过度使用内存，无法控制出现 oom。&lt;/p>
+&lt;pre tabindex="0">&lt;code>127.0.0.1:6390&amp;gt; info memory
+# Memory
+used_memory:46979129016
+used_memory_human:43.75G
+used_memory_rss:49898303488
+used_memory_rss_human:46.47G
+used_memory_peak:54796105584
+used_memory_peak_human:51.03G
+total_system_memory:134911881216
+total_system_memory_human:125.65G
+maxmemory:4294967296
+maxmemory_human:4.00G
+maxmemory_policy:allkeys-random
+mem_fragmentation_ratio:1.06
+mem_allocator:jemalloc-4.0.3
+## 当client断开后，rss会马上释放内存给OS
+&lt;/code>&lt;/pre>&lt;p>query buffer 占用内存，会计入 maxmemory, 如果达到 maxmemory 限制，会触发 KEY 的 LRU 淘汰或无法写入新数据。&lt;/p>
+&lt;pre tabindex="0">&lt;code>127.0.0.1:6390&amp;gt; set a b
+(error) OOM command not allowed when used memory &amp;gt; &amp;#39;maxmemory&amp;#39;.
+&lt;/code>&lt;/pre>&lt;p>我们在程序中要避免 Query Buffer 过度使用，可以参考如下建议：&lt;/p>
+&lt;ul>
+&lt;li>禁用大 KEY，尽量保证 key 小于 1KB; 虽 redis 支持 512MB 大小 string。&lt;/li>
+&lt;li>监控 redis 内存使用，如果忽高忽低，极有可能 query buffer 引起&lt;/li>
+&lt;li>核心 Redis 集群定期收集 client list 并分析 qbuf 的使用量&lt;/li>
+&lt;li>建议官方提供 query buffer size 的设置参数，以保证过载保护&lt;/li>
+&lt;/ul>
+&lt;h3 id="output-buffer">Output Buffer&lt;/h3>
+&lt;p>客户端输出缓存区：执行命令所返回的结果会保存到 output buffer，返回给客户端。每个客户端都有 2 个 query buffer：&lt;/p>
+&lt;ul>
+&lt;li>静态定长 16KB 的缓存区；主要快速存储返回比较小的结果；如简单的 get 等&lt;/li>
+&lt;li>动态大小缓冲区；存储返回较大的结果，如大的集合类型:set/list/hash
+因为静态的 buffer，一般无性能和风险影响，这里简单介绍。&lt;/li>
+&lt;/ul>
+&lt;pre tabindex="0">&lt;code>#define PROTO_REPLY_CHUNK_BYTES (16*1024) /* 16k output buffer */
+/* With multiplexing we need to take per-client state.
+* Clients are taken in a linked list. */
+typedef struct client {
+uint64_t id; /* Client incremental unique ID. */
+redisDb *db; /* Pointer to currently SELECTed DB. */
+robj *name; /* As set by CLIENT SETNAME. */
+sds querybuf; /* Buffer we use to accumulate client queries. */
+list *reply; /* List of reply objects to send to the client. */
+/* Response buffer */
+int bufpos;
+char buf[PROTO_REPLY_CHUNK_BYTES];
+} client;
+&lt;/code>&lt;/pre>&lt;p>我们常说的 output buffer 都是指“动态大小的输出缓冲区”。和 qeury buffer 不同，output buffer 提供配置参数”client-output-buffer-limit”设置 buffer 的使用大小。下面是 limit 的设置格式：&lt;/p>
+&lt;pre tabindex="0">&lt;code>client-output-buffer-limit normal 10mb 5mb 60
+client-output-buffer-limit slave 256mb 64mb 60
+client-output-buffer-limit pubsub 32mb 8mb 60
+&lt;/code>&lt;/pre>&lt;p>redis 对 3 种不同客户端类型，可设置对应的 buffer limit 规则&lt;/p>
+&lt;ul>
+&lt;li>normal: 普通的客户端&lt;/li>
+&lt;li>slave: 从库复制，连接到主库的客户端&lt;/li>
+&lt;li>pubsub: 发布/订阅客户端&lt;/li>
+&lt;/ul>
+&lt;p>设置的 limit 规则 3 个值: hard limit size, soft limit size, soft limit second;只要客户端使用 output buffer 内存大小超过 hard limit 限制，redis 会立即关闭此客户端；使用 buffer 内存大小超过 soft limit，并且持续 soft limit 秒数，redis 也会立即关闭此客户端。被关闭客户端信息会打印到 redis 日志文件中，格式如下：&lt;/p>
+&lt;pre tabindex="0">&lt;code>569:M 18 Jun 21:12:57.775 # Client id=972 addr=127.0.0.1:57934 fd=107 name= age=2 idle=0
+flags=O db=0 sub=0 psub=0 multi=-1 qbuf=0 qbuf-free=0 obl=0 oll=366 omem=10492208 events=rw cmd=monitor
+scheduled to be closed ASAP for overcoming of output buffer limits.
+&lt;/code>&lt;/pre>&lt;p>要查看 output buffer 使用，主要查开 client list 的 obl(静态定长 buffer)。omem: 当前客户端使用 output buffer 的内存字节数，如下客户端执行 monitor 命令(cmd=monitor), 已使用 buffer 内存是 10492208，超过 normal 的 hard limit 10mb，所以被 redis 关闭。&lt;/p>
+&lt;pre tabindex="0">&lt;code>id=972 addr=127.0.0.1:57934 idle=0 flags=O db=0 qbuf=0 qbuf-free=0 obl=0 oll=366 omem=10492208 events=rw cmd=monitor
+&lt;/code>&lt;/pre>&lt;p>另外 output buffer 受 maxmemory 的限制，基本不会超过 maxmemory 设置值。因为 output buffer 是每个客户端都有，如使用不当，每个占用 1mb * 10000 clients 就约使用 10G 内存；
+所以要有效限制程序滥用。&lt;/p>
+&lt;ul>
+&lt;li>对于 normal 限制尽量小，可避免程序过度使用 output buffer.&lt;/li>
+&lt;li>监控 redis used_memory 如果抖动严重，极有可能&lt;/li>
+&lt;li>增加 slave 的 limit 限制，避免 slave 同步线程被杀，导致无限循环同步数据；且 slave 线程和挂载的 slave 个数相同，理论只有几个&lt;/li>
+&lt;li>禁止生产环境使用 monitor 命令，在高 QPS 环境下，monitor 很快会产生 output query 使用&lt;/li>
+&lt;/ul></description></item><item><title>命令执行</title><link>https://ng-tech.icu/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C/</guid><description>&lt;h1 id="redis-中的命令执行与处理">Redis 中的命令执行与处理&lt;/h1>
+&lt;h1 id="links">Links&lt;/h1>
+&lt;ul>
+&lt;li>&lt;a href="https://draveness.me/redis-cli" target="_blank" rel="noopener">https://draveness.me/redis-cli&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>深入事件循环</title><link>https://ng-tech.icu/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E6%B7%B1%E5%85%A5%E4%BA%8B%E4%BB%B6%E5%BE%AA%E7%8E%AF/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/database-notes/03.%E9%94%AE%E5%80%BC%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/redis/4.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E6%B7%B1%E5%85%A5%E4%BA%8B%E4%BB%B6%E5%BE%AA%E7%8E%AF/</guid><description>&lt;h1 id="redis-中的多路复用与事件循环">Redis 中的多路复用与事件循环&lt;/h1>
+&lt;h1 id="links">Links&lt;/h1>
+&lt;ul>
+&lt;li>&lt;a href="https://draveness.me/redis-io-multiplexing" target="_blank" rel="noopener">https://draveness.me/redis-io-multiplexing&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://draveness.me/redis-eventloop" target="_blank" rel="noopener">https://draveness.me/redis-eventloop&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://hellokangning.github.io/en/post/redis-internals-file-event-handling/" target="_blank" rel="noopener">https://hellokangning.github.io/en/post/redis-internals-file-event-handling/&lt;/a>&lt;/li>
+&lt;/ul></description></item></channel></rss>

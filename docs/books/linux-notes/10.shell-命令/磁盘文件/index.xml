@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>磁盘文件 | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E7%A3%81%E7%9B%98%E6%96%87%E4%BB%B6/</link><atom:link href="https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E7%A3%81%E7%9B%98%E6%96%87%E4%BB%B6/index.xml" rel="self" type="application/rss+xml"/><description>磁盘文件</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>磁盘文件</title><link>https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E7%A3%81%E7%9B%98%E6%96%87%E4%BB%B6/</link></image><item><title>iostat</title><link>https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E7%A3%81%E7%9B%98%E6%96%87%E4%BB%B6/iostat/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E7%A3%81%E7%9B%98%E6%96%87%E4%BB%B6/iostat/</guid><description>&lt;h1 id="iostat">iostat&lt;/h1>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">$ iostat -x -d &lt;span class="m">2&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Device: rrqm/s wrqm/s r/s w/s rkB/s wkB/s avgrq-sz avgqu-sz await r_await w_await svctm %util
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">vda 0.00 0.25 0.04 0.53 0.56 4.88 19.25 0.00 6.85 3.09 7.14 0.25 0.01
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>iostat 算是比较重要的查看块设备运行状态的工具，它数据的来源是 Linux 操作系统的/proc/diskstats。一般来说用法如下：&lt;code>iostat -mtx 2&lt;/code>，即每 2 秒钟采集一组数据。假如我们对某块磁盘进行读写压测：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">$ fio --name&lt;span class="o">=&lt;/span>randwrite --rw&lt;span class="o">=&lt;/span>randwrite --bs&lt;span class="o">=&lt;/span>4k --size&lt;span class="o">=&lt;/span>20G --runtime&lt;span class="o">=&lt;/span>&lt;span class="m">1200&lt;/span> --ioengine&lt;span class="o">=&lt;/span>libaio --iodepth&lt;span class="o">=&lt;/span>&lt;span class="m">64&lt;/span> --numjobs&lt;span class="o">=&lt;/span>&lt;span class="m">1&lt;/span> --rate_iops&lt;span class="o">=&lt;/span>&lt;span class="m">5000&lt;/span> --filename&lt;span class="o">=&lt;/span>/dev/sdf --direct&lt;span class="o">=&lt;/span>&lt;span class="m">1&lt;/span> --group_reporting
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>使用 iostat 可以查看如下结果：&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://ww1.sinaimg.cn/large/007rAy9hgy1g2104el9uaj30u00fi40h.jpg" alt="" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>上图中，%util，即为磁盘 I/O 利用率，同 CPU 利用率一样，这个值也可能超过 100%（存在并行 I/O）；rkB/s 和 wkB/s 分别表示每秒从磁盘读取和写入的数据量，即吞吐量，单位为 KB；磁盘 I/O 处理时间的指标为 r_await 和 w_await 分别表示读/写请求处理完成的响应时间，svctm 表示处理 I/O 所需要的平均时间，该指标已被废弃，无实际意义。r/s + w/s 为 IOPS 指标，分别表示每秒发送给磁盘的读请求数和写请求数；aqu-sz 表示等待队列的长度。&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>rrqm/s : 每秒合并读操作的次数，块设备有相应的调度算法。如果两个 IO 发生在相邻的数据块时，他们可以合并成 1 个 IO。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>wrqm/s: 每秒合并写操作的次数&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>r/s：每秒读操作的次数&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>w/s : 每秒写操作的次数&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>rMB/s :每秒读取的 MB 字节数&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>wMB/s: 每秒写入的 MB 字节数&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>avgrq-sz：每个 IO 的平均扇区数，即所有请求的平均大小，以扇区（512 字节）为单位。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>avgqu-sz：平均为完成的 IO 请求数量，即平均意义山的请求队列长度，该值越大，表示排队等待处理的 io 越多。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>await：平均每个 IO 所需要的时间，包括在队列等待的时间，也包括磁盘控制器处理本次请求的有效时间。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>r_wait：每个读操作平均所需要的时间，不仅包括硬盘设备读操作的时间，也包括在内核队列中的时间。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>w_wait: 每个写操平均所需要的时间，不仅包括硬盘设备写操作的时间，也包括在队列中等待的时间。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>svctm：表面看是每个 IO 请求的服务时间，不包括等待时间，但是实际上，这个指标已经废弃。实际上，iostat 工具没有任何一输出项表示的是硬盘设备平均每次 IO 的时间。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>%util：工作时间或者繁忙时间占总时间的百分比。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;p>值得关注的是，avgrq-sz 这个值反应了用户的 IO 模式，即用户过来的 IO 是大 IO 还是小 IO。如果我们 fio 命令设置的 bs 为 4k，那么 sdc 的 avgrq-sz 总是 8，即&lt;code>8个扇区 = 8*512（Byte）= 4KB&lt;/code>。&lt;/p></description></item><item><title>创建与读写</title><link>https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E7%A3%81%E7%9B%98%E6%96%87%E4%BB%B6/%E5%88%9B%E5%BB%BA%E4%B8%8E%E8%AF%BB%E5%86%99/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E7%A3%81%E7%9B%98%E6%96%87%E4%BB%B6/%E5%88%9B%E5%BB%BA%E4%B8%8E%E8%AF%BB%E5%86%99/</guid><description>&lt;h1 id="文件基础操作">文件基础操作&lt;/h1>
+&lt;h1 id="空文件创建">空文件创建&lt;/h1>
+&lt;p>要创建空文件，请使用以下语法：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&amp;gt; newfile.name
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&amp;gt; 操作员将输出重定向到文件。如果没有给出命令并且文件不存在，它将创建一个空文件。例如，创建一个名为 tarbackup.sh 的 shell 脚本：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="cp">#!/bin/bash
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&lt;/span>&lt;span class="nv">TAR&lt;/span>&lt;span class="o">=&lt;/span>/bin/tar
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># SCSI tape device&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">TAPE&lt;/span>&lt;span class="o">=&lt;/span>/dev/st0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Backup dir names&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">BDIRS&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;/www /home /etc /usr/local/mailboxes /phpjail /pythonjail /perlcgibin&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Logfile name&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ERRLOG&lt;/span>&lt;span class="o">=&lt;/span>/tmp/tar.logfile.txt
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Remove old log file and create the empty log file&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&amp;gt;&lt;span class="nv">$ERRLOG&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Okay lets make a backup&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">$TAR&lt;/span> -cvf &lt;span class="nv">$TAPE&lt;/span> &lt;span class="nv">$BDIRS&lt;/span> 2&amp;gt;&lt;span class="nv">$ERRLOG&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>注意，您还可以使用 touch 命令创建空文件：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-s" data-lang="s">&lt;span class="line">&lt;span class="cl">&lt;span class="n">touch&lt;/span> &lt;span class="o">/&lt;/span>&lt;span class="n">tmp&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">newtextfile&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="文件写入">文件写入&lt;/h1>
+&lt;p>您需要使用重定向符号 &amp;gt; 将数据发送到文件。例如，我的脚本./payment.py 在屏幕上生成的输出如下：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-s" data-lang="s">&lt;span class="line">&lt;span class="cl">&lt;span class="n">./payment.py&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">a&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">t&lt;/span> &lt;span class="n">net&lt;/span> &lt;span class="o">&amp;gt;&lt;/span>&lt;span class="n">netrevenue.txt&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>使用 &amp;raquo; 重定向符号，将附加到名为 netrevenue.txt 的文件中，输入：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-s" data-lang="s">&lt;span class="line">&lt;span class="cl">&lt;span class="n">./payment.py&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">a&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">t&lt;/span> &lt;span class="n">net&lt;/span> &lt;span class="o">&amp;gt;&amp;gt;&lt;/span>&lt;span class="n">netrevenue.txt&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>要禁止使用 &amp;gt; 运算符设置 noclobber 选项覆盖现有常规文件，如下所示：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-s" data-lang="s">&lt;span class="line">&lt;span class="cl">&lt;span class="n">echo&lt;/span> &lt;span class="s">&amp;#34;Test&amp;#34;&lt;/span> &lt;span class="o">&amp;gt;&lt;/span> &lt;span class="o">/&lt;/span>&lt;span class="n">tmp&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">test.txt&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">set&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">C&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">echo&lt;/span> &lt;span class="s">&amp;#34;Test 123&amp;#34;&lt;/span> &lt;span class="o">&amp;gt;&lt;/span> &lt;span class="o">/&lt;/span>&lt;span class="n">tmp&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">test.txt&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>要使用 &amp;gt; 运算符 set noclobber 选项覆盖现有的常规文件，如下所示：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-s" data-lang="s">&lt;span class="line">&lt;span class="cl">&lt;span class="n">cat&lt;/span> &lt;span class="o">/&lt;/span>&lt;span class="n">tmp&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">test.txt&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">set&lt;/span> &lt;span class="o">+&lt;/span>&lt;span class="n">C&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">echo&lt;/span> &lt;span class="s">&amp;#34;Test 123&amp;#34;&lt;/span> &lt;span class="o">&amp;gt;&lt;/span> &lt;span class="o">/&lt;/span>&lt;span class="n">tmp&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">test.txt&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">cat&lt;/span> &lt;span class="o">/&lt;/span>&lt;span class="n">tmp&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">test.txt&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="先读后写">先读后写&lt;/h2>
+&lt;p>创建一个名为 fnames.txt 的文本文件：&lt;/p>
+&lt;pre tabindex="0">&lt;code>vivek
+tom
+Jerry
+Ashish
+Babu
+&lt;/code>&lt;/pre>&lt;p>现在，按如下所示运行 &lt;a href="https://bash.cyberciti.biz/guide/Tr_command" target="_blank" rel="noopener">tr 命令&lt;/a> 将所有小写名称转换为大写，然后输入：&lt;/p>
+&lt;pre tabindex="0">&lt;code>tr &amp;#34;[a-z]&amp;#34; &amp;#34;[A-Z]&amp;#34; &amp;lt; fnames.txt
+&lt;/code>&lt;/pre>&lt;p>样本输出：&lt;/p>
+&lt;pre tabindex="0">&lt;code>VIVEK
+TOM
+JERRY
+ASHISH
+BABU
+&lt;/code>&lt;/pre>&lt;p>您可以将输出保存到名为 output.txt 的文件中，输入：&lt;/p>
+&lt;pre tabindex="0">&lt;code>tr &amp;#34;[a-z]&amp;#34; &amp;#34;[A-Z]&amp;#34; &amp;lt; fnames.txt &amp;gt; output.txt
+cat output.txt
+&lt;/code>&lt;/pre>&lt;p>注意，对于标准输入和标准输出，请不要使用相同的文件名。这将导致数据丢失，并且结果是不可预测的。要对存储在 output.txt 中的名称进行排序，请输入：&lt;/p>
+&lt;pre tabindex="0">&lt;code>sort &amp;lt; output.txt
+&lt;/code>&lt;/pre>&lt;p>最后，将所有已排序的命名存储到名为 sorted.txt 的文件中&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">sort &amp;lt; output.txt &amp;gt; sorted.txt
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">sort &amp;gt; sorted1.txt &amp;lt; output.txt
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="指定输出文件的-fd">指定输出文件的 fd&lt;/h2>
+&lt;p>文件描述符 0、1 和 2 分别保留给 stdin，stdout 和 stderr。但是，bash shell 允许您将文件描述符分配给输入文件或输出文件。这样做是为了提高文件的读取和写入性能。这称为用户定义的文件描述符。您可以使用以下语法将文件描述符分配给输出文件：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-s" data-lang="s">&lt;span class="line">&lt;span class="cl">&lt;span class="n">exec&lt;/span> &lt;span class="n">fd&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">output.txt&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>创建一个名为 fdwrite.sh 的 shell 脚本：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-s" data-lang="s">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">#!/bin/bash&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Let us assign the file descriptor to file for output&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># fd # 3 is output file&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">exec&lt;/span> &lt;span class="m">3&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="o">/&lt;/span>&lt;span class="n">tmp&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">output.txt&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Executes echo commands and # Send output to&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># the file descriptor (fd) # 3 i.e. write output to /tmp/output.txt&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">echo&lt;/span> &lt;span class="s">&amp;#34;This is a test&amp;#34;&lt;/span> &lt;span class="o">&amp;gt;&amp;amp;&lt;/span>&lt;span class="m">3&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Write date command output to fd # 3&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">date&lt;/span> &lt;span class="o">&amp;gt;&amp;amp;&lt;/span>&lt;span class="m">3&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Close fd # 3&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">exec&lt;/span> &lt;span class="m">3&lt;/span>&lt;span class="o">&amp;lt;&amp;amp;-&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>要将文件描述符分配给输入文件，请使用以下语法：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="nb">exec&lt;/span> fd&amp;lt; input.txt
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>创建一个名为 fdread.sh 的 shell 脚本：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-s" data-lang="s">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">#!/bin/bash&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Let us assign the file descriptor to file for input&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># fd # 3 is Input file&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">exec&lt;/span> &lt;span class="m">3&lt;/span>&lt;span class="o">&amp;lt;&lt;/span> &lt;span class="o">/&lt;/span>&lt;span class="n">etc&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">resolv.conf&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Executes cat commands and read input from&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># the file descriptor (fd) # 3 i.e. read input from /etc/resolv.conf file&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">cat&lt;/span> &lt;span class="o">&amp;lt;&amp;amp;&lt;/span>&lt;span class="m">3&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Close fd # 3&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">exec&lt;/span> &lt;span class="m">3&lt;/span>&lt;span class="o">&amp;lt;&amp;amp;-&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item></channel></rss>

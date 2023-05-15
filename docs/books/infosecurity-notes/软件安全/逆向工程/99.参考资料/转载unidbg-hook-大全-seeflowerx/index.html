@@ -1,0 +1,1302 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="本文由 简悦 SimpRead 转码， 原文地址 blog.seeflower.dev Be patient. 本文章转载自龙哥，已获许可，持续更新中。 本文总结了 Unidbg Hook and Call 的知识，部分 Hook 代码采用 Frida 与 Unidbg 对照的方式，帮助熟悉 Frida 但不熟悉 Unidbg 的读者快速入门。 样例前往百度云下载： 链接：http"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/%E8%BD%AC%E8%BD%BDunidbg-hook-%E5%A4%A7%E5%85%A8-seeflowerx/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.63df6ae9fc2b4cc71b83f1774d780209.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/%E8%BD%AC%E8%BD%BDunidbg-hook-%E5%A4%A7%E5%85%A8-seeflowerx/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/%E8%BD%AC%E8%BD%BDunidbg-hook-%E5%A4%A7%E5%85%A8-seeflowerx/"><meta property="og:title" content="【转载】Unidbg Hook 大全 - SeeFlowerX | Next-gen Tech Edu"><meta property="og:description" content="本文由 简悦 SimpRead 转码， 原文地址 blog.seeflower.dev Be patient. 本文章转载自龙哥，已获许可，持续更新中。 本文总结了 Unidbg Hook and Call 的知识，部分 Hook 代码采用 Frida 与 Unidbg 对照的方式，帮助熟悉 Frida 但不熟悉 Unidbg 的读者快速入门。 样例前往百度云下载： 链接：http"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>【转载】Unidbg Hook 大全 - SeeFlowerX | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=f88dec25cbd340ba75a0f62109db85c9><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
+<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
+<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
+<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
+<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
+<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">99.参考资料</span>
+<span><i class="fas fa-chevron-down"></i></span></div></button>
+<button class="form-control sidebar-search js-search d-none d-md-flex">
+<i class="fas fa-search pr-2"></i>
+<span class=sidebar-search-text>搜索...</span>
+<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
+Back</a>
+<span>|</span>
+<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
+Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id984e443b1961f3b31cb2886bf7f593f2")' href=#id984e443b1961f3b31cb2886bf7f593f2 aria-expanded=false aria-controls=id984e443b1961f3b31cb2886bf7f593f2 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/>逆向工程</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id984e443b1961f3b31cb2886bf7f593f2 aria-expanded=false aria-controls=id984e443b1961f3b31cb2886bf7f593f2><i class="fa-solid fa-angle-down" id=caret-id984e443b1961f3b31cb2886bf7f593f2></i></a></div><ul class="nav docs-sidenav collapse show" id=id984e443b1961f3b31cb2886bf7f593f2><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idb2db2a12a9893316a00f25ea1c46236f")' href=#idb2db2a12a9893316a00f25ea1c46236f aria-expanded=false aria-controls=idb2db2a12a9893316a00f25ea1c46236f aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/>99.参考资料</a>
+<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idb2db2a12a9893316a00f25ea1c46236f aria-expanded=false aria-controls=idb2db2a12a9893316a00f25ea1c46236f><i class="fa-solid fa-angle-down" id=caret-idb2db2a12a9893316a00f25ea1c46236f></i></a></div><ul class="nav docs-sidenav collapse show" id=idb2db2a12a9893316a00f25ea1c46236f><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%98%A5%E8%8A%82%E5%AE%89%E5%8D%93%E4%B8%AD%E7%BA%A7%E9%A2%98%E9%80%86%E5%90%91%E6%80%BB%E7%BB%93/>【2021 春节】安卓中级题逆向总结</a></li><li class="child level active"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/%E8%BD%AC%E8%BD%BDunidbg-hook-%E5%A4%A7%E5%85%A8-seeflowerx/>【转载】Unidbg Hook 大全 - SeeFlowerX</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2022-%E6%9F%90%E5%AE%89%E5%8D%93-crackme-%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90/>2022 某安卓 Crackme 流程分析</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/app-%E9%80%86%E5%90%91-%E5%B9%B3%E5%A4%B4%E5%93%A5%E5%AE%9E%E6%88%98%E6%9F%90%E5%86%9C%E4%BA%A7%E5%93%81-app/>app 逆向 平头哥实战（某农产品 app）</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/frida-android-hook-_-sakura-%E3%81%AE-blog/>Frida Android hook _ Sakura の blog</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/frida-%E5%85%8D-root-hook/>frida 免 root hook</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/getbyte-%E7%AE%97%E6%B3%95%E5%88%86%E6%9E%90%E4%B8%8E%E8%BF%98%E5%8E%9F-seeflowerx/>getByte 算法分析与还原 - SeeFlowerX</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/js-ast-%E4%BA%8C%E9%83%A8%E6%9B%B2%E6%9F%90-v5-%E7%BB%9D%E5%AF%B9%E4%B8%8D%E5%8F%AF%E9%80%86%E5%8A%A0%E5%AF%86-%E4%B8%80%E6%8E%A2%E7%A9%B6%E7%AB%9F/>Js Ast 二部曲：某 V5 “绝对不可逆加密” 一探究竟</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/js-ast-%E4%B8%80%E9%83%A8%E6%9B%B2%E9%AB%98%E5%AE%8C%E6%95%B4%E5%BA%A6%E8%BF%98%E5%8E%9F%E6%9F%90-v5-%E7%9A%84%E5%8A%A0%E5%AF%86/>Js Ast 一部曲：高完整度还原某 V5 的加密</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/js-%E7%A0%B4%E8%A7%A3%E4%B9%8B%E8%A1%A5%E6%B5%8F%E8%A7%88%E5%99%A8%E7%8E%AF%E5%A2%83%E7%9A%84%E4%B8%A4%E7%A7%8D%E7%9B%91%E6%8E%A7%E6%96%B9%E5%BC%8F/>js 破解之补浏览器环境的两种监控方式</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/mtgsig2.1-%E7%89%88%E6%9C%AC%E4%B9%8B-a5-%E7%AE%97%E6%B3%95%E5%88%86%E6%9E%90/>mtgsig2.1 版本之 a5 算法分析</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/protobuf-%E5%8D%8F%E8%AE%AE%E9%80%86%E5%90%91%E8%A7%A3%E6%9E%90-app-%E7%88%AC%E8%99%AB-/>Protobuf 协议逆向解析 - APP 爬虫</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/proxy-%E4%BB%A3%E7%90%86%E4%BA%8C%E6%AC%A1%E4%BF%AE%E6%94%B9/>Proxy 代理（二次修改）</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/python-%E7%88%AC%E8%99%AB%E8%BF%9B%E9%98%B6%E5%BF%85%E5%A4%87-_-js-%E9%80%86%E5%90%91%E4%B9%8B%E8%A1%A5%E7%8E%AF%E5%A2%83%E5%88%B0%E5%BA%95%E6%98%AF%E5%9C%A8%E8%A1%A5%E4%BB%80%E4%B9%88/>Python 爬虫进阶必备 _ Js 逆向之补环境到底是在补什么？</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/unidbg-%E7%AE%97%E6%B3%95%E8%BF%98%E5%8E%9F%E6%9C%AF-%E6%9F%90%E6%B0%91%E5%AE%BF-app-%E7%AF%87-%E4%B8%8A%E5%8D%B7/>unidbg 算法还原术 · 某民宿 app 篇 · 上卷</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/unidbg-%E7%AE%97%E6%B3%95%E8%BF%98%E5%8E%9F%E6%9C%AF-%E6%9F%90%E6%B0%91%E5%AE%BF-app-%E7%AF%87-%E4%B8%8B%E5%8D%B7/>unidbg 算法还原术 · 某民宿 app 篇 · 下卷</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/unidbg-%E7%AE%97%E6%B3%95%E8%BF%98%E5%8E%9F%E6%9C%AF-%E6%9F%90%E6%B0%91%E5%AE%BF-app-%E7%AF%87-%E4%B8%AD%E5%8D%B7/>unidbg 算法还原术 · 某民宿 app 篇 · 中卷</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/%E5%A4%A7%E7%8C%BF%E6%90%9C%E9%A2%98-sign-so-%E5%8A%A0%E5%AF%86%E5%8F%82%E6%95%B0%E5%88%86%E6%9E%90unidbg/>大猿搜题 sign so 加密参数分析｜unidbg</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/%E5%88%86%E4%BA%AB%E4%B8%80%E4%B8%AA-android-%E9%80%9A%E7%94%A8-svc-%E8%B7%9F%E8%B8%AA%E4%BB%A5%E5%8F%8A-hook-%E6%96%B9%E6%A1%88frida-seccomp/>分享一个 Android 通用 svc 跟踪以及 hook 方案——Frida-Seccomp</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/%E6%9F%90%E4%B9%8E%E8%AF%B7%E6%B1%82%E5%A4%B4%E7%AD%BE%E5%90%8D%E7%AE%97%E6%B3%95%E5%88%86%E6%9E%90/>某乎请求头签名算法分析</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/%E6%9F%90%E5%92%96%E5%95%A1-app-%E5%8A%A0%E5%AF%86%E5%8F%82%E6%95%B0%E5%88%86%E6%9E%90%E8%BF%9B%E9%98%B6%E7%89%88/>某咖啡 app 加密参数分析进阶版</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/%E9%80%86%E5%90%91%E5%88%86%E6%9E%90%E5%8F%8D%E8%B0%83%E8%AF%95-+-ollvm-%E6%B7%B7%E6%B7%86%E7%9A%84-crackme/>逆向分析反调试 + ollvm 混淆的 Crackme</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/%E7%88%AC%E8%99%AB%E4%B9%8B-%E6%9F%90%E7%94%9F%E9%B2%9C-app-%E5%8A%A0%E5%AF%86%E5%8F%82%E6%95%B0%E9%80%86%E5%90%91%E5%88%86%E6%9E%90/>爬虫之 - 某生鲜 APP 加密参数逆向分析</a></li><li class="child level"><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-ja3-%E6%8C%87%E7%BA%B9%E5%8F%8A%E7%AA%81%E7%A0%B4/>深度剖析 ja3 指纹及突破</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents><ul><li><a href=#一基础知识>一、基础知识</a><ul><li><a href=#1-获取-so-基地址>1. 获取 SO 基地址</a></li><li><a href=#2-获取函数地址>2. 获取函数地址</a></li><li><a href=#3unidbg-hook-大盘点>3.Unidbg Hook 大盘点</a></li><li><a href=#4-本篇的基础代码>4. 本篇的基础代码</a></li></ul></li><li><a href=#二hook-函数>二、Hook 函数</a><ul><li><a href=#1frida>1.Frida</a></li><li><a href=#2console-debugger>2.Console Debugger</a></li><li><a href=#3-第三方-hook-框架>3. 第三方 Hook 框架</a></li><li><a href=#4unicorn-hook>4.Unicorn Hook</a></li></ul></li><li><a href=#三replace-参数和返回值>三、Replace 参数和返回值</a><ul><li><a href=#1-替换参数>1. 替换参数</a></li><li><a href=#2-修改返回值>2. 修改返回值</a></li></ul></li><li><a href=#四替换函数>四、替换函数</a><ul><li><a href=#1frida-1>1.Frida</a></li><li><a href=#2-第三方-hook-框架>2. 第三方 Hook 框架</a></li><li><a href=#3console-debugger>3.Console Debugger</a></li></ul></li><li><a href=#五call-函数>五、Call 函数</a><ul><li><a href=#1frida-2>1.Frida</a></li><li><a href=#2unidbg>2.Unidbg</a></li></ul></li><li><a href=#六patch-与内存检索>六、Patch 与内存检索</a><ul><li><a href=#1patch>1.Patch</a></li><li><a href=#2-内存检索>2. 内存检索</a></li></ul></li><li><a href=#七hook-时机过晚问题>七、Hook 时机过晚问题</a><ul><li><a href=#1-提前加载-libc>1. 提前加载 libc</a></li><li><a href=#2-固定地址下断点>2. 固定地址下断点</a></li><li><a href=#3-使用-unidbg-提供的模块监听器>3. 使用 Unidbg 提供的模块监听器</a></li></ul></li><li><a href=#八条件断点>八、条件断点</a><ul><li><a href=#1-限定于某-so>1. 限定于某 SO</a></li><li><a href=#2-限定于某函数>2. 限定于某函数</a></li><li><a href=#3-限定于某处>3. 限定于某处</a></li></ul></li><li><a href=#九系统调用拦截以时间为例>九、系统调用拦截——以时间为例</a><ul><li><a href=#1frida-3>1.Frida</a></li><li><a href=#2unidbg-1>2.Unidbg</a></li></ul></li><li><a href=#十hook-检测>十、Hook 检测</a><ul><li><a href=#1-检测第三方-hook-框架>1. 检测第三方 Hook 框架</a></li><li><a href=#2-检测-unicorn-based-hook>2. 检测 Unicorn Based Hook</a></li></ul></li><li><a href=#十一unidbg-trace-四件套>十一、Unidbg Trace 四件套</a><ul><li><a href=#1instruction-tracing>1.Instruction tracing</a></li><li><a href=#2function-tracing>2.Function Tracing</a></li><li><a href=#3unidbg-findkey>3.Unidbg-FindKey</a></li><li><a href=#4unidbg-findcrypt>4.Unidbg-Findcrypt</a></li></ul></li><li><a href=#十二固定随机数>十二、固定随机数</a></li><li><a href=#十三杂项>十三、杂项</a></li></ul></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>【转载】Unidbg Hook 大全 - SeeFlowerX</h1><div class=article-style><blockquote><p>本文由 <a href=http://ksria.com/simpread/ target=_blank rel=noopener>简悦 SimpRead</a> 转码， 原文地址 <a href=https://blog.seeflower.dev/archives/67/ target=_blank rel=noopener>blog.seeflower.dev</a></p></blockquote><blockquote><p>Be patient.</p></blockquote><p>本文章转载自龙哥，已获许可，持续更新中。</p><p><strong>本文总结了 Unidbg Hook and Call 的知识，部分 Hook 代码采用 Frida 与 Unidbg 对照的方式，帮助熟悉 Frida 但不熟悉 Unidbg 的读者快速入门。</strong></p><p>样例前往百度云下载：</p><p>链接：<a href=https://pan.baidu.com/s/1ZRPtQrx4QAPEQhrpq6gbgg target=_blank rel=noopener>https://pan.baidu.com/s/1ZRPtQrx4QAPEQhrpq6gbgg</a> 提取码：6666</p><p><strong>更多 Unidbg 使用和算法还原的教程可见星球。</strong></p><p><a href=https://blog.seeflower.dev/images/1.png target=_blank rel=noopener><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://blog.seeflower.dev/images/1.png alt loading=lazy data-zoomable></div></div></figure></a></p><h2 id=一基础知识>一、基础知识</h2><h3 id=1-获取-so-基地址>1. 获取 SO 基地址</h3><h4 id=frida-获取基地址>Ⅰfrida 获取基地址</h4><pre tabindex=0><code>var baseAddr = Module.findBaseAddress(&#34;libnative-lib.so&#34;);
+</code></pre><h4 id=-unidbg-获取基地址>Ⅱ Unidbg 获取基地址</h4><pre tabindex=0><code>DalvikModule dm = vm.loadLibrary(&#34;libnative-lib.so&#34;, true);
+
+module = dm.getModule();
+
+System.out.println(&#34;baseAddr:&#34;+module.base);
+</code></pre><p>加载了多个 SO 的情况</p><pre tabindex=0><code>Module yourModule = emulator.getMemory().findModule(&#34;yourModuleName&#34;);
+
+System.out.println(&#34;baseAddr:&#34;+yourModule.base);
+</code></pre><p>如果只主动加载一个 SO，其基址恒为 0x40000000 , 这是一个检测 Unidbg 的点，可以在 com/github/unidbg/memory/Memory.java 中做修改</p><pre tabindex=0><code>public interface Memory extends IO, Loader, StackMemory {
+
+    long STACK_BASE = 0xc0000000L;
+    int STACK_SIZE_OF_PAGE = 256;
+
+
+    long MMAP_BASE = 0x40000000L;
+
+    UnidbgPointer allocateStack(int size);
+    UnidbgPointer pointer(long address);
+    void setStackPoint(long sp);
+</code></pre><h3 id=2-获取函数地址>2. 获取函数地址</h3><h4 id=-frida-获取导出函数地址>Ⅰ Frida 获取导出函数地址</h4><pre tabindex=0><code>Module.findExportByName(&#34;libc.so&#34;, &#34;strcmp&#34;)
+</code></pre><h4 id=-unidbg-获取导出函数地址>Ⅱ Unidbg 获取导出函数地址</h4><pre tabindex=0><code>DalvikModule dm = vm.loadLibrary(&#34;libnative-lib.so&#34;, true);
+
+module = dm.getModule();
+int address = (int) module.findSymbolByName(&#34;funcNmae&#34;).getAddress();
+</code></pre><h4 id=-frida-获取非导出函数地址>Ⅲ Frida 获取非导出函数地址</h4><pre tabindex=0><code>var soAddr = Module.findBaseAddress(&#34;libnative-lib.so&#34;);
+var FuncAddr = soAddr.add(0x1768 + 1);
+</code></pre><h4 id=-unidbg-获取非导出函数地址>Ⅳ Unidbg 获取非导出函数地址</h4><pre tabindex=0><code>DalvikModule dm = vm.loadLibrary(&#34;libnative-lib.so&#34;, true);
+
+module = dm.getModule();
+
+int offset = 0x1768;
+
+int address = (int) (module.base + offset);
+</code></pre><h3 id=3unidbg-hook-大盘点>3.Unidbg Hook 大盘点</h3><p>Unidbg 在 Android 上支持的 Hook，可以分为两大类</p><ul><li>Unidbg 内置的第三方 Hook 框架，包括 xHook/Whale/HookZz</li><li>Unicorn Hook 以及 Unidbg 基于它封装的 Console Debugger</li></ul><p><strong>第一类是 Unidbg 支持并内置的第三方 Hook 框架，有 Dobby(前身 HookZz)/Whale 这样的 Inline Hook 框架，也有 xHook 这样的 PLT Hook 框架。有小伙伴可能困惑 Unidbg 是否能支持 Frida？我个人观点是目前阶段不现实，Frida 比 Dobby 或者 xHook 都复杂的多，Unidbg 目前还跑不通，除此之外，Dobby + Whale + xHook 也绝对够用了，没有非 Frida 不可的需求。</strong></p><p><strong>第二类是当 Unidbg 的底层引擎选择为 Unicorn 时（默认引擎），Unicorn 自带的 Hook 功能。Unicorn 提供了各种级别和粒度的 Hook，内存 Hook / 指令 / 基本块 Hook / 异常 Hook 等等，十分强大和好用，而且 Unidbg 基于它封装了更便于使用的 Console Debugger。</strong></p><p>该怎么选择 Hook 方案？这得看使用 Unidbg 的目的。如果项目用于<strong>模拟执行</strong>，那么建议使用 Console Debugger 做快速分析，排查错误，跑通代码后用第三方 Hook 框架做持久化，为什么？这得从 Unidbg 支持的汇编执行引擎说起。Unidbg 支持多种底层引擎，最早也是默认的引擎是 Unicorn，从名字也能看出，Unidbg 和 Unicorn 有很大关系。但后续 Unidbg 又支持了数个引擎，任何提高程序复杂度的行为，肯定都为了解决某个痛点。</p><p>hypervisor 引擎可以在搭载了 <em>Apple Silicon</em> 芯片的设备上模拟执行；</p><p>KVM 引擎可以在树莓派上模拟执行；</p><p>Dynarmic 引擎是为了更快的模拟执行；</p><p>Unicorn 是最强大最完善的模拟执行引擎，但它相比 Dynarmic 太慢了，同场景下，Dynarmic 比 Unicorn 模拟执行快数倍甚至十数倍。如果使用 Unidbg 是为了实现生产环境下的模拟执行，速度最重要，那么 Dynarmic + <strong><a href=https://github.com/anjia0532/unidbg-boot-server target=_blank rel=noopener>unidbg-boot-server</a></strong> 这个高并发 server 服务器，是完美之选。一般实操中，先使用 Unicorn 引擎跑通模拟执行代码，切换成 Dynarmic 无误后，直接上生产环境。</p><p><em>Dynarmic 引擎使用</em></p><pre tabindex=0><code>private static AndroidEmulator createARMEmulator() {
+    return AndroidEmulatorBuilder.for32Bit()
+
+            .addBackendFactory(new DynarmicFactory(true))
+            .build();
+}
+</code></pre><p><em>Unicorn 默认引擎</em></p><pre tabindex=0><code>private static AndroidEmulator createARMEmulator() {
+    return AndroidEmulatorBuilder.for32Bit()
+            .build();
+}
+</code></pre><p>使用 Unidbg 的第二个场景是<strong>辅助算法还原</strong>，即模拟执行只是算法还原的前奏，在模拟执行无误后，使用 Unidbg 辅助算法还原。这种情况下自然使用 Unicorn 引擎，两大类 Hook 方案都可以使用，选择哪类？我倾向于自始至终使用第二类方案，即基于 Unicorn Hook 的方案。</p><p>我个人认为有三点优势</p><ul><li>HookZz 或者 xHook 等方案，都可以基于其 Hook 实现原理进行检测，但 Unicorn 原生 Hook 不容易被检测。</li><li>Unicorn Hook 没有局限，其他方案局限性较大。比如 Inline Hook 方案不能 Hook 短函数，或者两个相邻的地址；PLT Hook 不能 Hook Sub_xxx 子函数。</li><li>第三方 inline Hook 框架和原生 Hook 方案同时使用时会摩擦出 BUG 的火花，事实上，单使用 Unicorn 的某些 Hook 功能都有 BUG。所以说，统一用原生 Hook 会少一些 BUG，少一些麻烦。</li></ul><p>总结如下</p><h4 id=-以模拟执行为目的>Ⅰ 以模拟执行为目的</h4><p>使用第三方 Hook 方案，arm32 下 HookZz 的支持较好，arm64 下 Dobby 的支持较好，HookZz/Dobby Hook 不成功时，如果函数是导出函数，使用 xHook，否则使用 Whale。</p><h4 id=-以算法还原为目的>Ⅱ 以算法还原为目的</h4><p>使用 Console Debugger 和 Unicorn Hook，并建议不优先使用第三方 Hook 方案。</p><h3 id=4-本篇的基础代码>4. 本篇的基础代码</h3><p>即模拟执行 demo 的代码</p><pre tabindex=0><code>package com.tutorial;
+
+import com.github.unidbg.AndroidEmulator;
+import com.github.unidbg.Emulator;
+import com.github.unidbg.Module;
+import com.github.unidbg.arm.HookStatus;
+import com.github.unidbg.arm.backend.Backend;
+import com.github.unidbg.arm.backend.CodeHook;
+import com.github.unidbg.arm.context.RegisterContext;
+import com.github.unidbg.debugger.BreakPointCallback;
+import com.github.unidbg.hook.HookContext;
+import com.github.unidbg.hook.ReplaceCallback;
+import com.github.unidbg.hook.hookzz.*;
+import com.github.unidbg.hook.whale.IWhale;
+import com.github.unidbg.hook.whale.Whale;
+import com.github.unidbg.hook.xhook.IxHook;
+import com.github.unidbg.linux.android.AndroidEmulatorBuilder;
+import com.github.unidbg.linux.android.AndroidResolver;
+import com.github.unidbg.linux.android.XHookImpl;
+import com.github.unidbg.linux.android.dvm.DalvikModule;
+import com.github.unidbg.linux.android.dvm.DvmClass;
+import com.github.unidbg.linux.android.dvm.DvmObject;
+import com.github.unidbg.linux.android.dvm.VM;
+import com.github.unidbg.memory.Memory;
+import com.github.unidbg.utils.Inspector;
+import com.sun.jna.Pointer;
+import unicorn.ArmConst;
+import unicorn.Unicorn;
+
+import java.io.File;
+
+public class hookInUnidbg {
+    private final AndroidEmulator emulator;
+    private final VM vm;
+    private final Module module;
+
+    hookInUnidbg() {
+
+
+        emulator = AndroidEmulatorBuilder.for32Bit().build();
+
+
+        final Memory memory = emulator.getMemory();
+
+        memory.setLibraryResolver(new AndroidResolver(23));
+
+        vm = emulator.createDalvikVM(new File(&#34;unidbg-android/src/test/resources/tutorial/hookinunidbg.apk&#34;));
+
+
+
+
+
+        DalvikModule dm = vm.loadLibrary(&#34;hookinunidbg&#34;, true);
+
+        module = dm.getModule();
+
+
+        dm.callJNI_OnLoad(emulator);
+    }
+
+    public void call(){
+        DvmClass dvmClass = vm.resolveClass(&#34;com/example/hookinunidbg/MainActivity&#34;);
+        String methodSign = &#34;call()V&#34;;
+        DvmObject&lt;?&gt; dvmObject = dvmClass.newObject(null);
+
+        dvmObject.callJniMethodObject(emulator, methodSign);
+
+    }
+
+
+    public static void main(String[] args) {
+        hookInUnidbg mydemo = new hookInUnidbg();
+        mydemo.call();
+    }
+
+
+}
+</code></pre><p>运行时有一些日志输出，为正常逻辑。</p><h2 id=二hook-函数>二、Hook 函数</h2><p>demo hookInunidbg 中运行了数个函数，在本节中关注其中运行的 base64_encode 函数。</p><pre tabindex=0><code>unsigned int
+base64_encode(const unsigned char *in, unsigned int inlen, char *out);
+</code></pre><p>参数解释如下</p><blockquote><p>char *out：一块 buffer 的首地址，用来存放转码后的内容。</p><p>char *in：原字符串的首地址，指向原字符串内容。</p><p>int inlen：原字符串长度。</p><p>返回值：正常情况下返回转换后字符串的实际长度。</p></blockquote><p>本节的任务就是打印 base64 前的内容，以及编码后的内容。</p><h3 id=1frida>1.Frida</h3><pre tabindex=0><code>function main(){
+
+    var base_addr = Module.findBaseAddress(&#34;libhookinunidbg.so&#34;);
+
+    if (base_addr){
+        var func_addr = Module.findExportByName(&#34;libhookinunidbg.so&#34;, &#34;base64_encode&#34;);
+        console.log(&#34;hook base64_encode function&#34;)
+        Interceptor.attach(func_addr,{
+
+            onEnter: function (args) {
+                console.log(&#34;\n input:&#34;)
+                this.buffer = args[2];
+                var length = args[1];
+                console.log(hexdump(args[0],{length: length.toUInt32()}))
+                console.log(&#34;\n&#34;)
+            },
+
+            onLeave: function () {
+                console.log(&#34; output:&#34;)
+                console.log(this.buffer.readCString());
+            }
+        })
+    }
+
+
+}
+
+setImmediate(main);
+</code></pre><h3 id=2console-debugger>2.Console Debugger</h3><p>Console Debugger 快速打击、快速验证 的交互调试器</p><pre tabindex=0><code>emulator.attach().addBreakPoint(module.findSymbolByName(&#34;base64_encode&#34;).getAddress());
+</code></pre><p>需要重申和强调几个概念</p><ul><li>运行到对应地址时触发断点，类似于 GDB 调试或者 IDA 调试，时机为<strong>目标指令执行前</strong>。</li><li>断点不具有函数的种种概念，需要从 ARM 汇编指令的角度去理解函数。</li><li>Console Debugger 用于辅助算法分析，快速分析、确认某个函数的功能。在 Unicorn 引擎下才可以用。</li></ul><p>针对第二条做补充</p><blockquote><p>根据 ARM ATPCS 调用约定，当参数个数小于等于 4 个的时候，子程序间通过 R0~R3 来传递参数（即 R0-R3 代表参数 1 - 参数 4），如果参数个数大于 4 个，余下的参数通过 sp 所指向的数据栈进行参数传递。而函数的返回值总是通过 R0 传递回来。</p></blockquote><p>以目标函数为例，函数调用前，调用方把三个参数依次放在 R0-R2 中。</p><p><a href=https://blog.seeflower.dev/images/2.png target=_blank rel=noopener><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://blog.seeflower.dev/images/2.png alt loading=lazy data-zoomable></div></div></figure></a></p><p>立即数可以直接查看，比如此处的参数 2 是 5。如果怀疑是指针，比如参数 1 和参数 3，交互调试中输入 mxx 查看。mrx 等价于 Frida 中的 hexdump(xxx)。以这里的 r0 为例，既可以 mr0 也可以 m0x400022e0 查看其指向的内存。</p><p>Unidbg 在数据展示上，相较于 Frida Hexdump，有一些不同，体现在两方面</p><ul><li>Frida hexdump 时，左侧基地址从当前地址开始，而 Unidbg 从 0 开始。</li><li>Unidbg 给出了所打印数据块的 md5 值，方便对比两块数据块内容是否一致，而且 Unidbg 展示数据的 Hex String，方便在大量日志中搜索。</li></ul><p>Console Debugger 支持许多调试、分析的命令，全部展示如下</p><pre tabindex=0><code>c: continue
+n: step over
+bt: back trace
+
+st hex: search stack
+shw hex: search writable heap
+shr hex: search readable heap
+shx hex: search executable heap
+
+nb: break at next block
+s|si: step into
+s[decimal]: execute specified amount instruction
+s(blx): execute util BLX mnemonic, low performance
+
+m(op) [size]: show memory, default size is 0x70, size may hex or decimal
+mr0-mr7, mfp, mip, msp [size]: show memory of specified register
+m(address) [size]: show memory of specified address, address must start with 0x
+
+wr0-wr7, wfp, wip, wsp &lt;value&gt;: write specified register
+wb(address), ws(address), wi(address) &lt;value&gt;: write (byte, short, integer) memory of specified address, address must start with 0x
+wx(address) &lt;hex&gt;: write bytes to memory at specified address, address must start with 0x
+
+b(address): add temporarily breakpoint, address must start with 0x, can be module offset
+b: add breakpoint of register PC
+r: remove breakpoint of register PC
+blr: add temporarily breakpoint of register LR
+
+p (assembly): patch assembly at PC address
+where: show java stack trace
+
+trace [begin end]: Set trace instructions
+traceRead [begin end]: Set trace memory read
+traceWrite [begin end]: Set trace memory write
+vm: view loaded modules
+vbs: view breakpoints
+d|dis: show disassemble
+d(0x): show disassemble at specify address
+stop: stop emulation
+run [arg]: run test
+cc size: convert asm from 0x400008a0 - 0x400008a0 + size bytes to c function
+</code></pre><p>在 Frida 代码中，用 <code>console.log(hexdump(args[0],{length: args[1].toUInt32()}))</code>来表示 <strong>打印参数 1 指向的内存块，以参数 2 为长度</strong> 这样的效果，Unidbg 中同样可以处理长度。</p><pre tabindex=0><code>mr0 5
+
+&gt;-----------------------------------------------------------------------------&lt;
+[23:41:37 891]r0=RX@0x400022e0[libhookinunidbg.so]0x22e0, md5=f5704182e75d12316f5b729e89a499df, hex=6c696c6163
+size: 5
+0000: 6C 69 6C 61 63                                     lilac
+^-----------------------------------------------------------------------------^
+</code></pre><p>目前 Console Debugger 还不支持 <em>mr0 r1</em> 这样的语法。</p><p>至此实现了 Frida OnEnter 的功能，接下来要获取 OnLeave 的时机点，即函数执行完的时机。在 ARM 汇编中，LR 寄存器存放了程序的返回地址，当函数跑到 LR 所指向的地址时，函数已经结束了。又因为断点是在目标地址执行前触发，所以在 LR 处的断点断下时，目标函数执行完且刚执行完，这就是 Frida OnLeave 时机点的原理。在 Console Debugger 交互调试中，使用 blr 命令可以在 lr 处下一个临时断点，它只会触发一次。</p><p>整体逻辑如下</p><ul><li>在目标函数的地址处下断点</li><li>运行到断点处，进入 Console Debugger 交互调试</li><li>mxx 系列查看参数</li><li>blr 在函数返回处下断点</li><li>c 使程序继续运行，到返回值处断下</li><li>查看此时的 buffer</li></ul><p>需要注意的是，在 onLeave 中 mr2 是胡闹。R2 只在程序入口处表示参数 3，在函数运算的过程中，R2 作为通用寄存器被用于存储、运算，它已经不是指向 buffer 的地址了。在 Frida 中，我们在 OnEnter 里将 args[2] 即 R2 的值保存在 this.buffer 中，OnLeave 中再取出来打印。而在 Console Debugger 交互调试中，办法更简单粗暴——鼠标往上拉一下，看看原来 r2 的值是什么，发现是 0x401d2000，然后 m0x401d2000。</p><p>这样我们就实现了 Frida 的等效功能。听起来有一些麻烦，但熟练后你会认同我的观点——Console Debugger 是最好最快最稳定的调试工具。除此之外，Console Debugger 也可以做持久化的 Hook，代码如下。</p><pre tabindex=0><code>public void HookByConsoleDebugger(){
+    emulator.attach().addBreakPoint(module.findSymbolByName(&#34;base64_encode&#34;).getAddress(), new BreakPointCallback() {
+        @Override
+        public boolean onHit(Emulator&lt;?&gt; emulator, long address) {
+            RegisterContext context = emulator.getContext();
+            Pointer input = context.getPointerArg(0);
+            int length = context.getIntArg(1);
+            Pointer buffer = context.getPointerArg(2);
+
+            Inspector.inspect(input.getByteArray(0, length), &#34;base64 input&#34;);
+
+            emulator.attach().addBreakPoint(context.getLRPointer().peer, new BreakPointCallback() {
+                @Override
+                public boolean onHit(Emulator&lt;?&gt; emulator, long address) {
+                    String result = buffer.getString(0);
+                    System.out.println(&#34;base64 result:&#34;+result);
+                    return true;
+                }
+            });
+            return true;
+        }
+    });
+}
+</code></pre><p>onHit 返回 ture 时，断点触发时不会进入交互界面；为 false 时会。当函数被调用了三五百次时，我们不希望它反复停下来，然后不停 “c” 来继续运行。</p><h3 id=3-第三方-hook-框架>3. 第三方 Hook 框架</h3><p>如下目标函数均在 JNIOnLoad 前调用</p><h4 id=xhook>ⅠxHook</h4><pre tabindex=0><code>public void HookByXhook(){
+    IxHook xHook = XHookImpl.getInstance(emulator);
+    xHook.register(&#34;libhookinunidbg.so&#34;, &#34;base64_encode&#34;, new ReplaceCallback() {
+        @Override
+        public HookStatus onCall(Emulator&lt;?&gt; emulator, HookContext context, long originFunction) {
+            Pointer input = context.getPointerArg(0);
+            int length = context.getIntArg(1);
+            Pointer buffer = context.getPointerArg(2);
+            Inspector.inspect(input.getByteArray(0, length), &#34;base64 input&#34;);
+            context.push(buffer);
+            return HookStatus.RET(emulator, originFunction);
+        }
+        @Override
+        public void postCall(Emulator&lt;?&gt; emulator, HookContext context) {
+            Pointer buffer = context.pop();
+            System.out.println(&#34;base64 result:&#34;+buffer.getString(0));
+        }
+    }, true);
+
+    xHook.refresh();
+}
+</code></pre><p>xHook 是爱奇艺开源的 Android PLT hook 框架，优点是挺稳定好用，缺点是不能 Hook Sub_xxx 子函数。</p><h4 id=-hookzz>Ⅱ HookZz</h4><pre tabindex=0><code>public void HookByHookZz(){
+    IHookZz hookZz = HookZz.getInstance(emulator);
+    hookZz.enable_arm_arm64_b_branch();
+    hookZz.wrap(module.findSymbolByName(&#34;base64_encode&#34;), new WrapCallback&lt;HookZzArm32RegisterContext&gt;() {
+        @Override
+        public void preCall(Emulator&lt;?&gt; emulator, HookZzArm32RegisterContext context, HookEntryInfo info) {
+            Pointer input = context.getPointerArg(0);
+            int length = context.getIntArg(1);
+            Pointer buffer = context.getPointerArg(2);
+            Inspector.inspect(input.getByteArray(0, length), &#34;base64 input&#34;);
+            context.push(buffer);
+        }
+        @Override
+        public void postCall(Emulator&lt;?&gt; emulator, HookZzArm32RegisterContext context, HookEntryInfo info) {
+            Pointer buffer = context.pop();
+            System.out.println(&#34;base64 result:&#34;+buffer.getString(0));
+        }
+    });
+    hookZz.disable_arm_arm64_b_branch();
+}
+</code></pre><p>HookZz 也可以实现类似于单行断点的 Hook，但在 Unidbg 的 Hook 大环境下感觉用处不大，不建议使用。</p><pre tabindex=0><code>IHookZz hookZz = HookZz.getInstance(emulator);
+hookZz.instrument(module.base + 0x978 + 1, new InstrumentCallback&lt;RegisterContext&gt;() {
+    @Override
+    public void dbiCall(Emulator&lt;?&gt; emulator, RegisterContext ctx, HookEntryInfo info) {
+        System.out.println(ctx.getIntArg(0));
+    }
+});
+</code></pre><p>HookZz 现在叫 Dobby，Unidbg 中是 HookZz 和 Dobby 是两个独立的 Hook 库，因为作者认为 HookZz 在 arm32 上支持较好，Dobby 在 arm64 上支持较好。HookZz 是 inline hook 方案，因此可以 Hook Sub_xxx，缺点是短函数可能出 bug，受限于 inline Hook 原理。</p><h4 id=-whale>Ⅲ Whale</h4><pre tabindex=0><code>public void HookByWhale(){
+    IWhale whale = Whale.getInstance(emulator);
+    whale.inlineHookFunction(module.findSymbolByName(&#34;base64_encode&#34;), new ReplaceCallback() {
+        Pointer buffer;
+        @Override
+        public HookStatus onCall(Emulator&lt;?&gt; emulator, long originFunction) {
+            RegisterContext context = emulator.getContext();
+            Pointer input = context.getPointerArg(0);
+            int length = context.getIntArg(1);
+            buffer = context.getPointerArg(2);
+            Inspector.inspect(input.getByteArray(0, length), &#34;base64 input&#34;);
+            return HookStatus.RET(emulator, originFunction);
+        }
+
+        @Override
+        public void postCall(Emulator&lt;?&gt; emulator, HookContext context) {
+            System.out.println(&#34;base64 result:&#34;+buffer.getString(0));
+        }
+    }, true);
+}
+</code></pre><p>Whale 是一个跨平台的 Hook 框架，在 Andorid Native Hook 上也是 inline Hook 方案，具体情况我了解的不多。</p><h3 id=4unicorn-hook>4.Unicorn Hook</h3><p>如果想对某个函数进行集中的、高强度的、同时又灵活的调试，Unicorn CodeHook 是一个好选择。比如我想查看目标函数第一条指令的 r1，第二条指令的 r2，第三条指令的 r3，类似于这种需求。</p><p>hook_add_new 第一个参数是 Hook 回调，我们这里选择 CodeHook，它是逐条指令 Hook，参数 2 是起始地址，参数 3 是结束地址，参数 4 一般填 null。这意味着从起始地址到终止地址这个执行范围内的每条指令，我们都可以在其执行前处理它。</p><p>找到目标函数的代码范围</p><p><a href=https://blog.seeflower.dev/images/3.png target=_blank rel=noopener><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://blog.seeflower.dev/images/3.png alt loading=lazy data-zoomable></div></div></figure></a></p><pre tabindex=0><code>public void HookByUnicorn(){
+    long start = module.base+0x97C;
+    long end = module.base+0x97C+0x17A;
+    emulator.getBackend().hook_add_new(new CodeHook() {
+        @Override
+        public void hook(Backend backend, long address, int size, Object user) {
+            RegisterContext registerContext = emulator.getContext();
+            if(address == module.base + 0x97C){
+                int r0 = registerContext.getIntByReg(ArmConst.UC_ARM_REG_R0);
+                System.out.println(&#34;0x97C 处 r0:&#34;+Integer.toHexString(r0));
+            }
+            if(address == module.base + 0x97C + 2){
+                int r2 = registerContext.getIntByReg(ArmConst.UC_ARM_REG_R2);
+                System.out.println(&#34;0x97C +2 处 r2:&#34;+Integer.toHexString(r2));
+            }
+            if(address == module.base + 0x97C + 4){
+
+                int r4 = registerContext.getIntByReg(ArmConst.UC_ARM_REG_R4);
+                System.out.println(&#34;0x97C +4 处 r4:&#34;+Integer.toHexString(r4));
+            }
+        }
+
+        @Override
+        public void onAttach(Unicorn.UnHook unHook) {
+
+        }
+
+        @Override
+        public void detach() {
+
+        }
+    }, start, end, null);
+}
+</code></pre><h2 id=三replace-参数和返回值>三、Replace 参数和返回值</h2><h3 id=1-替换参数>1. 替换参数</h3><p>需求：如果入参为 lilac，改为 hello world，对应的入参长度也要改。正确结果是 <strong>aGVsbG8gd29ybGQ=</strong>。</p><h4 id=frida>ⅠFrida</h4><pre tabindex=0><code>function main(){
+
+    var base_addr = Module.findBaseAddress(&#34;libhookinunidbg.so&#34;);
+
+    if (base_addr){
+        var func_addr = Module.findExportByName(&#34;libhookinunidbg.so&#34;, &#34;base64_encode&#34;);
+        console.log(&#34;hook base64_encode function&#34;)
+        var fakeinput = &#34;hello world&#34;
+        var fakeinputPtr = Memory.allocUtf8String(fakeinput);
+        Interceptor.attach(func_addr,{
+            onEnter: function (args) {
+                args[0] = fakeinputPtr;
+                args[1] = ptr(fakeinput.length);
+                this.buffer = args[2];
+            },
+
+            onLeave: function () {
+                console.log(&#34; output:&#34;)
+                console.log(this.buffer.readCString());
+            }
+        })
+    }
+
+
+}
+
+setImmediate(main);
+</code></pre><h4 id=-console-debugger>Ⅱ Console Debugger</h4><p>快速打击、快速验证的 Console Debugger 如何实现这一目标？</p><p>① 下断点，运行代码后进入 debugger</p><pre tabindex=0><code>emulator.attach().addBreakPoint(module.findSymbolByName(&#34;base64_encode&#34;).getAddress());
+</code></pre><p>② 通过命令修改参数 1 和 2</p><pre tabindex=0><code>wx0x40002403 68656c6c6f20776f726c64
+
+&gt;-----------------------------------------------------------------------------&lt;
+[14:06:46 165]RX@0x40002403[libhookinunidbg.so]0x2403, md5=5eb63bbbe01eeed093cb22bb8f5acdc3, hex=68656c6c6f20776f726c64
+size: 11
+0000: 68 65 6C 6C 6F 20 77 6F 72 6C 64                   hello world
+^-----------------------------------------------------------------------------^
+wr1 11
+&gt;&gt;&gt; r1=0xb
+</code></pre><p>Console Debugger 支持下列写操作</p><pre tabindex=0><code>wr0-wr7, wfp, wip, wsp &lt;value&gt;: write specified register
+wb(address), ws(address), wi(address) &lt;value&gt;: write (byte, short, integer) memory of specified address, address must start with 0x
+wx(address) &lt;hex&gt;: write bytes to memory at specified address, address must start with 0x
+</code></pre><p>但这其实并不方便，还是做持久化比较舒服。</p><pre tabindex=0><code>public void ReplaceArgByConsoleDebugger(){
+    emulator.attach().addBreakPoint(module.findSymbolByName(&#34;base64_encode&#34;).getAddress(), new BreakPointCallback() {
+        @Override
+        public boolean onHit(Emulator&lt;?&gt; emulator, long address) {
+            RegisterContext context = emulator.getContext();
+            String fakeInput = &#34;hello world&#34;;
+            int length = fakeInput.length();
+
+            emulator.getBackend().reg_write(ArmConst.UC_ARM_REG_R1, length);
+            MemoryBlock fakeInputBlock = emulator.getMemory().malloc(length, true);
+            fakeInputBlock.getPointer().write(fakeInput.getBytes(StandardCharsets.UTF_8));
+
+            emulator.getBackend().reg_write(ArmConst.UC_ARM_REG_R0, fakeInputBlock.getPointer().peer);
+
+            Pointer buffer = context.getPointerArg(2);
+
+            emulator.attach().addBreakPoint(context.getLRPointer().peer, new BreakPointCallback() {
+                @Override
+                public boolean onHit(Emulator&lt;?&gt; emulator, long address) {
+                    String result = buffer.getString(0);
+                    System.out.println(&#34;base64 result:&#34;+result);
+                    return true;
+                }
+            });
+            return true;
+        }
+    });
+}
+</code></pre><h4 id=-第三方-hook-框架>Ⅲ 第三方 Hook 框架</h4><p>变来变去的只有外壳。</p><p>① xHook</p><pre tabindex=0><code>public void ReplaceArgByXhook(){
+    IxHook xHook = XHookImpl.getInstance(emulator);
+    xHook.register(&#34;libhookinunidbg.so&#34;, &#34;base64_encode&#34;, new ReplaceCallback() {
+        @Override
+        public HookStatus onCall(Emulator&lt;?&gt; emulator, HookContext context, long originFunction) {
+            String fakeInput = &#34;hello world&#34;;
+            int length = fakeInput.length();
+
+            emulator.getBackend().reg_write(ArmConst.UC_ARM_REG_R1, length);
+            MemoryBlock fakeInputBlock = emulator.getMemory().malloc(length, true);
+            fakeInputBlock.getPointer().write(fakeInput.getBytes(StandardCharsets.UTF_8));
+
+            emulator.getBackend().reg_write(ArmConst.UC_ARM_REG_R0, fakeInputBlock.getPointer().peer);
+
+            Pointer buffer = context.getPointerArg(2);
+            context.push(buffer);
+            return HookStatus.RET(emulator, originFunction);
+        }
+        @Override
+        public void postCall(Emulator&lt;?&gt; emulator, HookContext context) {
+            Pointer buffer = context.pop();
+            System.out.println(&#34;base64 result:&#34;+buffer.getString(0));
+        }
+    }, true);
+
+    xHook.refresh();
+}
+</code></pre><p>② HookZz</p><pre tabindex=0><code>public void ReplaceArgByHookZz(){
+    IHookZz hookZz = HookZz.getInstance(emulator);
+    hookZz.enable_arm_arm64_b_branch();
+    hookZz.wrap(module.findSymbolByName(&#34;base64_encode&#34;), new WrapCallback&lt;HookZzArm32RegisterContext&gt;() {
+        @Override
+        public void preCall(Emulator&lt;?&gt; emulator, HookZzArm32RegisterContext context, HookEntryInfo info) {
+            Pointer input = context.getPointerArg(0);
+            String fakeInput = &#34;hello world&#34;;
+            input.setString(0, fakeInput);
+            context.setR1(fakeInput.length());
+
+            Pointer buffer = context.getPointerArg(2);
+            context.push(buffer);
+        }
+        @Override
+        public void postCall(Emulator&lt;?&gt; emulator, HookZzArm32RegisterContext context, HookEntryInfo info) {
+            Pointer buffer = context.pop();
+            System.out.println(&#34;base64 result:&#34;+buffer.getString(0));
+        }
+    });
+    hookZz.disable_arm_arm64_b_branch();
+}
+</code></pre><p>因为可以用 HookZzArm32RegisterContext，相对来说代码简单一些。</p><h3 id=2-修改返回值>2. 修改返回值</h3><p>修改返回值的逻辑和替换参数并没什么区别，但它可以引出第四节，所以还是仔细讲一下。</p><p>在 demo 中，有一个 verifyApkSign 函数，它总是返回 1，并导致 APK 校验失败，因此目标就是让它返回 0。</p><pre tabindex=0><code>extern &#34;C&#34;
+JNIEXPORT void JNICALL
+Java_com_example_hookinunidbg_MainActivity_call(JNIEnv *env, jobject thiz) {
+    int verifyret = verifyApkSign();
+    if(verifyret == 1){
+        LOGE(&#34;APK sign verify failed!&#34;);
+    } else{
+        LOGE(&#34;APK sign verify success!&#34;);
+    }
+    testBase64();
+}
+
+extern &#34;C&#34; int verifyApkSign(){
+    LOGE(&#34;verify apk sign&#34;);
+    return 1;
+};
+</code></pre><h4 id=frida-1>ⅠFrida</h4><pre tabindex=0><code>function main(){
+
+    var base_addr = Module.findBaseAddress(&#34;libhookinunidbg.so&#34;);
+
+    if (base_addr){
+        var func_addr = Module.findExportByName(&#34;libhookinunidbg.so&#34;, &#34;verifyApkSign&#34;);
+        console.log(&#34;hook verifyApkSign function&#34;)
+        Interceptor.attach(func_addr,{
+            onEnter: function (args) {
+
+            },
+
+            onLeave: function (retval) {
+                retval.replace(0);
+            }
+        })
+    }
+
+
+}
+
+setImmediate(main);
+</code></pre><h4 id=-console-debugger-1>Ⅱ Console Debugger</h4><pre tabindex=0><code>public void ReplaceRetByConsoleDebugger(){
+    emulator.attach().addBreakPoint(module.findSymbolByName(&#34;verifyApkSign&#34;).getAddress(), new BreakPointCallback() {
+        @Override
+        public boolean onHit(Emulator&lt;?&gt; emulator, long address) {
+            RegisterContext context = emulator.getContext();
+
+            emulator.attach().addBreakPoint(context.getLRPointer().peer, new BreakPointCallback() {
+                @Override
+                public boolean onHit(Emulator&lt;?&gt; emulator, long address) {
+                    emulator.getBackend().reg_write(ArmConst.UC_ARM_REG_R0, 0);
+                    return true;
+                }
+            });
+            return true;
+        }
+    });
+}
+</code></pre><p>我们的 Hook 生效了，但 verifyApkSign 函数里的 log 还是打印出来了。在一些情况中，我们想改掉函数原本的执行行为，而不是仅仅打印一些信息或者替换入参和返回值。即需要彻底的函数替换——替换原有函数，使用自己的函数。</p><h2 id=四替换函数>四、替换函数</h2><h3 id=1frida-1>1.Frida</h3><pre tabindex=0><code>const verifyApkSignPtr = Module.findExportByName(&#34;libhookinunidbg.so&#34;, &#34;verifyApkSign&#34;);
+Interceptor.replace(verifyApkSignPtr, new NativeCallback(() =&gt; {
+    console.log(&#34;replace verifyApkSign Function&#34;)
+    return 0;
+}, &#39;void&#39;, []));
+</code></pre><h3 id=2-第三方-hook-框架>2. 第三方 Hook 框架</h3><p>这里只演示 xHook</p><pre tabindex=0><code>public void ReplaceFuncByHookZz(){
+    HookZz hook = HookZz.getInstance(emulator);
+    hook.replace(module.findSymbolByName(&#34;verifyApkSign&#34;).getAddress(), new ReplaceCallback() {
+        @Override
+        public HookStatus onCall(Emulator&lt;?&gt; emulator, HookContext context, long originFunction) {
+            emulator.getBackend().reg_write(Unicorn.UC_ARM_REG_R0,0);
+            return HookStatus.RET(emulator,context.getLR());
+        }
+    });
+}
+</code></pre><p>xHook 的版本很清晰易懂，我们做了两件事</p><ul><li>R0 赋值为 0</li><li>LR 赋值给 PC，这意味着函数一行不执行就返回了，又因为 R0 赋值 0 所以返回值为 0。</li></ul><h3 id=3console-debugger>3.Console Debugger</h3><pre tabindex=0><code>public void ReplaceFuncByConsoleDebugger(){
+    emulator.attach().addBreakPoint(module.findSymbolByName(&#34;verifyApkSign&#34;).getAddress(), new BreakPointCallback() {
+        @Override
+        public boolean onHit(Emulator&lt;?&gt; emulator, long address) {
+            System.out.println(&#34;替换函数 verifyApkSign&#34;);
+            RegisterContext registerContext = emulator.getContext();
+            emulator.getBackend().reg_write(ArmConst.UC_ARM_REG_PC, registerContext.getLRPointer().peer);
+            emulator.getBackend().reg_write(ArmConst.UC_ARM_REG_R0, 0);
+            return true;
+        }
+    });
+}
+</code></pre><p>非常清晰易懂。</p><h2 id=五call-函数>五、Call 函数</h2><p>分析具体算法时，常需要对其进行主动调用，进行更灵活和细致的分析</p><p>// TODO</p><h3 id=1frida-2>1.Frida</h3><h3 id=2unidbg>2.Unidbg</h3><h2 id=六patch-与内存检索>六、Patch 与内存检索</h2><h3 id=1patch>1.Patch</h3><p>Patch 就是直接对二进制文件进行修改，Patch 本质上只有两种形式</p><ul><li>patch 二进制文件</li><li>在内存里 patch</li></ul><p>Patch 的应用场景很多，在一些场景比 Hook 更好用，这就是需要介绍它的原因。Patch 二进制文件的形式是大多数人所熟悉的，在 IDA 中使用 KeyPatch 打补丁的体验很友好。但这里我们关注的是内存 Patch。</p><p><a href=https://blog.seeflower.dev/images/6.png target=_blank rel=noopener><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://blog.seeflower.dev/images/6.png alt loading=lazy data-zoomable></div></div></figure></a></p><p>0x8CA 处调用了签名校验函数，第三四节中通过 Replace 返回值或函数的方式来处理它，但实际上，修改 0x8CA 处这条四字节指令也是好办法。</p><p><a href=https://blog.seeflower.dev/images/7.png target=_blank rel=noopener><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://blog.seeflower.dev/images/7.png alt loading=lazy data-zoomable></div></div></figure></a></p><p>需要注意的是，本文只讨论了 arm32，指令集只考虑最常见的 thumb2，arm 以及 arm64 可以自行测试。</p><h4 id=frida-2>ⅠFrida</h4><p>① 方法一</p><pre tabindex=0><code>var str_name_so = &#34;libhookinunidbg.so&#34;;
+var n_addr_func_offset = 0x8CA;
+
+var n_addr_so = Module.findBaseAddress(str_name_so);
+var n_addr_assemble = n_addr_so.add(n_addr_func_offset);
+
+Memory.protect(n_addr_assemble, 4, &#39;rwx&#39;);
+n_addr_assemble.writeByteArray([0x00, 0x20, 0x00, 0xBF]);
+</code></pre><p>但这并不是最佳实践，因为相较于 Unidbg，Frida 操作在真实 Android 系统上，存在两个问题</p><ul><li>是否存在多线程操纵目标地址处的内存？是否有冲突</li><li>arm 的缓存刷新机制</li></ul><p>所以 Frida 提供了更安全可靠的系列 API 来修改内存中的字节</p><p>② 方法二</p><pre tabindex=0><code>var str_name_so = &#34;libhookinunidbg.so&#34;;
+var n_addr_func_offset = 0x8CA;
+
+var n_addr_so = Module.findBaseAddress(str_name_so);
+var n_addr_assemble = n_addr_so.add(n_addr_func_offset);
+
+
+Memory.patchCode(n_addr_assemble, 4, function () {
+
+    var cw = new ThumbWriter(n_addr_assemble);
+
+
+    cw.putInstruction(0x2000)
+
+    cw.putInstruction(0xBF00);
+    cw.flush();
+    console.log(hexdump(n_addr_assemble))
+});
+</code></pre><h4 id=-unidbg>Ⅱ Unidbg</h4><p>Unidbg 在修改内存上，既可以传机器码，也可以传汇编指令</p><p>① 方法一</p><pre tabindex=0><code>public void Patch1(){
+
+    int patchCode = 0xBF002000;
+    emulator.getMemory().pointer(module.base + 0x8CA).setInt(0,patchCode);
+}
+</code></pre><p>② 方法二</p><pre tabindex=0><code>public void Patch2(){
+    byte[] patchCode = {0x00, 0x20, 0x00, (byte) 0xBF};
+    emulator.getBackend().mem_write(module.base + 0x8CA, patchCode);
+}
+</code></pre><p>③ 方法三</p><pre tabindex=0><code>public void Patch3(){
+    try (Keystone keystone = new Keystone(KeystoneArchitecture.Arm, KeystoneMode.ArmThumb)) {
+        KeystoneEncoded encoded = keystone.assemble(&#34;movs r0,0;nop&#34;);
+        byte[] patchCode = encoded.getMachineCode();
+        emulator.getMemory().pointer(module.base + 0x8CA).write(0, patchCode, 0, patchCode.length);
+    }
+}
+</code></pre><h3 id=2-内存检索>2. 内存检索</h3><p>假设 SO 存在碎片化，比如要分析某个 SO 的多个版本，需要 Patch 签名校验或者某处汇编，地址在不同版本不固定，但函数特征固定，内存检索 + 动态 Patch 就是一个好办法，可以很好适应不同版本、碎片化。</p><p>搜索特征片段依据需求，可能是搜索函数开头十字节，也可能是搜索目标地址上下字节或者其他。</p><p><a href=https://blog.seeflower.dev/images/8.png target=_blank rel=noopener><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://blog.seeflower.dev/images/8.png alt loading=lazy data-zoomable></div></div></figure></a></p><h4 id=frida-3>ⅠFrida</h4><pre tabindex=0><code>function searchAndPatch() {
+    var module = Process.findModuleByName(&#34;libhookinunidbg.so&#34;);
+    var pattern = &#34;80 b5 6f 46 84 b0 03 90 02 91&#34;
+    var matches = Memory.scanSync(module.base, module.size, pattern);
+    console.log(matches.length)
+    if (matches.length !== 0)
+    {
+        var n_addr_assemble = matches[0].address.add(10);
+
+        Memory.patchCode(n_addr_assemble, 4, function () {
+
+            var cw = new ThumbWriter(n_addr_assemble);
+
+
+            cw.putInstruction(0x2000)
+
+            cw.putInstruction(0xBF00);
+            cw.flush();
+            console.log(hexdump(n_addr_assemble))
+        });
+    }
+}
+
+setImmediate(searchAndPatch);
+</code></pre><h4 id=-unidbg-1>Ⅱ Unidbg</h4><pre tabindex=0><code>public void SearchAndPatch(){
+    byte[] patterns = {(byte) 0x80, (byte) 0xb5,0x6f,0x46, (byte) 0x84, (byte) 0xb0,0x03, (byte) 0x90,0x02, (byte) 0x91};
+    Collection&lt;Pointer&gt; pointers = searchMemory(module.base, module.base+module.size, patterns);
+    if(pointers.size() &gt; 0){
+        try (Keystone keystone = new Keystone(KeystoneArchitecture.Arm, KeystoneMode.ArmThumb)) {
+            KeystoneEncoded encoded = keystone.assemble(&#34;movs r0,0;nop&#34;);
+            byte[] patchCode = encoded.getMachineCode();
+            ((ArrayList&lt;Pointer&gt;) pointers).get(0).write(10, patchCode, 0, patchCode.length);
+        }
+    }
+
+}
+
+private Collection&lt;Pointer&gt; searchMemory(long start, long end, byte[] data) {
+    List&lt;Pointer&gt; pointers = new ArrayList&lt;&gt;();
+    for (long i = start, m = end - data.length; i &lt; m; i++) {
+        byte[] oneByte = emulator.getBackend().mem_read(i, 1);
+        if (data[0] != oneByte[0]) {
+            continue;
+        }
+
+        if (Arrays.equals(data, emulator.getBackend().mem_read(i, data.length))) {
+            pointers.add(UnidbgPointer.pointer(emulator, i));
+            i += (data.length - 1);
+        }
+    }
+    return pointers;
+}
+</code></pre><p><em>值得一提的是，本节的内容也可用 <a href=https://github.com/lief-project/LIEF target=_blank rel=noopener>LIEF</a> Patch 二进制文件实现。</em></p><h2 id=七hook-时机过晚问题>七、Hook 时机过晚问题</h2><p>上文中，Hook 代码都位于 <strong>SO 加载后， 执行 JNI_OnLoad 之前</strong>，和如下 Frida 代码同等时机。</p><pre tabindex=0><code>var android_dlopen_ext = Module.findExportByName(null, &#34;android_dlopen_ext&#34;);
+if (android_dlopen_ext != null) {
+    Interceptor.attach(android_dlopen_ext, {
+        onEnter: function (args) {
+            this.hook = false;
+            var soName = args[0].readCString();
+            if (soName.indexOf(&#34;libhookinunidbg.so&#34;) !== -1) {
+                this.hook = true;
+            }
+        },
+        onLeave: function (retval) {
+            if (this.hook) {
+                this.hook = false;
+
+            }
+        }
+    });
+}
+</code></pre><p>但如果**.init 和. init_array 段**存在代码逻辑（init→init_array→JNIOnLoad），Hook 时机就太晚了，这种情况下就需要将 Hook 时机点提前到 init 执行前。</p><p>在 Frida 中，为了实现这一点，需要在 linker 中做文章，通常做法是 Hook Linker 中的 call_function 或 call_constructor 函数。而在 Unidbg 中，有以下一些办法。</p><p>以我们的 demo hookInUnidbg 为例，其中 init 段里就有如下逻辑，比较两个字符串的大小。</p><pre tabindex=0><code>extern &#34;C&#34; void _init(void) {
+    char str1[15];
+    char str2[15];
+    int ret;
+
+
+    strcpy(str1, &#34;abcdef&#34;);
+    strcpy(str2, &#34;ABCDEF&#34;);
+
+    ret = strcmp(str1, str2);
+
+    if(ret &lt; 0)
+    {
+        LOGI(&#34;str1 小于 str2&#34;);
+    }
+    else if(ret &gt; 0)
+    {
+        LOGI(&#34;str1 大于 str2&#34;);
+    }
+    else
+    {
+        LOGI(&#34;str1 等于 str2&#34;);
+    }
+
+}
+</code></pre><p>当前显示 <strong>str1 大于 str2</strong>，我们的 Hook 目标是让其显示 <strong>str1 小于 str2</strong>。</p><h3 id=1-提前加载-libc>1. 提前加载 libc</h3><p>提前加载 libc，然后 hook strcmp 函数，修改其返回值为 - 1 是一个办法。如下是完整代码，提供了 Console Debugger 以及 HookZz 两个版本。</p><pre tabindex=0><code>package com.tutorial;
+
+import com.github.unidbg.AndroidEmulator;
+import com.github.unidbg.Emulator;
+import com.github.unidbg.Module;
+import com.github.unidbg.arm.context.RegisterContext;
+import com.github.unidbg.debugger.BreakPointCallback;
+import com.github.unidbg.hook.hookzz.*;
+import com.github.unidbg.linux.android.AndroidEmulatorBuilder;
+import com.github.unidbg.linux.android.AndroidResolver;
+import com.github.unidbg.linux.android.dvm.*;
+import com.github.unidbg.memory.Memory;
+import unicorn.ArmConst;
+import java.io.File;
+
+public class hookInUnidbg {
+    private final AndroidEmulator emulator;
+    private final VM vm;
+    private final Module module;
+    private final Module moduleLibc;
+
+    hookInUnidbg() {
+
+
+        emulator = AndroidEmulatorBuilder.for32Bit().build();
+
+
+        final Memory memory = emulator.getMemory();
+
+        memory.setLibraryResolver(new AndroidResolver(23));
+
+        vm = emulator.createDalvikVM(new File(&#34;unidbg-android/src/test/resources/tutorial/hookinunidbg.apk&#34;));
+
+
+        DalvikModule dmLibc = vm.loadLibrary(new File(&#34;unidbg-android/src/main/resources/android/sdk23/lib/libc.so&#34;), true);
+        moduleLibc = dmLibc.getModule();
+
+
+        hookStrcmpByUnicorn();
+
+
+
+
+        DalvikModule dm = vm.loadLibrary(&#34;hookinunidbg&#34;, true);
+
+        module = dm.getModule();
+
+
+        dm.callJNI_OnLoad(emulator);
+    }
+
+    public void call(){
+        DvmClass dvmClass = vm.resolveClass(&#34;com/example/hookinunidbg/MainActivity&#34;);
+        String methodSign = &#34;call()V&#34;;
+        DvmObject&lt;?&gt; dvmObject = dvmClass.newObject(null);
+        dvmObject.callJniMethodObject(emulator, methodSign);
+
+    }
+
+
+    public static void main(String[] args) {
+        hookInUnidbg mydemo = new hookInUnidbg();
+        mydemo.call();
+    }
+
+
+    public void hookStrcmpByUnicorn(){
+        emulator.attach().addBreakPoint(moduleLibc.findSymbolByName(&#34;strcmp&#34;).getAddress(), new BreakPointCallback() {
+            @Override
+            public boolean onHit(Emulator&lt;?&gt; emulator, long address) {
+                RegisterContext registerContext = emulator.getContext();
+                String arg1 = registerContext.getPointerArg(0).getString(0);
+
+                emulator.attach().addBreakPoint(registerContext.getLRPointer().peer, new BreakPointCallback() {
+                    @Override
+                    public boolean onHit(Emulator&lt;?&gt; emulator, long address) {
+                        if(arg1.equals(&#34;abcdef&#34;)){
+                            emulator.getBackend().reg_write(ArmConst.UC_ARM_REG_R0, -1);
+                        }
+                        return true;
+                    }
+                });
+                return true;
+            }
+        });
+    }
+
+    public void hookStrcmpByHookZz(){
+        IHookZz hookZz = HookZz.getInstance(emulator);
+        hookZz.enable_arm_arm64_b_branch();
+        hookZz.wrap(moduleLibc.findSymbolByName(&#34;strcmp&#34;), new WrapCallback&lt;HookZzArm32RegisterContext&gt;() {
+            String arg1;
+            @Override
+            public void preCall(Emulator&lt;?&gt; emulator, HookZzArm32RegisterContext ctx, HookEntryInfo info) {
+                arg1 = ctx.getPointerArg(0).getString(0);
+            }
+            @Override
+            public void postCall(Emulator&lt;?&gt; emulator, HookZzArm32RegisterContext ctx, HookEntryInfo info) {
+                if(arg1.equals(&#34;abcdef&#34;)){
+                    ctx.setR0(-1);
+                }
+            }
+        });
+        hookZz.disable_arm_arm64_b_branch();
+    }
+}
+</code></pre><p>但如果想 hook 的目标函数不是 libc 里的函数，就没效果了。比如想在 0x978 下个断点。</p><p><a href=https://blog.seeflower.dev/images/9.png target=_blank rel=noopener><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://blog.seeflower.dev/images/9.png alt loading=lazy data-zoomable></div></div></figure></a></p><h3 id=2-固定地址下断点>2. 固定地址下断点</h3><p>这是最常用也最方便的方式，但只有 Unicorn 引擎下可以使用。</p><p>通过 <code>vm.loadLibrary</code> 加载的第一个用户 SO，其基地址是 0x40000000，因此可以在 IDA 中看函数偏移，通过绝对地址 Console Debugger Hook。</p><pre tabindex=0><code>package com.tutorial;
+
+import com.github.unidbg.AndroidEmulator;
+import com.github.unidbg.Emulator;
+import com.github.unidbg.Module;
+import com.github.unidbg.arm.context.RegisterContext;
+import com.github.unidbg.debugger.BreakPointCallback;
+import com.github.unidbg.hook.hookzz.*;
+import com.github.unidbg.linux.android.AndroidEmulatorBuilder;
+import com.github.unidbg.linux.android.AndroidResolver;
+import com.github.unidbg.linux.android.dvm.*;
+import com.github.unidbg.memory.Memory;
+import unicorn.ArmConst;
+import java.io.File;
+
+public class hookInUnidbg {
+    private final AndroidEmulator emulator;
+    private final VM vm;
+    private final Module module;
+    private Module moduleLibc;
+
+    hookInUnidbg() {
+
+
+        emulator = AndroidEmulatorBuilder.for32Bit().build();
+
+
+        final Memory memory = emulator.getMemory();
+
+        memory.setLibraryResolver(new AndroidResolver(23));
+
+        vm = emulator.createDalvikVM(new File(&#34;unidbg-android/src/test/resources/tutorial/hookinunidbg.apk&#34;));
+
+        emulator.attach().addBreakPoint(0x40000000 + 0x978);
+
+
+        DalvikModule dm = vm.loadLibrary(&#34;hookinunidbg&#34;, true);
+
+        module = dm.getModule();
+
+
+        dm.callJNI_OnLoad(emulator);
+    }
+
+    public void call(){
+        DvmClass dvmClass = vm.resolveClass(&#34;com/example/hookinunidbg/MainActivity&#34;);
+        String methodSign = &#34;call()V&#34;;
+        DvmObject&lt;?&gt; dvmObject = dvmClass.newObject(null);
+        dvmObject.callJniMethodObject(emulator, methodSign);
+
+    }
+
+
+    public static void main(String[] args) {
+        hookInUnidbg mydemo = new hookInUnidbg();
+        mydemo.call();
+    }
+
+}
+</code></pre><p><a href=https://blog.seeflower.dev/images/10.png target=_blank rel=noopener><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://blog.seeflower.dev/images/10.png alt loading=lazy data-zoomable></div></div></figure></a></p><p>如果加载了多个用户 SO，可以先运行一遍代码，确认目标 SO 的基地址（Unidbg 中不存在地址随机化，目标函数每次地址都固定。）然后在 loadLibrary 前 Hook 该地址，即可保证 Hook 不遗漏。</p><h3 id=3-使用-unidbg-提供的模块监听器>3. 使用 Unidbg 提供的模块监听器</h3><p>实现自己的模块监听器</p><pre tabindex=0><code>package com.tutorial;
+
+import com.github.unidbg.Emulator;
+import com.github.unidbg.Module;
+import com.github.unidbg.ModuleListener;
+import com.github.unidbg.arm.context.RegisterContext;
+import com.github.unidbg.hook.hookzz.HookEntryInfo;
+import com.github.unidbg.hook.hookzz.HookZz;
+import com.github.unidbg.hook.hookzz.InstrumentCallback;
+
+public class MyModuleListener implements ModuleListener {
+    private HookZz hook;
+
+    @Override
+    public void onLoaded(Emulator&lt;?&gt; emulator, Module module) {
+
+        if(module.name.equals(&#34;libc.so&#34;)){
+             hook = HookZz.getInstance(emulator);
+        }
+
+
+        if(module.name.equals(&#34;libhookinunidbg.so&#34;)){
+            hook.instrument(module.base + 0x978 + 1, new InstrumentCallback&lt;RegisterContext&gt;() {
+                @Override
+                public void dbiCall(Emulator&lt;?&gt; emulator, RegisterContext ctx, HookEntryInfo info) {
+                    System.out.println(ctx.getIntArg(0));
+                }
+            });
+        }
+    }
+}
+</code></pre><p>通过<code>memory.addModuleListener</code>绑定。</p><pre tabindex=0><code>package com.tutorial;
+
+import com.github.unidbg.AndroidEmulator;
+import com.github.unidbg.Module;
+import com.github.unidbg.linux.android.AndroidEmulatorBuilder;
+import com.github.unidbg.linux.android.AndroidResolver;
+import com.github.unidbg.linux.android.dvm.*;
+import com.github.unidbg.memory.Memory;
+import java.io.File;
+
+public class hookInUnidbg{
+    private final AndroidEmulator emulator;
+    private final VM vm;
+
+    hookInUnidbg() {
+
+
+        emulator = AndroidEmulatorBuilder.for32Bit().build();
+
+
+        final Memory memory = emulator.getMemory();
+
+
+        memory.addModuleListener(new MyModuleListener());
+
+
+        memory.setLibraryResolver(new AndroidResolver(23));
+
+        vm = emulator.createDalvikVM(new File(&#34;unidbg-android/src/test/resources/tutorial/hookinunidbg.apk&#34;));
+
+
+        DalvikModule dm = vm.loadLibrary(&#34;hookinunidbg&#34;, true);
+
+        Module module = dm.getModule();
+
+
+        dm.callJNI_OnLoad(emulator);
+    }
+
+    public void call(){
+        DvmClass dvmClass = vm.resolveClass(&#34;com/example/hookinunidbg/MainActivity&#34;);
+        String methodSign = &#34;call()V&#34;;
+        DvmObject&lt;?&gt; dvmObject = dvmClass.newObject(null);
+        dvmObject.callJniMethodObject(emulator, methodSign);
+
+    }
+
+
+    public static void main(String[] args) {
+        hookInUnidbg mydemo = new hookInUnidbg();
+        mydemo.call();
+    }
+
+}
+</code></pre><p><em>每种方法都有对应使用场景，按需使用。除此之外也可以修改 Unidbg 源码，在 callInitFunction 函数前添加自己的逻辑。</em></p><h2 id=八条件断点>八、条件断点</h2><p>在算法分析时，条件断点可以减少干扰信息。以 strcmp 为例，整个进程的所有模块都可能调用 strcmp 函数。</p><h3 id=1-限定于某-so>1. 限定于某 SO</h3><h4 id=frida-4>ⅠFrida</h4><pre tabindex=0><code>Interceptor.attach(
+    Module.findExportByName(&#34;libc.so&#34;, &#34;strcmp&#34;), {
+        onEnter: function(args) {
+            var moduleName = Process.getModuleByAddress(this.returnAddress).name;
+            console.log(&#34;strcmp arg1:&#34;+args[0].readCString())
+
+            console.log(&#34;call from :&#34;+moduleName)
+        },
+        onLeave: function(ret) {
+        }
+    }
+);
+</code></pre><h4 id=-unidbg-2>Ⅱ Unidbg</h4><pre tabindex=0><code>public void hookstrcmp(){
+    long address = module.findSymbolByName(&#34;strcmp&#34;).getAddress();
+    emulator.attach().addBreakPoint(address, new BreakPointCallback() {
+        @Override
+        public boolean onHit(Emulator&lt;?&gt; emulator, long address) {
+            RegisterContext registerContext = emulator.getContext();
+            String arg1 = registerContext.getPointerArg(0).getString(0);
+            String moduleName = emulator.getMemory().findModuleByAddress(registerContext.getLRPointer().peer).name;
+            if(moduleName.equals(&#34;libhookinunidbg.so&#34;)){
+                System.out.println(&#34;strcmp arg1:&#34;+arg1);
+            }
+            return true;
+        }
+    });
+}
+</code></pre><h3 id=2-限定于某函数>2. 限定于某函数</h3><p>比如某个函数在 SO 中被大量使用，现在只想分析这个函数在函数 a 中的使用。</p><h4 id=frida-5>ⅠFrida</h4><pre tabindex=0><code>var show = false;
+Interceptor.attach(
+    Module.findExportByName(&#34;libc.so&#34;, &#34;strcmp&#34;), {
+        onEnter: function(args) {
+            if(show){
+                console.log(&#34;strcmp arg1:&#34;+args[0].readCString())
+            }
+        },
+        onLeave: function(ret) {
+
+        }
+    }
+);
+
+Interceptor.attach(
+    Module.findExportByName(&#34;libhookinunidbg.so&#34;, &#34;targetfunction&#34;),{
+        onEnter: function(args) {
+            show = this;
+        },
+        onLeave: function(ret) {
+            show = false;
+        }
+    }
+)
+</code></pre><h4 id=-unidbg-3>Ⅱ Unidbg</h4><pre tabindex=0><code>public void hookstrcmp(){
+    emulator.attach().addBreakPoint(module.findSymbolByName(&#34;targetfunction&#34;).getAddress(), new BreakPointCallback() {
+        @Override
+        public boolean onHit(Emulator&lt;?&gt; emulator, long address) {
+            RegisterContext registerContext = emulator.getContext();
+
+            show = true;
+            emulator.attach().addBreakPoint(registerContext.getLRPointer().peer, new BreakPointCallback() {
+                @Override
+                public boolean onHit(Emulator&lt;?&gt; emulator, long address) {
+                    show = false;
+                    return true;
+                }
+            });
+            return true;
+        }
+    });
+
+    emulator.attach().addBreakPoint(module.findSymbolByName(&#34;strcmp&#34;).getAddress(), new BreakPointCallback() {
+        @Override
+        public boolean onHit(Emulator&lt;?&gt; emulator, long address) {
+            RegisterContext registerContext = emulator.getContext();
+            String arg1 = registerContext.getPointerArg(0).getString(0);
+            if(show){
+                System.out.println(&#34;strcmp arg1:&#34;+arg1);
+            }
+            return true;
+        }
+    });
+}
+</code></pre><h3 id=3-限定于某处>3. 限定于某处</h3><p><a href=https://blog.seeflower.dev/images/11.png target=_blank rel=noopener><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://blog.seeflower.dev/images/11.png alt loading=lazy data-zoomable></div></div></figure></a></p><p>比如上图，只关注 0xA00 处发生的 strcmp。一个办法是 hook strcmp 函数，只在 lr 寄存器 = module.base + 0xA00 + 4 + 1 时打印输出。</p><p>另一个办法是 Console Debugger , 也很方便。</p><pre tabindex=0><code>emulator.attach().addBreakPoint(module, 0xA00);
+emulator.attach().addBreakPoint(module, 0xA04);
+</code></pre><p>一定要掌握这些知识，并做到灵活变通。在实战中，诸如 “A hook 生效后再打印 B 函数的输出 “是很常见的，否则每个函数都打印几百行看的人眼都迷糊。</p><h2 id=九系统调用拦截以时间为例>九、系统调用拦截——以时间为例</h2><p>这里说的系统调用拦截，并不是要对系统调用进行 Hook，比如 <a href=https://github.com/AeonLucid/frida-syscall-interceptor target=_blank rel=noopener>frida - syscall - intercceptor</a> 这样，系统调用全部是 Unidbg 自己实现的，日志一开就能看，显然也没有 Hook 的必要。Unidbg 的<strong>系统调用拦截</strong>是为了替换系统调用，修改 Unidbg 中系统调用的实现。</p><p>有两个问题需要解释</p><ul><li><p>为什么要修改系统调用？</p><p>Unidbg 中部分系统调用没实现或者没实现好，以及有时候想要固定其输出，比如获取时间的系统调用，这些需求需要我们修复或修改 Unidbg 中系统调用的实现。</p></li><li><p>为什么不直接修改 Unidbg 源码</p><p>1 是灵活性较差，2 是我们的实现或修改并不是完美的，直接改 Unidbg 源码是对运行环境的污染，影响其他项目。</p></li></ul><p>在分析算法时，输入不变的前提下，如果输出在不停变化，会干扰算法分析，这种情况的一大来源是时间戳参与了运算。在 Frida 中，为了控制这种干扰因素，常常会 Hook libc 的 gettimeodfay 这个时间获取函数。</p><h3 id=1frida-3>1.Frida</h3><p><em>hook time</em></p><pre tabindex=0><code>var time = Module.findExportByName(null, &#34;time&#34;);
+if (time != null) {
+    Interceptor.attach(time, {
+        onEnter: function (args) {
+
+        },
+        onLeave: function (retval) {
+
+            retval.replace(100);
+        }
+    })
+}
+</code></pre><p><em>hook gettimeofday</em></p><pre tabindex=0><code>function hook_gettimeofday() {
+    var addr_gettimeofday = Module.findExportByName(null, &#34;gettimeofday&#34;);
+    var gettimeofday = new NativeFunction(addr_gettimeofday, &#34;int&#34;, [&#34;pointer&#34;, &#34;pointer&#34;]);
+
+    Interceptor.replace(addr_gettimeofday, new NativeCallback(function (ptr_tz, ptr_tzp) {
+
+        var result = gettimeofday(ptr_tz, ptr_tzp);
+        if (result == 0) {
+            console.log(&#34;hook gettimeofday:&#34;, ptr_tz, ptr_tzp, result);
+            var t = new Int32Array(ArrayBuffer.wrap(ptr_tz, 8));
+            t[0] = 0xAAAA;
+            t[1] = 0xBBBB;
+            console.log(hexdump(ptr_tz));
+        }
+        return result;
+    }, &#34;int&#34;, [&#34;pointer&#34;, &#34;pointer&#34;]));
+}
+</code></pre><p>但 Frida 做这件事并不容易做圆满，单是 libc.so，就有 time、gettimeodfay、clock_gettime、clock 这四个库函数可以获取时间戳，而且样本可以通过内联汇编使用系统调用，获取时间戳。</p><h3 id=2unidbg-1>2.Unidbg</h3><p>Unidbg 中可以更方便、更大范围的固定时间，不必像 Frida 那般。time 和 gettimeodfay 库函数基于 gettimeodfay 这个系统调用，clock_gettime 和 clock 基于 clock_gettime 系统调用。所以只要在 Unidbg 中固定 gettimeodfay 和 clock_gettime 这两个系统调用获取的时间戳，就可以一劳永逸。</p><p>首先实现时间相关的系统调用处理器，其中的 <em>System.currentTimeMillis()</em> 和 <em>System.nanoTime()</em> 改成定数。</p><pre tabindex=0><code>package com.tutorial;
+
+import com.github.unidbg.Emulator;
+import com.github.unidbg.linux.ARM32SyscallHandler;
+import com.github.unidbg.memory.SvcMemory;
+import com.github.unidbg.pointer.UnidbgPointer;
+import com.github.unidbg.unix.struct.TimeVal32;
+import com.github.unidbg.unix.struct.TimeZone;
+import com.sun.jna.Pointer;
+import unicorn.ArmConst;
+
+import java.util.Calendar;
+
+public class TimeSyscallHandler extends ARM32SyscallHandler {
+    public TimeSyscallHandler(SvcMemory svcMemory) {
+        super(svcMemory);
+    }
+
+    @Override
+    protected boolean handleUnknownSyscall(Emulator emulator, int NR) {
+        switch (NR) {
+            case 78:
+
+                mygettimeofday(emulator);
+                return true;
+            case 263:
+
+                myclock_gettime(emulator);
+                return true;
+
+        }
+
+        return super.handleUnknownSyscall(emulator, NR);
+    }
+
+
+    private void mygettimeofday(Emulator&lt;?&gt; emulator) {
+        Pointer tv = UnidbgPointer.register(emulator, ArmConst.UC_ARM_REG_R0);
+        Pointer tz = UnidbgPointer.register(emulator, ArmConst.UC_ARM_REG_R1);
+        emulator.getBackend().reg_write(ArmConst.UC_ARM_REG_R0, mygettimeofday(tv, tz));
+    };
+
+    private int mygettimeofday(Pointer tv, Pointer tz) {
+        long currentTimeMillis = System.currentTimeMillis();
+
+        long tv_sec = currentTimeMillis / 1000;
+        long tv_usec = (currentTimeMillis % 1000) * 1000;
+
+        TimeVal32 timeVal = new TimeVal32(tv);
+        timeVal.tv_sec = (int) tv_sec;
+        timeVal.tv_usec = (int) tv_usec;
+        timeVal.pack();
+
+        if (tz != null) {
+            Calendar calendar = Calendar.getInstance();
+            int tz_minuteswest = -(calendar.get(Calendar.ZONE_OFFSET) + calendar.get(Calendar.DST_OFFSET)) / (60 * 1000);
+            TimeZone timeZone = new TimeZone(tz);
+            timeZone.tz_minuteswest = tz_minuteswest;
+            timeZone.tz_dsttime = 0;
+            timeZone.pack();
+        }
+        return 0;
+    }
+
+    private static final int CLOCK_REALTIME = 0;
+    private static final int CLOCK_MONOTONIC = 1;
+    private static final int CLOCK_THREAD_CPUTIME_ID = 3;
+    private static final int CLOCK_MONOTONIC_RAW = 4;
+    private static final int CLOCK_MONOTONIC_COARSE = 6;
+    private static final int CLOCK_BOOTTIME = 7;
+    private final long nanoTime = System.nanoTime();
+
+    private int myclock_gettime(Emulator&lt;?&gt; emulator) {
+        int clk_id = emulator.getBackend().reg_read(ArmConst.UC_ARM_REG_R0).intValue();
+        Pointer tp = UnidbgPointer.register(emulator, ArmConst.UC_ARM_REG_R1);
+        long offset = clk_id == CLOCK_REALTIME ? System.currentTimeMillis() * 1000000L : System.nanoTime() - nanoTime;
+        long tv_sec = offset / 1000000000L;
+        long tv_nsec = offset % 1000000000L;
+
+        switch (clk_id) {
+            case CLOCK_REALTIME:
+            case CLOCK_MONOTONIC:
+            case CLOCK_MONOTONIC_RAW:
+            case CLOCK_MONOTONIC_COARSE:
+            case CLOCK_BOOTTIME:
+                tp.setInt(0, (int) tv_sec);
+                tp.setInt(4, (int) tv_nsec);
+                return 0;
+            case CLOCK_THREAD_CPUTIME_ID:
+                tp.setInt(0, 0);
+                tp.setInt(4, 1);
+                return 0;
+        }
+        throw new UnsupportedOperationException(&#34;clk_id=&#34; + clk_id);
+    }
+}
+</code></pre><p>在自己的模拟器上使用它，原来模拟器创建是这么一句</p><pre tabindex=0><code>emulator = AndroidEmulatorBuilder.for32Bit().build();
+</code></pre><p>修改如下</p><pre tabindex=0><code>AndroidEmulatorBuilder builder = new AndroidEmulatorBuilder(false) {
+    public AndroidEmulator build() {
+        return new AndroidARMEmulator(processName, rootDir,
+                backendFactories) {
+            @Override
+            protected UnixSyscallHandler&lt;AndroidFileIO&gt;
+            createSyscallHandler(SvcMemory svcMemory) {
+                return new TimeSyscallHandler(svcMemory);
+            }
+        };
+    }
+};
+
+emulator = builder.build();
+</code></pre><h2 id=十hook-检测>十、Hook 检测</h2><p>Anti Unidbg 的方法浩如烟海，但事实上几乎没有主动 Anti Unidbg 的样本，有两方面原因</p><ul><li>Unidbg 自身的多个重大弱点没有解决，比如多线程和信号机制尚未实现。</li><li>Unidbg 普及率和推广度还不高。</li></ul><p>所以本节专注于 Hook 检测。</p><h3 id=1-检测第三方-hook-框架>1. 检测第三方 Hook 框架</h3><p>基于其 Hook 实现原理，可以对应检测。</p><h4 id=inline-hook>ⅠInline Hook</h4><p>以我熟悉的 inline Hook 检测为例，inline Hook 需要修改 Hook 处的前几个字节，跳转到自己的地方实现逻辑，最后再跳转回来。那么就有两类思路实现检测，首先开辟一个检测线程，对关键函数做如下二选一循环操作</p><ul><li>函数开头前几个字节是否被篡改</li><li>函数体是否完整未被修改，常使用 crc32 校验，为什么不用 md5 或其他哈希函数？因为 crc32 极快，性能影响小，碰撞率又在可接受的范围内</li></ul><p>相关项目：<a href=https://github.com/liaogang/check_fish_inline_hook target=_blank rel=noopener>check_fish_inline_hook</a></p><h4 id=-got-hook>Ⅱ Got Hook</h4><p>相关项目：<a href=https://github.com/SliverBullet5563/CheckGotHook target=_blank rel=noopener>SliverBullet5563/CheckGotHook: 检测 got hook（使用 xhook 测试）</a></p><h3 id=2-检测-unicorn-based-hook>2. 检测 Unicorn Based Hook</h3><p>Unicorn Hook 似乎不可检测，但 Unicorn 也是可检测的。在星球的 Anti-Unidbg 系列，就提到过一种检测方式。在 Android 系统中，只支持对四字节对齐的内存地址做读写操作，所以通过内联汇编尝试向 SP+1 的位置做读写，在真机上会导致 App 崩溃，而 Unidbg 模拟执行不会出任何问题。当然，我们并不希望 App 崩溃，所以需要在代码中实现自己的信号处理函数，当此处发生异常时，信号处理函数接收信号并做出某种处理，因为 Unidbg 中程序不会异常，所以也不会走到信号处理函数，这里面可以设计形成差异。</p><p>除此之外，Unicorn 下断点调试或者做指令追踪时，必然会导致函数运行时间超出常理，基于运行时间的反调试策略也可行。</p><h2 id=十一unidbg-trace-四件套>十一、Unidbg Trace 四件套</h2><p>基于 Frida 存在许多 trace 方案，比如用于 trace JNI 函数的 <a href=https://github.com/chame1eon/jnitrace target=_blank rel=noopener>JNItrace</a>，用于 trace Java 调用的 <a href=https://github.com/hluwa/ZenTracer target=_blank rel=noopener>ZenTrace</a>、<a href=https://github.com/r0ysue/r0tracer target=_blank rel=noopener>r0tracer</a>，又或者是官方的多功能 trace 工具 <a href=https://frida.re/docs/frida-trace/ target=_blank rel=noopener>frida-trace</a>，用于指令级 trace 的 <a href=https://frida.re/docs/stalker/ target=_blank rel=noopener>Frida Stalker</a>，又或者是 trace SO 中所有函数的 <a href=https://github.com/Pr0214/trace_natives target=_blank rel=noopener>trace_natives</a> ，以及 Linux 上著名的 <a href=https://linuxtools-rst.readthedocs.io/zh_CN/latest/tool/strace.html target=_blank rel=noopener>strace</a> 或者 基于 Frida 的 <a href=https://github.com/AeonLucid/frida-syscall-interceptor target=_blank rel=noopener>frida-syscall-interceptor</a>，用于 trace 系统调用。</p><p>在 Unidbg 上，上述的大部分 trace，只需要调整日志等级就能实现。我们这里所讲的 trace，聚焦于如何让使用者对代码执行流有更强的掌控。</p><h3 id=1instruction-tracing>1.Instruction tracing</h3><p>令追踪包括两部分</p><ul><li>记录每条指令的执行，打印地址、机器码、汇编等信息</li><li>打印每条指令相关的寄存器值</li></ul><p>Unidbg 基于 Unicorn CodeHook 封装了指令追踪，方法和效果如下</p><pre tabindex=0><code>TraceHook traceCode();
+TraceHook traceCode(long begin, long end);
+TraceHook traceCode(long begin, long end, TraceCodeListener listener);
+</code></pre><p><a href=https://blog.seeflower.dev/images/12.png target=_blank rel=noopener><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://blog.seeflower.dev/images/12.png alt loading=lazy data-zoomable></div></div></figure></a></p><p>Unidbg 的指令追踪，在第一部分的工作做得很好，采用 模块名 + 相对偏移 + 机器码 + 绝对地址 + 汇编 的展示形式，但美中不足的是，它并没有做第二部分的工作，可以使用如下的脚本在 Unidbg 中实现完善的指令追踪，其原理也是实现了一个自己的 codehook。</p><p><a href=https://github.com/zhkl0228/unidbg/pull/214/commits/64f9835ebc0d529b2b92cf2bb4846210dff20e3c target=_blank rel=noopener>增加 trace 的部分 by dqzg12300 · Pull Request #214</a></p><h3 id=2function-tracing>2.Function Tracing</h3><p>指令 Trace 是最细粒度的 Trace，优点是细，缺点是动辄数百上千万行，让人迷失其中。函数粒度的 trace 则不然，粗糙但容易理解全貌，在算法还原的一些场景中会起到帮助。在 IDA Debug 中，即可选择函数追踪来记录函数调用，包括了有符号函数以及 IDA 识别并命名为 Sub_addr 的子函数。</p><p><a href=https://blog.seeflower.dev/images/13.png target=_blank rel=noopener><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://blog.seeflower.dev/images/13.png alt loading=lazy data-zoomable></div></div></figure></a></p><p>在 Frida 上，可以使用 <a href=https://github.com/Pr0214/trace_natives target=_blank rel=noopener>trace_natives</a> 对 一个 SO 中的全部函数进行 Trace，并形成如下调用图。</p><p><a href=https://blog.seeflower.dev/images/14.png target=_blank rel=noopener><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://blog.seeflower.dev/images/14.png alt loading=lazy data-zoomable></div></div></figure></a></p><p>Unidbg 中可以做到这一点吗？不妨看一下 Frida trace_natives 脚本，其中有三个关注点。</p><ul><li>如何获得一个 SO 的全部函数列表，就像 IDA 一样</li><li>如何 Hook 函数</li><li>如何获得调用层级关系，形成树结构</li></ul><p>关于问题 1，trace_natives 怎么解决的？直接编写 IDA 脚本获取 IDA 的函数列表</p><pre tabindex=0><code>def getFunctionList():
+    functionlist = &#34;&#34;
+    minLength = 10
+    maxAddress = ida_ida.inf_get_max_ea()
+    for func in idautils.Functions(0, maxAddress):
+        if len(list(idautils.FuncItems(func))) &gt; minLength:
+            functionName = str(idaapi.ida_funcs.get_func_name(func))
+            oneFunction = hex(func) + &#34;!&#34; + functionName + &#34;\t\n&#34;
+            functionlist += oneFunction
+    return functionlist
+</code></pre><p>脚本获取了函数以及对应函数名列表，同时通过 minLength 过滤较短的函数，至少包含 10 条汇编指令的函数才会被计入。这么做有两个原因</p><ul><li>过短的函数可能导致 Frida Hook 失败（inline hook 原理所致）</li><li>过短的函数可能是工具函数，调用次数多，但价值不大，让调用图变得臃肿不堪</li></ul><p>完整的 IDA 插件 getFunctions 代码如下</p><pre tabindex=0><code>import os
+import time
+
+import ida_ida
+import ida_nalt
+import idaapi
+import idautils
+from idaapi import plugin_t
+from idaapi import PLUGIN_PROC
+from idaapi import PLUGIN_OK
+
+
+def getFunctionList():
+    functionlist = &#34;&#34;
+    minLength = 10
+    maxAddress = ida_ida.inf_get_max_ea()
+    for func in idautils.Functions(0, maxAddress):
+        if len(list(idautils.FuncItems(func))) &gt; minLength:
+            functionName = str(idaapi.ida_funcs.get_func_name(func))
+            oneFunction = hex(func) + &#34;!&#34; + functionName + &#34;\t\n&#34;
+            functionlist += oneFunction
+    return functionlist
+
+
+
+def getSoPathAndName():
+    fullpath = ida_nalt.get_input_file_path()
+    filepath, filename = os.path.split(fullpath)
+    return filepath, filename
+
+
+class getFunctions(plugin_t):
+    flags = PLUGIN_PROC
+    comment = &#34;getFunctions&#34;
+    help = &#34;&#34;
+    wanted_name = &#34;getFunctions&#34;
+    wanted_hotkey = &#34;&#34;
+
+    def init(self):
+        print(&#34;getFunctions(v0.1) plugin has been loaded.&#34;)
+        return PLUGIN_OK
+
+    def run(self, arg):
+
+        so_path, so_name = getSoPathAndName()
+        functionlist = getFunctionList()
+        script_name = so_name.split(&#34;.&#34;)[0] + &#34;_functionlist_&#34; + str(int(time.time())) + &#34;.txt&#34;
+        save_path = os.path.join(so_path, script_name)
+        with open(save_path, &#34;w&#34;, encoding=&#34;utf-8&#34;) as F:
+            F.write(functionlist)
+        F.close()
+        print(f&#34;location: {save_path}&#34;)
+
+    def term(self):
+        pass
+
+
+def PLUGIN_ENTRY():
+    return getFunctions()
+</code></pre><p>关于问题 2：使用 Frida Native Hook</p><p>关于问题 3：Frida 的 frida-trace 自带调用层级关系，所以 trace_Natives 脚本依赖 Frida-trace，展示出了树结构的调用图。分析源码发现，frida-trace 使用了 Frida 在 Interceptor.attach 环境中的 depth 如下代码中的 this.depth），depth 表示了调用深度。那深度的值哪来的呢？其最终依赖于 Frida 的栈回溯。</p><pre tabindex=0><code>Interceptor.attach(Module.getExportByName(null, &#39;read&#39;), {
+  onEnter(args) {
+    console.log(&#39;Context information:&#39;);
+    console.log(&#39;Context  : &#39; + JSON.stringify(this.context));
+    console.log(&#39;Return   : &#39; + this.returnAddress);
+    console.log(&#39;ThreadId : &#39; + this.threadId);
+    console.log(&#39;Depth    : &#39; + this.depth);
+    console.log(&#39;Errornr  : &#39; + this.err);
+
+
+    this.fd = args[0].toInt32();
+    this.buf = args[1];
+    this.count = args[2].toInt32();
+  },
+  onLeave(result) {
+    console.log(&#39;----------&#39;)
+
+    const numBytes = result.toInt32();
+    if (numBytes &gt; 0) {
+      console.log(hexdump(this.buf, { length: numBytes, ansi: true }));
+    }
+    console.log(&#39;Result   : &#39; + numBytes);
+  }
+})
+</code></pre><p>这三个问题能在 Unidbg 中解决吗？如果能解决，那就有了 Unidbg 版的 Function Tracing。</p><p>首先问题一，只是一个获取函数列表的插件，与使用 Frida 还是 Unidbg 无关，构不成问题。我们还可以更进一步思考，trace_Natives 依赖 IDA 实现对 SO 函数的识别，但与此同时也增加了使用的复杂度，而且加壳的 SO 无法直接识别函数，必须得先 dump+fix SO，其实还挺折腾人，不如不依赖 IDA，换个办法识别函数。ARM 中，函数序言常常以 push 指令开始，这可以代表绝大多数函数。配合 Unidbg 的 BlockHook 或者 CodeHook，就可以解析并 Hook 这些函数，问题二也顺带解决了。少部分函数会遗漏，但也无关痛痒。BlockHook 还会提供当前基本块的大小，我们设置对较小的块不予理睬。</p><p>接下来就是问题三，栈回溯这块，Unidbg 也实现了 arm unwind 栈回溯，一些情况下有 Bug，但总体应该能用。但 Unidbg 没有提供打印深度的函数，在 Unwinder 类中添加一个它。</p><p><em>src/main/java/com/github/unidbg/unwind/Unwinder.java</em></p><pre tabindex=0><code>public final int depth(){
+    int count = 0;
+    Frame frame = null;
+    while((frame = unw_step(emulator, frame)) != null) {
+        if(frame.isFinish()){
+            return count;
+        }
+        count++;
+    }
+    return count;
+}
+</code></pre><p>接下来三步骤合一，组装代码</p><pre tabindex=0><code>PrintStream traceStream = null;
+try {
+
+    String traceFile = &#34;unidbg-android/src/test/resources/app/traceFunctions.txt&#34;;
+    traceStream = new PrintStream(new FileOutputStream(traceFile), true);
+} catch (FileNotFoundException e) {
+    e.printStackTrace();
+}
+
+final PrintStream finalTraceStream = traceStream;
+emulator.getBackend().hook_add_new(new BlockHook() {
+    @Override
+    public void hookBlock(Backend backend, long address, int size, Object user) {
+        if(size&gt;8){
+            Capstone.CsInsn[] insns = emulator.disassemble(address, 4, 0);
+            if(insns[0].mnemonic.equals(&#34;push&#34;)){
+                int level = emulator.getUnwinder().depth();
+                assert finalTraceStream != null;
+                for(int i = 0 ; i &lt; level ; i++){
+                    finalTraceStream.print(&#34;    |    &#34;);
+                }
+                finalTraceStream.println(&#34;  &#34;+&#34;sub_&#34;+Integer.toHexString((int) (address-module.base))+&#34;  &#34;);
+            }
+        }
+
+    }
+
+    @Override
+    public void onAttach(Unicorn.UnHook unHook) {
+
+    }
+
+    @Override
+    public void detach() {
+
+    }
+}, module.base, module.base+module.size, 0);
+</code></pre><p>可以发现代码非常的简洁优雅，效果也不错</p><p><a href=https://blog.seeflower.dev/images/15.png target=_blank rel=noopener><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://blog.seeflower.dev/images/15.png alt loading=lazy data-zoomable></div></div></figure></a></p><h3 id=3unidbg-findkey>3.Unidbg-FindKey</h3><p><a href=https://github.com/Pr0214/Unidbg_FindKey target=_blank rel=noopener>Unidbg_FindKey</a></p><p>// TODO 原理和扩充</p><h3 id=4unidbg-findcrypt>4.Unidbg-Findcrypt</h3><p>Findcrypt 是老牌经典工具，Unidbg 版的 Findcrypt 是要做啥？解决什么痛点？有三个主要原因</p><ul><li>Findcrypt 处理不了加壳 SO</li><li>Findcrypt 中说存在某种加密，但 SO 中并不一定用，我们的目标函数更不一定用。</li><li>从 Findcrypt 提示的常数不一定能找到对应函数，静态交叉分析有局限</li></ul><p>// TODO</p><h2 id=十二固定随机数>十二、固定随机数</h2><p>// TODO</p><h2 id=十三杂项>十三、杂项</h2><p>无需 Hook，Unidbg 中通过其他方式实现</p><p>// TODO</p></div><div class=article-widget><div class="container-xl row post-nav"><div class="col-6 post-nav-item"><div class=meta-nav>上一页</div><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%98%A5%E8%8A%82%E5%AE%89%E5%8D%93%E4%B8%AD%E7%BA%A7%E9%A2%98%E9%80%86%E5%90%91%E6%80%BB%E7%BB%93/ rel=next>【2021 春节】安卓中级题逆向总结</a></div><div class="col-6 post-nav-item"><div class=meta-nav>下一页</div><a href=/books/infosecurity-notes/%E8%BD%AF%E4%BB%B6%E5%AE%89%E5%85%A8/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2022-%E6%9F%90%E5%AE%89%E5%8D%93-crackme-%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90/ rel=prev>2022 某安卓 Crackme 流程分析</a></div></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div><script type=text/javascript id=clstr_globe async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
+<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
+<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
+<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
+<script id=dsq-count-scr src=https://ngte.disqus.com/count.js async></script>
+<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
+<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
+<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
+<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>
