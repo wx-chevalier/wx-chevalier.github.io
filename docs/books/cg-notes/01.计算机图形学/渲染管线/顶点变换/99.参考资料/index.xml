@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>99.参考资料 | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/cg-notes/01.%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/%E9%A1%B6%E7%82%B9%E5%8F%98%E6%8D%A2/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/</link><atom:link href="https://ng-tech.icu/books/cg-notes/01.%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/%E9%A1%B6%E7%82%B9%E5%8F%98%E6%8D%A2/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/index.xml" rel="self" type="application/rss+xml"/><description>99.参考资料</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>99.参考资料</title><link>https://ng-tech.icu/books/cg-notes/01.%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/%E9%A1%B6%E7%82%B9%E5%8F%98%E6%8D%A2/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/</link></image><item><title>2021-三维相机入门</title><link>https://ng-tech.icu/books/cg-notes/01.%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/%E9%A1%B6%E7%82%B9%E5%8F%98%E6%8D%A2/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E4%B8%89%E7%BB%B4%E7%9B%B8%E6%9C%BA%E5%85%A5%E9%97%A8/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/cg-notes/01.%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/%E9%A1%B6%E7%82%B9%E5%8F%98%E6%8D%A2/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E4%B8%89%E7%BB%B4%E7%9B%B8%E6%9C%BA%E5%85%A5%E9%97%A8/</guid><description>&lt;blockquote>
+&lt;p>&lt;a href="https://zhuanlan.zhihu.com/p/377692010" target="_blank" rel="noopener">原文地址&lt;/a> TODO!&lt;/p>
+&lt;/blockquote>
+&lt;h1 id="前言">&lt;strong>前言&lt;/strong>&lt;/h1>
+&lt;p>相信大家在入门渲染的时候都写过这样的 demo，将准备好的顶点数据上传至 GPU 进行绘制，就像用笔触在固定画布上面绘制图形。这套没有经过封装的流程对于 2D 引擎来说已经够用，但在 3D 引擎中想要展现逼真的效果还需要实现与现实相机相仿的功能，本文会重点讲述三维相机的渲染流程，阅读后你将会 get：&lt;/p>
+&lt;ul>
+&lt;li>相机如何确定三维空间的渲染内容。&lt;/li>
+&lt;li>关于变换的一些基本的几何知识。&lt;/li>
+&lt;li>如何在代码中表示线性变换。&lt;/li>
+&lt;li>三维空间转换至显示设备的流程与推导。&lt;/li>
+&lt;/ul>
+&lt;p>另外本文有几点需要注意的概念：&lt;/p>
+&lt;ul>
+&lt;li>本文使用的坐标系皆为右手坐标系。&lt;/li>
+&lt;li>本文涉及的所有变换皆可用线性矩阵表示，如下图所示：&lt;/li>
+&lt;/ul>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://pic1.zhimg.com/80/v2-2891849a905394a29d416e784bbc4470_1440w.webp" alt="img" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;ul>
+&lt;li>标准化设备坐标（Normalized Device Coordinates)，是设备所能理解的坐标系，本文特指 webgl 中 XYZ 范围皆在 -1 到 1 的坐标空间。&lt;/li>
+&lt;li>本文默认相机的上方向为正 Y 轴，且向负 Z 轴观察。&lt;/li>
+&lt;/ul>
+&lt;h1 id="2概述">&lt;strong>2、概述&lt;/strong>&lt;/h1>
+&lt;p>大部分渲染引擎中的相机的作用是，将任一瞬间经由相机可以看见的世界，转换成设备可以理解的数据，最后显示到屏幕上，可以将此过程简单描述如下：&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://pic1.zhimg.com/80/v2-a96e24876e889a5108e846ac0548129c_1440w.webp" alt="img" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>由上图可知，若要渲染一个小鸭模型我们需要实现以下步骤：&lt;/p>
+&lt;ol>
+&lt;li>将模型放置在相机的可视范围内&lt;/li>
+&lt;li>将模型上顶点的局部坐标转换为世界坐标（&lt;strong>模型变换&lt;/strong>）&lt;/li>
+&lt;li>将模型上顶点的世界坐标转换为视图坐标（&lt;strong>视图变换&lt;/strong>）&lt;/li>
+&lt;li>顶点的视图坐标经过投影变换为裁剪坐标，然后对顶点做透视除法获取规范化设备坐标系中的坐标。（&lt;strong>投影变换&lt;/strong>）&lt;/li>
+&lt;/ol></description></item><item><title>2021-渲染管线中的顶点变换</title><link>https://ng-tech.icu/books/cg-notes/01.%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/%E9%A1%B6%E7%82%B9%E5%8F%98%E6%8D%A2/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF%E4%B8%AD%E7%9A%84%E9%A1%B6%E7%82%B9%E5%8F%98%E6%8D%A2/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/cg-notes/01.%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/%E9%A1%B6%E7%82%B9%E5%8F%98%E6%8D%A2/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF%E4%B8%AD%E7%9A%84%E9%A1%B6%E7%82%B9%E5%8F%98%E6%8D%A2/</guid><description>&lt;blockquote>
+&lt;p>&lt;a href="https://zhuanlan.zhihu.com/p/127301402" target="_blank" rel="noopener">原文地址&lt;/a> TODO!&lt;/p>
+&lt;/blockquote>
+&lt;h1 id="渲染管线中的顶点变换">渲染管线中的顶点变换&lt;/h1>
+&lt;h2 id="概述">概述&lt;/h2>
+&lt;p>在图形学渲染管线中，一个顶点坐标，大概要经历局部坐标系、世界坐标系、相机坐标系、裁剪坐标系，最后到窗口坐标系，显示在屏幕上。&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://pic1.zhimg.com/80/v2-7ee6a7a2c27147858d91a32156bb5d0c_1440w.webp" alt="img" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>在这些过程中，从一个坐标系到另一个坐标系，都需要进行一定的变换。下面，将介绍每次变换的方式。&lt;/p>
+&lt;h2 id="局部空间-世界空间">局部空间-&amp;gt;世界空间&lt;/h2>
+&lt;p>这一变换过程，主要是将模型放置在世界空间中，进行一定的缩放、旋转或平移。这一步比较简单，只要将相应的矩阵作用到模型的局部空间坐标即可。&lt;/p>
+&lt;p>比如，对模型缩放 $(S_x, S_y, S_z)$ ，然后绕 Z 轴旋转 $\theta$ 度，再进行 $(T_x,T_y,T_z)$ 的平移。注意，这里的变换顺序是不能变的，即要先进行缩放，再进行旋转，最后进行平移。据此，我们可以构建模型变换矩阵。&lt;/p>
+&lt;p>$$
+M_{\text {model }}=\left[\begin{array}{cccc}
+1 &amp;amp; 0 &amp;amp; 0 &amp;amp; T_x \
+0 &amp;amp; 1 &amp;amp; 0 &amp;amp; T_y \
+0 &amp;amp; 0 &amp;amp; 1 &amp;amp; T_z \
+0 &amp;amp; 0 &amp;amp; 0 &amp;amp; 1
+\end{array}\right]\left[\begin{array}{cccc}
+\cos \theta &amp;amp; -\sin \theta &amp;amp; 0 &amp;amp; 0 \
+\sin \theta &amp;amp; \cos \theta &amp;amp; 0 &amp;amp; 0 \
+0 &amp;amp; 0 &amp;amp; 1 &amp;amp; 0 \
+0 &amp;amp; 0 &amp;amp; 0 &amp;amp; 1
+\end{array}\right]\left[\begin{array}{cccc}
+S_x &amp;amp; 0 &amp;amp; 0 &amp;amp; 0 \
+0 &amp;amp; S_y &amp;amp; 0 &amp;amp; 0 \
+0 &amp;amp; 0 &amp;amp; S_z &amp;amp; 0 \
+0 &amp;amp; 0 &amp;amp; 0 &amp;amp; 1
+\end{array}\right]
+$$&lt;/p>
+&lt;h2 id="世界空间-相机空间">世界空间-&amp;gt;相机空间&lt;/h2>
+&lt;p>首先定义一下相机：&lt;/p>
+&lt;ul>
+&lt;li>坐标为 $\vec{e}$&lt;/li>
+&lt;li>观察方向&lt;/li>
+&lt;li>向上方向&lt;/li>
+&lt;/ul>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/item/20230515195000.png" alt="Clip in 2D and 3D" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p>
+&lt;p>
+&lt;figure >
+&lt;div class="d-flex justify-content-center">
+&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/item/20230515194842.png" alt="The Vertex Transformation Pipeline" loading="lazy" data-zoomable />&lt;/div>
+&lt;/div>&lt;/figure>&lt;/p></description></item></channel></rss>
