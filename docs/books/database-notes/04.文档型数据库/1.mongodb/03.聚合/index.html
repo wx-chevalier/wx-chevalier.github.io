@@ -1,384 +1,1651 @@
-<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="MongoDB 聚合操作 一、聚合简述 在日常开发中，我们通常需要对存储数据进行聚合分析后，再返回给客户端。MongoDB 提供了三种聚合的方式，分别是聚合管道，map-reduce 函数和单用途聚合方法。 二、聚合管道 MongoDB 的"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/03.%E8%81%9A%E5%90%88/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.fab3cd1900ae35687457073b2d518207.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/03.%E8%81%9A%E5%90%88/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/03.%E8%81%9A%E5%90%88/"><meta property="og:title" content="03.聚合 | Next-gen Tech Edu"><meta property="og:description" content="MongoDB 聚合操作 一、聚合简述 在日常开发中，我们通常需要对存储数据进行聚合分析后，再返回给客户端。MongoDB 提供了三种聚合的方式，分别是聚合管道，map-reduce 函数和单用途聚合方法。 二、聚合管道 MongoDB 的"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>03.聚合 | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=ce4bae13c0d23a9e2836a157627334fe><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
-<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
-<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
-<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
-<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
-<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">1.Mongodb</span>
-<span><i class="fas fa-chevron-down"></i></span></div></button>
-<button class="form-control sidebar-search js-search d-none d-md-flex">
-<i class="fas fa-search pr-2"></i>
-<span class=sidebar-search-text>搜索...</span>
-<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
-Back</a>
-<span>|</span>
-<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
-Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id0b45ce9a1c5a2cd1ee82c0cd723ada15")' href=#id0b45ce9a1c5a2cd1ee82c0cd723ada15 aria-expanded=false aria-controls=id0b45ce9a1c5a2cd1ee82c0cd723ada15 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/>04.文档型数据库</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id0b45ce9a1c5a2cd1ee82c0cd723ada15 aria-expanded=false aria-controls=id0b45ce9a1c5a2cd1ee82c0cd723ada15><i class="fa-solid fa-angle-down" id=caret-id0b45ce9a1c5a2cd1ee82c0cd723ada15></i></a></div><ul class="nav docs-sidenav collapse show" id=id0b45ce9a1c5a2cd1ee82c0cd723ada15><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id87b4aaac19b993b7facb4e38c54efc7a")' href=#id87b4aaac19b993b7facb4e38c54efc7a aria-expanded=false aria-controls=id87b4aaac19b993b7facb4e38c54efc7a aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/>1.Mongodb</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id87b4aaac19b993b7facb4e38c54efc7a aria-expanded=false aria-controls=id87b4aaac19b993b7facb4e38c54efc7a><i class="fa-solid fa-angle-down" id=caret-id87b4aaac19b993b7facb4e38c54efc7a></i></a></div><ul class="nav docs-sidenav collapse show" id=id87b4aaac19b993b7facb4e38c54efc7a><li class="child level"><a href=/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/01.%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B%E4%B8%8E%E6%93%8D%E4%BD%9C/>01.数据类型与操作</a></li><li class="child level"><a href=/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/02.%E7%B4%A2%E5%BC%95/>02.索引</a></li><li class="child level active"><a href=/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/03.%E8%81%9A%E5%90%88/>03.聚合</a></li><li class="child level"><a href=/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/04.%E5%A4%8D%E5%88%B6/>04.复制</a></li><li class="child level"><a href=/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/05.%E5%88%86%E7%89%87/>05.分片</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents><ul><li><a href=#一聚合简述>一、聚合简述</a></li><li><a href=#二聚合管道>二、聚合管道</a><ul><li><a href=#11-match>1.1 $match</a></li><li><a href=#12-project>1.2 $project</a></li><li><a href=#13-group>1.3 $group</a></li><li><a href=#14-unwind>1.4 $unwind</a></li><li><a href=#15-sort>1.5 $sort</a></li><li><a href=#16-limit>1.6 $limit</a></li><li><a href=#17-skip>1.7 $skip</a></li><li><a href=#18-lookup>1.8 $lookup</a></li><li><a href=#19-out>1.9 $out</a></li><li><a href=#110-自动优化>1.10 自动优化</a></li></ul></li><li><a href=#三mapreduce>三、MapReduce</a></li><li><a href=#四单用途聚合方法>四、单用途聚合方法</a><ul><li><a href=#41-count>4.1 count</a></li><li><a href=#42-estimateddocumentcount>4.2 estimatedDocumentCount</a></li><li><a href=#43-distinct>4.3 distinct</a></li></ul></li><li><a href=#参考资料>参考资料</a></li></ul></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>03.聚合</h1><div class=article-style><h1 id=mongodb-聚合操作>MongoDB 聚合操作</h1><h2 id=一聚合简述>一、聚合简述</h2><p>在日常开发中，我们通常需要对存储数据进行聚合分析后，再返回给客户端。MongoDB 提供了三种聚合的方式，分别是聚合管道，map-reduce 函数和单用途聚合方法。</p><h2 id=二聚合管道>二、聚合管道</h2><p>MongoDB 的聚合操作类似于流水线处理，文档会依次进入多个管道阶段并执行相应的操作。这里先插入部分演示数据：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.employees.insertMany<span class=o>([</span>
-</span></span><span class=line><span class=cl>    <span class=o>{</span>
-</span></span><span class=line><span class=cl>        emp_no: 10001,
-</span></span><span class=line><span class=cl>        name: <span class=o>{</span>firstName:<span class=s2>&#34;Georgi&#34;</span>,lastName:<span class=s2>&#34;Facello&#34;</span><span class=o>}</span>,
-</span></span><span class=line><span class=cl>        age: 26,
-</span></span><span class=line><span class=cl>        gender: <span class=s2>&#34;F&#34;</span>,
-</span></span><span class=line><span class=cl>        hobby: <span class=o>[</span><span class=s2>&#34;basketball&#34;</span>, <span class=s2>&#34;football&#34;</span><span class=o>]</span>
-</span></span><span class=line><span class=cl>    <span class=o>}</span>,
-</span></span><span class=line><span class=cl>    <span class=o>{</span>
-</span></span><span class=line><span class=cl>        emp_no: 10002,
-</span></span><span class=line><span class=cl>        name: <span class=o>{</span>firstName:<span class=s2>&#34;Bezalel&#34;</span>,lastName:<span class=s2>&#34;Simmel&#34;</span><span class=o>}</span>,
-</span></span><span class=line><span class=cl>        age: 32,
-</span></span><span class=line><span class=cl>        gender: <span class=s2>&#34;M&#34;</span>,
-</span></span><span class=line><span class=cl>        hobby: <span class=o>[</span><span class=s2>&#34;basketball&#34;</span>, <span class=s2>&#34;tennis&#34;</span><span class=o>]</span>
-</span></span><span class=line><span class=cl>    <span class=o>}</span>,
-</span></span><span class=line><span class=cl>    <span class=o>{</span>
-</span></span><span class=line><span class=cl>        emp_no: 10003,
-</span></span><span class=line><span class=cl>        name: <span class=o>{</span>firstName:<span class=s2>&#34;Parto&#34;</span>,lastName:<span class=s2>&#34;Bamford&#34;</span><span class=o>}</span>,
-</span></span><span class=line><span class=cl>        age: 46,
-</span></span><span class=line><span class=cl>        gender: <span class=s2>&#34;M&#34;</span>,
-</span></span><span class=line><span class=cl>        hobby: <span class=o>[]</span>
-</span></span><span class=line><span class=cl>    <span class=o>}</span>,
-</span></span><span class=line><span class=cl>    <span class=o>{</span>
-</span></span><span class=line><span class=cl>        emp_no: 10004,
-</span></span><span class=line><span class=cl>        name: <span class=o>{</span>firstName:<span class=s2>&#34;Chirstian&#34;</span>,lastName:<span class=s2>&#34;Koblick&#34;</span><span class=o>}</span>,
-</span></span><span class=line><span class=cl>        age: 40,
-</span></span><span class=line><span class=cl>        gender: <span class=s2>&#34;F&#34;</span>,
-</span></span><span class=line><span class=cl>        hobby: <span class=o>[</span><span class=s2>&#34;football&#34;</span>, <span class=s2>&#34;tennis&#34;</span><span class=o>]</span>
-</span></span><span class=line><span class=cl>    <span class=o>}</span>
-</span></span><span class=line><span class=cl><span class=o>])</span>
-</span></span></code></pre></div><p>一个简单的聚合操作如下，这个聚合操作会经过两个阶段的数据处理：</p><ul><li>第一个管道阶段为 $match：会筛选出所有性别值为 F 的雇员的文档，然后输出到下一个管道操作中；</li><li>第二个管道阶段为 $project：用于定义返回的字段内容，这里返回 fullname 字段，它由 <code>firstName + lastName</code> 组成。</li></ul><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.employees.aggregate<span class=o>([</span>
-</span></span><span class=line><span class=cl>    <span class=o>{</span> <span class=nv>$match</span>: <span class=o>{</span> gender: <span class=s2>&#34;F&#34;</span> <span class=o>}</span> <span class=o>}</span>,
-</span></span><span class=line><span class=cl>    <span class=o>{</span> <span class=nv>$project</span>:
-</span></span><span class=line><span class=cl>        <span class=o>{</span> fullName:
-</span></span><span class=line><span class=cl>            <span class=o>{</span> <span class=nv>$concat</span>: <span class=o>[</span><span class=s2>&#34;</span><span class=nv>$name</span><span class=s2>.firstName&#34;</span>, <span class=s2>&#34;</span><span class=nv>$name</span><span class=s2>.lastName&#34;</span><span class=o>]}</span>
-</span></span><span class=line><span class=cl>        <span class=o>}</span>
-</span></span><span class=line><span class=cl>    <span class=o>}</span>
-</span></span><span class=line><span class=cl><span class=o>])</span>
-</span></span></code></pre></div><p>所以最后的输出结果如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl><span class=o>{</span>
-</span></span><span class=line><span class=cl>    <span class=s2>&#34;_id&#34;</span> : ObjectId<span class=o>(</span><span class=s2>&#34;5d3fe6488ba16934ccce999d&#34;</span><span class=o>)</span>,
-</span></span><span class=line><span class=cl>    <span class=s2>&#34;fullName&#34;</span> : <span class=s2>&#34;GeorgiFacello&#34;</span>
-</span></span><span class=line><span class=cl><span class=o>}</span>,
-</span></span><span class=line><span class=cl><span class=o>{</span>
-</span></span><span class=line><span class=cl>    <span class=s2>&#34;_id&#34;</span> : ObjectId<span class=o>(</span><span class=s2>&#34;5d3fe6488ba16934ccce99a0&#34;</span><span class=o>)</span>,
-</span></span><span class=line><span class=cl>    <span class=s2>&#34;fullName&#34;</span> : <span class=s2>&#34;ChirstianKoblick&#34;</span>
-</span></span><span class=line><span class=cl><span class=o>}</span>
-</span></span></code></pre></div><p>在当前最新的 MongoDB 4.x 中，MongoDB 提供了将近 30 个管道阶段，用于满足不同数据处理的需求。以下主要介绍常用几个管道阶段，如果想要了解全部的管道阶段，可以参见官方文档：<a href=https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline/ target=_blank rel=noopener>Aggregation Pipeline Stages</a> 。</p><h3 id=11-match>1.1 $match</h3><p>$match 主要用于筛选符合条件的数据，通常应该把 $match 放在尽量靠前的位置，这时候它会利用索引来优化查询，同时还可以降低后续阶段所需要处理的数据量。示例如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.employees.aggregate<span class=o>([</span>
-</span></span><span class=line><span class=cl>    <span class=o>{</span> <span class=nv>$match</span>: <span class=o>{</span> gender: <span class=s2>&#34;F&#34;</span> <span class=o>}</span> <span class=o>}</span>
-</span></span><span class=line><span class=cl><span class=o>])</span>
-</span></span></code></pre></div><h3 id=12-project>1.2 $project</h3><p>$project 主要用于定义需要返回的字段，1 代表包含该字段，0 代表不包含，除了可以作用于顶层字段外，还可以作用于内嵌字段。同时 $project 还支持使用表达式将多个字段或变量进行组合，并作为新的字段返回。示例如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.employees.aggregate<span class=o>([</span>
-</span></span><span class=line><span class=cl>     <span class=o>{</span>
-</span></span><span class=line><span class=cl>      <span class=nv>$project</span>: <span class=o>{</span>
-</span></span><span class=line><span class=cl>         _id: 0,
-</span></span><span class=line><span class=cl>         <span class=s2>&#34;name.firstName&#34;</span>: 1,
-</span></span><span class=line><span class=cl>         gender: 1,
-</span></span><span class=line><span class=cl>         fullName: <span class=o>{</span> <span class=nv>$concat</span>: <span class=o>[</span><span class=s2>&#34;</span><span class=nv>$name</span><span class=s2>.firstName&#34;</span>, <span class=s2>&#34;</span><span class=nv>$name</span><span class=s2>.lastName&#34;</span><span class=o>]</span> <span class=o>}</span>
-</span></span><span class=line><span class=cl>      <span class=o>}</span>
-</span></span><span class=line><span class=cl>   <span class=o>}</span>
-</span></span><span class=line><span class=cl><span class=o>])</span>
-</span></span></code></pre></div><p>从 MongoDB 3.6 开始，还可以在聚合表达式中使用 <code>$project + REMOVE</code> 来按照条件过滤返回字段，设置为 REMOVE 的字段将会从 $projection 的输出中排除。示例如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.employees.aggregate<span class=o>([</span>
-</span></span><span class=line><span class=cl>     <span class=o>{</span>
-</span></span><span class=line><span class=cl>      <span class=nv>$project</span>: <span class=o>{</span>
-</span></span><span class=line><span class=cl>         hobby: <span class=o>{</span>
-</span></span><span class=line><span class=cl>            <span class=nv>$cond</span>: <span class=o>{</span>
-</span></span><span class=line><span class=cl>               <span class=k>if</span>: <span class=o>{</span> <span class=nv>$eq</span>: <span class=o>[</span> <span class=o>[]</span>, <span class=s2>&#34;</span><span class=nv>$hobby</span><span class=s2>&#34;</span> <span class=o>]</span> <span class=o>}</span>,
-</span></span><span class=line><span class=cl>               <span class=k>then</span>: <span class=s2>&#34;</span><span class=nv>$$</span><span class=s2>REMOVE&#34;</span>,
-</span></span><span class=line><span class=cl>               <span class=k>else</span>: <span class=s2>&#34;</span><span class=nv>$hobby</span><span class=s2>&#34;</span>
-</span></span><span class=line><span class=cl>            <span class=o>}</span>
-</span></span><span class=line><span class=cl>         <span class=o>}</span>
-</span></span><span class=line><span class=cl>      <span class=o>}</span>
-</span></span><span class=line><span class=cl>   <span class=o>}</span>
-</span></span><span class=line><span class=cl><span class=o>])</span>
-</span></span></code></pre></div><p>这里判断当文档的 hobby 属性为空数组时，其 hobby 属性不会被输出到下一个管道阶段。</p><h3 id=13-group>1.3 $group</h3><p>$group 管道阶段和大多数关系型数据库中的 group by 字句功能类似，都是用于分组计算。示例如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.employees.aggregate<span class=o>(</span>
-</span></span><span class=line><span class=cl>   <span class=o>[</span>
-</span></span><span class=line><span class=cl>     <span class=o>{</span> <span class=nv>$group</span> : <span class=o>{</span>
-</span></span><span class=line><span class=cl>         _id : <span class=s2>&#34;</span><span class=nv>$gender</span><span class=s2>&#34;</span>,
-</span></span><span class=line><span class=cl>         totalAge: <span class=o>{</span> <span class=nv>$sum</span>: <span class=s2>&#34;</span><span class=nv>$age</span><span class=s2>&#34;</span><span class=o>}</span>,
-</span></span><span class=line><span class=cl>         avgAge: <span class=o>{</span> <span class=nv>$avg</span>: <span class=s2>&#34;</span><span class=nv>$age</span><span class=s2>&#34;</span> <span class=o>}</span>,
-</span></span><span class=line><span class=cl>         count: <span class=o>{</span> <span class=nv>$sum</span>: <span class=m>1</span> <span class=o>}</span>
-</span></span><span class=line><span class=cl>        <span class=o>}</span>
-</span></span><span class=line><span class=cl>     <span class=o>}</span>
-</span></span><span class=line><span class=cl>   <span class=o>]</span>
-</span></span><span class=line><span class=cl><span class=o>)</span>
-</span></span></code></pre></div><p>上面的语句会按照性别进行分组，并计算分组后两组人的总年龄、平均年龄和总人数，输出如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;_id&#34;</span> <span class=p>:</span> <span class=s2>&#34;M&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;totalAge&#34;</span> <span class=p>:</span> <span class=mi>78</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;avgAge&#34;</span> <span class=p>:</span> <span class=mi>39</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;count&#34;</span> <span class=p>:</span> <span class=mi>2</span>
-</span></span><span class=line><span class=cl><span class=p>}</span><span class=err>,</span>
-</span></span><span class=line><span class=cl><span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;_id&#34;</span> <span class=p>:</span> <span class=s2>&#34;F&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;totalAge&#34;</span> <span class=p>:</span> <span class=mi>66</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;avgAge&#34;</span> <span class=p>:</span> <span class=mi>33</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;count&#34;</span> <span class=p>:</span> <span class=mi>2</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><p>如果你想计算所有员工的年龄总和、平均年龄、以及员工总数，则可以将 $group 管道阶段的 _id 字段设置为 null ，如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.employees.aggregate<span class=o>(</span>
-</span></span><span class=line><span class=cl>   <span class=o>[</span>
-</span></span><span class=line><span class=cl>     <span class=o>{</span> <span class=nv>$group</span> : <span class=o>{</span>
-</span></span><span class=line><span class=cl>         _id : null,
-</span></span><span class=line><span class=cl>         totalAge: <span class=o>{</span> <span class=nv>$sum</span>: <span class=s2>&#34;</span><span class=nv>$age</span><span class=s2>&#34;</span><span class=o>}</span>,
-</span></span><span class=line><span class=cl>         avgAge: <span class=o>{</span> <span class=nv>$avg</span>: <span class=s2>&#34;</span><span class=nv>$age</span><span class=s2>&#34;</span> <span class=o>}</span>,
-</span></span><span class=line><span class=cl>         count: <span class=o>{</span> <span class=nv>$sum</span>: <span class=m>1</span> <span class=o>}</span>
-</span></span><span class=line><span class=cl>        <span class=o>}</span>
-</span></span><span class=line><span class=cl>     <span class=o>}</span>
-</span></span><span class=line><span class=cl>   <span class=o>]</span>
-</span></span><span class=line><span class=cl><span class=o>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 输出如下</span>
-</span></span><span class=line><span class=cl><span class=o>{</span>
-</span></span><span class=line><span class=cl>    <span class=s2>&#34;_id&#34;</span> : null,
-</span></span><span class=line><span class=cl>    <span class=s2>&#34;totalAge&#34;</span> : 144,
-</span></span><span class=line><span class=cl>    <span class=s2>&#34;avgAge&#34;</span> : 36,
-</span></span><span class=line><span class=cl>    <span class=s2>&#34;count&#34;</span> : <span class=m>4</span>
-</span></span><span class=line><span class=cl><span class=o>}</span>
-</span></span></code></pre></div><h3 id=14-unwind>1.4 $unwind</h3><p>$unwind 将文档按照数组中的每一个元素进行拆分，类似于大多数流式计算中的 flatMap 算子。其语法格式如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl><span class=o>{</span>
-</span></span><span class=line><span class=cl>  <span class=nv>$unwind</span>:
-</span></span><span class=line><span class=cl>    <span class=o>{</span>
-</span></span><span class=line><span class=cl>      path: &lt;field path&gt;,
-</span></span><span class=line><span class=cl>      includeArrayIndex: &lt;string&gt;,
-</span></span><span class=line><span class=cl>      preserveNullAndEmptyArrays: &lt;boolean&gt;
-</span></span><span class=line><span class=cl>    <span class=o>}</span>
-</span></span><span class=line><span class=cl><span class=o>}</span>
-</span></span></code></pre></div><ul><li><strong>path</strong>：用于展开的数组字段；</li><li><strong>includeArrayIndex</strong>：用于显示对应元素在原数组的位置信息；</li><li><strong>preserveNullAndEmptyArrays</strong>：如果用于展开的字段值为 null 或空数组时，则对应的文档不会被输出到下一阶段。如果想要输出到下一阶段则需要将该属性设置为 true。示例语句如下：</li></ul><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.employees.aggregate<span class=o>(</span> <span class=o>[</span>
-</span></span><span class=line><span class=cl>   <span class=o>{</span><span class=nv>$project</span>: <span class=o>{</span>_id: 0, emp_no: 1, hobby:1<span class=o>}}</span>,
-</span></span><span class=line><span class=cl>   <span class=o>{</span> <span class=nv>$unwind</span>:
-</span></span><span class=line><span class=cl>        <span class=o>{</span> path: <span class=s2>&#34;</span><span class=nv>$hobby</span><span class=s2>&#34;</span>,
-</span></span><span class=line><span class=cl>          includeArrayIndex: <span class=s2>&#34;arrayIndex&#34;</span>,
-</span></span><span class=line><span class=cl>          preserveNullAndEmptyArrays: <span class=nb>true</span>
-</span></span><span class=line><span class=cl>        <span class=o>}</span>
-</span></span><span class=line><span class=cl>   <span class=o>}</span>
-</span></span><span class=line><span class=cl><span class=o>]</span> <span class=o>)</span>
-</span></span></code></pre></div><p>此时输出内容如下。如果 preserveNullAndEmptyArrays 的值为 false 或者没有设置，则 10003 这条数据不会被输出：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span><span class=nt>&#34;emp_no&#34;</span><span class=p>:</span><span class=mi>10001</span><span class=p>,</span><span class=nt>&#34;hobby&#34;</span><span class=p>:</span><span class=s2>&#34;basketball&#34;</span><span class=p>,</span><span class=nt>&#34;arrayIndex&#34;</span><span class=p>:</span><span class=mi>0</span><span class=p>}</span><span class=err>,</span>
-</span></span><span class=line><span class=cl><span class=p>{</span><span class=nt>&#34;emp_no&#34;</span><span class=p>:</span><span class=mi>10001</span><span class=p>,</span><span class=nt>&#34;hobby&#34;</span><span class=p>:</span><span class=s2>&#34;football&#34;</span><span class=p>,</span><span class=nt>&#34;arrayIndex&#34;</span><span class=p>:</span><span class=mi>1</span><span class=p>}</span><span class=err>,</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=p>{</span><span class=nt>&#34;emp_no&#34;</span><span class=p>:</span><span class=mi>10002</span><span class=p>,</span><span class=nt>&#34;hobby&#34;</span><span class=p>:</span><span class=s2>&#34;basketball&#34;</span><span class=p>,</span><span class=nt>&#34;arrayIndex&#34;</span><span class=p>:</span><span class=mi>0</span><span class=p>}</span><span class=err>,</span>
-</span></span><span class=line><span class=cl><span class=p>{</span><span class=nt>&#34;emp_no&#34;</span><span class=p>:</span><span class=mi>10002</span><span class=p>,</span><span class=nt>&#34;hobby&#34;</span><span class=p>:</span><span class=s2>&#34;tennis&#34;</span><span class=p>,</span><span class=nt>&#34;arrayIndex&#34;</span><span class=p>:</span><span class=mi>1</span><span class=p>}</span><span class=err>,</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=p>{</span><span class=nt>&#34;emp_no&#34;</span><span class=p>:</span><span class=mi>10003</span><span class=p>,</span><span class=nt>&#34;arrayIndex&#34;</span><span class=p>:</span><span class=kc>null</span><span class=p>}</span><span class=err>,</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=p>{</span><span class=nt>&#34;emp_no&#34;</span><span class=p>:</span><span class=mi>10004</span><span class=p>,</span><span class=nt>&#34;hobby&#34;</span><span class=p>:</span><span class=s2>&#34;football&#34;</span><span class=p>,</span><span class=nt>&#34;arrayIndex&#34;</span><span class=p>:</span><span class=mi>0</span><span class=p>}</span><span class=err>,</span>
-</span></span><span class=line><span class=cl><span class=p>{</span><span class=nt>&#34;emp_no&#34;</span><span class=p>:</span><span class=mi>10004</span><span class=p>,</span><span class=nt>&#34;hobby&#34;</span><span class=p>:</span><span class=s2>&#34;tennis&#34;</span><span class=p>,</span><span class=nt>&#34;arrayIndex&#34;</span><span class=p>:</span><span class=mi>1</span><span class=p>}</span>
-</span></span></code></pre></div><h3 id=15-sort>1.5 $sort</h3><p>$sort 主要用于排序操作，需要注意的是如果可以，应当尽量将该操作放置在管道的第一阶段，从而可以利用索引进行排序，否则就需要使用内存进行排序，这时排序操作就会变得相当昂贵，需要额外消耗内存和计算资源。示例如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.employees.aggregate<span class=o>([</span>
-</span></span><span class=line><span class=cl>   <span class=o>{</span><span class=nv>$skip</span>: 2<span class=o>}</span> ,
-</span></span><span class=line><span class=cl>   <span class=o>{</span><span class=nv>$sort</span>: <span class=o>{</span>age: 1<span class=o>}}</span>,
-</span></span><span class=line><span class=cl>   <span class=o>{</span><span class=nv>$limit</span>: 10<span class=o>}</span>
-</span></span><span class=line><span class=cl><span class=o>])</span>
-</span></span></code></pre></div><h3 id=16-limit>1.6 $limit</h3><p>限制返回文档的数量。</p><h3 id=17-skip>1.7 $skip</h3><p>跳过一定数量的文档。</p><h3 id=18-lookup>1.8 $lookup</h3><h4 id=1-关联查询>1. 关联查询</h4><p>$lookup 类似与大多数关系型数据库中的 left outer join ，用于实现不同集合之间的连接。其基本的语法如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl><span class=o>{</span>
-</span></span><span class=line><span class=cl>   <span class=nv>$lookup</span>:
-</span></span><span class=line><span class=cl>     <span class=o>{</span>
-</span></span><span class=line><span class=cl>       from: &lt;collection to join&gt;,
-</span></span><span class=line><span class=cl>       localField: &lt;field from the input documents&gt;,
-</span></span><span class=line><span class=cl>       foreignField: &lt;field from the documents of the <span class=s2>&#34;from&#34;</span> collection&gt;,
-</span></span><span class=line><span class=cl>       as: &lt;output array field&gt;
-</span></span><span class=line><span class=cl>     <span class=o>}</span>
-</span></span><span class=line><span class=cl><span class=o>}</span>
-</span></span></code></pre></div><ul><li><strong>from</strong>：指定同一数据库中的集合以进行连接操作；</li><li><strong>localField</strong>：连接集合中用于进行连接的字段；</li><li><strong>foreignField</strong>：待连接集合中用于进行连接的字段；</li><li><strong>as</strong>：指定用于存放匹配文档的新数组字段的名称。如果指定的字段已存在，则进行覆盖。</li></ul><p>为了 $lookup 管道，我们需要额外添加一个集合，用于储存员工的职位信息 (一个员工可以有多个职位头衔) ，语法如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.titles.insertMany<span class=o>([</span>
-</span></span><span class=line><span class=cl>    <span class=o>{</span>
-</span></span><span class=line><span class=cl>      emp_no: 10001,
-</span></span><span class=line><span class=cl>      title: <span class=s2>&#34;Senior Engineer&#34;</span>
-</span></span><span class=line><span class=cl>    <span class=o>}</span>,
-</span></span><span class=line><span class=cl>    <span class=o>{</span>
-</span></span><span class=line><span class=cl>      emp_no: 10002,
-</span></span><span class=line><span class=cl>      title: <span class=s2>&#34;Staff&#34;</span>
-</span></span><span class=line><span class=cl>    <span class=o>}</span>,
-</span></span><span class=line><span class=cl>    <span class=o>{</span>
-</span></span><span class=line><span class=cl>      emp_no: 10003,
-</span></span><span class=line><span class=cl>      title: <span class=s2>&#34;Senior Engineer&#34;</span>
-</span></span><span class=line><span class=cl>    <span class=o>}</span>,
-</span></span><span class=line><span class=cl>    <span class=o>{</span>
-</span></span><span class=line><span class=cl>      emp_no: 10004,
-</span></span><span class=line><span class=cl>      title: <span class=s2>&#34;Engineer&#34;</span>
-</span></span><span class=line><span class=cl>    <span class=o>}</span>,
-</span></span><span class=line><span class=cl>    <span class=o>{</span>
-</span></span><span class=line><span class=cl>      emp_no: 10004,
-</span></span><span class=line><span class=cl>      title: <span class=s2>&#34;Senior Engineer&#34;</span>
-</span></span><span class=line><span class=cl>    <span class=o>}</span>
-</span></span><span class=line><span class=cl><span class=o>])</span>
-</span></span></code></pre></div><p>执行连接查询，连接条件为员工工号：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.employees.aggregate<span class=o>([</span>
-</span></span><span class=line><span class=cl>   <span class=o>{</span>
-</span></span><span class=line><span class=cl>      <span class=nv>$lookup</span>:
-</span></span><span class=line><span class=cl>         <span class=o>{</span>
-</span></span><span class=line><span class=cl>            from: <span class=s2>&#34;titles&#34;</span>,
-</span></span><span class=line><span class=cl>            localField: <span class=s2>&#34;emp_no&#34;</span>,
-</span></span><span class=line><span class=cl>            foreignField: <span class=s2>&#34;emp_no&#34;</span>,
-</span></span><span class=line><span class=cl>            as: <span class=s2>&#34;emp_title&#34;</span>
-</span></span><span class=line><span class=cl>        <span class=o>}</span>
-</span></span><span class=line><span class=cl>   <span class=o>}</span>
-</span></span><span class=line><span class=cl><span class=o>])</span>
-</span></span></code></pre></div><p>输出结果如下，为节省篇幅和突出重点，这里只显示部分内容，下文亦同。从输出中可以看到员工的职位信息都作为内嵌文档插入到指定的 emp_title 字段下，等价于执行了 left outer join 操作：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>{
-</span></span><span class=line><span class=cl>  &#34;_id&#34; : ObjectId(&#34;5d3ffaaa8ba16934ccce99a1&#34;),
-</span></span><span class=line><span class=cl>  &#34;emp_no&#34; : 10001,
-</span></span><span class=line><span class=cl>  ........
-</span></span><span class=line><span class=cl>  &#34;emp_title&#34; : [
-</span></span><span class=line><span class=cl>    {
-</span></span><span class=line><span class=cl>      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a5&#34;),
-</span></span><span class=line><span class=cl>      &#34;emp_no&#34; : 10001,
-</span></span><span class=line><span class=cl>      &#34;title&#34; : &#34;Senior Engineer&#34;
-</span></span><span class=line><span class=cl>    }
-</span></span><span class=line><span class=cl>  ]
-</span></span><span class=line><span class=cl>},
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>.........
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>{
-</span></span><span class=line><span class=cl>  &#34;_id&#34; : ObjectId(&#34;5d3ffaaa8ba16934ccce99a4&#34;),
-</span></span><span class=line><span class=cl>  &#34;emp_no&#34; : 10004,
-</span></span><span class=line><span class=cl>  ........
-</span></span><span class=line><span class=cl>  &#34;emp_title&#34; : [
-</span></span><span class=line><span class=cl>    {
-</span></span><span class=line><span class=cl>      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a8&#34;),
-</span></span><span class=line><span class=cl>      &#34;emp_no&#34; : 10004,
-</span></span><span class=line><span class=cl>      &#34;title&#34; : &#34;Engineer&#34;
-</span></span><span class=line><span class=cl>    },
-</span></span><span class=line><span class=cl>    {
-</span></span><span class=line><span class=cl>      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a9&#34;),
-</span></span><span class=line><span class=cl>      &#34;emp_no&#34; : 10004,
-</span></span><span class=line><span class=cl>      &#34;title&#34; : &#34;Senior Engineer&#34;
-</span></span><span class=line><span class=cl>    }
-</span></span><span class=line><span class=cl>  ]
-</span></span><span class=line><span class=cl>}
-</span></span></code></pre></div><h4 id=2-非相关查询>2. 非相关查询</h4><p>除了关联查询外，MongoDB 从 3.6 开始，还支持非相关查询。其基本语法如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl><span class=o>{</span>
-</span></span><span class=line><span class=cl>   <span class=nv>$lookup</span>:
-</span></span><span class=line><span class=cl>     <span class=o>{</span>
-</span></span><span class=line><span class=cl>       from: &lt;collection to join&gt;,
-</span></span><span class=line><span class=cl>       let: <span class=o>{</span> &lt;var_1&gt;: &lt;expression&gt;, …, &lt;var_n&gt;: &lt;expression&gt; <span class=o>}</span>,
-</span></span><span class=line><span class=cl>       pipeline: <span class=o>[</span> &lt;pipeline to execute on the collection to join&gt; <span class=o>]</span>,
-</span></span><span class=line><span class=cl>       as: &lt;output array field&gt;
-</span></span><span class=line><span class=cl>     <span class=o>}</span>
-</span></span><span class=line><span class=cl><span class=o>}</span>
-</span></span></code></pre></div><ul><li><strong>from</strong>：指定同一数据库中的集合以进行连接操作。</li><li><strong>let</strong>：可选操作。用于指定在管道阶段中使用的变量，需要注意的是访问 let 变量必须使用 $expr 运算符。</li><li><strong>pipeline</strong>：必选值，用于指定要在已连接集合上运行的管道。需要注意的是该管道无法直接访问输入文档中的字段，需要先在 let 中进行定义，然后再引用。</li><li><strong>as</strong>：指定用于存放匹配文档的新数组字段的名称。如果指定的字段已存在，则进行覆盖。</li></ul><p>这里我们分别基于三种场景来讲解不相关查询：</p><p><strong>场景一</strong>：假设每个员工都需要了解其他员工的职位信息，以便进行沟通，则对应的查询语法如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.employees.aggregate<span class=o>([</span>
-</span></span><span class=line><span class=cl>   <span class=o>{</span>
-</span></span><span class=line><span class=cl>      <span class=nv>$lookup</span>:
-</span></span><span class=line><span class=cl>         <span class=o>{</span>
-</span></span><span class=line><span class=cl>           from: <span class=s2>&#34;titles&#34;</span>,
-</span></span><span class=line><span class=cl>           pipeline: <span class=o>[]</span>,
-</span></span><span class=line><span class=cl>           as: <span class=s2>&#34;emps_title&#34;</span>
-</span></span><span class=line><span class=cl>         <span class=o>}</span>
-</span></span><span class=line><span class=cl>    <span class=o>}</span>
-</span></span><span class=line><span class=cl><span class=o>])</span>
-</span></span></code></pre></div><p>此时输出如下，可以看到每个员工的 emps_title 字段都是相同的，都包含了所有员工的职位信息。因为查询中并没有指定任何字段进行关联，所以这种查询也被称为非相关查询。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>{
-</span></span><span class=line><span class=cl>  &#34;_id&#34; : ObjectId(&#34;5d3ffaaa8ba16934ccce99a1&#34;),
-</span></span><span class=line><span class=cl>  &#34;emp_no&#34; : 10001,
-</span></span><span class=line><span class=cl>  .......
-</span></span><span class=line><span class=cl>  &#34;emps_title&#34; : [
-</span></span><span class=line><span class=cl>    {
-</span></span><span class=line><span class=cl>      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a5&#34;),
-</span></span><span class=line><span class=cl>      &#34;emp_no&#34; : 10001,
-</span></span><span class=line><span class=cl>      &#34;title&#34; : &#34;Senior Engineer&#34;
-</span></span><span class=line><span class=cl>    },
-</span></span><span class=line><span class=cl>    {
-</span></span><span class=line><span class=cl>      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a6&#34;),
-</span></span><span class=line><span class=cl>      &#34;emp_no&#34; : 10002,
-</span></span><span class=line><span class=cl>      &#34;title&#34; : &#34;Staff&#34;
-</span></span><span class=line><span class=cl>    },
-</span></span><span class=line><span class=cl>    {
-</span></span><span class=line><span class=cl>      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a7&#34;),
-</span></span><span class=line><span class=cl>      &#34;emp_no&#34; : 10003,
-</span></span><span class=line><span class=cl>      &#34;title&#34; : &#34;Senior Engineer&#34;
-</span></span><span class=line><span class=cl>     },
-</span></span><span class=line><span class=cl>    {
-</span></span><span class=line><span class=cl>      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a8&#34;),
-</span></span><span class=line><span class=cl>      &#34;emp_no&#34; : 10004,
-</span></span><span class=line><span class=cl>      &#34;title&#34; : &#34;Engineer&#34;
-</span></span><span class=line><span class=cl>    },
-</span></span><span class=line><span class=cl>    {
-</span></span><span class=line><span class=cl>      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a9&#34;),
-</span></span><span class=line><span class=cl>      &#34;emp_no&#34; : 10004,
-</span></span><span class=line><span class=cl>      &#34;title&#34; : &#34;Senior Engineer&#34;
-</span></span><span class=line><span class=cl>    }
-</span></span><span class=line><span class=cl>  ]
-</span></span><span class=line><span class=cl>},
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>{
-</span></span><span class=line><span class=cl>  &#34;_id&#34; : ObjectId(&#34;5d3ffaaa8ba16934ccce99a2&#34;),
-</span></span><span class=line><span class=cl>  &#34;emp_no&#34; : 10002,
-</span></span><span class=line><span class=cl>  .......
-</span></span><span class=line><span class=cl>  &#34;emps_title&#34; : [
-</span></span><span class=line><span class=cl>    {
-</span></span><span class=line><span class=cl>      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a5&#34;),
-</span></span><span class=line><span class=cl>      &#34;emp_no&#34; : 10001,
-</span></span><span class=line><span class=cl>      &#34;title&#34; : &#34;Senior Engineer&#34;
-</span></span><span class=line><span class=cl>    },
-</span></span><span class=line><span class=cl>    {
-</span></span><span class=line><span class=cl>      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a6&#34;),
-</span></span><span class=line><span class=cl>      &#34;emp_no&#34; : 10002,
-</span></span><span class=line><span class=cl>      &#34;title&#34; : &#34;Staff&#34;
-</span></span><span class=line><span class=cl>    },
-</span></span><span class=line><span class=cl>    {
-</span></span><span class=line><span class=cl>      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a7&#34;),
-</span></span><span class=line><span class=cl>      &#34;emp_no&#34; : 10003,
-</span></span><span class=line><span class=cl>      &#34;title&#34; : &#34;Senior Engineer&#34;
-</span></span><span class=line><span class=cl>    },
-</span></span><span class=line><span class=cl>    {
-</span></span><span class=line><span class=cl>      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a8&#34;),
-</span></span><span class=line><span class=cl>      &#34;emp_no&#34; : 10004,
-</span></span><span class=line><span class=cl>      &#34;title&#34; : &#34;Engineer&#34;
-</span></span><span class=line><span class=cl>    },
-</span></span><span class=line><span class=cl>    {
-</span></span><span class=line><span class=cl>      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a9&#34;),
-</span></span><span class=line><span class=cl>      &#34;emp_no&#34; : 10004,
-</span></span><span class=line><span class=cl>      &#34;title&#34; : &#34;Senior Engineer&#34;
-</span></span><span class=line><span class=cl>    }
-</span></span><span class=line><span class=cl>  ]
-</span></span><span class=line><span class=cl>},
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>..........
-</span></span></code></pre></div><p><strong>场景二</strong>：假设每个员工都只需要知道办公室职员 (即职位为 Staff ) 的员工的信息，此时就需要利用 pipeline 管道对 titles 集合中的数据进行过滤，对应的查询语法为：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.employees.aggregate<span class=o>([</span>
-</span></span><span class=line><span class=cl>   <span class=o>{</span>
-</span></span><span class=line><span class=cl>      <span class=nv>$lookup</span>:
-</span></span><span class=line><span class=cl>         <span class=o>{</span>
-</span></span><span class=line><span class=cl>           from: <span class=s2>&#34;titles&#34;</span>,
-</span></span><span class=line><span class=cl>           pipeline: <span class=o>[</span>
-</span></span><span class=line><span class=cl>              <span class=o>{</span> <span class=nv>$match</span>:
-</span></span><span class=line><span class=cl>                  <span class=o>{</span> <span class=nv>$expr</span>: <span class=o>{</span> <span class=nv>$eq</span>: <span class=o>[</span> <span class=s2>&#34;</span><span class=nv>$title</span><span class=s2>&#34;</span>,<span class=s2>&#34;Staff&#34;</span><span class=o>]}}</span>
-</span></span><span class=line><span class=cl>              <span class=o>}</span>
-</span></span><span class=line><span class=cl>           <span class=o>]</span>,
-</span></span><span class=line><span class=cl>           as: <span class=s2>&#34;emps_title&#34;</span>
-</span></span><span class=line><span class=cl>         <span class=o>}</span>
-</span></span><span class=line><span class=cl>    <span class=o>}</span>
-</span></span><span class=line><span class=cl><span class=o>])</span>
-</span></span></code></pre></div><p><strong>场景三</strong>：假设只有男员工需要知道其他职员的信息，此时就需要利用 pipeline 管道对 employees 集合中的数据进行过滤。由于 employees 集合是输入集合，管道无法直接访问其中的字段，此时需要先在 let 中进行定义，然后再引用。语句如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.employees.aggregate<span class=o>([</span>
-</span></span><span class=line><span class=cl>   <span class=o>{</span>
-</span></span><span class=line><span class=cl>      <span class=nv>$lookup</span>:
-</span></span><span class=line><span class=cl>         <span class=o>{</span>
-</span></span><span class=line><span class=cl>           from: <span class=s2>&#34;titles&#34;</span>,
-</span></span><span class=line><span class=cl>           let: <span class=o>{</span> gender: <span class=s2>&#34;</span><span class=nv>$gender</span><span class=s2>&#34;</span><span class=o>}</span>,
-</span></span><span class=line><span class=cl>           pipeline: <span class=o>[</span>
-</span></span><span class=line><span class=cl>              <span class=o>{</span> <span class=nv>$match</span>:
-</span></span><span class=line><span class=cl>                 <span class=o>{</span> <span class=nv>$expr</span>: <span class=o>{</span> <span class=nv>$eq</span>: <span class=o>[</span> <span class=s2>&#34;</span><span class=nv>$$</span><span class=s2>gender&#34;</span>,<span class=s2>&#34;M&#34;</span><span class=o>]}}</span>
-</span></span><span class=line><span class=cl>              <span class=o>}</span>
-</span></span><span class=line><span class=cl>           <span class=o>]</span>,
-</span></span><span class=line><span class=cl>           as: <span class=s2>&#34;emps_title&#34;</span>
-</span></span><span class=line><span class=cl>         <span class=o>}</span>
-</span></span><span class=line><span class=cl>    <span class=o>}</span>
-</span></span><span class=line><span class=cl><span class=o>])</span>
-</span></span></code></pre></div><p>这里需要使用两个 <code>$</code> 符号对 gender 变量进行引用，因为使用 let 定义后，其类似于系统变量。</p><h3 id=19-out>1.9 $out</h3><p>$out 用于将数据写入指定的集合，它必须是管道中的最后一个阶段。如果指定的集合不存在，则会自动新建；如果指定的集合存在，它会覆盖原有集合的数据。其实际的步骤如下：</p><ul><li>创建临时集合；</li><li>将索引从现有集合复制到临时集合；</li><li>将文档插入临时集合中；</li><li>调用 <code>db.collection.renameCollection(target, true)</code> 方法将临时集合重命名为目标集合。</li></ul><p>$out 的使用示例如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.employees.aggregate<span class=o>([</span>
-</span></span><span class=line><span class=cl>    <span class=o>{</span> <span class=nv>$out</span>: <span class=s2>&#34;emps&#34;</span><span class=o>}</span>
-</span></span><span class=line><span class=cl><span class=o>])</span>
-</span></span></code></pre></div><h3 id=110-自动优化>1.10 自动优化</h3><p>在大多数情况下 MongoDB 会按照我们定义管道的先后顺序执行管道操作，但是某些情况下，MongoDB 会在不影响结果的前提下，改变管道执行顺序，从而获得更好的性能表现。常见的优化策略如下：</p><h4 id=project-or-addfields--match>$project or $addFields + $match</h4><p>当投影操作后面有匹配操作时，MongoDB 会将 $match 阶段中不需要进行投影操作的字段的过滤条件提前到投影操作前执行。</p><h4 id=sort--match>$sort + $match</h4><p>当排序操作后面有匹配操作时，会将匹配操作提前，以减少需要排序的数据量。</p><h4 id=project--skip>$project + $skip</h4><p>当投影操作后面有跳过操作时，会先执行跳过操作，从而减少需要进行投影操作的数据量。</p><h4 id=sort--limit>$sort + $limit</h4><p>当排序操作在限制操作之前时，如果没有中间阶段会修改文档数量 (例如 $unwind，$group)，优化器会将 $limit 合并到 $sort 中。如果在 $sort 和 $limit 之间存在修改文档数量的管道阶段，MongoDB 将不会执行合并。</p><p>了解这些优化策略可以有助于我们在开发中合理设置管道的顺序。想要了解全部的优化策略，可以参阅 MongoDB 的官方文档：<a href=https://docs.mongodb.com/manual/core/aggregation-pipeline-optimization/ target=_blank rel=noopener>Aggregation Pipeline Optimization</a> 。</p><h2 id=三mapreduce>三、MapReduce</h2><p>MongoDB 的 MapReduce 在概念上与 Hadoop MapReduce 类似，MongoDB 将 <em>map</em> 阶段应用于每个符合条件的输入文档，<em>map</em> 阶段的输出结果是 key-value 键值对。对于具有多个值的 key，MongoDB 会执行 <em>reduce</em> 阶段，该阶段负责收集并聚合数据，然后将结果存储在集合中。</p><p>这里我们以按照性别分组计算员工的平均年龄为例，演示 MapReduce 的基本使用，语句如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.employees.mapReduce<span class=o>(</span>
-</span></span><span class=line><span class=cl>    <span class=k>function</span><span class=o>(){</span>
-</span></span><span class=line><span class=cl>        emit<span class=o>(</span>this.gender,this.age<span class=o>)</span>
-</span></span><span class=line><span class=cl>    <span class=o>}</span>,
-</span></span><span class=line><span class=cl>    <span class=k>function</span><span class=o>(</span>key,values<span class=o>){</span>
-</span></span><span class=line><span class=cl>        <span class=k>return</span> Array.avg<span class=o>(</span>values<span class=o>)</span>
-</span></span><span class=line><span class=cl>     <span class=o>}</span>,
-</span></span><span class=line><span class=cl>    <span class=o>{</span> out:<span class=s2>&#34;age_avg&#34;</span><span class=o>}</span>
-</span></span><span class=line><span class=cl><span class=o>)</span>
-</span></span></code></pre></div><p>对应的计算结果会被输出到 age_avg 集合中，其内容如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>{
-</span></span><span class=line><span class=cl>  &#34;_id&#34; : &#34;F&#34;,
-</span></span><span class=line><span class=cl>  &#34;value&#34; : 33
-</span></span><span class=line><span class=cl>},
-</span></span><span class=line><span class=cl>{
-</span></span><span class=line><span class=cl>  &#34;_id&#34; : &#34;M&#34;,
-</span></span><span class=line><span class=cl>  &#34;value&#34; : 39
-</span></span><span class=line><span class=cl>}
-</span></span></code></pre></div><p>当前 MongoDB 支持在分片集合执行 map-reduce 操作，也支持将 Map-reduce 操作的结果输出到分片集合。map-reduce 使得开发者可以灵活控制聚合行为，但其性能不如聚合管道，所以两者应适场景而选用。</p><h2 id=四单用途聚合方法>四、单用途聚合方法</h2><p>出于易用性考虑，MongoDB 提供了部分 API，用于实现对常见聚合过程的简单访问。如下：</p><h3 id=41-count>4.1 count</h3><p>用于计算符合条件的文档的数量，如果想要计算集合中所有文档的数量，则传入空对象即可：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.employees.count<span class=o>({</span>gender:<span class=s2>&#34;M&#34;</span><span class=o>})</span>
-</span></span></code></pre></div><h3 id=42-estimateddocumentcount>4.2 estimatedDocumentCount</h3><p>官方更加推荐使用 estimatedDocumentCount 计算集合中所有文档的数量，它会直接获取元数据信息并返回，因此它不支持传入查询条件，示例如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.employees.estimatedDocumentCount<span class=o>({})</span>
-</span></span></code></pre></div><h3 id=43-distinct>4.3 distinct</h3><p>和大多数数据库中的 distinct 关键字类似，用于返回不重复的数据：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>db.titles.distinct<span class=o>(</span><span class=s2>&#34;title&#34;</span><span class=o>)</span>
-</span></span></code></pre></div><h2 id=参考资料>参考资料</h2><ul><li>官方文档：<a href=https://docs.mongodb.com/manual/aggregation/ target=_blank rel=noopener>Aggregation</a>、<a href=https://docs.mongodb.com/manual/core/map-reduce/ target=_blank rel=noopener>Map-Reduce</a></li><li>所有聚合管道总览：https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline/</li><li>聚合管道中所有可选操作符：https://docs.mongodb.com/manual/reference/operator/aggregation/</li></ul></div><div class=article-widget><div class="container-xl row post-nav"><div class="col-6 post-nav-item"><div class=meta-nav>上一页</div><a href=/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/02.%E7%B4%A2%E5%BC%95/ rel=next>02.索引</a></div><div class="col-6 post-nav-item"><div class=meta-nav>下一页</div><a href=/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/04.%E5%A4%8D%E5%88%B6/ rel=prev>04.复制</a></div></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div><script type=text/javascript id=clstr_globe async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
-<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
-<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
-<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
-<script id=dsq-count-scr src=https://ngte.disqus.com/count.js async></script>
-<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
-<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
-<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
-<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>
+<!DOCTYPE html><html lang="zh" >
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  
+  
+    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+
+  
+  
+  
+    
+      
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    
+  
+
+  
+    <meta name="google-site-verification" content="google69a5cccb61297807" />
+    <meta name="baidu-site-verification" content="cqmZHEleVh" />
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+    
+  
+  <meta name="description" content="MongoDB 聚合操作 一、聚合简述 在日常开发中，我们通常需要对存储数据进行聚合分析后，再返回给客户端。MongoDB 提供了三种聚合的方式，分别是聚合管道，map-reduce 函数和单用途聚合方法。 二、聚合管道 MongoDB 的" />
+
+  
+  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/03.%E8%81%9A%E5%90%88/" />
+
+  
+  
+  
+    <meta name="theme-color" content="#0a55a7" />
+  
+
+  
+  
+
+  
+
+  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
+
+  
+  
+  
+    
+    
+
+    
+    
+    
+    
+      
+      
+    
+    
+    
+
+    
+    
+    
+      
+    
+    
+      
+      
+        
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
+        
+      
+    
+
+    
+    
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
+    
+
+    
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+        
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+  
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/wowchemy.0d97305106da5efa530e28b021b4c580.css" />
+
+  
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', "G-40NYXJ8823");
+</script>
+
+
+  
+
+
+  
+
+
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+  
+  
+  
+
+  
+
+  
+    <link rel="manifest" href="/manifest.webmanifest" />
+  
+
+  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
+  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
+
+  <link rel="canonical" href="https://ng-tech.icu/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/03.%E8%81%9A%E5%90%88/" />
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+
+  
+  
+    
+    
+  
+  <meta property="twitter:card" content="summary_large_image" />
+  
+    <meta property="twitter:site" content="@wx-chevalier" />
+    <meta property="twitter:creator" content="@wx-chevalier" />
+  
+  <meta property="og:site_name" content="Next-gen Tech Edu" />
+  <meta property="og:url" content="https://ng-tech.icu/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/03.%E8%81%9A%E5%90%88/" />
+  <meta property="og:title" content="03.聚合 | Next-gen Tech Edu" />
+  <meta property="og:description" content="MongoDB 聚合操作 一、聚合简述 在日常开发中，我们通常需要对存储数据进行聚合分析后，再返回给客户端。MongoDB 提供了三种聚合的方式，分别是聚合管道，map-reduce 函数和单用途聚合方法。 二、聚合管道 MongoDB 的" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
+    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
+  
+    
+    
+  
+
+  
+
+
+
+  
+
+  
+
+  
+
+
+
+
+
+  <title>03.聚合 | Next-gen Tech Edu</title>
+</head>
+
+
+<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="ce4bae13c0d23a9e2836a157627334fe" >
+  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
+
+  
+
+
+<aside class="search-modal" id="search">
+  <div class="container">
+    <section class="search-header">
+
+      <div class="row no-gutters justify-content-between mb-3">
+        <div class="col-6 search-title">
+          <p>搜索</p>
+        </div>
+        <div class="col-6 col-search-close">
+          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+      <div id="search-box">
+        
+        
+        
+      </div>
+
+      
+      
+
+      
+    </section>
+    <section class="section-search-results">
+
+      <div id="search-hits">
+        
+      </div>
+
+      <div id="search-common-queries">
+        
+      </div>
+
+    </section>
+  </div>
+</aside>
+
+
+
+  <div class="page-header">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="header--fixed">
+  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
+    <div class="container-xl">
+
+      
+      <div class="d-none d-lg-inline-flex">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      <button type="button" class="navbar-toggler" data-toggle="collapse"
+              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
+      <span><i class="fas fa-bars"></i></span>
+      </button>
+      
+
+      
+      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      
+      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
+
+        
+        <ul class="navbar-nav d-md-inline-flex">
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
+          </li>
+
+          
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+              
+              
+              
+                
+              
+              
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
+              
+                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
+              
+                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+        
+
+          
+        </ul>
+      </div>
+
+      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
+
+        
+        
+        
+        <li class="nav-item">
+          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        <li class="nav-item">
+            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        
+
+        
+        
+        
+        <div></div>
+        
+        <style>
+        @media only screen and (max-width: 600px) {
+          .jimmysong-template {
+            display: none!important;
+          }
+        }
+        </style>
+        
+        <li class="jimmysong-template" style="color: white;font-size: 12px;">
+          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+</header>
+
+
+  </div>
+
+  <div class="page-body">
+    
+    
+    
+
+    
+
+
+
+
+<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
+<div class="container-xl docs">
+  <div class="row flex-xl-nowrap">
+    <div class="docs-sidebar">
+      <form class="docs-search d-flex align-items-center">
+  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    <div class="d-flex">
+      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
+        
+          1.Mongodb
+        
+      </span>
+      <span><i class="fas fa-chevron-down"></i></span>
+    </div>
+  </button>
+
+  
+  <button class="form-control sidebar-search js-search d-none d-md-flex">
+    <i class="fas fa-search pr-2"></i>
+    <span class="sidebar-search-text">搜索...</span>
+    <span class="sidebar-search-shortcut">/</span>
+  </button>
+  
+</form>
+
+<nav class="collapse docs-links" id="docs-nav">
+  
+  
+  
+  
+  
+  
+
+  
+  
+    
+
+    
+      
+
+      <ul class="nav docs-sidenav">
+        <li style="display: inline-flex">
+          <a style="cursor: pointer;" onclick="window.history.back()">
+            <i class="fas fa-arrow-left pr-1"></i>
+            Back
+          </a>
+          <span>|</span>
+          <a href="/books/">
+            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
+            Books
+          </a>
+        </li>
+      </ul>
+
+      
+      
+        
+          
+        
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id0b45ce9a1c5a2cd1ee82c0cd723ada15&#34;)" href="#id0b45ce9a1c5a2cd1ee82c0cd723ada15" aria-expanded="false" aria-controls="id0b45ce9a1c5a2cd1ee82c0cd723ada15" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/">04.文档型数据库</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id0b45ce9a1c5a2cd1ee82c0cd723ada15" aria-expanded="false" aria-controls="id0b45ce9a1c5a2cd1ee82c0cd723ada15">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id0b45ce9a1c5a2cd1ee82c0cd723ada15"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id0b45ce9a1c5a2cd1ee82c0cd723ada15">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id87b4aaac19b993b7facb4e38c54efc7a&#34;)" href="#id87b4aaac19b993b7facb4e38c54efc7a" aria-expanded="false" aria-controls="id87b4aaac19b993b7facb4e38c54efc7a" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/">1.Mongodb</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id87b4aaac19b993b7facb4e38c54efc7a" aria-expanded="false" aria-controls="id87b4aaac19b993b7facb4e38c54efc7a">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id87b4aaac19b993b7facb4e38c54efc7a"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id87b4aaac19b993b7facb4e38c54efc7a">
+      
+
+
+
+  <li class="child level "><a href="/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/01.%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B%E4%B8%8E%E6%93%8D%E4%BD%9C/">01.数据类型与操作</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/02.%E7%B4%A2%E5%BC%95/">02.索引</a></li>
+
+
+
+
+  <li class="child level active"><a href="/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/03.%E8%81%9A%E5%90%88/">03.聚合</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/04.%E5%A4%8D%E5%88%B6/">04.复制</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/05.%E5%88%86%E7%89%87/">05.分片</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+    
+  
+</nav>
+
+    </div>
+
+    
+    
+    <div class="d-none d-xl-block col-xl-2 docs-toc">
+      
+     
+      <ul class="nav toc-top">
+        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
+      </ul>
+     
+
+      <nav id="TableOfContents">
+  <ul>
+    <li><a href="#一聚合简述">一、聚合简述</a></li>
+    <li><a href="#二聚合管道">二、聚合管道</a>
+      <ul>
+        <li><a href="#11-match">1.1 $match</a></li>
+        <li><a href="#12-project">1.2 $project</a></li>
+        <li><a href="#13-group">1.3 $group</a></li>
+        <li><a href="#14-unwind">1.4 $unwind</a></li>
+        <li><a href="#15-sort">1.5 $sort</a></li>
+        <li><a href="#16-limit">1.6 $limit</a></li>
+        <li><a href="#17-skip">1.7 $skip</a></li>
+        <li><a href="#18-lookup">1.8 $lookup</a></li>
+        <li><a href="#19-out">1.9 $out</a></li>
+        <li><a href="#110-自动优化">1.10 自动优化</a></li>
+      </ul>
+    </li>
+    <li><a href="#三mapreduce">三、MapReduce</a></li>
+    <li><a href="#四单用途聚合方法">四、单用途聚合方法</a>
+      <ul>
+        <li><a href="#41-count">4.1 count</a></li>
+        <li><a href="#42-estimateddocumentcount">4.2 estimatedDocumentCount</a></li>
+        <li><a href="#43-distinct">4.3 distinct</a></li>
+      </ul>
+    </li>
+    <li><a href="#参考资料">参考资料</a></li>
+  </ul>
+</nav>
+
+      
+<div class="subscribe-module col-24 mt-1">
+    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
+</div>
+
+
+
+    </div>
+    
+
+    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
+
+      <article class="article">
+
+          
+
+          <h1>03.聚合</h1>
+
+          <div class="article-style">
+            <h1 id="mongodb-聚合操作">MongoDB 聚合操作</h1>
+<h2 id="一聚合简述">一、聚合简述</h2>
+<p>在日常开发中，我们通常需要对存储数据进行聚合分析后，再返回给客户端。MongoDB 提供了三种聚合的方式，分别是聚合管道，map-reduce 函数和单用途聚合方法。</p>
+<h2 id="二聚合管道">二、聚合管道</h2>
+<p>MongoDB 的聚合操作类似于流水线处理，文档会依次进入多个管道阶段并执行相应的操作。这里先插入部分演示数据：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.employees.insertMany<span class="o">([</span>
+</span></span><span class="line"><span class="cl">    <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        emp_no: 10001,
+</span></span><span class="line"><span class="cl">        name: <span class="o">{</span>firstName:<span class="s2">&#34;Georgi&#34;</span>,lastName:<span class="s2">&#34;Facello&#34;</span><span class="o">}</span>,
+</span></span><span class="line"><span class="cl">        age: 26,
+</span></span><span class="line"><span class="cl">        gender: <span class="s2">&#34;F&#34;</span>,
+</span></span><span class="line"><span class="cl">        hobby: <span class="o">[</span><span class="s2">&#34;basketball&#34;</span>, <span class="s2">&#34;football&#34;</span><span class="o">]</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">    <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        emp_no: 10002,
+</span></span><span class="line"><span class="cl">        name: <span class="o">{</span>firstName:<span class="s2">&#34;Bezalel&#34;</span>,lastName:<span class="s2">&#34;Simmel&#34;</span><span class="o">}</span>,
+</span></span><span class="line"><span class="cl">        age: 32,
+</span></span><span class="line"><span class="cl">        gender: <span class="s2">&#34;M&#34;</span>,
+</span></span><span class="line"><span class="cl">        hobby: <span class="o">[</span><span class="s2">&#34;basketball&#34;</span>, <span class="s2">&#34;tennis&#34;</span><span class="o">]</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">    <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        emp_no: 10003,
+</span></span><span class="line"><span class="cl">        name: <span class="o">{</span>firstName:<span class="s2">&#34;Parto&#34;</span>,lastName:<span class="s2">&#34;Bamford&#34;</span><span class="o">}</span>,
+</span></span><span class="line"><span class="cl">        age: 46,
+</span></span><span class="line"><span class="cl">        gender: <span class="s2">&#34;M&#34;</span>,
+</span></span><span class="line"><span class="cl">        hobby: <span class="o">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">    <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        emp_no: 10004,
+</span></span><span class="line"><span class="cl">        name: <span class="o">{</span>firstName:<span class="s2">&#34;Chirstian&#34;</span>,lastName:<span class="s2">&#34;Koblick&#34;</span><span class="o">}</span>,
+</span></span><span class="line"><span class="cl">        age: 40,
+</span></span><span class="line"><span class="cl">        gender: <span class="s2">&#34;F&#34;</span>,
+</span></span><span class="line"><span class="cl">        hobby: <span class="o">[</span><span class="s2">&#34;football&#34;</span>, <span class="s2">&#34;tennis&#34;</span><span class="o">]</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">])</span>
+</span></span></code></pre></div><p>一个简单的聚合操作如下，这个聚合操作会经过两个阶段的数据处理：</p>
+<ul>
+<li>第一个管道阶段为 $match：会筛选出所有性别值为 F 的雇员的文档，然后输出到下一个管道操作中；</li>
+<li>第二个管道阶段为 $project：用于定义返回的字段内容，这里返回 fullname 字段，它由 <code>firstName + lastName</code> 组成。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.employees.aggregate<span class="o">([</span>
+</span></span><span class="line"><span class="cl">    <span class="o">{</span> <span class="nv">$match</span>: <span class="o">{</span> gender: <span class="s2">&#34;F&#34;</span> <span class="o">}</span> <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">    <span class="o">{</span> <span class="nv">$project</span>:
+</span></span><span class="line"><span class="cl">        <span class="o">{</span> fullName:
+</span></span><span class="line"><span class="cl">            <span class="o">{</span> <span class="nv">$concat</span>: <span class="o">[</span><span class="s2">&#34;</span><span class="nv">$name</span><span class="s2">.firstName&#34;</span>, <span class="s2">&#34;</span><span class="nv">$name</span><span class="s2">.lastName&#34;</span><span class="o">]}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">])</span>
+</span></span></code></pre></div><p>所以最后的输出结果如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl"><span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;_id&#34;</span> : ObjectId<span class="o">(</span><span class="s2">&#34;5d3fe6488ba16934ccce999d&#34;</span><span class="o">)</span>,
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;fullName&#34;</span> : <span class="s2">&#34;GeorgiFacello&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>,
+</span></span><span class="line"><span class="cl"><span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;_id&#34;</span> : ObjectId<span class="o">(</span><span class="s2">&#34;5d3fe6488ba16934ccce99a0&#34;</span><span class="o">)</span>,
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;fullName&#34;</span> : <span class="s2">&#34;ChirstianKoblick&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p>在当前最新的 MongoDB 4.x 中，MongoDB 提供了将近 30 个管道阶段，用于满足不同数据处理的需求。以下主要介绍常用几个管道阶段，如果想要了解全部的管道阶段，可以参见官方文档：<a href="https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline/" target="_blank" rel="noopener">Aggregation Pipeline Stages</a> 。</p>
+<h3 id="11-match">1.1 $match</h3>
+<p>$match 主要用于筛选符合条件的数据，通常应该把 $match 放在尽量靠前的位置，这时候它会利用索引来优化查询，同时还可以降低后续阶段所需要处理的数据量。示例如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.employees.aggregate<span class="o">([</span>
+</span></span><span class="line"><span class="cl">    <span class="o">{</span> <span class="nv">$match</span>: <span class="o">{</span> gender: <span class="s2">&#34;F&#34;</span> <span class="o">}</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">])</span>
+</span></span></code></pre></div><h3 id="12-project">1.2 $project</h3>
+<p>$project 主要用于定义需要返回的字段，1 代表包含该字段，0 代表不包含，除了可以作用于顶层字段外，还可以作用于内嵌字段。同时 $project 还支持使用表达式将多个字段或变量进行组合，并作为新的字段返回。示例如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.employees.aggregate<span class="o">([</span>
+</span></span><span class="line"><span class="cl">     <span class="o">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nv">$project</span>: <span class="o">{</span>
+</span></span><span class="line"><span class="cl">         _id: 0,
+</span></span><span class="line"><span class="cl">         <span class="s2">&#34;name.firstName&#34;</span>: 1,
+</span></span><span class="line"><span class="cl">         gender: 1,
+</span></span><span class="line"><span class="cl">         fullName: <span class="o">{</span> <span class="nv">$concat</span>: <span class="o">[</span><span class="s2">&#34;</span><span class="nv">$name</span><span class="s2">.firstName&#34;</span>, <span class="s2">&#34;</span><span class="nv">$name</span><span class="s2">.lastName&#34;</span><span class="o">]</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">      <span class="o">}</span>
+</span></span><span class="line"><span class="cl">   <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">])</span>
+</span></span></code></pre></div><p>从 MongoDB 3.6 开始，还可以在聚合表达式中使用 <code>$project + REMOVE</code> 来按照条件过滤返回字段，设置为 REMOVE 的字段将会从 $projection 的输出中排除。示例如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.employees.aggregate<span class="o">([</span>
+</span></span><span class="line"><span class="cl">     <span class="o">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nv">$project</span>: <span class="o">{</span>
+</span></span><span class="line"><span class="cl">         hobby: <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nv">$cond</span>: <span class="o">{</span>
+</span></span><span class="line"><span class="cl">               <span class="k">if</span>: <span class="o">{</span> <span class="nv">$eq</span>: <span class="o">[</span> <span class="o">[]</span>, <span class="s2">&#34;</span><span class="nv">$hobby</span><span class="s2">&#34;</span> <span class="o">]</span> <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">               <span class="k">then</span>: <span class="s2">&#34;</span><span class="nv">$$</span><span class="s2">REMOVE&#34;</span>,
+</span></span><span class="line"><span class="cl">               <span class="k">else</span>: <span class="s2">&#34;</span><span class="nv">$hobby</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">         <span class="o">}</span>
+</span></span><span class="line"><span class="cl">      <span class="o">}</span>
+</span></span><span class="line"><span class="cl">   <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">])</span>
+</span></span></code></pre></div><p>这里判断当文档的 hobby 属性为空数组时，其 hobby 属性不会被输出到下一个管道阶段。</p>
+<h3 id="13-group">1.3 $group</h3>
+<p>$group 管道阶段和大多数关系型数据库中的 group by 字句功能类似，都是用于分组计算。示例如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.employees.aggregate<span class="o">(</span>
+</span></span><span class="line"><span class="cl">   <span class="o">[</span>
+</span></span><span class="line"><span class="cl">     <span class="o">{</span> <span class="nv">$group</span> : <span class="o">{</span>
+</span></span><span class="line"><span class="cl">         _id : <span class="s2">&#34;</span><span class="nv">$gender</span><span class="s2">&#34;</span>,
+</span></span><span class="line"><span class="cl">         totalAge: <span class="o">{</span> <span class="nv">$sum</span>: <span class="s2">&#34;</span><span class="nv">$age</span><span class="s2">&#34;</span><span class="o">}</span>,
+</span></span><span class="line"><span class="cl">         avgAge: <span class="o">{</span> <span class="nv">$avg</span>: <span class="s2">&#34;</span><span class="nv">$age</span><span class="s2">&#34;</span> <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">         count: <span class="o">{</span> <span class="nv">$sum</span>: <span class="m">1</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">     <span class="o">}</span>
+</span></span><span class="line"><span class="cl">   <span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="o">)</span>
+</span></span></code></pre></div><p>上面的语句会按照性别进行分组，并计算分组后两组人的总年龄、平均年龄和总人数，输出如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;_id&#34;</span> <span class="p">:</span> <span class="s2">&#34;M&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;totalAge&#34;</span> <span class="p">:</span> <span class="mi">78</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;avgAge&#34;</span> <span class="p">:</span> <span class="mi">39</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;count&#34;</span> <span class="p">:</span> <span class="mi">2</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span><span class="err">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;_id&#34;</span> <span class="p">:</span> <span class="s2">&#34;F&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;totalAge&#34;</span> <span class="p">:</span> <span class="mi">66</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;avgAge&#34;</span> <span class="p">:</span> <span class="mi">33</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;count&#34;</span> <span class="p">:</span> <span class="mi">2</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>如果你想计算所有员工的年龄总和、平均年龄、以及员工总数，则可以将 $group 管道阶段的 _id 字段设置为 null ，如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.employees.aggregate<span class="o">(</span>
+</span></span><span class="line"><span class="cl">   <span class="o">[</span>
+</span></span><span class="line"><span class="cl">     <span class="o">{</span> <span class="nv">$group</span> : <span class="o">{</span>
+</span></span><span class="line"><span class="cl">         _id : null,
+</span></span><span class="line"><span class="cl">         totalAge: <span class="o">{</span> <span class="nv">$sum</span>: <span class="s2">&#34;</span><span class="nv">$age</span><span class="s2">&#34;</span><span class="o">}</span>,
+</span></span><span class="line"><span class="cl">         avgAge: <span class="o">{</span> <span class="nv">$avg</span>: <span class="s2">&#34;</span><span class="nv">$age</span><span class="s2">&#34;</span> <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">         count: <span class="o">{</span> <span class="nv">$sum</span>: <span class="m">1</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">     <span class="o">}</span>
+</span></span><span class="line"><span class="cl">   <span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="o">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出如下</span>
+</span></span><span class="line"><span class="cl"><span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;_id&#34;</span> : null,
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;totalAge&#34;</span> : 144,
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;avgAge&#34;</span> : 36,
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;count&#34;</span> : <span class="m">4</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><h3 id="14-unwind">1.4 $unwind</h3>
+<p>$unwind 将文档按照数组中的每一个元素进行拆分，类似于大多数流式计算中的 flatMap 算子。其语法格式如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl"><span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nv">$unwind</span>:
+</span></span><span class="line"><span class="cl">    <span class="o">{</span>
+</span></span><span class="line"><span class="cl">      path: &lt;field path&gt;,
+</span></span><span class="line"><span class="cl">      includeArrayIndex: &lt;string&gt;,
+</span></span><span class="line"><span class="cl">      preserveNullAndEmptyArrays: &lt;boolean&gt;
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><ul>
+<li><strong>path</strong>：用于展开的数组字段；</li>
+<li><strong>includeArrayIndex</strong>：用于显示对应元素在原数组的位置信息；</li>
+<li><strong>preserveNullAndEmptyArrays</strong>：如果用于展开的字段值为 null 或空数组时，则对应的文档不会被输出到下一阶段。如果想要输出到下一阶段则需要将该属性设置为 true。示例语句如下：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.employees.aggregate<span class="o">(</span> <span class="o">[</span>
+</span></span><span class="line"><span class="cl">   <span class="o">{</span><span class="nv">$project</span>: <span class="o">{</span>_id: 0, emp_no: 1, hobby:1<span class="o">}}</span>,
+</span></span><span class="line"><span class="cl">   <span class="o">{</span> <span class="nv">$unwind</span>:
+</span></span><span class="line"><span class="cl">        <span class="o">{</span> path: <span class="s2">&#34;</span><span class="nv">$hobby</span><span class="s2">&#34;</span>,
+</span></span><span class="line"><span class="cl">          includeArrayIndex: <span class="s2">&#34;arrayIndex&#34;</span>,
+</span></span><span class="line"><span class="cl">          preserveNullAndEmptyArrays: <span class="nb">true</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">   <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">]</span> <span class="o">)</span>
+</span></span></code></pre></div><p>此时输出内容如下。如果 preserveNullAndEmptyArrays 的值为 false 或者没有设置，则 10003 这条数据不会被输出：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;emp_no&#34;</span><span class="p">:</span><span class="mi">10001</span><span class="p">,</span><span class="nt">&#34;hobby&#34;</span><span class="p">:</span><span class="s2">&#34;basketball&#34;</span><span class="p">,</span><span class="nt">&#34;arrayIndex&#34;</span><span class="p">:</span><span class="mi">0</span><span class="p">}</span><span class="err">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;emp_no&#34;</span><span class="p">:</span><span class="mi">10001</span><span class="p">,</span><span class="nt">&#34;hobby&#34;</span><span class="p">:</span><span class="s2">&#34;football&#34;</span><span class="p">,</span><span class="nt">&#34;arrayIndex&#34;</span><span class="p">:</span><span class="mi">1</span><span class="p">}</span><span class="err">,</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;emp_no&#34;</span><span class="p">:</span><span class="mi">10002</span><span class="p">,</span><span class="nt">&#34;hobby&#34;</span><span class="p">:</span><span class="s2">&#34;basketball&#34;</span><span class="p">,</span><span class="nt">&#34;arrayIndex&#34;</span><span class="p">:</span><span class="mi">0</span><span class="p">}</span><span class="err">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;emp_no&#34;</span><span class="p">:</span><span class="mi">10002</span><span class="p">,</span><span class="nt">&#34;hobby&#34;</span><span class="p">:</span><span class="s2">&#34;tennis&#34;</span><span class="p">,</span><span class="nt">&#34;arrayIndex&#34;</span><span class="p">:</span><span class="mi">1</span><span class="p">}</span><span class="err">,</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;emp_no&#34;</span><span class="p">:</span><span class="mi">10003</span><span class="p">,</span><span class="nt">&#34;arrayIndex&#34;</span><span class="p">:</span><span class="kc">null</span><span class="p">}</span><span class="err">,</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;emp_no&#34;</span><span class="p">:</span><span class="mi">10004</span><span class="p">,</span><span class="nt">&#34;hobby&#34;</span><span class="p">:</span><span class="s2">&#34;football&#34;</span><span class="p">,</span><span class="nt">&#34;arrayIndex&#34;</span><span class="p">:</span><span class="mi">0</span><span class="p">}</span><span class="err">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;emp_no&#34;</span><span class="p">:</span><span class="mi">10004</span><span class="p">,</span><span class="nt">&#34;hobby&#34;</span><span class="p">:</span><span class="s2">&#34;tennis&#34;</span><span class="p">,</span><span class="nt">&#34;arrayIndex&#34;</span><span class="p">:</span><span class="mi">1</span><span class="p">}</span>
+</span></span></code></pre></div><h3 id="15-sort">1.5 $sort</h3>
+<p>$sort 主要用于排序操作，需要注意的是如果可以，应当尽量将该操作放置在管道的第一阶段，从而可以利用索引进行排序，否则就需要使用内存进行排序，这时排序操作就会变得相当昂贵，需要额外消耗内存和计算资源。示例如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.employees.aggregate<span class="o">([</span>
+</span></span><span class="line"><span class="cl">   <span class="o">{</span><span class="nv">$skip</span>: 2<span class="o">}</span> ,
+</span></span><span class="line"><span class="cl">   <span class="o">{</span><span class="nv">$sort</span>: <span class="o">{</span>age: 1<span class="o">}}</span>,
+</span></span><span class="line"><span class="cl">   <span class="o">{</span><span class="nv">$limit</span>: 10<span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">])</span>
+</span></span></code></pre></div><h3 id="16-limit">1.6 $limit</h3>
+<p>限制返回文档的数量。</p>
+<h3 id="17-skip">1.7 $skip</h3>
+<p>跳过一定数量的文档。</p>
+<h3 id="18-lookup">1.8 $lookup</h3>
+<h4 id="1-关联查询">1. 关联查询</h4>
+<p>$lookup 类似与大多数关系型数据库中的 left outer join ，用于实现不同集合之间的连接。其基本的语法如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl"><span class="o">{</span>
+</span></span><span class="line"><span class="cl">   <span class="nv">$lookup</span>:
+</span></span><span class="line"><span class="cl">     <span class="o">{</span>
+</span></span><span class="line"><span class="cl">       from: &lt;collection to join&gt;,
+</span></span><span class="line"><span class="cl">       localField: &lt;field from the input documents&gt;,
+</span></span><span class="line"><span class="cl">       foreignField: &lt;field from the documents of the <span class="s2">&#34;from&#34;</span> collection&gt;,
+</span></span><span class="line"><span class="cl">       as: &lt;output array field&gt;
+</span></span><span class="line"><span class="cl">     <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><ul>
+<li><strong>from</strong>：指定同一数据库中的集合以进行连接操作；</li>
+<li><strong>localField</strong>：连接集合中用于进行连接的字段；</li>
+<li><strong>foreignField</strong>：待连接集合中用于进行连接的字段；</li>
+<li><strong>as</strong>：指定用于存放匹配文档的新数组字段的名称。如果指定的字段已存在，则进行覆盖。</li>
+</ul>
+<p>为了 $lookup 管道，我们需要额外添加一个集合，用于储存员工的职位信息 (一个员工可以有多个职位头衔) ，语法如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.titles.insertMany<span class="o">([</span>
+</span></span><span class="line"><span class="cl">    <span class="o">{</span>
+</span></span><span class="line"><span class="cl">      emp_no: 10001,
+</span></span><span class="line"><span class="cl">      title: <span class="s2">&#34;Senior Engineer&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">    <span class="o">{</span>
+</span></span><span class="line"><span class="cl">      emp_no: 10002,
+</span></span><span class="line"><span class="cl">      title: <span class="s2">&#34;Staff&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">    <span class="o">{</span>
+</span></span><span class="line"><span class="cl">      emp_no: 10003,
+</span></span><span class="line"><span class="cl">      title: <span class="s2">&#34;Senior Engineer&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">    <span class="o">{</span>
+</span></span><span class="line"><span class="cl">      emp_no: 10004,
+</span></span><span class="line"><span class="cl">      title: <span class="s2">&#34;Engineer&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">    <span class="o">{</span>
+</span></span><span class="line"><span class="cl">      emp_no: 10004,
+</span></span><span class="line"><span class="cl">      title: <span class="s2">&#34;Senior Engineer&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">])</span>
+</span></span></code></pre></div><p>执行连接查询，连接条件为员工工号：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.employees.aggregate<span class="o">([</span>
+</span></span><span class="line"><span class="cl">   <span class="o">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nv">$lookup</span>:
+</span></span><span class="line"><span class="cl">         <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            from: <span class="s2">&#34;titles&#34;</span>,
+</span></span><span class="line"><span class="cl">            localField: <span class="s2">&#34;emp_no&#34;</span>,
+</span></span><span class="line"><span class="cl">            foreignField: <span class="s2">&#34;emp_no&#34;</span>,
+</span></span><span class="line"><span class="cl">            as: <span class="s2">&#34;emp_title&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">   <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">])</span>
+</span></span></code></pre></div><p>输出结果如下，为节省篇幅和突出重点，这里只显示部分内容，下文亦同。从输出中可以看到员工的职位信息都作为内嵌文档插入到指定的 emp_title 字段下，等价于执行了 left outer join 操作：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">{
+</span></span><span class="line"><span class="cl">  &#34;_id&#34; : ObjectId(&#34;5d3ffaaa8ba16934ccce99a1&#34;),
+</span></span><span class="line"><span class="cl">  &#34;emp_no&#34; : 10001,
+</span></span><span class="line"><span class="cl">  ........
+</span></span><span class="line"><span class="cl">  &#34;emp_title&#34; : [
+</span></span><span class="line"><span class="cl">    {
+</span></span><span class="line"><span class="cl">      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a5&#34;),
+</span></span><span class="line"><span class="cl">      &#34;emp_no&#34; : 10001,
+</span></span><span class="line"><span class="cl">      &#34;title&#34; : &#34;Senior Engineer&#34;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">  ]
+</span></span><span class="line"><span class="cl">},
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">.........
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">{
+</span></span><span class="line"><span class="cl">  &#34;_id&#34; : ObjectId(&#34;5d3ffaaa8ba16934ccce99a4&#34;),
+</span></span><span class="line"><span class="cl">  &#34;emp_no&#34; : 10004,
+</span></span><span class="line"><span class="cl">  ........
+</span></span><span class="line"><span class="cl">  &#34;emp_title&#34; : [
+</span></span><span class="line"><span class="cl">    {
+</span></span><span class="line"><span class="cl">      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a8&#34;),
+</span></span><span class="line"><span class="cl">      &#34;emp_no&#34; : 10004,
+</span></span><span class="line"><span class="cl">      &#34;title&#34; : &#34;Engineer&#34;
+</span></span><span class="line"><span class="cl">    },
+</span></span><span class="line"><span class="cl">    {
+</span></span><span class="line"><span class="cl">      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a9&#34;),
+</span></span><span class="line"><span class="cl">      &#34;emp_no&#34; : 10004,
+</span></span><span class="line"><span class="cl">      &#34;title&#34; : &#34;Senior Engineer&#34;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">  ]
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></div><h4 id="2-非相关查询">2. 非相关查询</h4>
+<p>除了关联查询外，MongoDB 从 3.6 开始，还支持非相关查询。其基本语法如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl"><span class="o">{</span>
+</span></span><span class="line"><span class="cl">   <span class="nv">$lookup</span>:
+</span></span><span class="line"><span class="cl">     <span class="o">{</span>
+</span></span><span class="line"><span class="cl">       from: &lt;collection to join&gt;,
+</span></span><span class="line"><span class="cl">       let: <span class="o">{</span> &lt;var_1&gt;: &lt;expression&gt;, …, &lt;var_n&gt;: &lt;expression&gt; <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">       pipeline: <span class="o">[</span> &lt;pipeline to execute on the collection to join&gt; <span class="o">]</span>,
+</span></span><span class="line"><span class="cl">       as: &lt;output array field&gt;
+</span></span><span class="line"><span class="cl">     <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><ul>
+<li><strong>from</strong>：指定同一数据库中的集合以进行连接操作。</li>
+<li><strong>let</strong>：可选操作。用于指定在管道阶段中使用的变量，需要注意的是访问 let 变量必须使用 $expr 运算符。</li>
+<li><strong>pipeline</strong>：必选值，用于指定要在已连接集合上运行的管道。需要注意的是该管道无法直接访问输入文档中的字段，需要先在 let 中进行定义，然后再引用。</li>
+<li><strong>as</strong>：指定用于存放匹配文档的新数组字段的名称。如果指定的字段已存在，则进行覆盖。</li>
+</ul>
+<p>这里我们分别基于三种场景来讲解不相关查询：</p>
+<p><strong>场景一</strong>：假设每个员工都需要了解其他员工的职位信息，以便进行沟通，则对应的查询语法如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.employees.aggregate<span class="o">([</span>
+</span></span><span class="line"><span class="cl">   <span class="o">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nv">$lookup</span>:
+</span></span><span class="line"><span class="cl">         <span class="o">{</span>
+</span></span><span class="line"><span class="cl">           from: <span class="s2">&#34;titles&#34;</span>,
+</span></span><span class="line"><span class="cl">           pipeline: <span class="o">[]</span>,
+</span></span><span class="line"><span class="cl">           as: <span class="s2">&#34;emps_title&#34;</span>
+</span></span><span class="line"><span class="cl">         <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">])</span>
+</span></span></code></pre></div><p>此时输出如下，可以看到每个员工的 emps_title 字段都是相同的，都包含了所有员工的职位信息。因为查询中并没有指定任何字段进行关联，所以这种查询也被称为非相关查询。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">{
+</span></span><span class="line"><span class="cl">  &#34;_id&#34; : ObjectId(&#34;5d3ffaaa8ba16934ccce99a1&#34;),
+</span></span><span class="line"><span class="cl">  &#34;emp_no&#34; : 10001,
+</span></span><span class="line"><span class="cl">  .......
+</span></span><span class="line"><span class="cl">  &#34;emps_title&#34; : [
+</span></span><span class="line"><span class="cl">    {
+</span></span><span class="line"><span class="cl">      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a5&#34;),
+</span></span><span class="line"><span class="cl">      &#34;emp_no&#34; : 10001,
+</span></span><span class="line"><span class="cl">      &#34;title&#34; : &#34;Senior Engineer&#34;
+</span></span><span class="line"><span class="cl">    },
+</span></span><span class="line"><span class="cl">    {
+</span></span><span class="line"><span class="cl">      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a6&#34;),
+</span></span><span class="line"><span class="cl">      &#34;emp_no&#34; : 10002,
+</span></span><span class="line"><span class="cl">      &#34;title&#34; : &#34;Staff&#34;
+</span></span><span class="line"><span class="cl">    },
+</span></span><span class="line"><span class="cl">    {
+</span></span><span class="line"><span class="cl">      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a7&#34;),
+</span></span><span class="line"><span class="cl">      &#34;emp_no&#34; : 10003,
+</span></span><span class="line"><span class="cl">      &#34;title&#34; : &#34;Senior Engineer&#34;
+</span></span><span class="line"><span class="cl">     },
+</span></span><span class="line"><span class="cl">    {
+</span></span><span class="line"><span class="cl">      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a8&#34;),
+</span></span><span class="line"><span class="cl">      &#34;emp_no&#34; : 10004,
+</span></span><span class="line"><span class="cl">      &#34;title&#34; : &#34;Engineer&#34;
+</span></span><span class="line"><span class="cl">    },
+</span></span><span class="line"><span class="cl">    {
+</span></span><span class="line"><span class="cl">      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a9&#34;),
+</span></span><span class="line"><span class="cl">      &#34;emp_no&#34; : 10004,
+</span></span><span class="line"><span class="cl">      &#34;title&#34; : &#34;Senior Engineer&#34;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">  ]
+</span></span><span class="line"><span class="cl">},
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">{
+</span></span><span class="line"><span class="cl">  &#34;_id&#34; : ObjectId(&#34;5d3ffaaa8ba16934ccce99a2&#34;),
+</span></span><span class="line"><span class="cl">  &#34;emp_no&#34; : 10002,
+</span></span><span class="line"><span class="cl">  .......
+</span></span><span class="line"><span class="cl">  &#34;emps_title&#34; : [
+</span></span><span class="line"><span class="cl">    {
+</span></span><span class="line"><span class="cl">      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a5&#34;),
+</span></span><span class="line"><span class="cl">      &#34;emp_no&#34; : 10001,
+</span></span><span class="line"><span class="cl">      &#34;title&#34; : &#34;Senior Engineer&#34;
+</span></span><span class="line"><span class="cl">    },
+</span></span><span class="line"><span class="cl">    {
+</span></span><span class="line"><span class="cl">      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a6&#34;),
+</span></span><span class="line"><span class="cl">      &#34;emp_no&#34; : 10002,
+</span></span><span class="line"><span class="cl">      &#34;title&#34; : &#34;Staff&#34;
+</span></span><span class="line"><span class="cl">    },
+</span></span><span class="line"><span class="cl">    {
+</span></span><span class="line"><span class="cl">      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a7&#34;),
+</span></span><span class="line"><span class="cl">      &#34;emp_no&#34; : 10003,
+</span></span><span class="line"><span class="cl">      &#34;title&#34; : &#34;Senior Engineer&#34;
+</span></span><span class="line"><span class="cl">    },
+</span></span><span class="line"><span class="cl">    {
+</span></span><span class="line"><span class="cl">      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a8&#34;),
+</span></span><span class="line"><span class="cl">      &#34;emp_no&#34; : 10004,
+</span></span><span class="line"><span class="cl">      &#34;title&#34; : &#34;Engineer&#34;
+</span></span><span class="line"><span class="cl">    },
+</span></span><span class="line"><span class="cl">    {
+</span></span><span class="line"><span class="cl">      &#34;_id&#34; : ObjectId(&#34;5d4011728ba16934ccce99a9&#34;),
+</span></span><span class="line"><span class="cl">      &#34;emp_no&#34; : 10004,
+</span></span><span class="line"><span class="cl">      &#34;title&#34; : &#34;Senior Engineer&#34;
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">  ]
+</span></span><span class="line"><span class="cl">},
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">..........
+</span></span></code></pre></div><p><strong>场景二</strong>：假设每个员工都只需要知道办公室职员 (即职位为 Staff ) 的员工的信息，此时就需要利用 pipeline 管道对 titles 集合中的数据进行过滤，对应的查询语法为：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.employees.aggregate<span class="o">([</span>
+</span></span><span class="line"><span class="cl">   <span class="o">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nv">$lookup</span>:
+</span></span><span class="line"><span class="cl">         <span class="o">{</span>
+</span></span><span class="line"><span class="cl">           from: <span class="s2">&#34;titles&#34;</span>,
+</span></span><span class="line"><span class="cl">           pipeline: <span class="o">[</span>
+</span></span><span class="line"><span class="cl">              <span class="o">{</span> <span class="nv">$match</span>:
+</span></span><span class="line"><span class="cl">                  <span class="o">{</span> <span class="nv">$expr</span>: <span class="o">{</span> <span class="nv">$eq</span>: <span class="o">[</span> <span class="s2">&#34;</span><span class="nv">$title</span><span class="s2">&#34;</span>,<span class="s2">&#34;Staff&#34;</span><span class="o">]}}</span>
+</span></span><span class="line"><span class="cl">              <span class="o">}</span>
+</span></span><span class="line"><span class="cl">           <span class="o">]</span>,
+</span></span><span class="line"><span class="cl">           as: <span class="s2">&#34;emps_title&#34;</span>
+</span></span><span class="line"><span class="cl">         <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">])</span>
+</span></span></code></pre></div><p><strong>场景三</strong>：假设只有男员工需要知道其他职员的信息，此时就需要利用 pipeline 管道对 employees 集合中的数据进行过滤。由于 employees 集合是输入集合，管道无法直接访问其中的字段，此时需要先在 let 中进行定义，然后再引用。语句如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.employees.aggregate<span class="o">([</span>
+</span></span><span class="line"><span class="cl">   <span class="o">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nv">$lookup</span>:
+</span></span><span class="line"><span class="cl">         <span class="o">{</span>
+</span></span><span class="line"><span class="cl">           from: <span class="s2">&#34;titles&#34;</span>,
+</span></span><span class="line"><span class="cl">           let: <span class="o">{</span> gender: <span class="s2">&#34;</span><span class="nv">$gender</span><span class="s2">&#34;</span><span class="o">}</span>,
+</span></span><span class="line"><span class="cl">           pipeline: <span class="o">[</span>
+</span></span><span class="line"><span class="cl">              <span class="o">{</span> <span class="nv">$match</span>:
+</span></span><span class="line"><span class="cl">                 <span class="o">{</span> <span class="nv">$expr</span>: <span class="o">{</span> <span class="nv">$eq</span>: <span class="o">[</span> <span class="s2">&#34;</span><span class="nv">$$</span><span class="s2">gender&#34;</span>,<span class="s2">&#34;M&#34;</span><span class="o">]}}</span>
+</span></span><span class="line"><span class="cl">              <span class="o">}</span>
+</span></span><span class="line"><span class="cl">           <span class="o">]</span>,
+</span></span><span class="line"><span class="cl">           as: <span class="s2">&#34;emps_title&#34;</span>
+</span></span><span class="line"><span class="cl">         <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">])</span>
+</span></span></code></pre></div><p>这里需要使用两个 <code>$</code> 符号对 gender 变量进行引用，因为使用 let 定义后，其类似于系统变量。</p>
+<h3 id="19-out">1.9 $out</h3>
+<p>$out 用于将数据写入指定的集合，它必须是管道中的最后一个阶段。如果指定的集合不存在，则会自动新建；如果指定的集合存在，它会覆盖原有集合的数据。其实际的步骤如下：</p>
+<ul>
+<li>创建临时集合；</li>
+<li>将索引从现有集合复制到临时集合；</li>
+<li>将文档插入临时集合中；</li>
+<li>调用 <code>db.collection.renameCollection(target, true)</code> 方法将临时集合重命名为目标集合。</li>
+</ul>
+<p>$out 的使用示例如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.employees.aggregate<span class="o">([</span>
+</span></span><span class="line"><span class="cl">    <span class="o">{</span> <span class="nv">$out</span>: <span class="s2">&#34;emps&#34;</span><span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">])</span>
+</span></span></code></pre></div><h3 id="110-自动优化">1.10 自动优化</h3>
+<p>在大多数情况下 MongoDB 会按照我们定义管道的先后顺序执行管道操作，但是某些情况下，MongoDB 会在不影响结果的前提下，改变管道执行顺序，从而获得更好的性能表现。常见的优化策略如下：</p>
+<h4 id="project-or-addfields--match">$project or $addFields + $match</h4>
+<p>当投影操作后面有匹配操作时，MongoDB 会将 $match 阶段中不需要进行投影操作的字段的过滤条件提前到投影操作前执行。</p>
+<h4 id="sort--match">$sort + $match</h4>
+<p>当排序操作后面有匹配操作时，会将匹配操作提前，以减少需要排序的数据量。</p>
+<h4 id="project--skip">$project + $skip</h4>
+<p>当投影操作后面有跳过操作时，会先执行跳过操作，从而减少需要进行投影操作的数据量。</p>
+<h4 id="sort--limit">$sort + $limit</h4>
+<p>当排序操作在限制操作之前时，如果没有中间阶段会修改文档数量 (例如 $unwind，$group)，优化器会将 $limit 合并到 $sort 中。如果在 $sort 和 $limit 之间存在修改文档数量的管道阶段，MongoDB 将不会执行合并。</p>
+<p>了解这些优化策略可以有助于我们在开发中合理设置管道的顺序。想要了解全部的优化策略，可以参阅 MongoDB 的官方文档：<a href="https://docs.mongodb.com/manual/core/aggregation-pipeline-optimization/" target="_blank" rel="noopener">Aggregation Pipeline Optimization</a> 。</p>
+<h2 id="三mapreduce">三、MapReduce</h2>
+<p>MongoDB 的 MapReduce 在概念上与 Hadoop MapReduce 类似，MongoDB 将 <em>map</em> 阶段应用于每个符合条件的输入文档，<em>map</em> 阶段的输出结果是 key-value 键值对。对于具有多个值的 key，MongoDB 会执行 <em>reduce</em> 阶段，该阶段负责收集并聚合数据，然后将结果存储在集合中。</p>
+<p>这里我们以按照性别分组计算员工的平均年龄为例，演示 MapReduce 的基本使用，语句如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.employees.mapReduce<span class="o">(</span>
+</span></span><span class="line"><span class="cl">    <span class="k">function</span><span class="o">(){</span>
+</span></span><span class="line"><span class="cl">        emit<span class="o">(</span>this.gender,this.age<span class="o">)</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">    <span class="k">function</span><span class="o">(</span>key,values<span class="o">){</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> Array.avg<span class="o">(</span>values<span class="o">)</span>
+</span></span><span class="line"><span class="cl">     <span class="o">}</span>,
+</span></span><span class="line"><span class="cl">    <span class="o">{</span> out:<span class="s2">&#34;age_avg&#34;</span><span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">)</span>
+</span></span></code></pre></div><p>对应的计算结果会被输出到 age_avg 集合中，其内容如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">{
+</span></span><span class="line"><span class="cl">  &#34;_id&#34; : &#34;F&#34;,
+</span></span><span class="line"><span class="cl">  &#34;value&#34; : 33
+</span></span><span class="line"><span class="cl">},
+</span></span><span class="line"><span class="cl">{
+</span></span><span class="line"><span class="cl">  &#34;_id&#34; : &#34;M&#34;,
+</span></span><span class="line"><span class="cl">  &#34;value&#34; : 39
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></div><p>当前 MongoDB 支持在分片集合执行 map-reduce 操作，也支持将 Map-reduce 操作的结果输出到分片集合。map-reduce 使得开发者可以灵活控制聚合行为，但其性能不如聚合管道，所以两者应适场景而选用。</p>
+<h2 id="四单用途聚合方法">四、单用途聚合方法</h2>
+<p>出于易用性考虑，MongoDB 提供了部分 API，用于实现对常见聚合过程的简单访问。如下：</p>
+<h3 id="41-count">4.1 count</h3>
+<p>用于计算符合条件的文档的数量，如果想要计算集合中所有文档的数量，则传入空对象即可：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.employees.count<span class="o">({</span>gender:<span class="s2">&#34;M&#34;</span><span class="o">})</span>
+</span></span></code></pre></div><h3 id="42-estimateddocumentcount">4.2 estimatedDocumentCount</h3>
+<p>官方更加推荐使用 estimatedDocumentCount 计算集合中所有文档的数量，它会直接获取元数据信息并返回，因此它不支持传入查询条件，示例如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.employees.estimatedDocumentCount<span class="o">({})</span>
+</span></span></code></pre></div><h3 id="43-distinct">4.3 distinct</h3>
+<p>和大多数数据库中的 distinct 关键字类似，用于返回不重复的数据：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">db.titles.distinct<span class="o">(</span><span class="s2">&#34;title&#34;</span><span class="o">)</span>
+</span></span></code></pre></div><h2 id="参考资料">参考资料</h2>
+<ul>
+<li>官方文档：<a href="https://docs.mongodb.com/manual/aggregation/" target="_blank" rel="noopener">Aggregation</a>、<a href="https://docs.mongodb.com/manual/core/map-reduce/" target="_blank" rel="noopener">Map-Reduce</a></li>
+<li>所有聚合管道总览：https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline/</li>
+<li>聚合管道中所有可选操作符：https://docs.mongodb.com/manual/reference/operator/aggregation/</li>
+</ul>
+
+          </div>
+
+          
+
+
+
+          
+          
+          <div class="article-widget">
+            
+<div class="container-xl row post-nav">
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">上一页</div>
+    <a href="/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/02.%E7%B4%A2%E5%BC%95/" rel="next">02.索引</a>
+  </div>
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">下一页</div>
+    <a href="/books/database-notes/04.%E6%96%87%E6%A1%A3%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/1.mongodb/04.%E5%A4%8D%E5%88%B6/" rel="prev">04.复制</a>
+  </div>
+  
+</div>
+
+          </div>
+          
+
+        <div class="body-footer">
+          <p>最近更新于 0001-01-01</p>
+
+          
+
+
+
+          
+
+
+  
+  
+  
+
+  
+
+  
+  <section id="comments" class="mb-3 pt-0">
+    
+<div id="disqus_thread"></div>
+<script>
+  var disqus_config = function () {
+    
+    
+    
+  };
+  (function() {
+    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+      return;
+    }
+    var d = document, s = d.createElement('script'); 
+    s.async = true;
+    s.src = 'https://' + "ngte" + '.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </section>
+  
+
+
+
+          
+
+
+        </div>
+
+      </article>
+
+      <footer class="site-footer">
+
+  
+
+
+
+  
+
+  
+  <div class="copyright py-4 bg-footer">
+      <div class="row justify-content-center">
+        <div class="text-center footer-color">
+          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
+        </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" id="clstr_globe" async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script>
+  
+</footer>
+
+
+    </main>
+  </div>
+</div>
+<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
+<script>
+  const heti = new Heti('.article');
+  heti.autoSpacing();
+</script>
+<script type="text/javascript">
+  window.$crisp = [];
+  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
+  (function () {
+    setTimeout(function() {
+      d = document;
+      s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    }, 2500);
+  })();
+</script>
+  </div>
+
+  <div class="page-footer">
+    
+    
+  </div>
+
+      
+
+    
+    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
+
+    
+    
+    
+      
+
+      
+      
+
+      
+
+      
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
+        
+        
+      
+
+    
+
+    
+    
+    
+
+    
+    
+    
+      
+      <script id="search-hit-algolia-template" type="text/html">
+        <div class="search-hit">
+          <div class="search-hit-content">
+            <div class="search-hit-name">
+              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
+            </div>
+            <div class="article-metadata search-hit-type">{{type}}</div>
+            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
+          </div>
+        </div>
+      </script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
+      
+      
+    
+
+    
+    
+
+    
+    
+    
+    
+      <script id="dsq-count-scr" src="https://ngte.disqus.com/count.js" async></script>
+      
+    
+
+    
+    
+      
+      
+      
+      
+      
+      
+      
+    
+
+    
+    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
+    
+
+    
+    
+    
+    <script id="page-data" type="application/json">{"use_headroom":false}</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
+
+    
+    
+    
+    
+    
+    
+    <script>
+
+var mybutton = document.getElementById("backTopBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+}
+</script>
+
+
+    
+
+    
+    
+    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+    <script>
+      anchors.add();
+    </script>
+    
+
+    
+    <script>
+
+
+
+(function() {
+  'use strict';
+
+  if(!document.queryCommandSupported('copy')) {
+    return;
+  }
+
+  function flashCopyMessage(el, msg) {
+    el.className = "highlight-copy-btn";
+    el.textContent = msg;
+    setTimeout(function() {
+      el.textContent = "";
+      el.className = "highlight-copy-btn fa fa-copy";
+    }, 1000);
+  }
+
+  function selectText(node) {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection;
+  }
+
+  function addCopyButton(containerEl) {
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "highlight-copy-btn fa fa-copy";
+    copyBtn.textContent = "";
+
+    var codeEl = containerEl.firstElementChild;
+    copyBtn.addEventListener('click', function() {
+      try {
+        var selection = selectText(codeEl);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        
+        flashCopyMessage(copyBtn, '已复制')
+        
+      } catch(e) {
+        console && console.log(e);
+        flashCopyMessage(copyBtn, 'Failed :\'(')
+      }
+    });
+
+    containerEl.appendChild(copyBtn);
+  }
+
+  
+  var highlightBlocks = document.getElementsByClassName('highlight');
+  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
+})();
+</script>
+
+    
+
+
+</body>
+</html>

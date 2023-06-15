@@ -1,350 +1,374 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>99.参考资料 | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/mysql-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/</link><atom:link href="https://ng-tech.icu/books/mysql-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/index.xml" rel="self" type="application/rss+xml"/><description>99.参考资料</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>99.参考资料</title><link>https://ng-tech.icu/books/mysql-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/</link></image><item><title>2020-heibaiying-MySQL 基础</title><link>https://ng-tech.icu/books/mysql-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-heibaiying-mysql-%E5%9F%BA%E7%A1%80/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/mysql-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-heibaiying-mysql-%E5%9F%BA%E7%A1%80/</guid><description>&lt;h1 id="mysql-基础">MySQL 基础&lt;/h1>
-&lt;h2 id="一常见存储引擎">一、常见存储引擎&lt;/h2>
-&lt;h3 id="11-innodb">1.1 InnoDB&lt;/h3>
-&lt;p>InnoDB 是 MySQL 5.5 之后默认的存储引擎，它具有高可靠、高性能的特点，主要具备以下优势：&lt;/p>
-&lt;ul>
-&lt;li>DML 操作完全遵循 ACID 模型，支持事务，支持崩溃恢复，能够极大地保护用户的数据安全；&lt;/li>
-&lt;li>支持多版本并发控制，它会保存数据的旧版本信息，从而可以支持并发和事务的回滚；&lt;/li>
-&lt;li>支持行级锁，支持类似 Oracle 的一致性读的特性，从而可以承受高并发地访问；&lt;/li>
-&lt;li>InnoDB 组织数据时默认按照主键进行聚簇，从而可以提高主键查找的效率。对于频繁访问的数据，InnoDB 还会为其建立哈希索引，从而提高等值查询的效率，这也称为自适应哈希索引；&lt;/li>
-&lt;li>InnoDB 基于磁盘进行存储，所有存储记录按 &lt;strong>页&lt;/strong> 的方式进行管理。为弥补 CPU 速度与磁盘速度之间的鸿沟，InnoDB 引用缓存池 (Buffer Pool) 来提高数据的整体性能。查询时，会将目标页读入缓存中；修改时，会先修改缓冲池中的页，然后再遵循 CheckPoint 机制将页刷回磁盘。所有缓存页通过最近最少使用原则 ( LRU ) 来进行定期清理。&lt;/li>
-&lt;li>InnoDB 支持两次写 (DoubleWrite) ，从而可以保证数据的安全，提高系统的可靠性。&lt;/li>
-&lt;/ul>
-&lt;p>一个 InnoDB 引擎完整的内存结构和磁盘结构如下图所示：&lt;/p>
-&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/innodb-architecture.png"/> &lt;/div>
-&lt;h3 id="12-myisam">1.2 MyISAM&lt;/h3>
-&lt;p>MyISAM 是 MySQL 5.5 之前默认的存储引擎。创建 MyISAM 表时会创建两个同名的文件：&lt;/p>
-&lt;ul>
-&lt;li>扩展名为 &lt;code>.MYD&lt;/code>（&lt;code>MYData&lt;/code>）：用于存储表数据；&lt;/li>
-&lt;li>扩展名为 &lt;code>.MYI&lt;/code> （&lt;code>MYIndex&lt;/code>）： 用于存储表的索引信息。&lt;/li>
-&lt;/ul>
-&lt;p>在 MySQL 8.0 之后，只会创建上述两个同名文件，因为 8.0 后表结构的定义存储在 MySQL 数据字典中，但在 MySQL 8.0 之前，还会存在一个扩展名为 &lt;code>.frm&lt;/code> 的文件，用于存储表结构信息。MyISAM 与 InnoDB 主要的区别其只支持表级锁，不支持行级锁，不支持事务，不支持自动崩溃恢复，但可以使用内置的 mysqlcheck 和 myisamchk 工具来进行检查和修复。&lt;/p>
-&lt;h3 id="13-memory">1.3 MEMORY&lt;/h3>
-&lt;p>MEMORY 存储引擎（又称为 HEAP 存储引擎）通常用于将表中的数据存储在内存中，它具有以下特征：&lt;/p>
-&lt;ul>
-&lt;li>MEMORY 表的表定义信息存储在 MySQL 数据字典中，而实际的数据则存储在内存空间中，并以块为单位进行划分；因此当服务器重启后，表本身并不会被删除，只是表中的所有数据都会丢失。&lt;/li>
-&lt;li>MEMORY 存储引擎支持 HASH 索引和 BTREE 索引，默认采用 HASH 索引。&lt;/li>
-&lt;li>MEMORY 表使用固定长度的行存储格式，即便是 VARCHAR 类型也会使用固定长度进行存储。&lt;/li>
-&lt;li>MEMORY 支持 AUTO_INCREMENT 列，但不支持 BLOB 列或 TEXT 列。&lt;/li>
-&lt;li>MEMORY 表和 MySQL 内部临时表的区别在于：两者默认都采用内存进行存储，但 MEMORY 表不受存储转换的影响，而内部临时表则会在达到阈值时自动转换为磁盘存储。&lt;/li>
-&lt;/ul>
-&lt;p>基于以上特性，MEMORY 表主要适合于存储临时数据 ，如会话状态、实时位置等信息。&lt;/p>
-&lt;h3 id="14-csv">1.4 CSV&lt;/h3>
-&lt;p>CSV 存储引擎使用逗号分隔值的格式将数据存储在文本文件中。创建 CSV 表时会同时创建两个同名的文件：&lt;/p>
-&lt;ul>
-&lt;li>一个扩展名为 &lt;code>csv&lt;/code> ，负责存储表的数据，其文件格式为纯文本，可以通过电子表格应用程序 (如 Microsoft Excel ) 进行修改，对应的修改操作也会直接反应在数据库表中。&lt;/li>
-&lt;li>另一个扩展名为 &lt;code>CSM&lt;/code>，负责存储表的状态和表中存在的行数。&lt;/li>
-&lt;/ul>
-&lt;h3 id="15-archive">1.5 ARCHIVE&lt;/h3>
-&lt;p>ARCHIVE 存储引擎默认采用 zlib 无损数据压缩算法进行数据压缩，能够利用极小的空间存储大量的数据。创建 ARCHIVE 表时，存储引擎会创建与表同名的 &lt;code>ARZ&lt;/code> 文件，用于存储数据。它还具有以下特点：&lt;/p>
-&lt;ul>
-&lt;li>ARCHIVE 引擎支持 INSERT，REPLACE 和 SELECT，但不支持 DELETE 或 UPDATE。&lt;/li>
-&lt;li>ARCHIVE 引擎支持 AUTO_INCREMENT 属性，并支持在其对应的列上建立索引，如果尝试在不具有 AUTO_INCREMENT 属性的列上建立索引，则会抛出异常。&lt;/li>
-&lt;li>ARCHIVE 引擎不支持分区操作。&lt;/li>
-&lt;/ul>
-&lt;h3 id="16-megre">1.6 MEGRE&lt;/h3>
-&lt;p>MERGE 存储引擎，也称为 MRG_MyISAM 引擎，是一组相同 MyISAM 表的集合。 ”相同” 表示所有表必须具有相同的列数据类型和索引信息。可以通过 &lt;code>UNION = (list-of-tables)&lt;/code> 选项来创建 MERGE 表，如下：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">CREATE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">TABLE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">t1&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">a&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nb">INT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">NOT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">NULL&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">AUTO_INCREMENT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">PRIMARY&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">KEY&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">message&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nb">CHAR&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">20&lt;/span>&lt;span class="p">))&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">ENGINE&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="n">MyISAM&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">CREATE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">TABLE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">t2&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">a&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nb">INT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">NOT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">NULL&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">AUTO_INCREMENT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">PRIMARY&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">KEY&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">message&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nb">CHAR&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">20&lt;/span>&lt;span class="p">))&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">ENGINE&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="n">MyISAM&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">INSERT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">INTO&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">t1&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">message&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">VALUES&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;Testing&amp;#39;&lt;/span>&lt;span class="p">),(&lt;/span>&lt;span class="s1">&amp;#39;table&amp;#39;&lt;/span>&lt;span class="p">),(&lt;/span>&lt;span class="s1">&amp;#39;t1&amp;#39;&lt;/span>&lt;span class="p">);&lt;/span>&lt;span class="w">
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">INSERT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">INTO&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">t2&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">message&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">VALUES&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;Testing&amp;#39;&lt;/span>&lt;span class="p">),(&lt;/span>&lt;span class="s1">&amp;#39;table&amp;#39;&lt;/span>&lt;span class="p">),(&lt;/span>&lt;span class="s1">&amp;#39;t2&amp;#39;&lt;/span>&lt;span class="p">);&lt;/span>&lt;span class="w">
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">CREATE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">TABLE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">total&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">a&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nb">INT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">NOT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">NULL&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">AUTO_INCREMENT&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="n">message&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nb">CHAR&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">20&lt;/span>&lt;span class="p">),&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">INDEX&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">a&lt;/span>&lt;span class="p">))&lt;/span>&lt;span class="w">
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="n">ENGINE&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="n">MERGE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">UNION&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">t1&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="n">t2&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">INSERT_METHOD&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="k">LAST&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
-&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>创建表时可以通过 &lt;code>INSERT_METHOD&lt;/code> 选项来控制 MERGE 表的插入：使用 &lt;code>FIRST&lt;/code> 或 &lt;code>LAST&lt;/code> 分别表示在第一个或最后一个基础表中进行插入；如果未指定 INSERT_METHOD 或者设置值为 NO ，则表示不允许在 MERGE 表上执行插入操作。MERGE 表支持 SELECT，DELETE，UPDATE 和 DELETE 语句，示例如下：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">total&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">---+---------+
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">a&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">message&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">---+---------+
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Testing&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">table&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">t1&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Testing&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">table&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">t2&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">---+---------+
-&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="二索引">二、索引&lt;/h2>
-&lt;h3 id="21-b-tree-数据结构">2.1 B+ tree 数据结构&lt;/h3>
-&lt;p>如果没有特殊说明，通常大多数数据库采用的索引都是 B+ tree 索引，它是基于 B+ tree 这种数据结构构建的。为什么采用 B+ tree 而不是平衡二叉树 (AVL) 或红黑树等数据结构？这里假设索引为 1-16 的自增数据，各类数据结构的表现如下：&lt;/p>
-&lt;p>&lt;strong>平衡二叉树数据结构&lt;/strong>：&lt;/p>
-&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/avl-tree.png"/> &lt;/div>
-&lt;p>&lt;strong>红黑树数据结构&lt;/strong>：&lt;/p>
-&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/red-black-tree.png"/> &lt;/div>
-&lt;p>&lt;strong>Btree 数据结构&lt;/strong>：&lt;/p>
-&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/btree.png"/> &lt;/div>
-&lt;p>&lt;strong>B+ Tree 数据结构&lt;/strong>&lt;/p>
-&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/B+Trees.png"/> &lt;/div>
-&lt;blockquote>
-&lt;p>以上图片均通过数据结构可视化网站 &lt;a href="https://www.cs.usfca.edu/~galles/visualization/Algorithms.html" target="_blank" rel="noopener">Data Structure Visualizations&lt;/a> 自动生成，感兴趣的小伙伴也可自行尝试。&lt;/p>
-&lt;/blockquote>
-&lt;p>从上面的图示中我们可以看出 B+ Tree 树具有以下优点：&lt;/p>
-&lt;ul>
-&lt;li>B+ Tree 树的所有非叶子节点 (如 003，007)，都会在叶子节点冗余一份，所有叶子节点按照链表的方式进行组织，这样带来的好处是在范围查询中，只需要通过遍历叶子节点就可以获取到所有的索引信息。&lt;/li>
-&lt;li>B+ Tree 的所有非叶子节点都可以存储多个数据值，存储量取决于节点的大小，在 MySQL 中每个节点的大小为 16K ，因此其具备更大的出度，即在相同的数据量下，其树的高度更低。&lt;/li>
-&lt;li>所有非叶子节点都只存储索引值，不存储实际的数据，只有叶子节点才会存储指针信息或数据信息。按照每个节点为 16K 的大小计算，对于千万级别的数据，其树的高度通常都在 3~6 左右 (取决于索引值的字节数)，因此其查询性能非常优异。&lt;/li>
-&lt;li>叶子节点存储的数据取决于不同数据库的实现，对于 MySQL 来说，取决于使用的存储引擎和是否是主键索引。&lt;/li>
-&lt;/ul>
-&lt;h3 id="22-b-tree-索引">2.2 B+ tree 索引&lt;/h3>
-&lt;p>对于 InnoDB ，因为主键索引是聚集索引，所以其叶子节点存储的就是实际的数据。而非主键索引存储的则是主键的值 ：&lt;/p>
-&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/mysql-innodb-索引.png"/> &lt;/div>
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>99.参考资料 | Next-gen Tech Edu</title>
+    <link>https://ng-tech.icu/books/mysql-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/</link>
+      <atom:link href="https://ng-tech.icu/books/mysql-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/index.xml" rel="self" type="application/rss+xml" />
+    <description>99.参考资料</description>
+    <generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language>
+    <image>
+      <url>https://ng-tech.icu/media/sharing.png</url>
+      <title>99.参考资料</title>
+      <link>https://ng-tech.icu/books/mysql-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/</link>
+    </image>
+    
+    <item>
+      <title>2020-heibaiying-MySQL 基础</title>
+      <link>https://ng-tech.icu/books/mysql-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-heibaiying-mysql-%E5%9F%BA%E7%A1%80/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/mysql-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-heibaiying-mysql-%E5%9F%BA%E7%A1%80/</guid>
+      <description>&lt;h1 id=&#34;mysql-基础&#34;&gt;MySQL 基础&lt;/h1&gt;
+&lt;h2 id=&#34;一常见存储引擎&#34;&gt;一、常见存储引擎&lt;/h2&gt;
+&lt;h3 id=&#34;11-innodb&#34;&gt;1.1 InnoDB&lt;/h3&gt;
+&lt;p&gt;InnoDB 是 MySQL 5.5 之后默认的存储引擎，它具有高可靠、高性能的特点，主要具备以下优势：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;DML 操作完全遵循 ACID 模型，支持事务，支持崩溃恢复，能够极大地保护用户的数据安全；&lt;/li&gt;
+&lt;li&gt;支持多版本并发控制，它会保存数据的旧版本信息，从而可以支持并发和事务的回滚；&lt;/li&gt;
+&lt;li&gt;支持行级锁，支持类似 Oracle 的一致性读的特性，从而可以承受高并发地访问；&lt;/li&gt;
+&lt;li&gt;InnoDB 组织数据时默认按照主键进行聚簇，从而可以提高主键查找的效率。对于频繁访问的数据，InnoDB 还会为其建立哈希索引，从而提高等值查询的效率，这也称为自适应哈希索引；&lt;/li&gt;
+&lt;li&gt;InnoDB 基于磁盘进行存储，所有存储记录按 &lt;strong&gt;页&lt;/strong&gt; 的方式进行管理。为弥补 CPU 速度与磁盘速度之间的鸿沟，InnoDB 引用缓存池 (Buffer Pool) 来提高数据的整体性能。查询时，会将目标页读入缓存中；修改时，会先修改缓冲池中的页，然后再遵循 CheckPoint 机制将页刷回磁盘。所有缓存页通过最近最少使用原则 ( LRU ) 来进行定期清理。&lt;/li&gt;
+&lt;li&gt;InnoDB 支持两次写 (DoubleWrite) ，从而可以保证数据的安全，提高系统的可靠性。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;一个 InnoDB 引擎完整的内存结构和磁盘结构如下图所示：&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt; &lt;img src=&#34;https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/innodb-architecture.png&#34;/&gt; &lt;/div&gt;
+&lt;h3 id=&#34;12-myisam&#34;&gt;1.2 MyISAM&lt;/h3&gt;
+&lt;p&gt;MyISAM 是 MySQL 5.5 之前默认的存储引擎。创建 MyISAM 表时会创建两个同名的文件：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;扩展名为 &lt;code&gt;.MYD&lt;/code&gt;（&lt;code&gt;MYData&lt;/code&gt;）：用于存储表数据；&lt;/li&gt;
+&lt;li&gt;扩展名为 &lt;code&gt;.MYI&lt;/code&gt; （&lt;code&gt;MYIndex&lt;/code&gt;）： 用于存储表的索引信息。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;在 MySQL 8.0 之后，只会创建上述两个同名文件，因为 8.0 后表结构的定义存储在 MySQL 数据字典中，但在 MySQL 8.0 之前，还会存在一个扩展名为 &lt;code&gt;.frm&lt;/code&gt; 的文件，用于存储表结构信息。MyISAM 与 InnoDB 主要的区别其只支持表级锁，不支持行级锁，不支持事务，不支持自动崩溃恢复，但可以使用内置的 mysqlcheck 和 myisamchk 工具来进行检查和修复。&lt;/p&gt;
+&lt;h3 id=&#34;13-memory&#34;&gt;1.3 MEMORY&lt;/h3&gt;
+&lt;p&gt;MEMORY 存储引擎（又称为 HEAP 存储引擎）通常用于将表中的数据存储在内存中，它具有以下特征：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;MEMORY 表的表定义信息存储在 MySQL 数据字典中，而实际的数据则存储在内存空间中，并以块为单位进行划分；因此当服务器重启后，表本身并不会被删除，只是表中的所有数据都会丢失。&lt;/li&gt;
+&lt;li&gt;MEMORY 存储引擎支持 HASH 索引和 BTREE 索引，默认采用 HASH 索引。&lt;/li&gt;
+&lt;li&gt;MEMORY 表使用固定长度的行存储格式，即便是 VARCHAR 类型也会使用固定长度进行存储。&lt;/li&gt;
+&lt;li&gt;MEMORY 支持 AUTO_INCREMENT 列，但不支持 BLOB 列或 TEXT 列。&lt;/li&gt;
+&lt;li&gt;MEMORY 表和 MySQL 内部临时表的区别在于：两者默认都采用内存进行存储，但 MEMORY 表不受存储转换的影响，而内部临时表则会在达到阈值时自动转换为磁盘存储。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;基于以上特性，MEMORY 表主要适合于存储临时数据 ，如会话状态、实时位置等信息。&lt;/p&gt;
+&lt;h3 id=&#34;14-csv&#34;&gt;1.4 CSV&lt;/h3&gt;
+&lt;p&gt;CSV 存储引擎使用逗号分隔值的格式将数据存储在文本文件中。创建 CSV 表时会同时创建两个同名的文件：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;一个扩展名为 &lt;code&gt;csv&lt;/code&gt; ，负责存储表的数据，其文件格式为纯文本，可以通过电子表格应用程序 (如 Microsoft Excel ) 进行修改，对应的修改操作也会直接反应在数据库表中。&lt;/li&gt;
+&lt;li&gt;另一个扩展名为 &lt;code&gt;CSM&lt;/code&gt;，负责存储表的状态和表中存在的行数。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;15-archive&#34;&gt;1.5 ARCHIVE&lt;/h3&gt;
+&lt;p&gt;ARCHIVE 存储引擎默认采用 zlib 无损数据压缩算法进行数据压缩，能够利用极小的空间存储大量的数据。创建 ARCHIVE 表时，存储引擎会创建与表同名的 &lt;code&gt;ARZ&lt;/code&gt; 文件，用于存储数据。它还具有以下特点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;ARCHIVE 引擎支持 INSERT，REPLACE 和 SELECT，但不支持 DELETE 或 UPDATE。&lt;/li&gt;
+&lt;li&gt;ARCHIVE 引擎支持 AUTO_INCREMENT 属性，并支持在其对应的列上建立索引，如果尝试在不具有 AUTO_INCREMENT 属性的列上建立索引，则会抛出异常。&lt;/li&gt;
+&lt;li&gt;ARCHIVE 引擎不支持分区操作。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;16-megre&#34;&gt;1.6 MEGRE&lt;/h3&gt;
+&lt;p&gt;MERGE 存储引擎，也称为 MRG_MyISAM 引擎，是一组相同 MyISAM 表的集合。 ”相同” 表示所有表必须具有相同的列数据类型和索引信息。可以通过 &lt;code&gt;UNION = (list-of-tables)&lt;/code&gt; 选项来创建 MERGE 表，如下：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sql&#34; data-lang=&#34;sql&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;mysql&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;CREATE&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;TABLE&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;t1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;a&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;INT&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;NOT&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;NULL&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;AUTO_INCREMENT&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;PRIMARY&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;KEY&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;message&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;CHAR&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;20&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;))&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ENGINE&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;MyISAM&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;mysql&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;CREATE&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;TABLE&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;t2&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;a&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;INT&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;NOT&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;NULL&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;AUTO_INCREMENT&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;PRIMARY&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;KEY&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;message&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;CHAR&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;20&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;))&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ENGINE&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;MyISAM&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;mysql&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;INSERT&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;INTO&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;t1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;message&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;VALUES&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;Testing&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;),(&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;table&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;),(&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;t1&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;mysql&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;INSERT&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;INTO&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;t2&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;message&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;VALUES&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;Testing&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;),(&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;table&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;),(&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;t2&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;mysql&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;CREATE&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;TABLE&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;total&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;a&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;INT&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;NOT&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;NULL&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;AUTO_INCREMENT&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;message&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;CHAR&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;20&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;),&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;INDEX&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;a&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;))&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;       &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ENGINE&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;MERGE&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;UNION&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;t1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;t2&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;INSERT_METHOD&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;LAST&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;创建表时可以通过 &lt;code&gt;INSERT_METHOD&lt;/code&gt; 选项来控制 MERGE 表的插入：使用 &lt;code&gt;FIRST&lt;/code&gt; 或 &lt;code&gt;LAST&lt;/code&gt; 分别表示在第一个或最后一个基础表中进行插入；如果未指定 INSERT_METHOD 或者设置值为 NO ，则表示不允许在 MERGE 表上执行插入操作。MERGE 表支持 SELECT，DELETE，UPDATE 和 DELETE 语句，示例如下：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sql&#34; data-lang=&#34;sql&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;mysql&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;SELECT&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;FROM&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;total&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;c1&#34;&gt;---+---------+
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;a&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;message&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;c1&#34;&gt;---+---------+
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Testing&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;2&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;table&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;   &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;3&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;t1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;      &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Testing&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;2&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;table&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;   &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;3&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;t2&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;      &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;c1&#34;&gt;---+---------+
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;二索引&#34;&gt;二、索引&lt;/h2&gt;
+&lt;h3 id=&#34;21-b-tree-数据结构&#34;&gt;2.1 B+ tree 数据结构&lt;/h3&gt;
+&lt;p&gt;如果没有特殊说明，通常大多数数据库采用的索引都是 B+ tree 索引，它是基于 B+ tree 这种数据结构构建的。为什么采用 B+ tree 而不是平衡二叉树 (AVL) 或红黑树等数据结构？这里假设索引为 1-16 的自增数据，各类数据结构的表现如下：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;平衡二叉树数据结构&lt;/strong&gt;：&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt; &lt;img src=&#34;https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/avl-tree.png&#34;/&gt; &lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;红黑树数据结构&lt;/strong&gt;：&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt; &lt;img src=&#34;https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/red-black-tree.png&#34;/&gt; &lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;Btree 数据结构&lt;/strong&gt;：&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt; &lt;img src=&#34;https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/btree.png&#34;/&gt; &lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;B+ Tree 数据结构&lt;/strong&gt;&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt; &lt;img src=&#34;https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/B+Trees.png&#34;/&gt; &lt;/div&gt;
+&lt;blockquote&gt;
+&lt;p&gt;以上图片均通过数据结构可视化网站 &lt;a href=&#34;https://www.cs.usfca.edu/~galles/visualization/Algorithms.html&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Data Structure Visualizations&lt;/a&gt; 自动生成，感兴趣的小伙伴也可自行尝试。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;从上面的图示中我们可以看出 B+ Tree 树具有以下优点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;B+ Tree 树的所有非叶子节点 (如 003，007)，都会在叶子节点冗余一份，所有叶子节点按照链表的方式进行组织，这样带来的好处是在范围查询中，只需要通过遍历叶子节点就可以获取到所有的索引信息。&lt;/li&gt;
+&lt;li&gt;B+ Tree 的所有非叶子节点都可以存储多个数据值，存储量取决于节点的大小，在 MySQL 中每个节点的大小为 16K ，因此其具备更大的出度，即在相同的数据量下，其树的高度更低。&lt;/li&gt;
+&lt;li&gt;所有非叶子节点都只存储索引值，不存储实际的数据，只有叶子节点才会存储指针信息或数据信息。按照每个节点为 16K 的大小计算，对于千万级别的数据，其树的高度通常都在 3~6 左右 (取决于索引值的字节数)，因此其查询性能非常优异。&lt;/li&gt;
+&lt;li&gt;叶子节点存储的数据取决于不同数据库的实现，对于 MySQL 来说，取决于使用的存储引擎和是否是主键索引。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;22-b-tree-索引&#34;&gt;2.2 B+ tree 索引&lt;/h3&gt;
+&lt;p&gt;对于 InnoDB ，因为主键索引是聚集索引，所以其叶子节点存储的就是实际的数据。而非主键索引存储的则是主键的值 ：&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt; &lt;img src=&#34;https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/mysql-innodb-索引.png&#34;/&gt; &lt;/div&gt;
 对于 MyISAM，因为主键索引是非聚集索引，所以其叶子节点存储的只是指向数据位置的指针：
-&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/mysql-myisam-索引.png"/> &lt;/div>
+&lt;div align=&#34;center&#34;&gt; &lt;img src=&#34;https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/mysql-myisam-索引.png&#34;/&gt; &lt;/div&gt;
 综上所述，B+ tree 结构普遍适用于范围查找，优化排序和分组等操作。B+ tree 是基于字典序进行构建的，因此其适用于以下查询：
-&lt;ul>
-&lt;li>&lt;strong>全值匹配&lt;/strong>：以索引为条件进行精确查找。如 &lt;code>emp_no&lt;/code> 字段为索引，查询条件为 &lt;code>emp_no = 10008&lt;/code>。&lt;/li>
-&lt;li>&lt;strong>前缀匹配&lt;/strong>：以联合索引的前缀为查找条件。如 &lt;code>emp_no&lt;/code> 和 &lt;code>dept_no&lt;/code> 为联合索引，查找条件为 &lt;code>emp_no = 10008&lt;/code>。&lt;/li>
-&lt;li>&lt;strong>列前缀匹配&lt;/strong>：匹配索引列的值的开头部分。如 &lt;code>dept_no&lt;/code> 为索引，查询条件为 &lt;code>dept_no like &amp;quot;d1%&amp;quot;&lt;/code>。前缀匹配和列前缀匹配都是索引前缀性的体现，在某些时候也称为前缀索引。&lt;/li>
-&lt;li>&lt;strong>匹配范围值&lt;/strong>：按照索引列匹配一定范围内的值。如 &lt;code>emp_no&lt;/code> 字段为索引，查询条件为 &lt;code>emp_no &amp;gt; 10008&lt;/code>。&lt;/li>
-&lt;li>&lt;strong>只访问索引的查询&lt;/strong>：如 &lt;code>emp_no&lt;/code> 字段为索引，查询语句为 &lt;code>select emp_no from employees&lt;/code>，此时 emp_no 索引被称为本次查询的覆盖索引，即只需要从索引上就可以获取全部的查询信息，而不必访问实际表中的数据。&lt;/li>
-&lt;li>&lt;strong>精确匹配某一列并范围匹配某一列&lt;/strong>：如 &lt;code>emp_no&lt;/code> 和 &lt;code>dept_no&lt;/code> 为联合索引，查找条件为 &lt;code>dept_no = &amp;quot;d004&amp;quot; and emp_no &amp;lt; 10020&lt;/code>，这种情况下索引顺序可以是（emp_no, dept_no），也可以是（dept_no, emp_no），使用 EXPLAIN 来分析的话，其 TYPE 类型都是 range（使用索引进行范围扫描），但（dept_no, emp_no）性能更好。&lt;/li>
-&lt;/ul>
-&lt;h3 id="23-哈希索引">2.3 哈希索引&lt;/h3>
-&lt;p>使用哈希索引时，存储引擎会对索引列的值进行哈希运算，并将计算出的哈希值和指向该行数据的指针存储在索引中，因此它更适用于等值查询，而不是范围查询，同样也不能用于优化排序和分组等操作。在建立哈希索引时，需要选取选择性比较高的列，即列上的数据不容易重复 (如身份证号)，这样可以尽量避免哈希冲突。因为哈希索引并不需要存储索引列的数据，所以其结构比较紧凑，对应的查询速度也比较快。&lt;/p>
-&lt;p>InnoDB 引擎有一个名为 “自适应哈希索引 (adaptive hash index)” 的功能，当某些索引值被频繁使用时，它会在内存中基于 B+ tree 索引再创建一个哈希索引，从而让 B-Tree 索引具备哈希索引快速查找的优点。&lt;/p>
-&lt;h3 id="24-索引的优点">2.4 索引的优点&lt;/h3>
-&lt;ul>
-&lt;li>索引极大减少了服务器需要扫描的数据量；&lt;/li>
-&lt;li>索引可以帮助服务器避免排序和临时表；&lt;/li>
-&lt;li>索引可以将随机 IO 转换为顺序 IO。&lt;/li>
-&lt;/ul>
-&lt;h3 id="25-使用策略">2.5 使用策略&lt;/h3>
-&lt;ul>
-&lt;li>在查询时，应该避免在索引列上使用函数或者表达式。&lt;/li>
-&lt;li>对于多列索引，应该按照使用频率由高到低的顺序建立联合索引。&lt;/li>
-&lt;li>尽量避免创建冗余的索引。如存在索引 (A，B)，接着又创建了索引 A，因为索引 A 是索引 (A，B) 的前缀索引，从而出现冗余。&lt;/li>
-&lt;li>建立索引时，应该考虑查询时候的排序和分组的需求。只有当索引列的顺序和 ORDER BY 字句的顺序完全一致，并且遵循同样的升序或降序规则时候，MySQL 才会使用索引来对结果做排序。&lt;/li>
-&lt;/ul>
-&lt;h2 id="三锁">三、锁&lt;/h2>
-&lt;h3 id="31-共享锁与排它锁">3.1 共享锁与排它锁&lt;/h3>
-&lt;p>InnoDB 存储引擎支持以下两种标准的行级锁：&lt;/p>
-&lt;ul>
-&lt;li>&lt;strong>共享锁 (S Lock，又称读锁)&lt;/strong> ：允许加锁事务读取数据；&lt;/li>
-&lt;li>&lt;strong>排它锁 (X Lock，又称写锁)&lt;/strong> ：允许加锁事务删除或者修改数据。&lt;/li>
-&lt;/ul>
-&lt;p>排它锁和共享锁的兼容情况如下：&lt;/p>
-&lt;table>
-&lt;thead>
-&lt;tr>
-&lt;th>&lt;/th>
-&lt;th>&lt;strong>X&lt;/strong>&lt;/th>
-&lt;th>&lt;strong>X&lt;/strong>&lt;/th>
-&lt;/tr>
-&lt;/thead>
-&lt;tbody>
-&lt;tr>
-&lt;td>&lt;strong>X&lt;/strong>&lt;/td>
-&lt;td>不兼容&lt;/td>
-&lt;td>不兼容&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>&lt;strong>S&lt;/strong>&lt;/td>
-&lt;td>不兼容&lt;/td>
-&lt;td>兼容&lt;/td>
-&lt;/tr>
-&lt;/tbody>
-&lt;/table>
-&lt;h3 id="32-意向共享锁与意向排它锁">3.2 意向共享锁与意向排它锁&lt;/h3>
-&lt;p>为了说明意向锁的作用，这里先引入一个案例：假设事务 A 利用 S 锁锁住了表中的某一行，让其只能读不能写。之后事务 B 尝试申请整个表的写锁，如果事务 B 申请成功，那么理论上它就应该能修改表中的任意一行，这与事务 A 持有的行锁是冲突的。想要解决这个问题，数据库必须知道表中某一行已经被锁定，从而在事务 B 尝试申请整个表的写锁时阻塞它。想要知道表中某一行被锁定，可以对表的每一行进行遍历，这种方式可行但是性能比较差，所以 InnoDB 引入了意向锁。&lt;/p>
-&lt;ul>
-&lt;li>&lt;strong>意向共享锁 (IS Lock)&lt;/strong> ：当前表中某行或者某几行数据存在共享锁；&lt;/li>
-&lt;li>&lt;strong>意向排它锁 (LX Lock)&lt;/strong> ：当前表中某行或者某几行数据存在排它锁。&lt;/li>
-&lt;/ul>
-&lt;p>按照意向锁的规则，当上面的事务 A 给表中的某一行加 S 锁时，会同时给表加上 IS 锁，之后事务 B 尝试获取表的 X 锁时，由于 X 锁与 IS 锁并不兼容，所以事务 B 会被阻塞。&lt;/p>
-&lt;table>
-&lt;thead>
-&lt;tr>
-&lt;th>&lt;/th>
-&lt;th>X&lt;/th>
-&lt;th>IX&lt;/th>
-&lt;th>S&lt;/th>
-&lt;th>IS&lt;/th>
-&lt;/tr>
-&lt;/thead>
-&lt;tbody>
-&lt;tr>
-&lt;td>&lt;strong>X&lt;/strong>&lt;/td>
-&lt;td>不兼容&lt;/td>
-&lt;td>不兼容&lt;/td>
-&lt;td>不兼容&lt;/td>
-&lt;td>不兼容&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>&lt;strong>IX&lt;/strong>&lt;/td>
-&lt;td>不兼容&lt;/td>
-&lt;td>兼容&lt;/td>
-&lt;td>不兼容&lt;/td>
-&lt;td>兼容&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>&lt;strong>S&lt;/strong>&lt;/td>
-&lt;td>不兼容&lt;/td>
-&lt;td>不兼容&lt;/td>
-&lt;td>兼容&lt;/td>
-&lt;td>兼容&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>&lt;strong>IS&lt;/strong>&lt;/td>
-&lt;td>不兼容&lt;/td>
-&lt;td>兼容&lt;/td>
-&lt;td>兼容&lt;/td>
-&lt;td>兼容&lt;/td>
-&lt;/tr>
-&lt;/tbody>
-&lt;/table>
-&lt;h3 id="33-一致性读">3.3 一致性读&lt;/h3>
-&lt;p>&lt;strong>1. 一致性非锁定读&lt;/strong>&lt;/p>
-&lt;p>一致非锁定读 (consistent nonlocking read) 是指在 InnoDB 存储引擎下，如果将要读取的行正在执行 DELETE 或 UPDATE 操作，此时不必去等待行上锁的释放，而是去读取 undo 日志上该行的快照数据，具体如下：&lt;/p>
-&lt;ul>
-&lt;li>在 READ COMMITTED 事务隔离级别下，读取被锁定行的最新一份快照数据；&lt;/li>
-&lt;li>在 REPEATABLE READ 事务隔离级别下，读取事务开始时所处版本的数据。&lt;/li>
-&lt;/ul>
-&lt;p>基于多版本并发控制和一致性非锁定读，可以避免获取锁的等待，从而提高并发访问下的性能。&lt;/p>
-&lt;p>&lt;strong>2. 一致性锁定读&lt;/strong>&lt;/p>
-&lt;p>一致性锁定读则允许用户按照自己的需求在进行 SELECT 操作时手动加锁，通常有以下两种方式：&lt;/p>
-&lt;ul>
-&lt;li>&lt;strong>SELECT &amp;hellip; FOR SHARE&lt;/strong>：在读取行上加 S 锁；&lt;/li>
-&lt;li>&lt;strong>SELECT &amp;hellip; FOR UPDATE&lt;/strong>：在读取行上加 X 锁。&lt;/li>
-&lt;/ul>
-&lt;h3 id="34-锁的算法">3.4 锁的算法&lt;/h3>
-&lt;p>InnoDB 存储引擎支持以下三种锁的算法：&lt;/p>
-&lt;p>&lt;strong>Record Lock&lt;/strong>：行锁，用于锁定单个行记录。示例如下：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">-- 利用行锁可以防止其他事务更新或删除该行
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">c1&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">t&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">WHERE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">c1&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">10&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">FOR&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">UPDATE&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
-&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;strong>Gap Lock&lt;/strong>：间隙锁，锁定一个范围，但不包括记录本身，主要用于解决幻读问题，示例如下：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">-- 利用间隙锁可以阻止其他事务将值15插入列 t.c1
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">c1&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">t&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">WHERE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">c1&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">BETWEEN&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">10&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">and&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">20&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">FOR&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">UPDATE&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
-&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;strong>Next-Key Lock&lt;/strong>：等价于 行锁+间隙锁，既锁定范围，也锁定记录本身。可以用于解决幻读中的 ”当前读“ 的问题。&lt;/p>
-&lt;h2 id="四事务">四、事务&lt;/h2>
-&lt;h3 id="41-acid-定义">4.1 ACID 定义&lt;/h3>
-&lt;p>InnoDB 存储引擎完全支持 ACID 模型：&lt;/p>
-&lt;p>&lt;strong>1. 原子性（Atomicity）&lt;/strong>&lt;/p>
-&lt;p>事务是不可分割的最小工作单元，事务的所有操作要么全部提交成功，要么全部失败回滚，不存在部分成功的情况。&lt;/p>
-&lt;p>&lt;strong>2. 一致性（Consistency）&lt;/strong>&lt;/p>
-&lt;p>数据库在事务执行前后都保持一致性状态，数据库的完整性没有被破坏。&lt;/p>
-&lt;p>&lt;strong>3. 隔离性（Isolation）&lt;/strong>&lt;/p>
-&lt;p>允许多个并发事务同时对数据进行操作，但一个事务所做的修改在最终提交以前，对其它事务是不可见的。&lt;/p>
-&lt;p>&lt;strong>4. 持久性（Durability）&lt;/strong>&lt;/p>
-&lt;p>一旦事务提交，则其所做的修改将会永远保存到数据库中。即使宕机等故障，也不会丢失。&lt;/p>
-&lt;h3 id="42-事务的实现">4.2 事务的实现&lt;/h3>
-&lt;p>数据库隔离性由上一部分介绍的锁来实现，而原子性、一致性、持久性都由 undo log 和 redo log 来实现。&lt;/p>
-&lt;ul>
-&lt;li>&lt;strong>undo log&lt;/strong>：存储在 undo 表空间或全局临时表空间的 undo 日志段 (segment) 上，用于记录数据修改前的状态，主要用于帮助事务回滚以及实现 MVCC 功能 (如一致性非锁定读)。&lt;/li>
-&lt;li>&lt;strong>redo log&lt;/strong>：负责记录数据修改后的值，主要用于保证事务的持久化。&lt;/li>
-&lt;/ul>
-&lt;h3 id="43-并发问题">4.3 并发问题&lt;/h3>
-&lt;p>在并发环境下，数据的更改通常会产生下面四种问题：&lt;/p>
-&lt;p>&lt;strong>1.丢失更新&lt;/strong>&lt;/p>
-&lt;p>一个事务的更新操作被另外一个事务的更新操作所覆盖，从而导致数据不一致：&lt;/p>
-&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/mysql-修改丢失.png"/> &lt;/div>
-&lt;p>&lt;strong>2. 脏读&lt;/strong>&lt;/p>
-&lt;p>在不同的事务下，一个事务读取到其他事务未提交的数据：&lt;/p>
-&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/mysql-脏读.png"/> &lt;/div>
-&lt;p>&lt;strong>3. 不可重复读&lt;/strong>&lt;/p>
-&lt;p>在同一个事务的两次读取之间，由于其他事务对数据进行了修改，导致对同一条数据两次读到的结果不一致：&lt;/p>
-&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/mysql-不可重复读.png"/> &lt;/div>
-&lt;p>&lt;strong>4.幻读&lt;/strong>&lt;/p>
-&lt;p>在同一个事务的两次读取之间，由于其他事务对数据进行了修改，导致第二次读取到第一次不存在数据，或第一次原本存在的数据，第二次却读取不到，就好像之前的读取是 “幻觉” 一样：&lt;/p>
-&lt;div align="center"> &lt;img src="https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/mysql-幻读.png"/> &lt;/div>
-&lt;h3 id="44-隔离级别">4.4 隔离级别&lt;/h3>
-&lt;p>想要解决以上问题，可以通过设置隔离级别来实现：InnoDB 支持以下四个等级的隔离级别，默认隔离级别为可重复读：&lt;/p>
-&lt;ul>
-&lt;li>&lt;strong>读未提交&lt;/strong>：在此级别下，一个事务中的修改，即便没有提交，对其他事务也是可见的。&lt;/li>
-&lt;li>&lt;strong>读已提交&lt;/strong>：在此级别下，一个事务中的修改只有已经提交的情况下，对其他事务才是可见的。&lt;/li>
-&lt;li>&lt;strong>可重复读&lt;/strong>：保证在同一个事务中多次读取同样数据的结果是一样的。&lt;/li>
-&lt;li>&lt;strong>串行化&lt;/strong>：所有事务强制串行执行，由于已经不存在并行，所以上述所有并发问题都不会出现。&lt;/li>
-&lt;/ul>
-&lt;p>在每个级别下，并发问题是否可能出现的情况如下：&lt;/p>
-&lt;table>
-&lt;thead>
-&lt;tr>
-&lt;th>隔离级别&lt;/th>
-&lt;th>脏读&lt;/th>
-&lt;th>不可重复读&lt;/th>
-&lt;th>幻读&lt;/th>
-&lt;/tr>
-&lt;/thead>
-&lt;tbody>
-&lt;tr>
-&lt;td>读未提交（READ UNCOMMITTED）&lt;/td>
-&lt;td>可能出现&lt;/td>
-&lt;td>可能&lt;/td>
-&lt;td>可能&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>读已提交（READ COMMITTED）&lt;/td>
-&lt;td>不可能出现&lt;/td>
-&lt;td>可能&lt;/td>
-&lt;td>可能&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>可重复读（REPEATABLE READ）&lt;/td>
-&lt;td>不可能&lt;/td>
-&lt;td>不可能&lt;/td>
-&lt;td>可能&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>串行化（SERIALIZABLE）&lt;/td>
-&lt;td>不可能&lt;/td>
-&lt;td>不可能&lt;/td>
-&lt;td>不可能&lt;/td>
-&lt;/tr>
-&lt;/tbody>
-&lt;/table>
-&lt;p>就数据库层面而言，当前任何隔离级别下都不会发生丢失更新的问题，以 InnoDB 存储引擎为例，如果你想要更改表中某行数据，该行数据上必然会加上 X 锁，而对应的表上则会加上 IX 锁，其他任何事务都必须等待获取该锁才能进行修改操作。&lt;/p>
-&lt;h2 id="五数据库设计范式">五、数据库设计范式&lt;/h2>
-&lt;p>数据库设计当中常用的三范式如下：&lt;/p>
-&lt;h4 id="第一范式属性不可分">第一范式：属性不可分&lt;/h4>
-&lt;p>要求表中的每一列都是不可再细分的原子项。这是最低的范式要求，通常都能够被满足。&lt;/p>
-&lt;h4 id="第二范式属性完全依赖于主键">第二范式：属性完全依赖于主键&lt;/h4>
-&lt;p>要求非主键列必须完全依赖于主键列，而不能存在部分依赖。示例如下：&lt;/p>
-&lt;table>
-&lt;thead>
-&lt;tr>
-&lt;th>mechanism_id （组织机构代码）&lt;/th>
-&lt;th>employee_id （雇员编号）&lt;/th>
-&lt;th>ename （雇员名称）&lt;/th>
-&lt;th>mname （机构名称）&lt;/th>
-&lt;/tr>
-&lt;/thead>
-&lt;tbody>
-&lt;tr>
-&lt;td>28193182&lt;/td>
-&lt;td>10001&lt;/td>
-&lt;td>heibaiying&lt;/td>
-&lt;td>XXXX 公司&lt;/td>
-&lt;/tr>
-&lt;/tbody>
-&lt;/table>
-&lt;p>以上是一张全市在职人员统计表，主键为：机构编码 + 雇员编号。表中的雇员名称完全依赖于此联合主键，但机构名称却只依赖于机构编码，这就是部分依赖，因此违背了第二范式。此时常用的解决方式是建立一张组织机构与组织名称的字典表。&lt;/p>
-&lt;h4 id="第三范式避免传递依赖">第三范式：避免传递依赖&lt;/h4>
-&lt;p>非主键列不能依赖于其他非主键列，如果其他非主键列又依赖于主键列，此时就出现了传递依赖。示例如下：&lt;/p>
-&lt;table>
-&lt;thead>
-&lt;tr>
-&lt;th>employee_id （雇员编号）&lt;/th>
-&lt;th>ename （雇员名称）&lt;/th>
-&lt;th>dept_no (部门编号)&lt;/th>
-&lt;th>dname（部门名称）&lt;/th>
-&lt;/tr>
-&lt;/thead>
-&lt;tbody>
-&lt;tr>
-&lt;td>10001&lt;/td>
-&lt;td>heibaiying&lt;/td>
-&lt;td>06&lt;/td>
-&lt;td>开发部&lt;/td>
-&lt;/tr>
-&lt;/tbody>
-&lt;/table>
-&lt;p>以上是一张雇员表，雇员名称和所属的部门编号都依赖于主键 employee_id ，但部门名称却依赖于部门编号，此时就出现了非主键列依赖于其他非主键列，这就违背的第三范式。此时常用的解决方式是建立一张部门表用于维护部门相关的信息。&lt;/p>
-&lt;h4 id="反范式设计">反范式设计&lt;/h4>
-&lt;p>从上面的例子中我们也可以看出，想要完全遵循三范式设计，可能需要额外增加很多表来进行维护。所以在日常开发中，基于其他因素的综合考量，可能并不会完全遵循范式设计，甚至可能违反范式设计，这就是反范式设计。&lt;/p>
-&lt;h2 id="参考资料">参考资料&lt;/h2>
-&lt;ol>
-&lt;li>官方文档：&lt;a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-storage-engine.html" target="_blank" rel="noopener">The InnoDB Storage Engine&lt;/a>，&lt;a href="https://dev.mysql.com/doc/refman/8.0/en/optimization-indexes.html" target="_blank" rel="noopener">Optimization and Indexes&lt;/a>，&lt;a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-locking-transaction-model.html" target="_blank" rel="noopener">InnoDB Locking and Transaction Model&lt;/a>&lt;/li>
-&lt;li>姜承尧 . MySQL 技术内幕:InnoDB 存储引擎(第 2 版) . MySQL 技术内幕 . 2013-05&lt;/li>
-&lt;li>施瓦茨 (Baron Schwartz) / 扎伊采夫 (Peter Zaitsev) / 特卡琴科 (Vadim Tkachenko) . 高性能 mysql(第 3 版) . 电子工业出版社 . 2013-05-01&lt;/li>
-&lt;li>&lt;a href="http://mysql.taobao.org/monthly/2018/04/03/" target="_blank" rel="noopener"> InnoDB 数据页解析&lt;/a>&lt;/li>
-&lt;li>&lt;a href="https://blog.codinglabs.org/articles/theory-of-mysql-index.html" target="_blank" rel="noopener">MySQL 索引背后的数据结构及算法原理&lt;/a>&lt;/li>
-&lt;li>&lt;a href="https://www.jianshu.com/p/486a514b0ded" target="_blank" rel="noopener">MYSQL-B+TREE 索引原理&lt;/a>&lt;/li>
-&lt;li>&lt;a href="https://tech.meituan.com/2014/08/20/innodb-lock.html" target="_blank" rel="noopener">Innodb 中的事务隔离级别和锁的关系&lt;/a>&lt;/li>
-&lt;/ol></description></item></channel></rss>
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;全值匹配&lt;/strong&gt;：以索引为条件进行精确查找。如 &lt;code&gt;emp_no&lt;/code&gt; 字段为索引，查询条件为 &lt;code&gt;emp_no = 10008&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;前缀匹配&lt;/strong&gt;：以联合索引的前缀为查找条件。如 &lt;code&gt;emp_no&lt;/code&gt; 和 &lt;code&gt;dept_no&lt;/code&gt; 为联合索引，查找条件为 &lt;code&gt;emp_no = 10008&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;列前缀匹配&lt;/strong&gt;：匹配索引列的值的开头部分。如 &lt;code&gt;dept_no&lt;/code&gt; 为索引，查询条件为 &lt;code&gt;dept_no like &amp;quot;d1%&amp;quot;&lt;/code&gt;。前缀匹配和列前缀匹配都是索引前缀性的体现，在某些时候也称为前缀索引。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;匹配范围值&lt;/strong&gt;：按照索引列匹配一定范围内的值。如 &lt;code&gt;emp_no&lt;/code&gt; 字段为索引，查询条件为 &lt;code&gt;emp_no &amp;gt; 10008&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;只访问索引的查询&lt;/strong&gt;：如 &lt;code&gt;emp_no&lt;/code&gt; 字段为索引，查询语句为 &lt;code&gt;select emp_no from employees&lt;/code&gt;，此时 emp_no 索引被称为本次查询的覆盖索引，即只需要从索引上就可以获取全部的查询信息，而不必访问实际表中的数据。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;精确匹配某一列并范围匹配某一列&lt;/strong&gt;：如 &lt;code&gt;emp_no&lt;/code&gt; 和 &lt;code&gt;dept_no&lt;/code&gt; 为联合索引，查找条件为 &lt;code&gt;dept_no = &amp;quot;d004&amp;quot; and emp_no &amp;lt; 10020&lt;/code&gt;，这种情况下索引顺序可以是（emp_no, dept_no），也可以是（dept_no, emp_no），使用 EXPLAIN 来分析的话，其 TYPE 类型都是 range（使用索引进行范围扫描），但（dept_no, emp_no）性能更好。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;23-哈希索引&#34;&gt;2.3 哈希索引&lt;/h3&gt;
+&lt;p&gt;使用哈希索引时，存储引擎会对索引列的值进行哈希运算，并将计算出的哈希值和指向该行数据的指针存储在索引中，因此它更适用于等值查询，而不是范围查询，同样也不能用于优化排序和分组等操作。在建立哈希索引时，需要选取选择性比较高的列，即列上的数据不容易重复 (如身份证号)，这样可以尽量避免哈希冲突。因为哈希索引并不需要存储索引列的数据，所以其结构比较紧凑，对应的查询速度也比较快。&lt;/p&gt;
+&lt;p&gt;InnoDB 引擎有一个名为 “自适应哈希索引 (adaptive hash index)” 的功能，当某些索引值被频繁使用时，它会在内存中基于 B+ tree 索引再创建一个哈希索引，从而让 B-Tree 索引具备哈希索引快速查找的优点。&lt;/p&gt;
+&lt;h3 id=&#34;24-索引的优点&#34;&gt;2.4 索引的优点&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;索引极大减少了服务器需要扫描的数据量；&lt;/li&gt;
+&lt;li&gt;索引可以帮助服务器避免排序和临时表；&lt;/li&gt;
+&lt;li&gt;索引可以将随机 IO 转换为顺序 IO。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;25-使用策略&#34;&gt;2.5 使用策略&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;在查询时，应该避免在索引列上使用函数或者表达式。&lt;/li&gt;
+&lt;li&gt;对于多列索引，应该按照使用频率由高到低的顺序建立联合索引。&lt;/li&gt;
+&lt;li&gt;尽量避免创建冗余的索引。如存在索引 (A，B)，接着又创建了索引 A，因为索引 A 是索引 (A，B) 的前缀索引，从而出现冗余。&lt;/li&gt;
+&lt;li&gt;建立索引时，应该考虑查询时候的排序和分组的需求。只有当索引列的顺序和 ORDER BY 字句的顺序完全一致，并且遵循同样的升序或降序规则时候，MySQL 才会使用索引来对结果做排序。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;三锁&#34;&gt;三、锁&lt;/h2&gt;
+&lt;h3 id=&#34;31-共享锁与排它锁&#34;&gt;3.1 共享锁与排它锁&lt;/h3&gt;
+&lt;p&gt;InnoDB 存储引擎支持以下两种标准的行级锁：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;共享锁 (S Lock，又称读锁)&lt;/strong&gt; ：允许加锁事务读取数据；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;排它锁 (X Lock，又称写锁)&lt;/strong&gt; ：允许加锁事务删除或者修改数据。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;排它锁和共享锁的兼容情况如下：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;&lt;strong&gt;X&lt;/strong&gt;&lt;/th&gt;
+&lt;th&gt;&lt;strong&gt;X&lt;/strong&gt;&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;X&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;不兼容&lt;/td&gt;
+&lt;td&gt;不兼容&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;S&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;不兼容&lt;/td&gt;
+&lt;td&gt;兼容&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3 id=&#34;32-意向共享锁与意向排它锁&#34;&gt;3.2 意向共享锁与意向排它锁&lt;/h3&gt;
+&lt;p&gt;为了说明意向锁的作用，这里先引入一个案例：假设事务 A 利用 S 锁锁住了表中的某一行，让其只能读不能写。之后事务 B 尝试申请整个表的写锁，如果事务 B 申请成功，那么理论上它就应该能修改表中的任意一行，这与事务 A 持有的行锁是冲突的。想要解决这个问题，数据库必须知道表中某一行已经被锁定，从而在事务 B 尝试申请整个表的写锁时阻塞它。想要知道表中某一行被锁定，可以对表的每一行进行遍历，这种方式可行但是性能比较差，所以 InnoDB 引入了意向锁。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;意向共享锁 (IS Lock)&lt;/strong&gt; ：当前表中某行或者某几行数据存在共享锁；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;意向排它锁 (LX Lock)&lt;/strong&gt; ：当前表中某行或者某几行数据存在排它锁。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;按照意向锁的规则，当上面的事务 A 给表中的某一行加 S 锁时，会同时给表加上 IS 锁，之后事务 B 尝试获取表的 X 锁时，由于 X 锁与 IS 锁并不兼容，所以事务 B 会被阻塞。&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;X&lt;/th&gt;
+&lt;th&gt;IX&lt;/th&gt;
+&lt;th&gt;S&lt;/th&gt;
+&lt;th&gt;IS&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;X&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;不兼容&lt;/td&gt;
+&lt;td&gt;不兼容&lt;/td&gt;
+&lt;td&gt;不兼容&lt;/td&gt;
+&lt;td&gt;不兼容&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;IX&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;不兼容&lt;/td&gt;
+&lt;td&gt;兼容&lt;/td&gt;
+&lt;td&gt;不兼容&lt;/td&gt;
+&lt;td&gt;兼容&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;S&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;不兼容&lt;/td&gt;
+&lt;td&gt;不兼容&lt;/td&gt;
+&lt;td&gt;兼容&lt;/td&gt;
+&lt;td&gt;兼容&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;IS&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;不兼容&lt;/td&gt;
+&lt;td&gt;兼容&lt;/td&gt;
+&lt;td&gt;兼容&lt;/td&gt;
+&lt;td&gt;兼容&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3 id=&#34;33-一致性读&#34;&gt;3.3 一致性读&lt;/h3&gt;
+&lt;p&gt;&lt;strong&gt;1. 一致性非锁定读&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;一致非锁定读 (consistent nonlocking read) 是指在 InnoDB 存储引擎下，如果将要读取的行正在执行 DELETE 或 UPDATE 操作，此时不必去等待行上锁的释放，而是去读取 undo 日志上该行的快照数据，具体如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;在 READ COMMITTED 事务隔离级别下，读取被锁定行的最新一份快照数据；&lt;/li&gt;
+&lt;li&gt;在 REPEATABLE READ 事务隔离级别下，读取事务开始时所处版本的数据。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;基于多版本并发控制和一致性非锁定读，可以避免获取锁的等待，从而提高并发访问下的性能。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;2. 一致性锁定读&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;一致性锁定读则允许用户按照自己的需求在进行 SELECT 操作时手动加锁，通常有以下两种方式：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;SELECT &amp;hellip; FOR SHARE&lt;/strong&gt;：在读取行上加 S 锁；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;SELECT &amp;hellip; FOR UPDATE&lt;/strong&gt;：在读取行上加 X 锁。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;34-锁的算法&#34;&gt;3.4 锁的算法&lt;/h3&gt;
+&lt;p&gt;InnoDB 存储引擎支持以下三种锁的算法：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Record Lock&lt;/strong&gt;：行锁，用于锁定单个行记录。示例如下：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sql&#34; data-lang=&#34;sql&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;-- 利用行锁可以防止其他事务更新或删除该行
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;SELECT&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;c1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;FROM&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;t&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;WHERE&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;c1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;10&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;FOR&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;UPDATE&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;Gap Lock&lt;/strong&gt;：间隙锁，锁定一个范围，但不包括记录本身，主要用于解决幻读问题，示例如下：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sql&#34; data-lang=&#34;sql&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;-- 利用间隙锁可以阻止其他事务将值15插入列 t.c1
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;SELECT&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;c1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;FROM&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;t&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;WHERE&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;c1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;BETWEEN&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;10&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;and&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;20&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;FOR&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;UPDATE&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;Next-Key Lock&lt;/strong&gt;：等价于 行锁+间隙锁，既锁定范围，也锁定记录本身。可以用于解决幻读中的 ”当前读“ 的问题。&lt;/p&gt;
+&lt;h2 id=&#34;四事务&#34;&gt;四、事务&lt;/h2&gt;
+&lt;h3 id=&#34;41-acid-定义&#34;&gt;4.1 ACID 定义&lt;/h3&gt;
+&lt;p&gt;InnoDB 存储引擎完全支持 ACID 模型：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;1. 原子性（Atomicity）&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;事务是不可分割的最小工作单元，事务的所有操作要么全部提交成功，要么全部失败回滚，不存在部分成功的情况。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;2. 一致性（Consistency）&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;数据库在事务执行前后都保持一致性状态，数据库的完整性没有被破坏。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;3. 隔离性（Isolation）&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;允许多个并发事务同时对数据进行操作，但一个事务所做的修改在最终提交以前，对其它事务是不可见的。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;4. 持久性（Durability）&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;一旦事务提交，则其所做的修改将会永远保存到数据库中。即使宕机等故障，也不会丢失。&lt;/p&gt;
+&lt;h3 id=&#34;42-事务的实现&#34;&gt;4.2 事务的实现&lt;/h3&gt;
+&lt;p&gt;数据库隔离性由上一部分介绍的锁来实现，而原子性、一致性、持久性都由 undo log 和 redo log 来实现。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;undo log&lt;/strong&gt;：存储在 undo 表空间或全局临时表空间的 undo 日志段 (segment) 上，用于记录数据修改前的状态，主要用于帮助事务回滚以及实现 MVCC 功能 (如一致性非锁定读)。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;redo log&lt;/strong&gt;：负责记录数据修改后的值，主要用于保证事务的持久化。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;43-并发问题&#34;&gt;4.3 并发问题&lt;/h3&gt;
+&lt;p&gt;在并发环境下，数据的更改通常会产生下面四种问题：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;1.丢失更新&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;一个事务的更新操作被另外一个事务的更新操作所覆盖，从而导致数据不一致：&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt; &lt;img src=&#34;https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/mysql-修改丢失.png&#34;/&gt; &lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;2. 脏读&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;在不同的事务下，一个事务读取到其他事务未提交的数据：&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt; &lt;img src=&#34;https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/mysql-脏读.png&#34;/&gt; &lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;3. 不可重复读&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;在同一个事务的两次读取之间，由于其他事务对数据进行了修改，导致对同一条数据两次读到的结果不一致：&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt; &lt;img src=&#34;https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/mysql-不可重复读.png&#34;/&gt; &lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;4.幻读&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;在同一个事务的两次读取之间，由于其他事务对数据进行了修改，导致第二次读取到第一次不存在数据，或第一次原本存在的数据，第二次却读取不到，就好像之前的读取是 “幻觉” 一样：&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt; &lt;img src=&#34;https://gitee.com/heibaiying/Full-Stack-Notes/raw/master/pictures/mysql-幻读.png&#34;/&gt; &lt;/div&gt;
+&lt;h3 id=&#34;44-隔离级别&#34;&gt;4.4 隔离级别&lt;/h3&gt;
+&lt;p&gt;想要解决以上问题，可以通过设置隔离级别来实现：InnoDB 支持以下四个等级的隔离级别，默认隔离级别为可重复读：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;读未提交&lt;/strong&gt;：在此级别下，一个事务中的修改，即便没有提交，对其他事务也是可见的。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;读已提交&lt;/strong&gt;：在此级别下，一个事务中的修改只有已经提交的情况下，对其他事务才是可见的。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;可重复读&lt;/strong&gt;：保证在同一个事务中多次读取同样数据的结果是一样的。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;串行化&lt;/strong&gt;：所有事务强制串行执行，由于已经不存在并行，所以上述所有并发问题都不会出现。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;在每个级别下，并发问题是否可能出现的情况如下：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;隔离级别&lt;/th&gt;
+&lt;th&gt;脏读&lt;/th&gt;
+&lt;th&gt;不可重复读&lt;/th&gt;
+&lt;th&gt;幻读&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;读未提交（READ UNCOMMITTED）&lt;/td&gt;
+&lt;td&gt;可能出现&lt;/td&gt;
+&lt;td&gt;可能&lt;/td&gt;
+&lt;td&gt;可能&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;读已提交（READ COMMITTED）&lt;/td&gt;
+&lt;td&gt;不可能出现&lt;/td&gt;
+&lt;td&gt;可能&lt;/td&gt;
+&lt;td&gt;可能&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;可重复读（REPEATABLE READ）&lt;/td&gt;
+&lt;td&gt;不可能&lt;/td&gt;
+&lt;td&gt;不可能&lt;/td&gt;
+&lt;td&gt;可能&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;串行化（SERIALIZABLE）&lt;/td&gt;
+&lt;td&gt;不可能&lt;/td&gt;
+&lt;td&gt;不可能&lt;/td&gt;
+&lt;td&gt;不可能&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;就数据库层面而言，当前任何隔离级别下都不会发生丢失更新的问题，以 InnoDB 存储引擎为例，如果你想要更改表中某行数据，该行数据上必然会加上 X 锁，而对应的表上则会加上 IX 锁，其他任何事务都必须等待获取该锁才能进行修改操作。&lt;/p&gt;
+&lt;h2 id=&#34;五数据库设计范式&#34;&gt;五、数据库设计范式&lt;/h2&gt;
+&lt;p&gt;数据库设计当中常用的三范式如下：&lt;/p&gt;
+&lt;h4 id=&#34;第一范式属性不可分&#34;&gt;第一范式：属性不可分&lt;/h4&gt;
+&lt;p&gt;要求表中的每一列都是不可再细分的原子项。这是最低的范式要求，通常都能够被满足。&lt;/p&gt;
+&lt;h4 id=&#34;第二范式属性完全依赖于主键&#34;&gt;第二范式：属性完全依赖于主键&lt;/h4&gt;
+&lt;p&gt;要求非主键列必须完全依赖于主键列，而不能存在部分依赖。示例如下：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;mechanism_id （组织机构代码）&lt;/th&gt;
+&lt;th&gt;employee_id （雇员编号）&lt;/th&gt;
+&lt;th&gt;ename （雇员名称）&lt;/th&gt;
+&lt;th&gt;mname （机构名称）&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;28193182&lt;/td&gt;
+&lt;td&gt;10001&lt;/td&gt;
+&lt;td&gt;heibaiying&lt;/td&gt;
+&lt;td&gt;XXXX 公司&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;以上是一张全市在职人员统计表，主键为：机构编码 + 雇员编号。表中的雇员名称完全依赖于此联合主键，但机构名称却只依赖于机构编码，这就是部分依赖，因此违背了第二范式。此时常用的解决方式是建立一张组织机构与组织名称的字典表。&lt;/p&gt;
+&lt;h4 id=&#34;第三范式避免传递依赖&#34;&gt;第三范式：避免传递依赖&lt;/h4&gt;
+&lt;p&gt;非主键列不能依赖于其他非主键列，如果其他非主键列又依赖于主键列，此时就出现了传递依赖。示例如下：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;employee_id （雇员编号）&lt;/th&gt;
+&lt;th&gt;ename （雇员名称）&lt;/th&gt;
+&lt;th&gt;dept_no (部门编号)&lt;/th&gt;
+&lt;th&gt;dname（部门名称）&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;10001&lt;/td&gt;
+&lt;td&gt;heibaiying&lt;/td&gt;
+&lt;td&gt;06&lt;/td&gt;
+&lt;td&gt;开发部&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;以上是一张雇员表，雇员名称和所属的部门编号都依赖于主键 employee_id ，但部门名称却依赖于部门编号，此时就出现了非主键列依赖于其他非主键列，这就违背的第三范式。此时常用的解决方式是建立一张部门表用于维护部门相关的信息。&lt;/p&gt;
+&lt;h4 id=&#34;反范式设计&#34;&gt;反范式设计&lt;/h4&gt;
+&lt;p&gt;从上面的例子中我们也可以看出，想要完全遵循三范式设计，可能需要额外增加很多表来进行维护。所以在日常开发中，基于其他因素的综合考量，可能并不会完全遵循范式设计，甚至可能违反范式设计，这就是反范式设计。&lt;/p&gt;
+&lt;h2 id=&#34;参考资料&#34;&gt;参考资料&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;官方文档：&lt;a href=&#34;https://dev.mysql.com/doc/refman/8.0/en/innodb-storage-engine.html&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;The InnoDB Storage Engine&lt;/a&gt;，&lt;a href=&#34;https://dev.mysql.com/doc/refman/8.0/en/optimization-indexes.html&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Optimization and Indexes&lt;/a&gt;，&lt;a href=&#34;https://dev.mysql.com/doc/refman/8.0/en/innodb-locking-transaction-model.html&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;InnoDB Locking and Transaction Model&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;姜承尧 . MySQL 技术内幕:InnoDB 存储引擎(第 2 版) . MySQL 技术内幕 . 2013-05&lt;/li&gt;
+&lt;li&gt;施瓦茨 (Baron Schwartz) / 扎伊采夫 (Peter Zaitsev) / 特卡琴科 (Vadim Tkachenko) . 高性能 mysql(第 3 版) . 电子工业出版社 . 2013-05-01&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://mysql.taobao.org/monthly/2018/04/03/&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt; InnoDB 数据页解析&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://blog.codinglabs.org/articles/theory-of-mysql-index.html&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;MySQL 索引背后的数据结构及算法原理&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.jianshu.com/p/486a514b0ded&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;MYSQL-B+TREE 索引原理&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://tech.meituan.com/2014/08/20/innodb-lock.html&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Innodb 中的事务隔离级别和锁的关系&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

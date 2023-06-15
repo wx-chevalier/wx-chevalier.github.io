@@ -1,38 +1,77 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>XMPP | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/system-notes/%E5%8D%B3%E6%97%B6%E9%80%9A%E4%BF%A1%E4%B8%8E%E7%9B%B4%E6%92%AD/xmpp/</link><atom:link href="https://ng-tech.icu/books/system-notes/%E5%8D%B3%E6%97%B6%E9%80%9A%E4%BF%A1%E4%B8%8E%E7%9B%B4%E6%92%AD/xmpp/index.xml" rel="self" type="application/rss+xml"/><description>XMPP</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>XMPP</title><link>https://ng-tech.icu/books/system-notes/%E5%8D%B3%E6%97%B6%E9%80%9A%E4%BF%A1%E4%B8%8E%E7%9B%B4%E6%92%AD/xmpp/</link></image><item><title>协议规范</title><link>https://ng-tech.icu/books/system-notes/%E5%8D%B3%E6%97%B6%E9%80%9A%E4%BF%A1%E4%B8%8E%E7%9B%B4%E6%92%AD/xmpp/%E5%8D%8F%E8%AE%AE%E8%A7%84%E8%8C%83/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/system-notes/%E5%8D%B3%E6%97%B6%E9%80%9A%E4%BF%A1%E4%B8%8E%E7%9B%B4%E6%92%AD/xmpp/%E5%8D%8F%E8%AE%AE%E8%A7%84%E8%8C%83/</guid><description>&lt;h1 id="xmpp-协议规范">XMPP 协议规范&lt;/h1>
-&lt;p>xmpp 是基于 xml 类型进行消息传递的。所有的消息传递类型都是 xmpp 类型的。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://s2.ax1x.com/2019/10/24/KUGlWD.png" alt="聊天数据流" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>流程：客户端 A 给客户端 B 发送一条消息，消息先从客户端 A 传到服务器，服务器通过判断客户端 B 是否在线，如果在线的就直接把消息推送给客户端 B，客户端 B 收到消息以后，则发送后回执，服务器收到回执以后再推给客户端 A。如果客户端 B 不在线，则消息在服务器端保存，服务器发送回回执告诉客户端 A 发送消息成功，等客户端 B 上线以后再把消息推送给客户端 B。&lt;/p>
-&lt;p>问题 1: 当客户端 A 给 B 推送消息时，客户端 B 正好此时进入后台。由于后台心跳检测还没有检测到 B 已经离线，这个时候服务器会把消息推送给客户端 B，并且服务器没有保存这条消息。而此时客户端 B 已经进入后台，无法接收到消息，也就无法发送回执。会造成客户端 A 发送消息失败。
-解决方法：服务器每次收到客户端 A 都会发送的消息，都会由服务器发送回执告诉 A 已经发送成功。客户端首先保存聊天信息，再客户端 B 是否在线。如果在线，则发送消息，接受回执，如果没有收到回执，则当成不在线，保存聊天消息为未发送状态，下次等客户端 B 连线后推送。&lt;/p>
-&lt;h1 id="消息类型">消息类型&lt;/h1>
-&lt;h2 id="发送消息类型">发送消息类型&lt;/h2>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;message&lt;/span> &lt;span class="na">type=&lt;/span>&lt;span class="s">&amp;#34;chat&amp;#34;&lt;/span> &lt;span class="na">to=&lt;/span>&lt;span class="s">&amp;#34;110095@domain&amp;#34;&lt;/span> &lt;span class="na">id=&lt;/span>&lt;span class="s">&amp;#34;d851f47818db46b58abf4e982327ab36&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&amp;lt;request&lt;/span> &lt;span class="na">xmlns=&lt;/span>&lt;span class="s">&amp;#34;urn:xmpp:receipts&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&amp;lt;/request&amp;gt;&amp;lt;body&amp;gt;&lt;/span>{
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;messageId&amp;#34; : &amp;#34;d851f47818db46b58abf4e982327ab36&amp;#34;, //messageid
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;content&amp;#34; : &amp;#34;你好&amp;#34;, //消息内容
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;fromUserName&amp;#34; : &amp;#34;张三&amp;#34;, //发送人
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;isSecret&amp;#34; : 0, //单聊是否是密聊消息 0:正常聊天 1:密聊
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;timeLen&amp;#34; : 0,
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;isAt&amp;#34; : 0, //群聊是否@人
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;timeSend&amp;#34; : 1522034423, //发送时间
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;type&amp;#34; : 1 //消息类型
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">}&lt;span class="nt">&amp;lt;/body&amp;gt;&amp;lt;/message&amp;gt;&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="接收消息类型">接收消息类型&lt;/h2>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;message&lt;/span> &lt;span class="na">xmlns=&lt;/span>&lt;span class="s">&amp;#34;jabber:client&amp;#34;&lt;/span> &lt;span class="na">id=&lt;/span>&lt;span class="s">&amp;#34;cdc6007ca03b401f8c9e4a2ccb75d8d5&amp;#34;&lt;/span> &lt;span class="na">type=&lt;/span>&lt;span class="s">&amp;#34;chat&amp;#34;&lt;/span> &lt;span class="na">to=&lt;/span>&lt;span class="s">&amp;#34;111751@domain&amp;#34;&lt;/span> &lt;span class="na">from=&lt;/span>&lt;span class="s">&amp;#34;109965@domain/resource&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&amp;lt;request&lt;/span> &lt;span class="na">xmlns=&lt;/span>&lt;span class="s">&amp;#34;urn:xmpp:receipts&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&amp;lt;/request&amp;gt;&amp;lt;body&amp;gt;&lt;/span>{
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;messageId&amp;#34; : &amp;#34;cdc6007ca03b401f8c9e4a2ccb75d8d5&amp;#34;,
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;content&amp;#34; : &amp;#34;天津&amp;#34;,
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;fromUserName&amp;#34; : &amp;#34;李四&amp;#34;,
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;isSecret&amp;#34; : 0,
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;timeLen&amp;#34; : 0,
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;isAt&amp;#34; : 0,
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;timeSend&amp;#34; : 1522034878,
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;type&amp;#34; : 1
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">}&lt;span class="nt">&amp;lt;/body&amp;gt;&amp;lt;/message&amp;gt;&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="发送回执消息类型">发送回执消息类型&lt;/h2>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;message&lt;/span> &lt;span class="na">to=&lt;/span>&lt;span class="s">&amp;#34;109965@domain/resource&amp;#34;&lt;/span> &lt;span class="na">type=&lt;/span>&lt;span class="s">&amp;#34;chat&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&amp;lt;received&lt;/span> &lt;span class="na">xmlns=&lt;/span>&lt;span class="s">&amp;#34;urn:xmpp:receipts&amp;#34;&lt;/span> &lt;span class="na">id=&lt;/span>&lt;span class="s">&amp;#34;cdc6007ca03b401f8c9e4a2ccb75d8d5&amp;#34;&lt;/span>&lt;span class="nt">/&amp;gt;&amp;lt;/message&amp;gt;&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="接收回执消息类型">接收回执消息类型&lt;/h2>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;message&lt;/span> &lt;span class="na">xmlns=&lt;/span>&lt;span class="s">&amp;#34;jabber:client&amp;#34;&lt;/span> &lt;span class="na">type=&lt;/span>&lt;span class="s">&amp;#34;chat&amp;#34;&lt;/span> &lt;span class="na">to=&lt;/span>&lt;span class="s">&amp;#34;111751@domain/resource&amp;#34;&lt;/span> &lt;span class="na">from=&lt;/span>&lt;span class="s">&amp;#34;109965@domain/resource&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&amp;lt;received&lt;/span> &lt;span class="na">xmlns=&lt;/span>&lt;span class="s">&amp;#34;urn:xmpp:receipts&amp;#34;&lt;/span> &lt;span class="na">id=&lt;/span>&lt;span class="s">&amp;#34;626b61f461eb485fa99177b69512273e&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&amp;lt;/received&amp;gt;&amp;lt;/message&amp;gt;&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>XMPP | Next-gen Tech Edu</title>
+    <link>https://ng-tech.icu/books/system-notes/%E5%8D%B3%E6%97%B6%E9%80%9A%E4%BF%A1%E4%B8%8E%E7%9B%B4%E6%92%AD/xmpp/</link>
+      <atom:link href="https://ng-tech.icu/books/system-notes/%E5%8D%B3%E6%97%B6%E9%80%9A%E4%BF%A1%E4%B8%8E%E7%9B%B4%E6%92%AD/xmpp/index.xml" rel="self" type="application/rss+xml" />
+    <description>XMPP</description>
+    <generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language>
+    <image>
+      <url>https://ng-tech.icu/media/sharing.png</url>
+      <title>XMPP</title>
+      <link>https://ng-tech.icu/books/system-notes/%E5%8D%B3%E6%97%B6%E9%80%9A%E4%BF%A1%E4%B8%8E%E7%9B%B4%E6%92%AD/xmpp/</link>
+    </image>
+    
+    <item>
+      <title>协议规范</title>
+      <link>https://ng-tech.icu/books/system-notes/%E5%8D%B3%E6%97%B6%E9%80%9A%E4%BF%A1%E4%B8%8E%E7%9B%B4%E6%92%AD/xmpp/%E5%8D%8F%E8%AE%AE%E8%A7%84%E8%8C%83/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/system-notes/%E5%8D%B3%E6%97%B6%E9%80%9A%E4%BF%A1%E4%B8%8E%E7%9B%B4%E6%92%AD/xmpp/%E5%8D%8F%E8%AE%AE%E8%A7%84%E8%8C%83/</guid>
+      <description>&lt;h1 id=&#34;xmpp-协议规范&#34;&gt;XMPP 协议规范&lt;/h1&gt;
+&lt;p&gt;xmpp 是基于 xml 类型进行消息传递的。所有的消息传递类型都是 xmpp 类型的。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://s2.ax1x.com/2019/10/24/KUGlWD.png&#34; alt=&#34;聊天数据流&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;流程：客户端 A 给客户端 B 发送一条消息，消息先从客户端 A 传到服务器，服务器通过判断客户端 B 是否在线，如果在线的就直接把消息推送给客户端 B，客户端 B 收到消息以后，则发送后回执，服务器收到回执以后再推给客户端 A。如果客户端 B 不在线，则消息在服务器端保存，服务器发送回回执告诉客户端 A 发送消息成功，等客户端 B 上线以后再把消息推送给客户端 B。&lt;/p&gt;
+&lt;p&gt;问题 1: 当客户端 A 给 B 推送消息时，客户端 B 正好此时进入后台。由于后台心跳检测还没有检测到 B 已经离线，这个时候服务器会把消息推送给客户端 B，并且服务器没有保存这条消息。而此时客户端 B 已经进入后台，无法接收到消息，也就无法发送回执。会造成客户端 A 发送消息失败。
+解决方法：服务器每次收到客户端 A 都会发送的消息，都会由服务器发送回执告诉 A 已经发送成功。客户端首先保存聊天信息，再客户端 B 是否在线。如果在线，则发送消息，接受回执，如果没有收到回执，则当成不在线，保存聊天消息为未发送状态，下次等客户端 B 连线后推送。&lt;/p&gt;
+&lt;h1 id=&#34;消息类型&#34;&gt;消息类型&lt;/h1&gt;
+&lt;h2 id=&#34;发送消息类型&#34;&gt;发送消息类型&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-xml&#34; data-lang=&#34;xml&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;message&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;chat&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;to=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;110095@domain&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;id=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;d851f47818db46b58abf4e982327ab36&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&amp;lt;request&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;xmlns=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;urn:xmpp:receipts&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&amp;lt;/request&amp;gt;&amp;lt;body&amp;gt;&lt;/span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &amp;#34;messageId&amp;#34; : &amp;#34;d851f47818db46b58abf4e982327ab36&amp;#34;,  //messageid
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &amp;#34;content&amp;#34; : &amp;#34;你好&amp;#34;,     //消息内容
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &amp;#34;fromUserName&amp;#34; : &amp;#34;张三&amp;#34;,   //发送人
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &amp;#34;isSecret&amp;#34; : 0,      //单聊是否是密聊消息 0:正常聊天  1:密聊
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &amp;#34;timeLen&amp;#34; : 0,
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &amp;#34;isAt&amp;#34; : 0,           //群聊是否@人
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &amp;#34;timeSend&amp;#34; : 1522034423,    //发送时间
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &amp;#34;type&amp;#34; : 1       //消息类型
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;}&lt;span class=&#34;nt&#34;&gt;&amp;lt;/body&amp;gt;&amp;lt;/message&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;接收消息类型&#34;&gt;接收消息类型&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-xml&#34; data-lang=&#34;xml&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;message&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;xmlns=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;jabber:client&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;id=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;cdc6007ca03b401f8c9e4a2ccb75d8d5&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;chat&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;to=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;111751@domain&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;from=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;109965@domain/resource&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&amp;lt;request&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;xmlns=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;urn:xmpp:receipts&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&amp;lt;/request&amp;gt;&amp;lt;body&amp;gt;&lt;/span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &amp;#34;messageId&amp;#34; : &amp;#34;cdc6007ca03b401f8c9e4a2ccb75d8d5&amp;#34;,
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &amp;#34;content&amp;#34; : &amp;#34;天津&amp;#34;,
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &amp;#34;fromUserName&amp;#34; : &amp;#34;李四&amp;#34;,
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &amp;#34;isSecret&amp;#34; : 0,
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &amp;#34;timeLen&amp;#34; : 0,
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &amp;#34;isAt&amp;#34; : 0,
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &amp;#34;timeSend&amp;#34; : 1522034878,
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &amp;#34;type&amp;#34; : 1
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;}&lt;span class=&#34;nt&#34;&gt;&amp;lt;/body&amp;gt;&amp;lt;/message&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;发送回执消息类型&#34;&gt;发送回执消息类型&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-xml&#34; data-lang=&#34;xml&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;message&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;to=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;109965@domain/resource&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;chat&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&amp;lt;received&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;xmlns=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;urn:xmpp:receipts&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;id=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;cdc6007ca03b401f8c9e4a2ccb75d8d5&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&amp;lt;/message&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;接收回执消息类型&#34;&gt;接收回执消息类型&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-xml&#34; data-lang=&#34;xml&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;message&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;xmlns=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;jabber:client&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;chat&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;to=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;111751@domain/resource&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;from=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;109965@domain/resource&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&amp;lt;received&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;xmlns=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;urn:xmpp:receipts&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;id=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;626b61f461eb485fa99177b69512273e&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&amp;lt;/received&amp;gt;&amp;lt;/message&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</description>
+    </item>
+    
+  </channel>
+</rss>

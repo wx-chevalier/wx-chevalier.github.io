@@ -1,86 +1,1922 @@
-<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="11-模型选择+过拟合和欠拟合 本节目录 1. 模型选择 1.1 实例分析：预测谁会偿还贷款 1.2 训练误差和泛化误差 1.3 验证数据集和测试数据集 1.4 K-则交叉验证 1.5 总结 2. 过拟合和欠拟合 2.1 什么是过拟合和欠拟合？ 2.2 模型容量 2.3 模型容"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/11-%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9+%E8%BF%87%E6%8B%9F%E5%90%88%E5%92%8C%E6%AC%A0%E6%8B%9F%E5%90%88/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.fab3cd1900ae35687457073b2d518207.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/11-%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9+%E8%BF%87%E6%8B%9F%E5%90%88%E5%92%8C%E6%AC%A0%E6%8B%9F%E5%90%88/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/11-%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9+%E8%BF%87%E6%8B%9F%E5%90%88%E5%92%8C%E6%AC%A0%E6%8B%9F%E5%90%88/"><meta property="og:title" content="11-模型选择+过拟合和欠拟合 | Next-gen Tech Edu"><meta property="og:description" content="11-模型选择+过拟合和欠拟合 本节目录 1. 模型选择 1.1 实例分析：预测谁会偿还贷款 1.2 训练误差和泛化误差 1.3 验证数据集和测试数据集 1.4 K-则交叉验证 1.5 总结 2. 过拟合和欠拟合 2.1 什么是过拟合和欠拟合？ 2.2 模型容量 2.3 模型容"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>11-模型选择+过拟合和欠拟合 | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=f028af6ac5c21a402b7816aaa730db4c><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
-<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
-<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
-<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
-<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
-<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">2021-李沐-《动手学习深度学习》</span>
-<span><i class="fas fa-chevron-down"></i></span></div></button>
-<button class="form-control sidebar-search js-search d-none d-md-flex">
-<i class="fas fa-search pr-2"></i>
-<span class=sidebar-search-text>搜索...</span>
-<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
-Back</a>
-<span>|</span>
-<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
-Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id1cb603993076354ae684c031037738c1")' href=#id1cb603993076354ae684c031037738c1 aria-expanded=false aria-controls=id1cb603993076354ae684c031037738c1 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/>99.参考资料</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id1cb603993076354ae684c031037738c1 aria-expanded=false aria-controls=id1cb603993076354ae684c031037738c1><i class="fa-solid fa-angle-down" id=caret-id1cb603993076354ae684c031037738c1></i></a></div><ul class="nav docs-sidenav collapse show" id=id1cb603993076354ae684c031037738c1><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id6d7da24804841595467ee06940ffadad")' href=#id6d7da24804841595467ee06940ffadad aria-expanded=false aria-controls=id6d7da24804841595467ee06940ffadad aria-hidden=false data-toggle=collapse></div></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id424867f26fc15069d5e95f339f8da715")' href=#id424867f26fc15069d5e95f339f8da715 aria-expanded=false aria-controls=id424867f26fc15069d5e95f339f8da715 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/>2019-Andrew Ng-深度学习课程</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id424867f26fc15069d5e95f339f8da715 aria-expanded=false aria-controls=id424867f26fc15069d5e95f339f8da715><i class="fa-solid fa-angle-right" id=caret-id424867f26fc15069d5e95f339f8da715></i></a></div><ul class="nav docs-sidenav collapse" id=id424867f26fc15069d5e95f339f8da715><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/interview/>interview</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson1-week1/>lesson1-week1</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson1-week2/>lesson1-week2</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson1-week3/>lesson1-week3</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson1-week4/>lesson1-week4</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson2-week1/>lesson2-week1</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson2-week2/>lesson2-week2</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson2-week3/>lesson2-week3</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson3-week1/>lesson3-week1</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson3-week2/>lesson3-week2</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson4-week1/>lesson4-week1</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson4-week2/>lesson4-week2</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson4-week3/>lesson4-week3</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson4-week4/>lesson4-week4</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson5-week1/>lesson5-week1</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson5-week2/>lesson5-week2</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson5-week3/>lesson5-week3</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/math/>math</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/notation/>notation</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/summary/>SUMMARY</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id6d61b824616f345f413069d041a91bcd")' href=#id6d61b824616f345f413069d041a91bcd aria-expanded=false aria-controls=id6d61b824616f345f413069d041a91bcd aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/>2021-李沐-《动手学习深度学习》</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id6d61b824616f345f413069d041a91bcd aria-expanded=false aria-controls=id6d61b824616f345f413069d041a91bcd><i class="fa-solid fa-angle-down" id=caret-id6d61b824616f345f413069d041a91bcd></i></a></div><ul class="nav docs-sidenav collapse show" id=id6d61b824616f345f413069d041a91bcd><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/00-%E9%A2%84%E5%91%8A/>00-预告</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/01-%E8%AF%BE%E7%A8%8B%E5%AE%89%E6%8E%92/>01-课程安排</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/02-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%BB%8B%E7%BB%8D/>02-深度学习介绍</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/03-%E5%AE%89%E8%A3%85/>03-安装</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/04-%E6%95%B0%E6%8D%AE%E8%AF%BB%E5%8F%96%E5%92%8C%E6%93%8D%E4%BD%9C/>04-数据读取和操作</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/05-%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/>05-线性代数</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/06-%E7%9F%A9%E9%98%B5%E8%AE%A1%E7%AE%97/>06-矩阵计算</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/07-%E8%87%AA%E5%8A%A8%E6%B1%82%E5%AF%BC/>07-自动求导</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/08-%E7%BA%BF%E6%80%A7%E5%9B%9E%E5%BD%92+%E5%9F%BA%E7%A1%80%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95/>08-线性回归+基础优化算法</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/09-softmax-%E5%9B%9E%E5%BD%92/>09-Softmax 回归</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/10-%E5%A4%9A%E5%B1%82%E6%84%9F%E7%9F%A5%E6%9C%BA/>10-多层感知机</a></li><li class="child level active"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/11-%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9+%E8%BF%87%E6%8B%9F%E5%90%88%E5%92%8C%E6%AC%A0%E6%8B%9F%E5%90%88/>11-模型选择+过拟合和欠拟合</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/12-%E6%9D%83%E9%87%8D%E8%A1%B0%E9%80%80/>12-权重衰退</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/13-%E4%B8%A2%E5%BC%83%E6%B3%95/>13-丢弃法</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/14-%E6%95%B0%E5%80%BC%E7%A8%B3%E5%AE%9A%E6%80%A7/>14-数值稳定性</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/15-%E5%AE%9E%E6%88%98kaggle%E6%AF%94%E8%B5%9B%E9%A2%84%E6%B5%8B%E6%88%BF%E4%BB%B7/>15-实战Kaggle比赛：预测房价</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/16-pytorch%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E5%9F%BA%E7%A1%80/>16-Pytorch神经网络基础</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/17-%E4%BD%BF%E7%94%A8%E5%92%8C%E8%B4%AD%E4%B9%B0gpu/>17-使用和购买GPU</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/18-%E9%A2%84%E6%B5%8B%E6%88%BF%E4%BB%B7%E7%AB%9E%E8%B5%9B%E6%80%BB%E7%BB%93/>18-预测房价竞赛总结</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/19-%E5%8D%B7%E7%A7%AF%E5%B1%82/>19-卷积层</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/20-%E5%A1%AB%E5%85%85%E5%92%8C%E6%AD%A5%E5%B9%85/>20-填充和步幅</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/21-%E5%A4%9A%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA%E9%80%9A%E9%81%93/>21-多输入输出通道</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/22-%E6%B1%A0%E5%8C%96%E5%B1%82/>22-池化层</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/23-%E7%BB%8F%E5%85%B8%E5%8D%B7%E7%A7%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9Clenet/>23-经典卷积神经网络LeNet</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/24-alexnet/>24-AlexNet</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/25-%E4%BD%BF%E7%94%A8%E5%9D%97%E7%9A%84%E7%BD%91%E7%BB%9C-vgg/>25-使用块的网络 VGG</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/26-nin/>26-NiN</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/27-googlenet/>27-GoogLeNet</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/28-%E6%89%B9%E9%87%8F%E5%BD%92%E4%B8%80%E5%8C%96/>28-批量归一化</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/29-%E6%AE%8B%E5%B7%AE%E7%BD%91%E7%BB%9Cresnet/>29-残差网络ResNet</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/30-%E7%AC%AC%E4%BA%8C%E9%83%A8%E5%88%86%E5%AE%8C%E7%BB%93%E7%AB%9E%E8%B5%9B%E5%9B%BE%E7%89%87%E5%88%86%E7%B1%BB/>30-第二部分完结竞赛：图片分类</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/31-cpu%E5%92%8Cgpu/>31-CPU和GPU</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/32-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E7%A1%AC%E4%BB%B6/>32-深度学习硬件</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/33-%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E5%B9%B6%E8%A1%8C/>33-单机多卡并行</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/34-%E5%A4%9Agpu%E8%AE%AD%E7%BB%83%E5%AE%9E%E7%8E%B0only-qa/>34-多GPU训练实现(only QA)</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/35-%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%AD%E7%BB%83/>35-分布式训练</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/36-%E6%95%B0%E6%8D%AE%E5%A2%9E%E5%B9%BF/>36-数据增广</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/37-%E5%BE%AE%E8%B0%83/>37-微调</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/38-%E7%AC%AC%E4%BA%8C%E6%AC%A1%E7%AB%9E%E8%B5%9B%E6%A0%91%E5%8F%B6%E5%88%86%E7%B1%BB%E7%BB%93%E6%9E%9C/>38-第二次竞赛树叶分类结果</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/39-%E5%AE%9E%E6%88%98kaggle%E7%AB%9E%E8%B5%9Bcifar-10/>39-实战Kaggle竞赛：CIFAR-10</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/41-%E7%89%A9%E4%BD%93%E6%A3%80%E6%B5%8B%E5%92%8C%E6%95%B0%E6%8D%AE%E9%9B%86/>41-物体检测和数据集</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/43-%E6%A0%91%E5%8F%B6%E5%88%86%E7%B1%BB%E7%AB%9E%E8%B5%9B%E6%8A%80%E6%9C%AF%E6%80%BB%E7%BB%93/>43-树叶分类竞赛技术总结</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/44-%E7%89%A9%E4%BD%93%E6%A3%80%E6%B5%8B%E7%AE%97%E6%B3%95r-cnnssdyolo/>44-物体检测算法：R-CNN,SSD,YOLO</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/46-%E8%AF%AD%E4%B9%89%E5%88%86%E5%89%B2/>46-语义分割</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/47-%E8%BD%AC%E7%BD%AE%E5%8D%B7%E7%A7%AF/>47-转置卷积</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/48-%E5%85%A8%E8%BF%9E%E6%8E%A5%E5%8D%B7%E7%A7%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9Cfcn/>48-全连接卷积神经网络（FCN）</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/49-%E6%A0%B7%E5%BC%8F%E8%BF%81%E7%A7%BB/>49-样式迁移</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/50-%E8%AF%BE%E7%A8%8B%E7%AB%9E%E8%B5%9B%E7%89%9B%E4%BB%94%E8%A1%8C%E5%A4%B4%E6%A3%80%E6%B5%8B/>50-课程竞赛：牛仔行头检测</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/51-%E5%BA%8F%E5%88%97%E6%A8%A1%E5%9E%8B/>51-序列模型</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/53-%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/>53-语言模型</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/54-%E5%BE%AA%E7%8E%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9Crnn/>54-循环神经网络RNN</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/56-gru/>56-GRU</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/57-lstm/>57-LSTM</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/58-%E6%B7%B1%E5%B1%82%E5%BE%AA%E7%8E%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/>58-深层循环神经网络</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/61-%E7%BC%96%E7%A0%81%E5%99%A8-%E8%A7%A3%E7%A0%81%E5%99%A8%E6%9E%B6%E6%9E%84/>61-编码器-解码器架构</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/62-%E5%BA%8F%E5%88%97%E5%88%B0%E5%BA%8F%E5%88%97%E5%AD%A6%E4%B9%A0/>62-序列到序列学习</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/63-%E6%9D%9F%E6%90%9C%E7%B4%A2/>63-束搜索</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/65-%E6%B3%A8%E6%84%8F%E5%8A%9B%E5%88%86%E6%95%B0/>65-注意力分数</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/68-transformer/>68-Transformer</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/69-bert-%E9%A2%84%E8%AE%AD%E7%BB%83/>69-BERT 预训练</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/70-bert-%E5%BE%AE%E8%B0%83/>70-BERT 微调</a></li><li class="child level"><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/72-%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95/>72-优化算法</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents><ul><li><a href=#11-模型选择过拟合和欠拟合>11-模型选择+过拟合和欠拟合</a><ul><li><a href=#本节目录>本节目录</a></li><li><a href=#1-模型选择>1. 模型选择</a></li><li><a href=#2-过拟合和欠拟合>2. 过拟合和欠拟合</a></li><li><a href=#3-多项式回归>3. 多项式回归</a></li></ul></li></ul></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>11-模型选择+过拟合和欠拟合</h1><div class=article-style><h2 id=11-模型选择过拟合和欠拟合>11-模型选择+过拟合和欠拟合</h2><h3 id=本节目录>本节目录</h3><ul><li><a href=#1-%e6%a8%a1%e5%9e%8b%e9%80%89%e6%8b%a9>1. 模型选择</a><ul><li><a href=#11-%e5%ae%9e%e4%be%8b%e5%88%86%e6%9e%90%e9%a2%84%e6%b5%8b%e8%b0%81%e4%bc%9a%e5%81%bf%e8%bf%98%e8%b4%b7%e6%ac%be>1.1 实例分析：预测谁会偿还贷款</a></li><li><a href=#12-%e8%ae%ad%e7%bb%83%e8%af%af%e5%b7%ae%e5%92%8c%e6%b3%9b%e5%8c%96%e8%af%af%e5%b7%ae>1.2 训练误差和泛化误差</a></li><li><a href=#13-%e9%aa%8c%e8%af%81%e6%95%b0%e6%8d%ae%e9%9b%86%e5%92%8c%e6%b5%8b%e8%af%95%e6%95%b0%e6%8d%ae%e9%9b%86>1.3 验证数据集和测试数据集</a></li><li><a href=#14-k-%e5%88%99%e4%ba%a4%e5%8f%89%e9%aa%8c%e8%af%81>1.4 K-则交叉验证</a></li><li><a href=#15-%e6%80%bb%e7%bb%93>1.5 总结</a></li></ul></li><li><a href=#2-%e8%bf%87%e6%8b%9f%e5%90%88%e5%92%8c%e6%ac%a0%e6%8b%9f%e5%90%88>2. 过拟合和欠拟合</a><ul><li><a href=#21-%e4%bb%80%e4%b9%88%e6%98%af%e8%bf%87%e6%8b%9f%e5%90%88%e5%92%8c%e6%ac%a0%e6%8b%9f%e5%90%88>2.1 什么是过拟合和欠拟合？</a></li><li><a href=#22-%e6%a8%a1%e5%9e%8b%e5%ae%b9%e9%87%8f>2.2 模型容量</a></li><li><a href=#23-%e6%a8%a1%e5%9e%8b%e5%ae%b9%e9%87%8f%e7%9a%84%e5%bd%b1%e5%93%8d>2.3 模型容量的影响</a></li><li><a href=#24-%e4%bc%b0%e8%ae%a1%e6%a8%a1%e5%9e%8b%e5%ae%b9%e9%87%8f>2.4 估计模型容量</a></li><li><a href=#25-vc%e7%bb%b4>2.5 VC 维</a></li><li><a href=#26-vc%e7%bb%b4%e7%9a%84%e7%94%a8%e5%a4%84>2.6 VC 维的用处</a></li><li><a href=#27-%e6%95%b0%e6%8d%ae%e5%a4%8d%e6%9d%82%e5%ba%a6>2.7 数据复杂度</a></li><li><a href=#28-%e6%80%bb%e7%bb%93>2.8 总结</a></li></ul></li><li><a href=#3-%e5%a4%9a%e9%a1%b9%e5%bc%8f%e5%9b%9e%e5%bd%92>3. 多项式回归</a><ul><li><a href=#31-%e5%af%bc%e5%85%a5%e5%ba%93>3.1 导入库</a></li><li><a href=#32-%e7%94%9f%e6%88%90%e6%95%b0%e6%8d%ae%e9%9b%86>3.2 生成数据集</a></li><li><a href=#33-numpyndarray%e8%bd%ac%e6%8d%a2%e4%b8%batensor>3.3 NumPyndarray 转换为 tensor</a></li><li><a href=#34-%e5%af%b9%e6%a8%a1%e5%9e%8b%e8%bf%9b%e8%a1%8c%e8%ae%ad%e7%bb%83%e5%92%8c%e6%b5%8b%e8%af%95>3.4 对模型进行训练和测试</a></li><li><a href=#35-%e4%b8%89%e9%98%b6%e5%a4%9a%e9%a1%b9%e5%bc%8f%e5%87%bd%e6%95%b0%e6%8b%9f%e5%90%88%e6%ad%a3%e6%80%81>3.5 [<strong>三阶多项式函数拟合(正态)</strong>]</a></li><li><a href=#36-%e7%ba%bf%e6%80%a7%e5%87%bd%e6%95%b0%e6%8b%9f%e5%90%88%e6%ac%a0%e6%8b%9f%e5%90%88>3.6 [<strong>线性函数拟合(欠拟合)</strong>]</a></li><li><a href=#37-%e9%ab%98%e9%98%b6%e5%a4%9a%e9%a1%b9%e5%bc%8f%e5%87%bd%e6%95%b0%e6%8b%9f%e5%90%88%e8%bf%87%e6%8b%9f%e5%90%88>3.7 [<strong>高阶多项式函数拟合(过拟合)</strong>]</a></li></ul></li></ul><h3 id=1-模型选择>1. 模型选择</h3><p>本小节主要介绍了评估模型的一些指标和方法</p><h4 id=11-实例分析预测谁会偿还贷款>1.1 实例分析：预测谁会偿还贷款</h4><ul><li>银行雇你来调查谁会偿还贷款，你得到了 100 个申请人的信息，其中五个人在 3 年内违约了。然后你惊讶的发现，<strong>所有的五个人在面试时都穿了蓝色衬衫</strong>。显然，你的模型也发现了这个强信号，这会有什么问题？</li></ul><p><strong>答案是，你的模型很有可能会认为所有来面试的人都会穿蓝色衬衫，而这当然是不对的。</strong></p><h4 id=12-训练误差和泛化误差>1.2 训练误差和泛化误差</h4><ul><li><p>训练误差：模型在训练数据上的误差</p></li><li><p>泛化误差：模型在新数据上的误差</p></li><li><p>例子：根据模考成绩来预测未来考试分数</p><ul><li>在过去的考试中表现很好（<strong>训练误差</strong>）不代表未来会好（<strong>泛化误差</strong>）</li><li>学生 A 通过背书在模考中拿到很好成绩</li><li>学生 B 知道答案后面的原因</li></ul></li><li><p><strong>其中，泛化误差是我们所最关心的</strong></p></li></ul><h4 id=13-验证数据集和测试数据集>1.3 验证数据集和测试数据集</h4><ul><li><p>验证数据集：一个用来评估模型好坏的数据集</p><ul><li>例如拿出 50%的训练数据</li><li>不要跟训练数据混在一起（常犯错误）</li></ul></li><li><p>测试数据集：只用一次的数据集。例如：</p><ul><li>未来的考试</li><li>我出价的房子的实际成交价</li><li>用在 kaggle 私有排行榜中的数据集</li></ul></li><li><p><strong>二者最大的区别就是，验证数据集可以那来用很多次，相当于平时的模拟考，而测试数据集则只能用一次来评估模型的性能，相当于最终的考试。</strong></p></li></ul><h4 id=14-k-则交叉验证>1.4 K-则交叉验证</h4><ul><li><p>在没有足够多数据时使用（这是常态）</p></li><li><p>算法：</p><ul><li>将训练数据分割 k 块</li><li>For i = 1，……，k<ul><li>使用第 i 块作为验证数据集，其余的作为训练数据集</li></ul></li><li>报告 k 个验证集误差的平均</li></ul></li><li><p>常用：k = 5 或 10</p></li><li><p>K-则交叉验证的目的是在没有足够多数据使用时评估模型和超参数的性能，也就是说，<strong>K 次训练和验证使用的是相同的超参数和模型</strong></p></li></ul><h4 id=15-总结>1.5 总结</h4><ul><li>训练数据集：训练模型参数</li><li>验证数据集：选择模型超参数</li><li>非大数据集上通常使用 k-则交叉验证</li></ul><h3 id=2-过拟合和欠拟合>2. 过拟合和欠拟合</h3><h4 id=21-什么是过拟合和欠拟合>2.1 什么是过拟合和欠拟合？</h4><table><thead><tr><th>模型容量\数据</th><th>简单</th><th style=text-align:center>复杂</th></tr></thead><tbody><tr><td>低</td><td>正常</td><td style=text-align:center>欠拟合</td></tr><tr><td>高</td><td>过拟合</td><td style=text-align:center>正常</td></tr></tbody></table><ul><li>tips：模型容量即模型的复杂度，也代表了模型拟合各种函数的能力</li></ul><h4 id=22-模型容量>2.2 模型容量</h4><ul><li>拟合各种函数的能力</li><li>低容量的模型难以拟合训练数据</li><li>高容量的模型可以记住所有的训练数据</li></ul><img src=https://assets.ng-tech.icu/book/DeepLearning-MuLi-Notes/imgs/11/11-01.png alt=image width=300><ul><li>显然，模型容量太低或太高都不好。太低（对应第一种）过于简单，模型分类效果差，太高（对应第二种）则过于复杂，把噪声全部都拟合住了，这是我们所不希望的。</li></ul><h4 id=23-模型容量的影响>2.3 模型容量的影响</h4><img src=https://assets.ng-tech.icu/book/DeepLearning-MuLi-Notes/imgs/11/11-02.png alt=image width=300><ul><li>我们的核心任务就是把泛化误差往下降</li></ul><h4 id=24-估计模型容量>2.4 估计模型容量</h4><ul><li>难以在不同的种类算法之间比较<ul><li>例如树模型和神经网络</li></ul></li><li>给定一个模型种类，将有两个主要因素<ul><li>参数的个数</li><li>参数的选择范围</li></ul></li></ul><img src=https://assets.ng-tech.icu/book/DeepLearning-MuLi-Notes/imgs/11/11-03.png alt=image width=300><h4 id=25-vc-维>2.5 VC 维</h4><p>VC 维是统计学习理论的一个核心思想，这里大致了解就行，因为很难计算之后学习的模型（如 CNN,RNN)的 VC 维，故并不经常用</p><ul><li>定义：对于一个分类模型，VC 维等于一个最大的数据集的大小，不管如何给定标号，都存在一个模型对它进行完美分类。即存在 H 个样本，模型能把 H 个样本的 2^H 种标号方式打散的 H 的最大值。</li><li>例子：线性分类器的 VC 维<ul><li>2 维输入的感知机，VC 维=3（对于三个点的任意标号都能分类，而任意四个点的样本都存在不能被打散的标号形式个，如之前讲过的 XOR）</li></ul></li></ul><p>3 个点：</p><img src=https://assets.ng-tech.icu/book/DeepLearning-MuLi-Notes/imgs/11/11-04.png alt=image width=500><p>4 个点：</p><img src=https://assets.ng-tech.icu/book/DeepLearning-MuLi-Notes/imgs/11/11-05.png alt=image width=300><ul><li>支持 N 维输入的感知机的 VC 维是 N+1</li><li>一些多层感知机的 VC 维是:<img src="http://chart.googleapis.com/chart?cht=tx&chl=O(Nlog_2N)" style=border:none></li></ul><h4 id=26-vc-维的用处>2.6 VC 维的用处</h4><ul><li>提供为什么一个模型好的理论依据<ul><li>它可以衡量训练误差和泛化误差之间的间隔</li></ul></li><li>但深度学习中很少使用<ul><li>衡量不是很准确</li><li>计算深度学习模型的 VC 维很困难</li></ul></li></ul><h4 id=27-数据复杂度>2.7 数据复杂度</h4><ul><li>多个重要因素<ul><li>样本的元素个数</li><li>每个样本的元素个数</li><li>时间、空间结构</li><li>多样性</li></ul></li></ul><h4 id=28-总结>2.8 总结</h4><ul><li>模型容量需要匹配数据复杂度，否则可能导致欠拟合和过拟合</li><li>统计机器学习提供数学工具来衡量模型复杂度</li><li>实际中一般考观察训练误差和验证误差</li></ul><h3 id=3-多项式回归>3. 多项式回归</h3><ul><li>本小节使用多项式回归为例子，在 pytorch 上展示过拟合和欠拟合的实际表现</li></ul><h4 id=31-导入库>3.1 导入库</h4><div class=highlight><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>math</span>
-</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
-</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
-</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torch</span> <span class=kn>import</span> <span class=n>nn</span>
-</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>d2l</span> <span class=kn>import</span> <span class=n>torch</span> <span class=k>as</span> <span class=n>d2l</span>
-</span></span></code></pre></div><h4 id=32-生成数据集>3.2 生成数据集</h4><div class=highlight><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>max_degree</span> <span class=o>=</span> <span class=mi>20</span>  <span class=c1># 多项式的最大阶数</span>
-</span></span><span class=line><span class=cl><span class=n>n_train</span><span class=p>,</span> <span class=n>n_test</span> <span class=o>=</span> <span class=mi>100</span><span class=p>,</span> <span class=mi>100</span>  <span class=c1># 训练和测试数据集大小</span>
-</span></span><span class=line><span class=cl><span class=n>true_w</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>max_degree</span><span class=p>)</span>  <span class=c1># 分配大量的空间</span>
-</span></span><span class=line><span class=cl><span class=n>true_w</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=mi>4</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mi>5</span><span class=p>,</span> <span class=mf>1.2</span><span class=p>,</span> <span class=o>-</span><span class=mf>3.4</span><span class=p>,</span> <span class=mf>5.6</span><span class=p>])</span><span class=c1>#前五个参数是有用的已知的参数，其他都是0，是不希望被学习的参数</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>features</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>size</span><span class=o>=</span><span class=p>(</span><span class=n>n_train</span> <span class=o>+</span> <span class=n>n_test</span><span class=p>,</span> <span class=mi>1</span><span class=p>))</span><span class=c1>#创建特征值</span>
-</span></span><span class=line><span class=cl><span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>shuffle</span><span class=p>(</span><span class=n>features</span><span class=p>)</span><span class=c1>#打乱顺序</span>
-</span></span><span class=line><span class=cl><span class=n>poly_features</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>power</span><span class=p>(</span><span class=n>features</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=n>max_degree</span><span class=p>)</span><span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>))</span><span class=c1>#通过广播机制得到每个特征值的所有多项式值</span>
-</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>max_degree</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>    <span class=n>poly_features</span><span class=p>[:,</span> <span class=n>i</span><span class=p>]</span> <span class=o>/=</span> <span class=n>math</span><span class=o>.</span><span class=n>gamma</span><span class=p>(</span><span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span>  <span class=c1># gamma(n)=(n-1)!，除以gamma防止梯度过大</span>
-</span></span><span class=line><span class=cl><span class=c1># labels的维度:(n_train+n_test,)</span>
-</span></span><span class=line><span class=cl><span class=n>labels</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>dot</span><span class=p>(</span><span class=n>poly_features</span><span class=p>,</span> <span class=n>true_w</span><span class=p>)</span><span class=c1>#将对应多项式值与其系数相乘</span>
-</span></span><span class=line><span class=cl><span class=n>labels</span> <span class=o>+=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>scale</span><span class=o>=</span><span class=mf>0.1</span><span class=p>,</span> <span class=n>size</span><span class=o>=</span><span class=n>labels</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span><span class=c1>#加上噪声项</span>
-</span></span></code></pre></div><h4 id=33-numpyndarray-转换为-tensor>3.3 NumPyndarray 转换为 tensor</h4><div class=highlight><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>true_w</span><span class=p>,</span> <span class=n>features</span><span class=p>,</span> <span class=n>poly_features</span><span class=p>,</span> <span class=n>labels</span> <span class=o>=</span> <span class=p>[</span><span class=n>torch</span><span class=o>.</span><span class=n>tensor</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span>
-</span></span><span class=line><span class=cl>    <span class=n>torch</span><span class=o>.</span><span class=n>float32</span><span class=p>)</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=p>[</span><span class=n>true_w</span><span class=p>,</span> <span class=n>features</span><span class=p>,</span> <span class=n>poly_features</span><span class=p>,</span> <span class=n>labels</span><span class=p>]]</span>
-</span></span></code></pre></div><h4 id=34-对模型进行训练和测试>3.4 对模型进行训练和测试</h4><p>首先让我们[实现一个函数来评估模型在给定数据集上的损失]。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>evaluate_loss</span><span class=p>(</span><span class=n>net</span><span class=p>,</span> <span class=n>data_iter</span><span class=p>,</span> <span class=n>loss</span><span class=p>):</span>  <span class=c1>#@save</span>
-</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;评估给定数据集上模型的损失&#34;&#34;&#34;</span>
-</span></span><span class=line><span class=cl>    <span class=n>metric</span> <span class=o>=</span> <span class=n>d2l</span><span class=o>.</span><span class=n>Accumulator</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span>  <span class=c1># 损失的总和,样本数量</span>
-</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>X</span><span class=p>,</span> <span class=n>y</span> <span class=ow>in</span> <span class=n>data_iter</span><span class=p>:</span>
-</span></span><span class=line><span class=cl>        <span class=n>out</span> <span class=o>=</span> <span class=n>net</span><span class=p>(</span><span class=n>X</span><span class=p>)</span><span class=c1>#预测值</span>
-</span></span><span class=line><span class=cl>        <span class=n>y</span> <span class=o>=</span> <span class=n>y</span><span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=n>out</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span><span class=c1>#将y维度变为与out一样</span>
-</span></span><span class=line><span class=cl>        <span class=n>l</span> <span class=o>=</span> <span class=n>loss</span><span class=p>(</span><span class=n>out</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span><span class=c1>#计算损失</span>
-</span></span><span class=line><span class=cl>        <span class=n>metric</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>l</span><span class=o>.</span><span class=n>sum</span><span class=p>(),</span> <span class=n>l</span><span class=o>.</span><span class=n>numel</span><span class=p>())</span><span class=c1>#加入到迭代器中，进入下一个batch</span>
-</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>metric</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>/</span> <span class=n>metric</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span><span class=c1>#返回平均损失</span>
-</span></span></code></pre></div><p>现在[定义训练函数]</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>train</span><span class=p>(</span><span class=n>train_features</span><span class=p>,</span> <span class=n>test_features</span><span class=p>,</span> <span class=n>train_labels</span><span class=p>,</span> <span class=n>test_labels</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>          <span class=n>num_epochs</span><span class=o>=</span><span class=mi>400</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>    <span class=n>loss</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>MSELoss</span><span class=p>()</span><span class=c1>#定义损失</span>
-</span></span><span class=line><span class=cl>    <span class=n>input_shape</span> <span class=o>=</span> <span class=n>train_features</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span>
-</span></span><span class=line><span class=cl>    <span class=c1># 不设置偏置，因为我们已经在多项式特征中实现了它（即x^0）</span>
-</span></span><span class=line><span class=cl>    <span class=n>net</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>input_shape</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=n>bias</span><span class=o>=</span><span class=kc>False</span><span class=p>))</span><span class=c1>#创建模型</span>
-</span></span><span class=line><span class=cl>    <span class=n>batch_size</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=mi>10</span><span class=p>,</span> <span class=n>train_labels</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span>
-</span></span><span class=line><span class=cl>    <span class=n>train_iter</span> <span class=o>=</span> <span class=n>d2l</span><span class=o>.</span><span class=n>load_array</span><span class=p>((</span><span class=n>train_features</span><span class=p>,</span> <span class=n>train_labels</span><span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span><span class=mi>1</span><span class=p>)),</span>
-</span></span><span class=line><span class=cl>                                <span class=n>batch_size</span><span class=p>)</span><span class=c1>#训练集</span>
-</span></span><span class=line><span class=cl>    <span class=n>test_iter</span> <span class=o>=</span> <span class=n>d2l</span><span class=o>.</span><span class=n>load_array</span><span class=p>((</span><span class=n>test_features</span><span class=p>,</span> <span class=n>test_labels</span><span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span><span class=mi>1</span><span class=p>)),</span>
-</span></span><span class=line><span class=cl>                               <span class=n>batch_size</span><span class=p>,</span> <span class=n>is_train</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span><span class=c1>#测试集</span>
-</span></span><span class=line><span class=cl>    <span class=n>trainer</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>SGD</span><span class=p>(</span><span class=n>net</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=mf>0.001</span><span class=p>)</span><span class=c1>#设置优化器，这里使用SGD</span>
-</span></span><span class=line><span class=cl>    <span class=n>animator</span> <span class=o>=</span> <span class=n>d2l</span><span class=o>.</span><span class=n>Animator</span><span class=p>(</span><span class=n>xlabel</span><span class=o>=</span><span class=s1>&#39;epoch&#39;</span><span class=p>,</span> <span class=n>ylabel</span><span class=o>=</span><span class=s1>&#39;loss&#39;</span><span class=p>,</span> <span class=n>yscale</span><span class=o>=</span><span class=s1>&#39;log&#39;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>                            <span class=n>xlim</span><span class=o>=</span><span class=p>[</span><span class=mi>1</span><span class=p>,</span> <span class=n>num_epochs</span><span class=p>],</span> <span class=n>ylim</span><span class=o>=</span><span class=p>[</span><span class=mf>1e-3</span><span class=p>,</span> <span class=mf>1e2</span><span class=p>],</span>
-</span></span><span class=line><span class=cl>                            <span class=n>legend</span><span class=o>=</span><span class=p>[</span><span class=s1>&#39;train&#39;</span><span class=p>,</span> <span class=s1>&#39;test&#39;</span><span class=p>])</span><span class=c1>#动画</span>
-</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>epoch</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>num_epochs</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>        <span class=n>d2l</span><span class=o>.</span><span class=n>train_epoch_ch3</span><span class=p>(</span><span class=n>net</span><span class=p>,</span> <span class=n>train_iter</span><span class=p>,</span> <span class=n>loss</span><span class=p>,</span> <span class=n>trainer</span><span class=p>)</span><span class=c1>#训练</span>
-</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>epoch</span> <span class=o>==</span> <span class=mi>0</span> <span class=ow>or</span> <span class=p>(</span><span class=n>epoch</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>%</span> <span class=mi>20</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
-</span></span><span class=line><span class=cl>            <span class=n>animator</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>epoch</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=p>(</span><span class=n>evaluate_loss</span><span class=p>(</span><span class=n>net</span><span class=p>,</span> <span class=n>train_iter</span><span class=p>,</span> <span class=n>loss</span><span class=p>),</span>
-</span></span><span class=line><span class=cl>                                     <span class=n>evaluate_loss</span><span class=p>(</span><span class=n>net</span><span class=p>,</span> <span class=n>test_iter</span><span class=p>,</span> <span class=n>loss</span><span class=p>)))</span><span class=c1>#将当前的训练集和测试集的损失存入animator中，用于绘图</span>
-</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=s1>&#39;weight:&#39;</span><span class=p>,</span> <span class=n>net</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>weight</span><span class=o>.</span><span class=n>data</span><span class=o>.</span><span class=n>numpy</span><span class=p>())</span><span class=c1>#打印训练后的参数</span>
-</span></span></code></pre></div><h4 id=35-三阶多项式函数拟合正态>3.5 [<strong>三阶多项式函数拟合(正态)</strong>]</h4><p>我们将首先使用三阶多项式函数，它与数据生成函数的阶数相同。 结果表明，该模型能有效降低训练损失和测试损失。 学习到的模型参数也接近真实值 𝑤=[5,1.2,−3.4,5.6]。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># 从多项式特征中选择前4个维度，即1,x,x^2/2!,x^3/3!</span>
-</span></span><span class=line><span class=cl><span class=n>train</span><span class=p>(</span><span class=n>poly_features</span><span class=p>[:</span><span class=n>n_train</span><span class=p>,</span> <span class=p>:</span><span class=mi>4</span><span class=p>],</span> <span class=n>poly_features</span><span class=p>[</span><span class=n>n_train</span><span class=p>:,</span> <span class=p>:</span><span class=mi>4</span><span class=p>],</span>
-</span></span><span class=line><span class=cl>      <span class=n>labels</span><span class=p>[:</span><span class=n>n_train</span><span class=p>],</span> <span class=n>labels</span><span class=p>[</span><span class=n>n_train</span><span class=p>:])</span>
-</span></span></code></pre></div><img src=https://assets.ng-tech.icu/book/DeepLearning-MuLi-Notes/imgs/11/11-06.png alt=image width=250><h4 id=36-线性函数拟合欠拟合>3.6 [<strong>线性函数拟合(欠拟合)</strong>]</h4><p>让我们再看看线性函数拟合，减少该模型的训练损失相对困难。 在最后一个迭代周期完成后，训练损失仍然很高。 当用来拟合非线性模式（如这里的三阶多项式函数）时，线性模型容易欠拟合。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># 从多项式特征中选择前2个维度，即1和x</span>
-</span></span><span class=line><span class=cl><span class=n>train</span><span class=p>(</span><span class=n>poly_features</span><span class=p>[:</span><span class=n>n_train</span><span class=p>,</span> <span class=p>:</span><span class=mi>2</span><span class=p>],</span> <span class=n>poly_features</span><span class=p>[</span><span class=n>n_train</span><span class=p>:,</span> <span class=p>:</span><span class=mi>2</span><span class=p>],</span>
-</span></span><span class=line><span class=cl>      <span class=n>labels</span><span class=p>[:</span><span class=n>n_train</span><span class=p>],</span> <span class=n>labels</span><span class=p>[</span><span class=n>n_train</span><span class=p>:])</span>
-</span></span></code></pre></div><img src=https://assets.ng-tech.icu/book/DeepLearning-MuLi-Notes/imgs/11/11-07.png alt=image width=200><h4 id=37-高阶多项式函数拟合过拟合>3.7 [<strong>高阶多项式函数拟合(过拟合)</strong>]</h4><p>现在，让我们尝试使用一个阶数过高的多项式来训练模型。 在这种情况下，没有足够的数据用于学到高阶系数应该具有接近于零的值。 因此，这个过于复杂的模型会轻易受到训练数据中噪声的影响。 虽然训练损失可以有效地降低，但测试损失仍然很高。 结果表明，复杂模型对数据造成了过拟合。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># 从多项式特征中选取所有维度</span>
-</span></span><span class=line><span class=cl><span class=n>train</span><span class=p>(</span><span class=n>poly_features</span><span class=p>[:</span><span class=n>n_train</span><span class=p>,</span> <span class=p>:],</span> <span class=n>poly_features</span><span class=p>[</span><span class=n>n_train</span><span class=p>:,</span> <span class=p>:],</span>
-</span></span><span class=line><span class=cl>      <span class=n>labels</span><span class=p>[:</span><span class=n>n_train</span><span class=p>],</span> <span class=n>labels</span><span class=p>[</span><span class=n>n_train</span><span class=p>:],</span> <span class=n>num_epochs</span><span class=o>=</span><span class=mi>1500</span><span class=p>)</span>
-</span></span></code></pre></div><img src=https://assets.ng-tech.icu/book/DeepLearning-MuLi-Notes/imgs/11/11-08.png alt=image width=300></div><div class=article-widget><div class="container-xl row post-nav"><div class="col-6 post-nav-item"><div class=meta-nav>上一页</div><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/10-%E5%A4%9A%E5%B1%82%E6%84%9F%E7%9F%A5%E6%9C%BA/ rel=next>10-多层感知机</a></div><div class="col-6 post-nav-item"><div class=meta-nav>下一页</div><a href=/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/12-%E6%9D%83%E9%87%8D%E8%A1%B0%E9%80%80/ rel=prev>12-权重衰退</a></div></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div><script type=text/javascript id=clstr_globe async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
-<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
-<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
-<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
-<script id=dsq-count-scr src=https://ngte.disqus.com/count.js async></script>
-<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
-<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
-<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
-<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>
+<!DOCTYPE html><html lang="zh" >
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  
+  
+    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+
+  
+  
+  
+    
+      
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    
+  
+
+  
+    <meta name="google-site-verification" content="google69a5cccb61297807" />
+    <meta name="baidu-site-verification" content="cqmZHEleVh" />
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+    
+  
+  <meta name="description" content="11-模型选择&#43;过拟合和欠拟合 本节目录 1. 模型选择 1.1 实例分析：预测谁会偿还贷款 1.2 训练误差和泛化误差 1.3 验证数据集和测试数据集 1.4 K-则交叉验证 1.5 总结 2. 过拟合和欠拟合 2.1 什么是过拟合和欠拟合？ 2.2 模型容量 2.3 模型容" />
+
+  
+  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/11-%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9&#43;%E8%BF%87%E6%8B%9F%E5%90%88%E5%92%8C%E6%AC%A0%E6%8B%9F%E5%90%88/" />
+
+  
+  
+  
+    <meta name="theme-color" content="#0a55a7" />
+  
+
+  
+  
+
+  
+
+  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
+
+  
+  
+  
+    
+    
+
+    
+    
+    
+    
+      
+      
+    
+    
+    
+
+    
+    
+    
+      
+    
+    
+      
+      
+        
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
+        
+      
+    
+
+    
+    
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
+    
+
+    
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+        
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+  
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/wowchemy.0d97305106da5efa530e28b021b4c580.css" />
+
+  
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', "G-40NYXJ8823");
+</script>
+
+
+  
+
+
+  
+
+
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+  
+  
+  
+
+  
+
+  
+    <link rel="manifest" href="/manifest.webmanifest" />
+  
+
+  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
+  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
+
+  <link rel="canonical" href="https://ng-tech.icu/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/11-%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9&#43;%E8%BF%87%E6%8B%9F%E5%90%88%E5%92%8C%E6%AC%A0%E6%8B%9F%E5%90%88/" />
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+
+  
+  
+    
+    
+  
+  <meta property="twitter:card" content="summary_large_image" />
+  
+    <meta property="twitter:site" content="@wx-chevalier" />
+    <meta property="twitter:creator" content="@wx-chevalier" />
+  
+  <meta property="og:site_name" content="Next-gen Tech Edu" />
+  <meta property="og:url" content="https://ng-tech.icu/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/11-%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9&#43;%E8%BF%87%E6%8B%9F%E5%90%88%E5%92%8C%E6%AC%A0%E6%8B%9F%E5%90%88/" />
+  <meta property="og:title" content="11-模型选择&#43;过拟合和欠拟合 | Next-gen Tech Edu" />
+  <meta property="og:description" content="11-模型选择&#43;过拟合和欠拟合 本节目录 1. 模型选择 1.1 实例分析：预测谁会偿还贷款 1.2 训练误差和泛化误差 1.3 验证数据集和测试数据集 1.4 K-则交叉验证 1.5 总结 2. 过拟合和欠拟合 2.1 什么是过拟合和欠拟合？ 2.2 模型容量 2.3 模型容" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
+    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
+  
+    
+    
+  
+
+  
+
+
+
+  
+
+  
+
+  
+
+
+
+
+
+  <title>11-模型选择&#43;过拟合和欠拟合 | Next-gen Tech Edu</title>
+</head>
+
+
+<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="f028af6ac5c21a402b7816aaa730db4c" >
+  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
+
+  
+
+
+<aside class="search-modal" id="search">
+  <div class="container">
+    <section class="search-header">
+
+      <div class="row no-gutters justify-content-between mb-3">
+        <div class="col-6 search-title">
+          <p>搜索</p>
+        </div>
+        <div class="col-6 col-search-close">
+          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+      <div id="search-box">
+        
+        
+        
+      </div>
+
+      
+      
+
+      
+    </section>
+    <section class="section-search-results">
+
+      <div id="search-hits">
+        
+      </div>
+
+      <div id="search-common-queries">
+        
+      </div>
+
+    </section>
+  </div>
+</aside>
+
+
+
+  <div class="page-header">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="header--fixed">
+  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
+    <div class="container-xl">
+
+      
+      <div class="d-none d-lg-inline-flex">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      <button type="button" class="navbar-toggler" data-toggle="collapse"
+              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
+      <span><i class="fas fa-bars"></i></span>
+      </button>
+      
+
+      
+      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      
+      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
+
+        
+        <ul class="navbar-nav d-md-inline-flex">
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
+          </li>
+
+          
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+              
+              
+              
+                
+              
+              
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
+              
+                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
+              
+                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+        
+
+          
+        </ul>
+      </div>
+
+      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
+
+        
+        
+        
+        <li class="nav-item">
+          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        <li class="nav-item">
+            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        
+
+        
+        
+        
+        <div></div>
+        
+        <style>
+        @media only screen and (max-width: 600px) {
+          .jimmysong-template {
+            display: none!important;
+          }
+        }
+        </style>
+        
+        <li class="jimmysong-template" style="color: white;font-size: 12px;">
+          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+</header>
+
+
+  </div>
+
+  <div class="page-body">
+    
+    
+    
+
+    
+
+
+
+
+<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
+<div class="container-xl docs">
+  <div class="row flex-xl-nowrap">
+    <div class="docs-sidebar">
+      <form class="docs-search d-flex align-items-center">
+  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    <div class="d-flex">
+      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
+        
+          2021-李沐-《动手学习深度学习》
+        
+      </span>
+      <span><i class="fas fa-chevron-down"></i></span>
+    </div>
+  </button>
+
+  
+  <button class="form-control sidebar-search js-search d-none d-md-flex">
+    <i class="fas fa-search pr-2"></i>
+    <span class="sidebar-search-text">搜索...</span>
+    <span class="sidebar-search-shortcut">/</span>
+  </button>
+  
+</form>
+
+<nav class="collapse docs-links" id="docs-nav">
+  
+  
+  
+  
+  
+  
+
+  
+  
+    
+
+    
+      
+
+      <ul class="nav docs-sidenav">
+        <li style="display: inline-flex">
+          <a style="cursor: pointer;" onclick="window.history.back()">
+            <i class="fas fa-arrow-left pr-1"></i>
+            Back
+          </a>
+          <span>|</span>
+          <a href="/books/">
+            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
+            Books
+          </a>
+        </li>
+      </ul>
+
+      
+      
+        
+          
+        
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id1cb603993076354ae684c031037738c1&#34;)" href="#id1cb603993076354ae684c031037738c1" aria-expanded="false" aria-controls="id1cb603993076354ae684c031037738c1" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/">99.参考资料</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id1cb603993076354ae684c031037738c1" aria-expanded="false" aria-controls="id1cb603993076354ae684c031037738c1">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id1cb603993076354ae684c031037738c1"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id1cb603993076354ae684c031037738c1">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id6d7da24804841595467ee06940ffadad&#34;)" href="#id6d7da24804841595467ee06940ffadad" aria-expanded="false" aria-controls="id6d7da24804841595467ee06940ffadad" aria-hidden="false" data-toggle="collapse">
+    
+    </div>
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id424867f26fc15069d5e95f339f8da715&#34;)" href="#id424867f26fc15069d5e95f339f8da715" aria-expanded="false" aria-controls="id424867f26fc15069d5e95f339f8da715" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/">2019-Andrew Ng-深度学习课程</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id424867f26fc15069d5e95f339f8da715" aria-expanded="false" aria-controls="id424867f26fc15069d5e95f339f8da715">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id424867f26fc15069d5e95f339f8da715"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id424867f26fc15069d5e95f339f8da715">
+      
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/interview/">interview</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson1-week1/">lesson1-week1</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson1-week2/">lesson1-week2</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson1-week3/">lesson1-week3</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson1-week4/">lesson1-week4</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson2-week1/">lesson2-week1</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson2-week2/">lesson2-week2</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson2-week3/">lesson2-week3</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson3-week1/">lesson3-week1</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson3-week2/">lesson3-week2</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson4-week1/">lesson4-week1</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson4-week2/">lesson4-week2</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson4-week3/">lesson4-week3</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson4-week4/">lesson4-week4</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson5-week1/">lesson5-week1</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson5-week2/">lesson5-week2</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/lesson5-week3/">lesson5-week3</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/math/">math</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/notation/">notation</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2019-andrew-ng-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B/summary/">SUMMARY</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id6d61b824616f345f413069d041a91bcd&#34;)" href="#id6d61b824616f345f413069d041a91bcd" aria-expanded="false" aria-controls="id6d61b824616f345f413069d041a91bcd" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/">2021-李沐-《动手学习深度学习》</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id6d61b824616f345f413069d041a91bcd" aria-expanded="false" aria-controls="id6d61b824616f345f413069d041a91bcd">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id6d61b824616f345f413069d041a91bcd"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id6d61b824616f345f413069d041a91bcd">
+      
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/00-%E9%A2%84%E5%91%8A/">00-预告</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/01-%E8%AF%BE%E7%A8%8B%E5%AE%89%E6%8E%92/">01-课程安排</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/02-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%BB%8B%E7%BB%8D/">02-深度学习介绍</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/03-%E5%AE%89%E8%A3%85/">03-安装</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/04-%E6%95%B0%E6%8D%AE%E8%AF%BB%E5%8F%96%E5%92%8C%E6%93%8D%E4%BD%9C/">04-数据读取和操作</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/05-%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/">05-线性代数</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/06-%E7%9F%A9%E9%98%B5%E8%AE%A1%E7%AE%97/">06-矩阵计算</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/07-%E8%87%AA%E5%8A%A8%E6%B1%82%E5%AF%BC/">07-自动求导</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/08-%E7%BA%BF%E6%80%A7%E5%9B%9E%E5%BD%92&#43;%E5%9F%BA%E7%A1%80%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95/">08-线性回归&#43;基础优化算法</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/09-softmax-%E5%9B%9E%E5%BD%92/">09-Softmax 回归</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/10-%E5%A4%9A%E5%B1%82%E6%84%9F%E7%9F%A5%E6%9C%BA/">10-多层感知机</a></li>
+
+
+
+
+  <li class="child level active"><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/11-%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9&#43;%E8%BF%87%E6%8B%9F%E5%90%88%E5%92%8C%E6%AC%A0%E6%8B%9F%E5%90%88/">11-模型选择&#43;过拟合和欠拟合</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/12-%E6%9D%83%E9%87%8D%E8%A1%B0%E9%80%80/">12-权重衰退</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/13-%E4%B8%A2%E5%BC%83%E6%B3%95/">13-丢弃法</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/14-%E6%95%B0%E5%80%BC%E7%A8%B3%E5%AE%9A%E6%80%A7/">14-数值稳定性</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/15-%E5%AE%9E%E6%88%98kaggle%E6%AF%94%E8%B5%9B%E9%A2%84%E6%B5%8B%E6%88%BF%E4%BB%B7/">15-实战Kaggle比赛：预测房价</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/16-pytorch%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E5%9F%BA%E7%A1%80/">16-Pytorch神经网络基础</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/17-%E4%BD%BF%E7%94%A8%E5%92%8C%E8%B4%AD%E4%B9%B0gpu/">17-使用和购买GPU</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/18-%E9%A2%84%E6%B5%8B%E6%88%BF%E4%BB%B7%E7%AB%9E%E8%B5%9B%E6%80%BB%E7%BB%93/">18-预测房价竞赛总结</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/19-%E5%8D%B7%E7%A7%AF%E5%B1%82/">19-卷积层</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/20-%E5%A1%AB%E5%85%85%E5%92%8C%E6%AD%A5%E5%B9%85/">20-填充和步幅</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/21-%E5%A4%9A%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA%E9%80%9A%E9%81%93/">21-多输入输出通道</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/22-%E6%B1%A0%E5%8C%96%E5%B1%82/">22-池化层</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/23-%E7%BB%8F%E5%85%B8%E5%8D%B7%E7%A7%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9Clenet/">23-经典卷积神经网络LeNet</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/24-alexnet/">24-AlexNet</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/25-%E4%BD%BF%E7%94%A8%E5%9D%97%E7%9A%84%E7%BD%91%E7%BB%9C-vgg/">25-使用块的网络 VGG</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/26-nin/">26-NiN</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/27-googlenet/">27-GoogLeNet</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/28-%E6%89%B9%E9%87%8F%E5%BD%92%E4%B8%80%E5%8C%96/">28-批量归一化</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/29-%E6%AE%8B%E5%B7%AE%E7%BD%91%E7%BB%9Cresnet/">29-残差网络ResNet</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/30-%E7%AC%AC%E4%BA%8C%E9%83%A8%E5%88%86%E5%AE%8C%E7%BB%93%E7%AB%9E%E8%B5%9B%E5%9B%BE%E7%89%87%E5%88%86%E7%B1%BB/">30-第二部分完结竞赛：图片分类</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/31-cpu%E5%92%8Cgpu/">31-CPU和GPU</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/32-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E7%A1%AC%E4%BB%B6/">32-深度学习硬件</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/33-%E5%8D%95%E6%9C%BA%E5%A4%9A%E5%8D%A1%E5%B9%B6%E8%A1%8C/">33-单机多卡并行</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/34-%E5%A4%9Agpu%E8%AE%AD%E7%BB%83%E5%AE%9E%E7%8E%B0only-qa/">34-多GPU训练实现(only QA)</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/35-%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%AD%E7%BB%83/">35-分布式训练</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/36-%E6%95%B0%E6%8D%AE%E5%A2%9E%E5%B9%BF/">36-数据增广</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/37-%E5%BE%AE%E8%B0%83/">37-微调</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/38-%E7%AC%AC%E4%BA%8C%E6%AC%A1%E7%AB%9E%E8%B5%9B%E6%A0%91%E5%8F%B6%E5%88%86%E7%B1%BB%E7%BB%93%E6%9E%9C/">38-第二次竞赛树叶分类结果</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/39-%E5%AE%9E%E6%88%98kaggle%E7%AB%9E%E8%B5%9Bcifar-10/">39-实战Kaggle竞赛：CIFAR-10</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/41-%E7%89%A9%E4%BD%93%E6%A3%80%E6%B5%8B%E5%92%8C%E6%95%B0%E6%8D%AE%E9%9B%86/">41-物体检测和数据集</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/43-%E6%A0%91%E5%8F%B6%E5%88%86%E7%B1%BB%E7%AB%9E%E8%B5%9B%E6%8A%80%E6%9C%AF%E6%80%BB%E7%BB%93/">43-树叶分类竞赛技术总结</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/44-%E7%89%A9%E4%BD%93%E6%A3%80%E6%B5%8B%E7%AE%97%E6%B3%95r-cnnssdyolo/">44-物体检测算法：R-CNN,SSD,YOLO</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/46-%E8%AF%AD%E4%B9%89%E5%88%86%E5%89%B2/">46-语义分割</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/47-%E8%BD%AC%E7%BD%AE%E5%8D%B7%E7%A7%AF/">47-转置卷积</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/48-%E5%85%A8%E8%BF%9E%E6%8E%A5%E5%8D%B7%E7%A7%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9Cfcn/">48-全连接卷积神经网络（FCN）</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/49-%E6%A0%B7%E5%BC%8F%E8%BF%81%E7%A7%BB/">49-样式迁移</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/50-%E8%AF%BE%E7%A8%8B%E7%AB%9E%E8%B5%9B%E7%89%9B%E4%BB%94%E8%A1%8C%E5%A4%B4%E6%A3%80%E6%B5%8B/">50-课程竞赛：牛仔行头检测</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/51-%E5%BA%8F%E5%88%97%E6%A8%A1%E5%9E%8B/">51-序列模型</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/53-%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/">53-语言模型</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/54-%E5%BE%AA%E7%8E%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9Crnn/">54-循环神经网络RNN</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/56-gru/">56-GRU</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/57-lstm/">57-LSTM</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/58-%E6%B7%B1%E5%B1%82%E5%BE%AA%E7%8E%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/">58-深层循环神经网络</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/61-%E7%BC%96%E7%A0%81%E5%99%A8-%E8%A7%A3%E7%A0%81%E5%99%A8%E6%9E%B6%E6%9E%84/">61-编码器-解码器架构</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/62-%E5%BA%8F%E5%88%97%E5%88%B0%E5%BA%8F%E5%88%97%E5%AD%A6%E4%B9%A0/">62-序列到序列学习</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/63-%E6%9D%9F%E6%90%9C%E7%B4%A2/">63-束搜索</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/65-%E6%B3%A8%E6%84%8F%E5%8A%9B%E5%88%86%E6%95%B0/">65-注意力分数</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/68-transformer/">68-Transformer</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/69-bert-%E9%A2%84%E8%AE%AD%E7%BB%83/">69-BERT 预训练</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/70-bert-%E5%BE%AE%E8%B0%83/">70-BERT 微调</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/72-%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95/">72-优化算法</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+    
+  
+</nav>
+
+    </div>
+
+    
+    
+    <div class="d-none d-xl-block col-xl-2 docs-toc">
+      
+     
+      <ul class="nav toc-top">
+        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
+      </ul>
+     
+
+      <nav id="TableOfContents">
+  <ul>
+    <li><a href="#11-模型选择过拟合和欠拟合">11-模型选择+过拟合和欠拟合</a>
+      <ul>
+        <li><a href="#本节目录">本节目录</a></li>
+        <li><a href="#1-模型选择">1. 模型选择</a></li>
+        <li><a href="#2-过拟合和欠拟合">2. 过拟合和欠拟合</a></li>
+        <li><a href="#3-多项式回归">3. 多项式回归</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+      
+<div class="subscribe-module col-24 mt-1">
+    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
+</div>
+
+
+
+    </div>
+    
+
+    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
+
+      <article class="article">
+
+          
+
+          <h1>11-模型选择&#43;过拟合和欠拟合</h1>
+
+          <div class="article-style">
+            <h2 id="11-模型选择过拟合和欠拟合">11-模型选择+过拟合和欠拟合</h2>
+<h3 id="本节目录">本节目录</h3>
+<ul>
+<li><a href="#1-%e6%a8%a1%e5%9e%8b%e9%80%89%e6%8b%a9">1. 模型选择</a>
+<ul>
+<li><a href="#11-%e5%ae%9e%e4%be%8b%e5%88%86%e6%9e%90%e9%a2%84%e6%b5%8b%e8%b0%81%e4%bc%9a%e5%81%bf%e8%bf%98%e8%b4%b7%e6%ac%be">1.1 实例分析：预测谁会偿还贷款</a></li>
+<li><a href="#12-%e8%ae%ad%e7%bb%83%e8%af%af%e5%b7%ae%e5%92%8c%e6%b3%9b%e5%8c%96%e8%af%af%e5%b7%ae">1.2 训练误差和泛化误差</a></li>
+<li><a href="#13-%e9%aa%8c%e8%af%81%e6%95%b0%e6%8d%ae%e9%9b%86%e5%92%8c%e6%b5%8b%e8%af%95%e6%95%b0%e6%8d%ae%e9%9b%86">1.3 验证数据集和测试数据集</a></li>
+<li><a href="#14-k-%e5%88%99%e4%ba%a4%e5%8f%89%e9%aa%8c%e8%af%81">1.4 K-则交叉验证</a></li>
+<li><a href="#15-%e6%80%bb%e7%bb%93">1.5 总结</a></li>
+</ul>
+</li>
+<li><a href="#2-%e8%bf%87%e6%8b%9f%e5%90%88%e5%92%8c%e6%ac%a0%e6%8b%9f%e5%90%88">2. 过拟合和欠拟合</a>
+<ul>
+<li><a href="#21-%e4%bb%80%e4%b9%88%e6%98%af%e8%bf%87%e6%8b%9f%e5%90%88%e5%92%8c%e6%ac%a0%e6%8b%9f%e5%90%88">2.1 什么是过拟合和欠拟合？</a></li>
+<li><a href="#22-%e6%a8%a1%e5%9e%8b%e5%ae%b9%e9%87%8f">2.2 模型容量</a></li>
+<li><a href="#23-%e6%a8%a1%e5%9e%8b%e5%ae%b9%e9%87%8f%e7%9a%84%e5%bd%b1%e5%93%8d">2.3 模型容量的影响</a></li>
+<li><a href="#24-%e4%bc%b0%e8%ae%a1%e6%a8%a1%e5%9e%8b%e5%ae%b9%e9%87%8f">2.4 估计模型容量</a></li>
+<li><a href="#25-vc%e7%bb%b4">2.5 VC 维</a></li>
+<li><a href="#26-vc%e7%bb%b4%e7%9a%84%e7%94%a8%e5%a4%84">2.6 VC 维的用处</a></li>
+<li><a href="#27-%e6%95%b0%e6%8d%ae%e5%a4%8d%e6%9d%82%e5%ba%a6">2.7 数据复杂度</a></li>
+<li><a href="#28-%e6%80%bb%e7%bb%93">2.8 总结</a></li>
+</ul>
+</li>
+<li><a href="#3-%e5%a4%9a%e9%a1%b9%e5%bc%8f%e5%9b%9e%e5%bd%92">3. 多项式回归</a>
+<ul>
+<li><a href="#31-%e5%af%bc%e5%85%a5%e5%ba%93">3.1 导入库</a></li>
+<li><a href="#32-%e7%94%9f%e6%88%90%e6%95%b0%e6%8d%ae%e9%9b%86">3.2 生成数据集</a></li>
+<li><a href="#33-numpyndarray%e8%bd%ac%e6%8d%a2%e4%b8%batensor">3.3 NumPyndarray 转换为 tensor</a></li>
+<li><a href="#34-%e5%af%b9%e6%a8%a1%e5%9e%8b%e8%bf%9b%e8%a1%8c%e8%ae%ad%e7%bb%83%e5%92%8c%e6%b5%8b%e8%af%95">3.4 对模型进行训练和测试</a></li>
+<li><a href="#35-%e4%b8%89%e9%98%b6%e5%a4%9a%e9%a1%b9%e5%bc%8f%e5%87%bd%e6%95%b0%e6%8b%9f%e5%90%88%e6%ad%a3%e6%80%81">3.5 [<strong>三阶多项式函数拟合(正态)</strong>]</a></li>
+<li><a href="#36-%e7%ba%bf%e6%80%a7%e5%87%bd%e6%95%b0%e6%8b%9f%e5%90%88%e6%ac%a0%e6%8b%9f%e5%90%88">3.6 [<strong>线性函数拟合(欠拟合)</strong>]</a></li>
+<li><a href="#37-%e9%ab%98%e9%98%b6%e5%a4%9a%e9%a1%b9%e5%bc%8f%e5%87%bd%e6%95%b0%e6%8b%9f%e5%90%88%e8%bf%87%e6%8b%9f%e5%90%88">3.7 [<strong>高阶多项式函数拟合(过拟合)</strong>]</a></li>
+</ul>
+</li>
+</ul>
+<h3 id="1-模型选择">1. 模型选择</h3>
+<p>本小节主要介绍了评估模型的一些指标和方法</p>
+<h4 id="11-实例分析预测谁会偿还贷款">1.1 实例分析：预测谁会偿还贷款</h4>
+<ul>
+<li>银行雇你来调查谁会偿还贷款，你得到了 100 个申请人的信息，其中五个人在 3 年内违约了。然后你惊讶的发现，<strong>所有的五个人在面试时都穿了蓝色衬衫</strong>。显然，你的模型也发现了这个强信号，这会有什么问题？</li>
+</ul>
+<p><strong>答案是，你的模型很有可能会认为所有来面试的人都会穿蓝色衬衫，而这当然是不对的。</strong></p>
+<h4 id="12-训练误差和泛化误差">1.2 训练误差和泛化误差</h4>
+<ul>
+<li>
+<p>训练误差：模型在训练数据上的误差</p>
+</li>
+<li>
+<p>泛化误差：模型在新数据上的误差</p>
+</li>
+<li>
+<p>例子：根据模考成绩来预测未来考试分数</p>
+<ul>
+<li>在过去的考试中表现很好（<strong>训练误差</strong>）不代表未来会好（<strong>泛化误差</strong>）</li>
+<li>学生 A 通过背书在模考中拿到很好成绩</li>
+<li>学生 B 知道答案后面的原因</li>
+</ul>
+</li>
+<li>
+<p><strong>其中，泛化误差是我们所最关心的</strong></p>
+</li>
+</ul>
+<h4 id="13-验证数据集和测试数据集">1.3 验证数据集和测试数据集</h4>
+<ul>
+<li>
+<p>验证数据集：一个用来评估模型好坏的数据集</p>
+<ul>
+<li>例如拿出 50%的训练数据</li>
+<li>不要跟训练数据混在一起（常犯错误）</li>
+</ul>
+</li>
+<li>
+<p>测试数据集：只用一次的数据集。例如：</p>
+<ul>
+<li>未来的考试</li>
+<li>我出价的房子的实际成交价</li>
+<li>用在 kaggle 私有排行榜中的数据集</li>
+</ul>
+</li>
+<li>
+<p><strong>二者最大的区别就是，验证数据集可以那来用很多次，相当于平时的模拟考，而测试数据集则只能用一次来评估模型的性能，相当于最终的考试。</strong></p>
+</li>
+</ul>
+<h4 id="14-k-则交叉验证">1.4 K-则交叉验证</h4>
+<ul>
+<li>
+<p>在没有足够多数据时使用（这是常态）</p>
+</li>
+<li>
+<p>算法：</p>
+<ul>
+<li>将训练数据分割 k 块</li>
+<li>For i = 1，……，k
+<ul>
+<li>使用第 i 块作为验证数据集，其余的作为训练数据集</li>
+</ul>
+</li>
+<li>报告 k 个验证集误差的平均</li>
+</ul>
+</li>
+<li>
+<p>常用：k = 5 或 10</p>
+</li>
+<li>
+<p>K-则交叉验证的目的是在没有足够多数据使用时评估模型和超参数的性能，也就是说，<strong>K 次训练和验证使用的是相同的超参数和模型</strong></p>
+</li>
+</ul>
+<h4 id="15-总结">1.5 总结</h4>
+<ul>
+<li>训练数据集：训练模型参数</li>
+<li>验证数据集：选择模型超参数</li>
+<li>非大数据集上通常使用 k-则交叉验证</li>
+</ul>
+<h3 id="2-过拟合和欠拟合">2. 过拟合和欠拟合</h3>
+<h4 id="21-什么是过拟合和欠拟合">2.1 什么是过拟合和欠拟合？</h4>
+<table>
+<thead>
+<tr>
+<th>模型容量\数据</th>
+<th>简单</th>
+<th style="text-align:center">复杂</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>低</td>
+<td>正常</td>
+<td style="text-align:center">欠拟合</td>
+</tr>
+<tr>
+<td>高</td>
+<td>过拟合</td>
+<td style="text-align:center">正常</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>tips：模型容量即模型的复杂度，也代表了模型拟合各种函数的能力</li>
+</ul>
+<h4 id="22-模型容量">2.2 模型容量</h4>
+<ul>
+<li>拟合各种函数的能力</li>
+<li>低容量的模型难以拟合训练数据</li>
+<li>高容量的模型可以记住所有的训练数据</li>
+</ul>
+<img src="https://assets.ng-tech.icu/book/DeepLearning-MuLi-Notes/imgs/11/11-01.png" alt="image" width="300" />
+<ul>
+<li>显然，模型容量太低或太高都不好。太低（对应第一种）过于简单，模型分类效果差，太高（对应第二种）则过于复杂，把噪声全部都拟合住了，这是我们所不希望的。</li>
+</ul>
+<h4 id="23-模型容量的影响">2.3 模型容量的影响</h4>
+<img src="https://assets.ng-tech.icu/book/DeepLearning-MuLi-Notes/imgs/11/11-02.png" alt="image" width="300" />
+<ul>
+<li>我们的核心任务就是把泛化误差往下降</li>
+</ul>
+<h4 id="24-估计模型容量">2.4 估计模型容量</h4>
+<ul>
+<li>难以在不同的种类算法之间比较
+<ul>
+<li>例如树模型和神经网络</li>
+</ul>
+</li>
+<li>给定一个模型种类，将有两个主要因素
+<ul>
+<li>参数的个数</li>
+<li>参数的选择范围</li>
+</ul>
+</li>
+</ul>
+<img src="https://assets.ng-tech.icu/book/DeepLearning-MuLi-Notes/imgs/11/11-03.png" alt="image" width="300" />
+<h4 id="25-vc-维">2.5 VC 维</h4>
+<p>VC 维是统计学习理论的一个核心思想，这里大致了解就行，因为很难计算之后学习的模型（如 CNN,RNN)的 VC 维，故并不经常用</p>
+<ul>
+<li>定义：对于一个分类模型，VC 维等于一个最大的数据集的大小，不管如何给定标号，都存在一个模型对它进行完美分类。即存在 H 个样本，模型能把 H 个样本的 2^H 种标号方式打散的 H 的最大值。</li>
+<li>例子：线性分类器的 VC 维
+<ul>
+<li>2 维输入的感知机，VC 维=3（对于三个点的任意标号都能分类，而任意四个点的样本都存在不能被打散的标号形式个，如之前讲过的 XOR）</li>
+</ul>
+</li>
+</ul>
+<p>3 个点：</p>
+<img src="https://assets.ng-tech.icu/book/DeepLearning-MuLi-Notes/imgs/11/11-04.png" alt="image" width="500" />
+<p>4 个点：</p>
+<img src="https://assets.ng-tech.icu/book/DeepLearning-MuLi-Notes/imgs/11/11-05.png" alt="image" width="300" />
+<ul>
+<li>支持 N 维输入的感知机的 VC 维是 N+1</li>
+<li>一些多层感知机的 VC 维是:<img src="http://chart.googleapis.com/chart?cht=tx&chl=O(Nlog_2N)" style="border:none;"></li>
+</ul>
+<h4 id="26-vc-维的用处">2.6 VC 维的用处</h4>
+<ul>
+<li>提供为什么一个模型好的理论依据
+<ul>
+<li>它可以衡量训练误差和泛化误差之间的间隔</li>
+</ul>
+</li>
+<li>但深度学习中很少使用
+<ul>
+<li>衡量不是很准确</li>
+<li>计算深度学习模型的 VC 维很困难</li>
+</ul>
+</li>
+</ul>
+<h4 id="27-数据复杂度">2.7 数据复杂度</h4>
+<ul>
+<li>多个重要因素
+<ul>
+<li>样本的元素个数</li>
+<li>每个样本的元素个数</li>
+<li>时间、空间结构</li>
+<li>多样性</li>
+</ul>
+</li>
+</ul>
+<h4 id="28-总结">2.8 总结</h4>
+<ul>
+<li>模型容量需要匹配数据复杂度，否则可能导致欠拟合和过拟合</li>
+<li>统计机器学习提供数学工具来衡量模型复杂度</li>
+<li>实际中一般考观察训练误差和验证误差</li>
+</ul>
+<h3 id="3-多项式回归">3. 多项式回归</h3>
+<ul>
+<li>本小节使用多项式回归为例子，在 pytorch 上展示过拟合和欠拟合的实际表现</li>
+</ul>
+<h4 id="31-导入库">3.1 导入库</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">math</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">d2l</span> <span class="kn">import</span> <span class="n">torch</span> <span class="k">as</span> <span class="n">d2l</span>
+</span></span></code></pre></div><h4 id="32-生成数据集">3.2 生成数据集</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">max_degree</span> <span class="o">=</span> <span class="mi">20</span>  <span class="c1"># 多项式的最大阶数</span>
+</span></span><span class="line"><span class="cl"><span class="n">n_train</span><span class="p">,</span> <span class="n">n_test</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span>  <span class="c1"># 训练和测试数据集大小</span>
+</span></span><span class="line"><span class="cl"><span class="n">true_w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">max_degree</span><span class="p">)</span>  <span class="c1"># 分配大量的空间</span>
+</span></span><span class="line"><span class="cl"><span class="n">true_w</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">5</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.4</span><span class="p">,</span> <span class="mf">5.6</span><span class="p">])</span><span class="c1">#前五个参数是有用的已知的参数，其他都是0，是不希望被学习的参数</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">features</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_train</span> <span class="o">+</span> <span class="n">n_test</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="c1">#创建特征值</span>
+</span></span><span class="line"><span class="cl"><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">features</span><span class="p">)</span><span class="c1">#打乱顺序</span>
+</span></span><span class="line"><span class="cl"><span class="n">poly_features</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_degree</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="c1">#通过广播机制得到每个特征值的所有多项式值</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_degree</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">poly_features</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">/=</span> <span class="n">math</span><span class="o">.</span><span class="n">gamma</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># gamma(n)=(n-1)!，除以gamma防止梯度过大</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># labels的维度:(n_train+n_test,)</span>
+</span></span><span class="line"><span class="cl"><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">poly_features</span><span class="p">,</span> <span class="n">true_w</span><span class="p">)</span><span class="c1">#将对应多项式值与其系数相乘</span>
+</span></span><span class="line"><span class="cl"><span class="n">labels</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">labels</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="c1">#加上噪声项</span>
+</span></span></code></pre></div><h4 id="33-numpyndarray-转换为-tensor">3.3 NumPyndarray 转换为 tensor</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">true_w</span><span class="p">,</span> <span class="n">features</span><span class="p">,</span> <span class="n">poly_features</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span>
+</span></span><span class="line"><span class="cl">    <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="n">true_w</span><span class="p">,</span> <span class="n">features</span><span class="p">,</span> <span class="n">poly_features</span><span class="p">,</span> <span class="n">labels</span><span class="p">]]</span>
+</span></span></code></pre></div><h4 id="34-对模型进行训练和测试">3.4 对模型进行训练和测试</h4>
+<p>首先让我们[实现一个函数来评估模型在给定数据集上的损失]。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">evaluate_loss</span><span class="p">(</span><span class="n">net</span><span class="p">,</span> <span class="n">data_iter</span><span class="p">,</span> <span class="n">loss</span><span class="p">):</span>  <span class="c1">#@save</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;评估给定数据集上模型的损失&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">metric</span> <span class="o">=</span> <span class="n">d2l</span><span class="o">.</span><span class="n">Accumulator</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># 损失的总和,样本数量</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">data_iter</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="n">net</span><span class="p">(</span><span class="n">X</span><span class="p">)</span><span class="c1">#预测值</span>
+</span></span><span class="line"><span class="cl">        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="c1">#将y维度变为与out一样</span>
+</span></span><span class="line"><span class="cl">        <span class="n">l</span> <span class="o">=</span> <span class="n">loss</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span><span class="c1">#计算损失</span>
+</span></span><span class="line"><span class="cl">        <span class="n">metric</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">l</span><span class="o">.</span><span class="n">numel</span><span class="p">())</span><span class="c1">#加入到迭代器中，进入下一个batch</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">metric</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">metric</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="c1">#返回平均损失</span>
+</span></span></code></pre></div><p>现在[定义训练函数]</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="n">train_features</span><span class="p">,</span> <span class="n">test_features</span><span class="p">,</span> <span class="n">train_labels</span><span class="p">,</span> <span class="n">test_labels</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">          <span class="n">num_epochs</span><span class="o">=</span><span class="mi">400</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">loss</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">()</span><span class="c1">#定义损失</span>
+</span></span><span class="line"><span class="cl">    <span class="n">input_shape</span> <span class="o">=</span> <span class="n">train_features</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 不设置偏置，因为我们已经在多项式特征中实现了它（即x^0）</span>
+</span></span><span class="line"><span class="cl">    <span class="n">net</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span><span class="c1">#创建模型</span>
+</span></span><span class="line"><span class="cl">    <span class="n">batch_size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">train_labels</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">    <span class="n">train_iter</span> <span class="o">=</span> <span class="n">d2l</span><span class="o">.</span><span class="n">load_array</span><span class="p">((</span><span class="n">train_features</span><span class="p">,</span> <span class="n">train_labels</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)),</span>
+</span></span><span class="line"><span class="cl">                                <span class="n">batch_size</span><span class="p">)</span><span class="c1">#训练集</span>
+</span></span><span class="line"><span class="cl">    <span class="n">test_iter</span> <span class="o">=</span> <span class="n">d2l</span><span class="o">.</span><span class="n">load_array</span><span class="p">((</span><span class="n">test_features</span><span class="p">,</span> <span class="n">test_labels</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)),</span>
+</span></span><span class="line"><span class="cl">                               <span class="n">batch_size</span><span class="p">,</span> <span class="n">is_train</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="c1">#测试集</span>
+</span></span><span class="line"><span class="cl">    <span class="n">trainer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.001</span><span class="p">)</span><span class="c1">#设置优化器，这里使用SGD</span>
+</span></span><span class="line"><span class="cl">    <span class="n">animator</span> <span class="o">=</span> <span class="n">d2l</span><span class="o">.</span><span class="n">Animator</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;epoch&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;loss&#39;</span><span class="p">,</span> <span class="n">yscale</span><span class="o">=</span><span class="s1">&#39;log&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                            <span class="n">xlim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_epochs</span><span class="p">],</span> <span class="n">ylim</span><span class="o">=</span><span class="p">[</span><span class="mf">1e-3</span><span class="p">,</span> <span class="mf">1e2</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">                            <span class="n">legend</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="s1">&#39;test&#39;</span><span class="p">])</span><span class="c1">#动画</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_epochs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">d2l</span><span class="o">.</span><span class="n">train_epoch_ch3</span><span class="p">(</span><span class="n">net</span><span class="p">,</span> <span class="n">train_iter</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">trainer</span><span class="p">)</span><span class="c1">#训练</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">epoch</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">20</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">animator</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">evaluate_loss</span><span class="p">(</span><span class="n">net</span><span class="p">,</span> <span class="n">train_iter</span><span class="p">,</span> <span class="n">loss</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                                     <span class="n">evaluate_loss</span><span class="p">(</span><span class="n">net</span><span class="p">,</span> <span class="n">test_iter</span><span class="p">,</span> <span class="n">loss</span><span class="p">)))</span><span class="c1">#将当前的训练集和测试集的损失存入animator中，用于绘图</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;weight:&#39;</span><span class="p">,</span> <span class="n">net</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span><span class="c1">#打印训练后的参数</span>
+</span></span></code></pre></div><h4 id="35-三阶多项式函数拟合正态">3.5 [<strong>三阶多项式函数拟合(正态)</strong>]</h4>
+<p>我们将首先使用三阶多项式函数，它与数据生成函数的阶数相同。 结果表明，该模型能有效降低训练损失和测试损失。 学习到的模型参数也接近真实值 𝑤=[5,1.2,−3.4,5.6]。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># 从多项式特征中选择前4个维度，即1,x,x^2/2!,x^3/3!</span>
+</span></span><span class="line"><span class="cl"><span class="n">train</span><span class="p">(</span><span class="n">poly_features</span><span class="p">[:</span><span class="n">n_train</span><span class="p">,</span> <span class="p">:</span><span class="mi">4</span><span class="p">],</span> <span class="n">poly_features</span><span class="p">[</span><span class="n">n_train</span><span class="p">:,</span> <span class="p">:</span><span class="mi">4</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">      <span class="n">labels</span><span class="p">[:</span><span class="n">n_train</span><span class="p">],</span> <span class="n">labels</span><span class="p">[</span><span class="n">n_train</span><span class="p">:])</span>
+</span></span></code></pre></div><img src="https://assets.ng-tech.icu/book/DeepLearning-MuLi-Notes/imgs/11/11-06.png" alt="image" width="250" />
+<h4 id="36-线性函数拟合欠拟合">3.6 [<strong>线性函数拟合(欠拟合)</strong>]</h4>
+<p>让我们再看看线性函数拟合，减少该模型的训练损失相对困难。 在最后一个迭代周期完成后，训练损失仍然很高。 当用来拟合非线性模式（如这里的三阶多项式函数）时，线性模型容易欠拟合。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># 从多项式特征中选择前2个维度，即1和x</span>
+</span></span><span class="line"><span class="cl"><span class="n">train</span><span class="p">(</span><span class="n">poly_features</span><span class="p">[:</span><span class="n">n_train</span><span class="p">,</span> <span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">poly_features</span><span class="p">[</span><span class="n">n_train</span><span class="p">:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">      <span class="n">labels</span><span class="p">[:</span><span class="n">n_train</span><span class="p">],</span> <span class="n">labels</span><span class="p">[</span><span class="n">n_train</span><span class="p">:])</span>
+</span></span></code></pre></div><img src="https://assets.ng-tech.icu/book/DeepLearning-MuLi-Notes/imgs/11/11-07.png" alt="image" width="200" />
+<h4 id="37-高阶多项式函数拟合过拟合">3.7 [<strong>高阶多项式函数拟合(过拟合)</strong>]</h4>
+<p>现在，让我们尝试使用一个阶数过高的多项式来训练模型。 在这种情况下，没有足够的数据用于学到高阶系数应该具有接近于零的值。 因此，这个过于复杂的模型会轻易受到训练数据中噪声的影响。 虽然训练损失可以有效地降低，但测试损失仍然很高。 结果表明，复杂模型对数据造成了过拟合。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># 从多项式特征中选取所有维度</span>
+</span></span><span class="line"><span class="cl"><span class="n">train</span><span class="p">(</span><span class="n">poly_features</span><span class="p">[:</span><span class="n">n_train</span><span class="p">,</span> <span class="p">:],</span> <span class="n">poly_features</span><span class="p">[</span><span class="n">n_train</span><span class="p">:,</span> <span class="p">:],</span>
+</span></span><span class="line"><span class="cl">      <span class="n">labels</span><span class="p">[:</span><span class="n">n_train</span><span class="p">],</span> <span class="n">labels</span><span class="p">[</span><span class="n">n_train</span><span class="p">:],</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">1500</span><span class="p">)</span>
+</span></span></code></pre></div><img src="https://assets.ng-tech.icu/book/DeepLearning-MuLi-Notes/imgs/11/11-08.png" alt="image" width="300" />
+
+          </div>
+
+          
+
+
+
+          
+          
+          <div class="article-widget">
+            
+<div class="container-xl row post-nav">
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">上一页</div>
+    <a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/10-%E5%A4%9A%E5%B1%82%E6%84%9F%E7%9F%A5%E6%9C%BA/" rel="next">10-多层感知机</a>
+  </div>
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">下一页</div>
+    <a href="/books/deeplearning-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-%E6%9D%8E%E6%B2%90-%E5%8A%A8%E6%89%8B%E5%AD%A6%E4%B9%A0%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/12-%E6%9D%83%E9%87%8D%E8%A1%B0%E9%80%80/" rel="prev">12-权重衰退</a>
+  </div>
+  
+</div>
+
+          </div>
+          
+
+        <div class="body-footer">
+          <p>最近更新于 0001-01-01</p>
+
+          
+
+
+
+          
+
+
+  
+  
+  
+
+  
+
+  
+  <section id="comments" class="mb-3 pt-0">
+    
+<div id="disqus_thread"></div>
+<script>
+  var disqus_config = function () {
+    
+    
+    
+  };
+  (function() {
+    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+      return;
+    }
+    var d = document, s = d.createElement('script'); 
+    s.async = true;
+    s.src = 'https://' + "ngte" + '.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </section>
+  
+
+
+
+          
+
+
+        </div>
+
+      </article>
+
+      <footer class="site-footer">
+
+  
+
+
+
+  
+
+  
+  <div class="copyright py-4 bg-footer">
+      <div class="row justify-content-center">
+        <div class="text-center footer-color">
+          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
+        </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" id="clstr_globe" async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script>
+  
+</footer>
+
+
+    </main>
+  </div>
+</div>
+<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
+<script>
+  const heti = new Heti('.article');
+  heti.autoSpacing();
+</script>
+<script type="text/javascript">
+  window.$crisp = [];
+  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
+  (function () {
+    setTimeout(function() {
+      d = document;
+      s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    }, 2500);
+  })();
+</script>
+  </div>
+
+  <div class="page-footer">
+    
+    
+  </div>
+
+      
+
+    
+    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
+
+    
+    
+    
+      
+
+      
+      
+
+      
+
+      
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
+        
+        
+      
+
+    
+
+    
+    
+    
+
+    
+    
+    
+      
+      <script id="search-hit-algolia-template" type="text/html">
+        <div class="search-hit">
+          <div class="search-hit-content">
+            <div class="search-hit-name">
+              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
+            </div>
+            <div class="article-metadata search-hit-type">{{type}}</div>
+            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
+          </div>
+        </div>
+      </script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
+      
+      
+    
+
+    
+    
+
+    
+    
+    
+    
+      <script id="dsq-count-scr" src="https://ngte.disqus.com/count.js" async></script>
+      
+    
+
+    
+    
+      
+      
+      
+      
+      
+      
+      
+    
+
+    
+    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
+    
+
+    
+    
+    
+    <script id="page-data" type="application/json">{"use_headroom":false}</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
+
+    
+    
+    
+    
+    
+    
+    <script>
+
+var mybutton = document.getElementById("backTopBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+}
+</script>
+
+
+    
+
+    
+    
+    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+    <script>
+      anchors.add();
+    </script>
+    
+
+    
+    <script>
+
+
+
+(function() {
+  'use strict';
+
+  if(!document.queryCommandSupported('copy')) {
+    return;
+  }
+
+  function flashCopyMessage(el, msg) {
+    el.className = "highlight-copy-btn";
+    el.textContent = msg;
+    setTimeout(function() {
+      el.textContent = "";
+      el.className = "highlight-copy-btn fa fa-copy";
+    }, 1000);
+  }
+
+  function selectText(node) {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection;
+  }
+
+  function addCopyButton(containerEl) {
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "highlight-copy-btn fa fa-copy";
+    copyBtn.textContent = "";
+
+    var codeEl = containerEl.firstElementChild;
+    copyBtn.addEventListener('click', function() {
+      try {
+        var selection = selectText(codeEl);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        
+        flashCopyMessage(copyBtn, '已复制')
+        
+      } catch(e) {
+        console && console.log(e);
+        flashCopyMessage(copyBtn, 'Failed :\'(')
+      }
+    });
+
+    containerEl.appendChild(copyBtn);
+  }
+
+  
+  var highlightBlocks = document.getElementsByClassName('highlight');
+  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
+})();
+</script>
+
+    
+
+
+</body>
+</html>

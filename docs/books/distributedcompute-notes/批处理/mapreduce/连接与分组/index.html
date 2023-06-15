@@ -1,30 +1,1480 @@
-<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="Reduce 端连接与分组 在许多数据集中，一条记录与另一条记录存在关联是很常见的：关系模型中的外键，文档模型中的文档引用或图模型中的边。当你需要同时访问这一关联的两侧（持有引用的记录与被引用的记录）时，连接就是必"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/mapreduce/%E8%BF%9E%E6%8E%A5%E4%B8%8E%E5%88%86%E7%BB%84/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.fab3cd1900ae35687457073b2d518207.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/mapreduce/%E8%BF%9E%E6%8E%A5%E4%B8%8E%E5%88%86%E7%BB%84/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/mapreduce/%E8%BF%9E%E6%8E%A5%E4%B8%8E%E5%88%86%E7%BB%84/"><meta property="og:title" content="连接与分组 | Next-gen Tech Edu"><meta property="og:description" content="Reduce 端连接与分组 在许多数据集中，一条记录与另一条记录存在关联是很常见的：关系模型中的外键，文档模型中的文档引用或图模型中的边。当你需要同时访问这一关联的两侧（持有引用的记录与被引用的记录）时，连接就是必"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>连接与分组 | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=f3bacacbe489e4bce4c1d80720bb4c61><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
-<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
-<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
-<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
-<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
-<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">MapReduce</span>
-<span><i class="fas fa-chevron-down"></i></span></div></button>
-<button class="form-control sidebar-search js-search d-none d-md-flex">
-<i class="fas fa-search pr-2"></i>
-<span class=sidebar-search-text>搜索...</span>
-<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
-Back</a>
-<span>|</span>
-<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
-Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id420c79d2ab9d6dacf9b3c98d227ab672")' href=#id420c79d2ab9d6dacf9b3c98d227ab672 aria-expanded=false aria-controls=id420c79d2ab9d6dacf9b3c98d227ab672 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/>批处理</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id420c79d2ab9d6dacf9b3c98d227ab672 aria-expanded=false aria-controls=id420c79d2ab9d6dacf9b3c98d227ab672><i class="fa-solid fa-angle-down" id=caret-id420c79d2ab9d6dacf9b3c98d227ab672></i></a></div><ul class="nav docs-sidenav collapse show" id=id420c79d2ab9d6dacf9b3c98d227ab672><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idc365faf85034b6f87fb3540ae045008f")' href=#idc365faf85034b6f87fb3540ae045008f aria-expanded=false aria-controls=idc365faf85034b6f87fb3540ae045008f aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/hadoop/>Hadoop</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idc365faf85034b6f87fb3540ae045008f aria-expanded=false aria-controls=idc365faf85034b6f87fb3540ae045008f><i class="fa-solid fa-angle-right" id=caret-idc365faf85034b6f87fb3540ae045008f></i></a></div><ul class="nav docs-sidenav collapse" id=idc365faf85034b6f87fb3540ae045008f><li class="child level"><a href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/hadoop/hadoop-%E4%B8%8E%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AF%B9%E6%AF%94/>Hadoop 与数据库对比</a></li><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id2cf9ff96dfba1f00efee87da8caf2fa4")' href=#id2cf9ff96dfba1f00efee87da8caf2fa4 aria-expanded=false aria-controls=id2cf9ff96dfba1f00efee87da8caf2fa4 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/hadoop/mapreduce/>MapReduce</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id2cf9ff96dfba1f00efee87da8caf2fa4 aria-expanded=false aria-controls=id2cf9ff96dfba1f00efee87da8caf2fa4><i class="fa-solid fa-angle-right" id=caret-id2cf9ff96dfba1f00efee87da8caf2fa4></i></a></div><ul class="nav docs-sidenav collapse" id=id2cf9ff96dfba1f00efee87da8caf2fa4><li class="child level"><a href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/hadoop/mapreduce/crud/>CRUD</a></li><li class="child level"><a href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/hadoop/mapreduce/wordcount/>WordCount</a></li><li class="child level"><a href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/hadoop/mapreduce/%E8%81%9A%E5%90%88%E8%AE%A1%E7%AE%97/>聚合计算</a></li></ul></div></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id5b1457e4fc179aa0f624aa4a6fb297af")' href=#id5b1457e4fc179aa0f624aa4a6fb297af aria-expanded=false aria-controls=id5b1457e4fc179aa0f624aa4a6fb297af aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/mapreduce/>MapReduce</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id5b1457e4fc179aa0f624aa4a6fb297af aria-expanded=false aria-controls=id5b1457e4fc179aa0f624aa4a6fb297af><i class="fa-solid fa-angle-down" id=caret-id5b1457e4fc179aa0f624aa4a6fb297af></i></a></div><ul class="nav docs-sidenav collapse show" id=id5b1457e4fc179aa0f624aa4a6fb297af><li class="child level active"><a href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/mapreduce/%E8%BF%9E%E6%8E%A5%E4%B8%8E%E5%88%86%E7%BB%84/>连接与分组</a></li><li class="child level"><a href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/mapreduce/%E4%BD%9C%E4%B8%9A%E8%BE%93%E5%87%BA/>作业输出</a></li><li class="child level"><a href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/mapreduce/%E4%BD%9C%E4%B8%9A%E6%89%A7%E8%A1%8C/>作业执行</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idf9b97632fc57cbe1654ba5da434f66d9")' href=#idf9b97632fc57cbe1654ba5da434f66d9 aria-expanded=false aria-controls=idf9b97632fc57cbe1654ba5da434f66d9 aria-hidden=false data-toggle=collapse></div></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id78d11d67e50e689cf9ed9f2dd6bf6484")' href=#id78d11d67e50e689cf9ed9f2dd6bf6484 aria-expanded=false aria-controls=id78d11d67e50e689cf9ed9f2dd6bf6484 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%9E%8B/>编程模型</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id78d11d67e50e689cf9ed9f2dd6bf6484 aria-expanded=false aria-controls=id78d11d67e50e689cf9ed9f2dd6bf6484><i class="fa-solid fa-angle-right" id=caret-id78d11d67e50e689cf9ed9f2dd6bf6484></i></a></div><ul class="nav docs-sidenav collapse" id=id78d11d67e50e689cf9ed9f2dd6bf6484><li class="child level"><a href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%9E%8B/data-parallelism/>Data Parallelism</a></li><li class="child level"><a href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%9E%8B/%E6%9F%A5%E8%AF%A2%E4%B8%8E%E5%A3%B0%E6%98%8E%E5%BC%8F%E6%8E%A5%E5%8F%A3/>查询与声明式接口</a></li><li class="child level"><a href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%9E%8B/%E5%9B%BE%E7%9A%84%E5%A4%A7%E8%A7%84%E6%A8%A1%E5%B9%B6%E8%A1%8C/>图的大规模并行</a></li></ul></div><li class="child level"><a href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/%E4%BD%BF%E7%94%A8-unix-%E5%B7%A5%E5%85%B7%E7%9A%84%E6%89%B9%E5%A4%84%E7%90%86/>使用 Unix 工具的批处理</a></li><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id112266e9fa042ff8d90812d8f67171b7")' href=#id112266e9fa042ff8d90812d8f67171b7 aria-expanded=false aria-controls=id112266e9fa042ff8d90812d8f67171b7 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/%E6%89%A7%E8%A1%8C%E6%A1%86%E6%9E%B6/>执行框架</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id112266e9fa042ff8d90812d8f67171b7 aria-expanded=false aria-controls=id112266e9fa042ff8d90812d8f67171b7><i class="fa-solid fa-angle-right" id=caret-id112266e9fa042ff8d90812d8f67171b7></i></a></div><ul class="nav docs-sidenav collapse" id=id112266e9fa042ff8d90812d8f67171b7><li class="child level"><a href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/%E6%89%A7%E8%A1%8C%E6%A1%86%E6%9E%B6/%E9%AB%98%E7%BA%A7-api-%E5%92%8C%E8%AF%AD%E8%A8%80/>高级 API 和语言</a></li><li class="child level"><a href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/%E6%89%A7%E8%A1%8C%E6%A1%86%E6%9E%B6/%E5%9B%BE%E4%B8%8E%E8%BF%AD%E4%BB%A3%E5%A4%84%E7%90%86/>图与迭代处理</a></li><li class="child level"><a href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/%E6%89%A7%E8%A1%8C%E6%A1%86%E6%9E%B6/%E7%89%A9%E5%8C%96%E4%B8%AD%E9%97%B4%E7%8A%B6%E6%80%81/>物化中间状态</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents><ul><li><a href=#排序合并连接>排序合并连接</a></li><li><a href=#把相关数据放在一起>把相关数据放在一起</a></li></ul><ul><li><a href=#处理倾斜>处理倾斜</a></li></ul></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>连接与分组</h1><div class=article-style><h1 id=reduce-端连接与分组>Reduce 端连接与分组</h1><p>在许多数据集中，一条记录与另一条记录存在关联是很常见的：关系模型中的外键，文档模型中的文档引用或图模型中的边。当你需要同时访问这一关联的两侧（持有引用的记录与被引用的记录）时，连接就是必须的。（包含引用的记录和被引用的记录），连接就是必需的。在数据库中，如果执行只涉及少量记录的查询，数据库通常会使用索引来快速定位感兴趣的记录，如果查询涉及到连接，则可能涉及到查找多个索引。然而 MapReduce 没有索引的概念，至少在通常意义上没有。</p><p>当 MapReduce 作业被赋予一组文件作为输入时，它读取所有这些文件的全部内容；数据库会将这种操作称为全表扫描。如果你只想读取少量的记录，则全表扫描与索引查询相比，代价非常高昂。但是在分析查询中，通常需要计算大量记录的聚合。在这种情况下，特别是如果能在多台机器上并行处理时，扫描整个输入可能是相当合理的事情。当我们在批处理的语境中讨论连接时，我们指的是在数据集中解析某种关联的全量存在。例如我们假设一个作业是同时处理所有用户的数据，而非仅仅是为某个特定用户查找数据（而这能通过索引更高效地完成）。</p><h1 id=案例分析用户活动事件>案例：分析用户活动事件</h1><p>下图给出了一个批处理作业中连接的典型例子。左侧是事件日志，描述登录用户在网站上做的事情（称为活动事件（activity events）或点击流数据（clickstream data）），右侧是用户数据库。你可以将此示例看作是星型模式的一部分：事件日志是事实表，用户数据库是其中的一个维度。</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://s2.ax1x.com/2020/02/13/1b5Nyq.md.png alt=用户行为日志与用户档案的连接 loading=lazy data-zoomable></div></div></figure></p><p>分析任务可能需要将用户活动与用户简档相关联：例如，如果档案包含用户的年龄或出生日期，系统就可以确定哪些页面更受哪些年龄段的用户欢迎。然而活动事件仅包含用户 ID，而没有包含完整的用户档案信息。在每个活动事件中嵌入这些档案信息很可能会非常浪费。因此，活动事件需要与用户档案数据库相连接。</p><p>实现这一连接的最简单方法是，逐个遍历活动事件，并为每个遇到的用户 ID 查询用户数据库（在远程服务器上）。这是可能的，但是它的性能可能会非常差：处理吞吐量将受限于受数据库服务器的往返时间，本地缓存的有效性很大程度上取决于数据的分布，并行运行大量查询可能会轻易压垮数据库。为了在批处理过程中实现良好的吞吐量，计算必须（尽可能）限于单台机器上进行。为待处理的每条记录发起随机访问的网络请求实在是太慢了。而且，查询远程数据库意味着批处理作业变为非确定的（nondeterministic），因为远程数据库中的数据可能会改变。因此，更好的方法是获取用户数据库的副本（例如，使用 ETL 进程从数据库备份中提取数据，参阅“数据仓库”），并将它和用户行为日志放入同一个分布式文件系统中。然后你可以将用户数据库存储在 HDFS 中的一组文件中，而用户活动记录存储在另一组文件中，并能用 MapReduce 将所有相关记录集中到同一个地方进行高效处理。</p><h2 id=排序合并连接>排序合并连接</h2><p>Mapper 的目的是从每个输入记录中提取一对键值，这个键就是用户 ID：一组 Mapper 会扫过活动事件（提取用户 ID 作为键，活动事件作为值），而另一组 Mapper 将会扫过用户数据库（提取用户 ID 作为键，用户的出生日期作为值）。这个过程如下图所示。</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://s2.ax1x.com/2020/02/13/1b5OnP.md.png alt=在用户ID上进行的Reduce端连接。如果输入数据集分区为多个文件，则每个分区都会被多个Mapper并行处理 loading=lazy data-zoomable></div></div></figure></p><p>当 MapReduce 框架通过键对 Mapper 输出进行分区，然后对键值对进行排序时，效果是具有相同 ID 的所有活动事件和用户记录在 Reducer 输入中彼此相邻。Map-Reduce 作业甚至可以也让这些记录排序，使 Reducer 总能先看到来自用户数据库的记录，紧接着是按时间戳顺序排序的活动事件，这种技术被称为二次排序（secondary sort）。然后 Reducer 可以容易地执行实际的连接逻辑：每个用户 ID 都会被调用一次 Reducer 函数，且因为二次排序，第一个值应该是来自用户数据库的出生日期记录。Reducer 将出生日期存储在局部变量中，然后使用相同的用户 ID 遍历活动事件，输出已观看网址和观看者年龄的结果对。随后的 Map-Reduce 作业可以计算每个 URL 的查看者年龄分布，并按年龄段进行聚集。</p><p>由于 Reducer 一次处理一个特定用户 ID 的所有记录，因此一次只需要将一条用户记录保存在内存中，而不需要通过网络发出任何请求。这个算法被称为排序合并连接（sort-merge join），因为 Mapper 的输出是按键排序的，然后 Reducer 将来自连接两侧的有序记录列表合并在一起。</p><h2 id=把相关数据放在一起>把相关数据放在一起</h2><p>在排序合并连接中，Mapper 和排序过程确保了所有对特定用户 ID 执行连接操作的必须数据都被放在同一个地方：单次调用 Reducer 的地方。预先排好了所有需要的数据，Reducer 可以是相当简单的单线程代码，能够以高吞吐量和与低内存开销扫过这些记录。</p><p>这种架构可以看做，Mapper 将“消息”发送给 Reducer。当一个 Mapper 发出一个键值对时，这个键的作用就像值应该传递到的目标地址。即使键只是一个任意的字符串（不是像 IP 地址和端口号那样的实际的网络地址），它表现的就像一个地址：所有具有相同键的键值对将被传递到相同的目标（一次 Reduce 的调用）。</p><p>使用 MapReduce 编程模型，能将计算的物理网络通信层面（从正确的机器获取数据）从应用逻辑中剥离出来（获取数据后执行处理）。这种分离与数据库的典型用法形成了鲜明对比，从数据库中获取数据的请求经常出现在应用代码内部。由于 MapReduce 能够处理所有的网络通信，因此它也避免了应用代码去担心部分故障，例如另一个节点的崩溃：MapReduce 在不影响应用逻辑的情况下能透明地重试失败的任务。</p><h1 id=group-by>GROUP BY</h1><p>除了连接之外，“把相关数据放在一起”的另一种常见模式是，按某个键对记录分组（如 SQL 中的 GROUP BY 子句）。所有带有相同键的记录构成一个组，而下一步往往是在每个组内进行某种聚合操作，例如：</p><ul><li>统计每个组中记录的数量（例如在统计 PV 的例子中，在 SQL 中表示为 <code>COUNT(*)</code> 聚合）</li><li>对某个特定字段求和（SQL 中的 SUM(fieldname)）</li><li>按某种分级函数取出排名前 k 条记录。</li></ul><p>使用 MapReduce 实现这种分组操作的最简单方法是设置 Mapper，以便它们生成的键值对使用所需的分组键。然后分区和排序过程将所有具有相同分区键的记录导向同一个 Reducer。因此在 MapReduce 之上实现分组和连接看上去非常相似。分组的另一个常见用途是整理特定用户会话的所有活动事件，以找出用户进行的一系列操作（称为会话化（sessionization））。例如，可以使用这种分析来确定显示新版网站的用户是否比那些显示旧版本（A/B 测试）的用户更有购买欲，或者计算某个营销活动是否值得。如果你有多个 Web 服务器处理用户请求，则特定用户的活动事件很可能分散在各个不同的服务器的日志文件中。你可以通过使用会话 cookie，用户 ID 或类似的标识符作为分组键，以将特定用户的所有活动事件放在一起来实现会话化，与此同时，不同用户的事件仍然散步在不同的分区中。</p><h2 id=处理倾斜>处理倾斜</h2><p>如果存在与单个键关联的大量数据，则“将具有相同键的所有记录放到相同的位置”这种模式就被破坏了。例如在社交网络中，大多数用户可能会与几百人有连接，但少数名人可能有数百万的追随者。这种不成比例的活动数据库记录被称为关键对象（linchpin object）或热键（hot key）。在单个 Reducer 中收集与某个名流相关的所有活动（例如他们发布内容的回复）可能导致严重的倾斜（也称为热点（hot spot）），也就是说，一个 Reducer 必须比其他 Reducer 处理更多的记录。由于 MapReduce 作业只有在所有 Mapper 和 Reducer 都完成时才完成，所有后续作业必须等待最慢的 Reducer 才能启动。</p><p>如果连接的输入存在热点键，可以使用一些算法进行补偿。例如，Pig 中的倾斜连接（skewed join）方法首先运行一个抽样作业来确定哪些键是热键。连接实际执行时，Mapper 会将热键的关联记录随机（相对于传统 MapReduce 基于键哈希的确定性方法）发送到几个 Reducer 之一。对于另外一侧的连接输入，与热键相关的记录需要被复制到所有处理该键的 Reducer 上。这种技术将处理热键的工作分散到多个 Reducer 上，这样可以使其更好地并行化，代价是需要将连接另一侧的输入记录复制到多个 Reducer 上。Crunch 中的分片连接（sharded join）方法与之类似，但需要显式指定热键而不是使用采样作业。</p><p>Hive 的偏斜连接优化采取了另一种方法。它需要在表格元数据中显式指定热键，并将与这些键相关的记录单独存放，与其它文件分开。当在该表上执行连接时，对于热键，它会使用 Map 端连接。当按照热键进行分组并聚合时，可以将分组分两个阶段进行。第一个 MapReduce 阶段将记录发送到随机 Reducer，以便每个 Reducer 只对热键的子集执行分组，为每个键输出一个更紧凑的中间聚合结果。然后第二个 MapReduce 作业将所有来自第一阶段 Reducer 的中间聚合结果合并为每个键一个值。</p><h1 id=map-端连接>Map 端连接</h1><p>上一节描述的连接算法在 Reducer 中执行实际的连接逻辑，因此被称为 Reduce 端连接。Mapper 扮演着预处理输入数据的角色：从每个输入记录中提取键值，将键值对分配给 Reducer 分区，并按键排序。Reduce 端方法的优点是不需要对输入数据做任何假设：无论其属性和结构如何，Mapper 都可以对其预处理以备连接。然而不利的一面是，排序，复制至 Reducer，以及合并 Reducer 输入，所有这些操作可能开销巨大。当数据通过 MapReduce 阶段时，数据可能需要落盘好几次，取决于可用的内存缓冲区。</p><p>另一方面，如果你能对输入数据作出某些假设，则通过使用所谓的 Map 端连接来加快连接速度是可行的。这种方法使用了一个阉掉 Reduce 与排序的 MapReduce 作业，每个 Mapper 只是简单地从分布式文件系统中读取一个输入文件块，然后将输出文件写入文件系统，仅此而已。</p><h1 id=广播哈希连接>广播哈希连接</h1><p>适用于执行 Map 端连接的最简单场景是大数据集与小数据集连接的情况。要点在于小数据集需要足够小，以便可以将其全部加载到每个 Mapper 的内存中。用户数据库小到足以放进内存中。在这种情况下，当 Mapper 启动时，它可以首先将用户数据库从分布式文件系统读取到内存中的哈希中。完成此操作后，Map 程序可以扫描用户活动事件，并简单地在哈希表中查找每个事件的用户 ID。</p><p>参与连接的较大输入的每个文件块各有一个 Mapper，每个 Mapper 都会将较小输入整个加载到内存中。这种简单有效的算法被称为广播哈希连接（broadcast hash join）：广播一词反映了这样一个事实，每个连接较大输入端分区的 Mapper 都会将较小输入端数据集整个读入内存中（所以较小输入实际上“广播”到较大数据的所有分区上），哈希一词反映了它使用一个哈希表。Pig（名为“复制链接（replicated join）”），Hive（“MapJoin”），Cascading 和 Crunch 支持这种连接。它也被诸如 Impala 的数据仓库查询引擎使用。</p><p>除了将连接较小输入加载到内存哈希表中，另一种方法是将较小输入存储在本地磁盘上的只读索引中。索引中经常使用的部分将保留在操作系统的页面缓存中，因而这种方法可以提供与内存哈希表几乎一样快的随机查找性能，但实际上并不需要数据集能放入内存中。</p><h1 id=分区哈希连接>分区哈希连接</h1><p>如果 Map 端连接的输入以相同的方式进行分区，则哈希连接方法可以独立应用于每个分区。譬如你可以根据用户 ID 的最后一位十进制数字来对活动事件和用户数据库进行分区（因此连接两侧各有 10 个分区）。例如，Mapper3 首先将所有具有以 3 结尾的 ID 的用户加载到哈希表中，然后扫描 ID 为 3 的每个用户的所有活动事件。</p><p>如果分区正确无误，可以确定的是，所有你可能需要连接的记录都落在同一个编号的分区中。因此每个 Mapper 只需要从输入两端各读取一个分区就足够了。好处是每个 Mapper 都可以在内存哈希表中少放点数据。这种方法只有当连接两端输入有相同的分区数，且两侧的记录都是使用相同的键与相同的哈希函数做分区时才适用。如果输入是由之前执行过这种分组的 MapReduce 作业生成的，那么这可能是一个合理的假设。</p><p>分区哈希连接在 Hive 中称为 Map 端桶连接（bucketed map joins）。</p><h1 id=map-端合并连接>Map 端合并连接</h1><p>如果输入数据集不仅以相同的方式进行分区，而且还基于相同的键进行排序，则可适用另一种 Map 端联接的变体。在这种情况下，输入是否小到能放入内存并不重要，因为这时候 Mapper 同样可以执行归并操作（通常由 Reducer 执行）的归并操作：按键递增的顺序依次读取两个输入文件，将具有相同键的记录配对。</p><p>如果能进行 Map 端合并连接，这通常意味着前一个 MapReduce 作业可能一开始就已经把输入数据做了分区并进行了排序。原则上这个连接就可以在前一个作业的 Reduce 阶段进行。但使用独立的仅 Map 作业有时也是合适的，例如，分好区且排好序的中间数据集可能还会用于其他目的。</p><h1 id=mapreduce-工作流与-map-端连接>MapReduce 工作流与 Map 端连接</h1><p>当下游作业使用 MapReduce 连接的输出时，选择 Map 端连接或 Reduce 端连接会影响输出的结构。Reduce 端连接的输出是按照连接键进行分区和排序的，而 Map 端连接的输出则按照与较大输入相同的方式进行分区和排序（因为无论是使用分区连接还是广播连接，连接较大输入端的每个文件块都会启动一个 Map 任务）。</p><p>如前所述，Map 端连接也对输入数据集的大小，有序性和分区方式做出了更多假设。在优化连接策略时，了解分布式文件系统中数据集的物理布局变得非常重要：仅仅知道编码格式和数据存储目录的名称是不够的；你还必须知道数据是按哪些键做的分区和排序，以及分区的数量。</p><p>在 Hadoop 生态系统中，这种关于数据集分区的元数据通常在 HCatalog 和 Hive Metastore 中维护。</p></div><div class=article-widget><div class="container-xl row post-nav"><div class="col-6 post-nav-item"><div class=meta-nav>下一页</div><a href=/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/mapreduce/%E4%BD%9C%E4%B8%9A%E8%BE%93%E5%87%BA/ rel=prev>作业输出</a></div></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div><script type=text/javascript id=clstr_globe async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
-<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
-<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
-<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
-<script id=dsq-count-scr src=https://ngte.disqus.com/count.js async></script>
-<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
-<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
-<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
-<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>
+<!DOCTYPE html><html lang="zh" >
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  
+  
+    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+
+  
+  
+  
+    
+      
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    
+  
+
+  
+    <meta name="google-site-verification" content="google69a5cccb61297807" />
+    <meta name="baidu-site-verification" content="cqmZHEleVh" />
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+    
+  
+  <meta name="description" content="Reduce 端连接与分组 在许多数据集中，一条记录与另一条记录存在关联是很常见的：关系模型中的外键，文档模型中的文档引用或图模型中的边。当你需要同时访问这一关联的两侧（持有引用的记录与被引用的记录）时，连接就是必" />
+
+  
+  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/mapreduce/%E8%BF%9E%E6%8E%A5%E4%B8%8E%E5%88%86%E7%BB%84/" />
+
+  
+  
+  
+    <meta name="theme-color" content="#0a55a7" />
+  
+
+  
+  
+
+  
+
+  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
+
+  
+  
+  
+    
+    
+
+    
+    
+    
+    
+      
+      
+    
+    
+    
+
+    
+    
+    
+      
+    
+    
+      
+      
+        
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
+        
+      
+    
+
+    
+    
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
+    
+
+    
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+        
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+  
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/wowchemy.0d97305106da5efa530e28b021b4c580.css" />
+
+  
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', "G-40NYXJ8823");
+</script>
+
+
+  
+
+
+  
+
+
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+  
+  
+  
+
+  
+
+  
+    <link rel="manifest" href="/manifest.webmanifest" />
+  
+
+  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
+  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
+
+  <link rel="canonical" href="https://ng-tech.icu/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/mapreduce/%E8%BF%9E%E6%8E%A5%E4%B8%8E%E5%88%86%E7%BB%84/" />
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+
+  
+  
+    
+    
+  
+  <meta property="twitter:card" content="summary_large_image" />
+  
+    <meta property="twitter:site" content="@wx-chevalier" />
+    <meta property="twitter:creator" content="@wx-chevalier" />
+  
+  <meta property="og:site_name" content="Next-gen Tech Edu" />
+  <meta property="og:url" content="https://ng-tech.icu/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/mapreduce/%E8%BF%9E%E6%8E%A5%E4%B8%8E%E5%88%86%E7%BB%84/" />
+  <meta property="og:title" content="连接与分组 | Next-gen Tech Edu" />
+  <meta property="og:description" content="Reduce 端连接与分组 在许多数据集中，一条记录与另一条记录存在关联是很常见的：关系模型中的外键，文档模型中的文档引用或图模型中的边。当你需要同时访问这一关联的两侧（持有引用的记录与被引用的记录）时，连接就是必" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
+    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
+  
+    
+    
+  
+
+  
+
+
+
+  
+
+  
+
+  
+
+
+
+
+
+  <title>连接与分组 | Next-gen Tech Edu</title>
+</head>
+
+
+<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="f3bacacbe489e4bce4c1d80720bb4c61" >
+  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
+
+  
+
+
+<aside class="search-modal" id="search">
+  <div class="container">
+    <section class="search-header">
+
+      <div class="row no-gutters justify-content-between mb-3">
+        <div class="col-6 search-title">
+          <p>搜索</p>
+        </div>
+        <div class="col-6 col-search-close">
+          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+      <div id="search-box">
+        
+        
+        
+      </div>
+
+      
+      
+
+      
+    </section>
+    <section class="section-search-results">
+
+      <div id="search-hits">
+        
+      </div>
+
+      <div id="search-common-queries">
+        
+      </div>
+
+    </section>
+  </div>
+</aside>
+
+
+
+  <div class="page-header">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="header--fixed">
+  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
+    <div class="container-xl">
+
+      
+      <div class="d-none d-lg-inline-flex">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      <button type="button" class="navbar-toggler" data-toggle="collapse"
+              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
+      <span><i class="fas fa-bars"></i></span>
+      </button>
+      
+
+      
+      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      
+      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
+
+        
+        <ul class="navbar-nav d-md-inline-flex">
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
+          </li>
+
+          
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+              
+              
+              
+                
+              
+              
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
+              
+                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
+              
+                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+        
+
+          
+        </ul>
+      </div>
+
+      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
+
+        
+        
+        
+        <li class="nav-item">
+          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        <li class="nav-item">
+            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        
+
+        
+        
+        
+        <div></div>
+        
+        <style>
+        @media only screen and (max-width: 600px) {
+          .jimmysong-template {
+            display: none!important;
+          }
+        }
+        </style>
+        
+        <li class="jimmysong-template" style="color: white;font-size: 12px;">
+          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+</header>
+
+
+  </div>
+
+  <div class="page-body">
+    
+    
+    
+
+    
+
+
+
+
+<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
+<div class="container-xl docs">
+  <div class="row flex-xl-nowrap">
+    <div class="docs-sidebar">
+      <form class="docs-search d-flex align-items-center">
+  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    <div class="d-flex">
+      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
+        
+          MapReduce
+        
+      </span>
+      <span><i class="fas fa-chevron-down"></i></span>
+    </div>
+  </button>
+
+  
+  <button class="form-control sidebar-search js-search d-none d-md-flex">
+    <i class="fas fa-search pr-2"></i>
+    <span class="sidebar-search-text">搜索...</span>
+    <span class="sidebar-search-shortcut">/</span>
+  </button>
+  
+</form>
+
+<nav class="collapse docs-links" id="docs-nav">
+  
+  
+  
+  
+  
+  
+
+  
+  
+    
+
+    
+      
+
+      <ul class="nav docs-sidenav">
+        <li style="display: inline-flex">
+          <a style="cursor: pointer;" onclick="window.history.back()">
+            <i class="fas fa-arrow-left pr-1"></i>
+            Back
+          </a>
+          <span>|</span>
+          <a href="/books/">
+            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
+            Books
+          </a>
+        </li>
+      </ul>
+
+      
+      
+        
+          
+        
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id420c79d2ab9d6dacf9b3c98d227ab672&#34;)" href="#id420c79d2ab9d6dacf9b3c98d227ab672" aria-expanded="false" aria-controls="id420c79d2ab9d6dacf9b3c98d227ab672" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/">批处理</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id420c79d2ab9d6dacf9b3c98d227ab672" aria-expanded="false" aria-controls="id420c79d2ab9d6dacf9b3c98d227ab672">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id420c79d2ab9d6dacf9b3c98d227ab672"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id420c79d2ab9d6dacf9b3c98d227ab672">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idc365faf85034b6f87fb3540ae045008f&#34;)" href="#idc365faf85034b6f87fb3540ae045008f" aria-expanded="false" aria-controls="idc365faf85034b6f87fb3540ae045008f" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/hadoop/">Hadoop</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idc365faf85034b6f87fb3540ae045008f" aria-expanded="false" aria-controls="idc365faf85034b6f87fb3540ae045008f">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idc365faf85034b6f87fb3540ae045008f"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idc365faf85034b6f87fb3540ae045008f">
+      
+
+
+
+  <li class="child level "><a href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/hadoop/hadoop-%E4%B8%8E%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AF%B9%E6%AF%94/">Hadoop 与数据库对比</a></li>
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id2cf9ff96dfba1f00efee87da8caf2fa4&#34;)" href="#id2cf9ff96dfba1f00efee87da8caf2fa4" aria-expanded="false" aria-controls="id2cf9ff96dfba1f00efee87da8caf2fa4" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/hadoop/mapreduce/">MapReduce</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id2cf9ff96dfba1f00efee87da8caf2fa4" aria-expanded="false" aria-controls="id2cf9ff96dfba1f00efee87da8caf2fa4">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id2cf9ff96dfba1f00efee87da8caf2fa4"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id2cf9ff96dfba1f00efee87da8caf2fa4">
+      
+
+
+
+  <li class="child level "><a href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/hadoop/mapreduce/crud/">CRUD</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/hadoop/mapreduce/wordcount/">WordCount</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/hadoop/mapreduce/%E8%81%9A%E5%90%88%E8%AE%A1%E7%AE%97/">聚合计算</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id5b1457e4fc179aa0f624aa4a6fb297af&#34;)" href="#id5b1457e4fc179aa0f624aa4a6fb297af" aria-expanded="false" aria-controls="id5b1457e4fc179aa0f624aa4a6fb297af" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/mapreduce/">MapReduce</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id5b1457e4fc179aa0f624aa4a6fb297af" aria-expanded="false" aria-controls="id5b1457e4fc179aa0f624aa4a6fb297af">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id5b1457e4fc179aa0f624aa4a6fb297af"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id5b1457e4fc179aa0f624aa4a6fb297af">
+      
+
+
+
+  <li class="child level active"><a href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/mapreduce/%E8%BF%9E%E6%8E%A5%E4%B8%8E%E5%88%86%E7%BB%84/">连接与分组</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/mapreduce/%E4%BD%9C%E4%B8%9A%E8%BE%93%E5%87%BA/">作业输出</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/mapreduce/%E4%BD%9C%E4%B8%9A%E6%89%A7%E8%A1%8C/">作业执行</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idf9b97632fc57cbe1654ba5da434f66d9&#34;)" href="#idf9b97632fc57cbe1654ba5da434f66d9" aria-expanded="false" aria-controls="idf9b97632fc57cbe1654ba5da434f66d9" aria-hidden="false" data-toggle="collapse">
+    
+    </div>
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id78d11d67e50e689cf9ed9f2dd6bf6484&#34;)" href="#id78d11d67e50e689cf9ed9f2dd6bf6484" aria-expanded="false" aria-controls="id78d11d67e50e689cf9ed9f2dd6bf6484" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%9E%8B/">编程模型</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id78d11d67e50e689cf9ed9f2dd6bf6484" aria-expanded="false" aria-controls="id78d11d67e50e689cf9ed9f2dd6bf6484">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id78d11d67e50e689cf9ed9f2dd6bf6484"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id78d11d67e50e689cf9ed9f2dd6bf6484">
+      
+
+
+
+  <li class="child level "><a href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%9E%8B/data-parallelism/">Data Parallelism</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%9E%8B/%E6%9F%A5%E8%AF%A2%E4%B8%8E%E5%A3%B0%E6%98%8E%E5%BC%8F%E6%8E%A5%E5%8F%A3/">查询与声明式接口</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%9E%8B/%E5%9B%BE%E7%9A%84%E5%A4%A7%E8%A7%84%E6%A8%A1%E5%B9%B6%E8%A1%8C/">图的大规模并行</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  <li class="child level "><a href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/%E4%BD%BF%E7%94%A8-unix-%E5%B7%A5%E5%85%B7%E7%9A%84%E6%89%B9%E5%A4%84%E7%90%86/">使用 Unix 工具的批处理</a></li>
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id112266e9fa042ff8d90812d8f67171b7&#34;)" href="#id112266e9fa042ff8d90812d8f67171b7" aria-expanded="false" aria-controls="id112266e9fa042ff8d90812d8f67171b7" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/%E6%89%A7%E8%A1%8C%E6%A1%86%E6%9E%B6/">执行框架</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id112266e9fa042ff8d90812d8f67171b7" aria-expanded="false" aria-controls="id112266e9fa042ff8d90812d8f67171b7">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id112266e9fa042ff8d90812d8f67171b7"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id112266e9fa042ff8d90812d8f67171b7">
+      
+
+
+
+  <li class="child level "><a href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/%E6%89%A7%E8%A1%8C%E6%A1%86%E6%9E%B6/%E9%AB%98%E7%BA%A7-api-%E5%92%8C%E8%AF%AD%E8%A8%80/">高级 API 和语言</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/%E6%89%A7%E8%A1%8C%E6%A1%86%E6%9E%B6/%E5%9B%BE%E4%B8%8E%E8%BF%AD%E4%BB%A3%E5%A4%84%E7%90%86/">图与迭代处理</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/%E6%89%A7%E8%A1%8C%E6%A1%86%E6%9E%B6/%E7%89%A9%E5%8C%96%E4%B8%AD%E9%97%B4%E7%8A%B6%E6%80%81/">物化中间状态</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+    
+  
+</nav>
+
+    </div>
+
+    
+    
+    <div class="d-none d-xl-block col-xl-2 docs-toc">
+      
+     
+      <ul class="nav toc-top">
+        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
+      </ul>
+     
+
+      <nav id="TableOfContents">
+  <ul>
+    <li><a href="#排序合并连接">排序合并连接</a></li>
+    <li><a href="#把相关数据放在一起">把相关数据放在一起</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#处理倾斜">处理倾斜</a></li>
+  </ul>
+</nav>
+
+      
+<div class="subscribe-module col-24 mt-1">
+    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
+</div>
+
+
+
+    </div>
+    
+
+    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
+
+      <article class="article">
+
+          
+
+          <h1>连接与分组</h1>
+
+          <div class="article-style">
+            <h1 id="reduce-端连接与分组">Reduce 端连接与分组</h1>
+<p>在许多数据集中，一条记录与另一条记录存在关联是很常见的：关系模型中的外键，文档模型中的文档引用或图模型中的边。当你需要同时访问这一关联的两侧（持有引用的记录与被引用的记录）时，连接就是必须的。（包含引用的记录和被引用的记录），连接就是必需的。在数据库中，如果执行只涉及少量记录的查询，数据库通常会使用索引来快速定位感兴趣的记录，如果查询涉及到连接，则可能涉及到查找多个索引。然而 MapReduce 没有索引的概念，至少在通常意义上没有。</p>
+<p>当 MapReduce 作业被赋予一组文件作为输入时，它读取所有这些文件的全部内容；数据库会将这种操作称为全表扫描。如果你只想读取少量的记录，则全表扫描与索引查询相比，代价非常高昂。但是在分析查询中，通常需要计算大量记录的聚合。在这种情况下，特别是如果能在多台机器上并行处理时，扫描整个输入可能是相当合理的事情。当我们在批处理的语境中讨论连接时，我们指的是在数据集中解析某种关联的全量存在。例如我们假设一个作业是同时处理所有用户的数据，而非仅仅是为某个特定用户查找数据（而这能通过索引更高效地完成）。</p>
+<h1 id="案例分析用户活动事件">案例：分析用户活动事件</h1>
+<p>下图给出了一个批处理作业中连接的典型例子。左侧是事件日志，描述登录用户在网站上做的事情（称为活动事件（activity events）或点击流数据（clickstream data）），右侧是用户数据库。你可以将此示例看作是星型模式的一部分：事件日志是事实表，用户数据库是其中的一个维度。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://s2.ax1x.com/2020/02/13/1b5Nyq.md.png" alt="用户行为日志与用户档案的连接" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>分析任务可能需要将用户活动与用户简档相关联：例如，如果档案包含用户的年龄或出生日期，系统就可以确定哪些页面更受哪些年龄段的用户欢迎。然而活动事件仅包含用户 ID，而没有包含完整的用户档案信息。在每个活动事件中嵌入这些档案信息很可能会非常浪费。因此，活动事件需要与用户档案数据库相连接。</p>
+<p>实现这一连接的最简单方法是，逐个遍历活动事件，并为每个遇到的用户 ID 查询用户数据库（在远程服务器上）。这是可能的，但是它的性能可能会非常差：处理吞吐量将受限于受数据库服务器的往返时间，本地缓存的有效性很大程度上取决于数据的分布，并行运行大量查询可能会轻易压垮数据库。为了在批处理过程中实现良好的吞吐量，计算必须（尽可能）限于单台机器上进行。为待处理的每条记录发起随机访问的网络请求实在是太慢了。而且，查询远程数据库意味着批处理作业变为非确定的（nondeterministic），因为远程数据库中的数据可能会改变。因此，更好的方法是获取用户数据库的副本（例如，使用 ETL 进程从数据库备份中提取数据，参阅“数据仓库”），并将它和用户行为日志放入同一个分布式文件系统中。然后你可以将用户数据库存储在 HDFS 中的一组文件中，而用户活动记录存储在另一组文件中，并能用 MapReduce 将所有相关记录集中到同一个地方进行高效处理。</p>
+<h2 id="排序合并连接">排序合并连接</h2>
+<p>Mapper 的目的是从每个输入记录中提取一对键值，这个键就是用户 ID：一组 Mapper 会扫过活动事件（提取用户 ID 作为键，活动事件作为值），而另一组 Mapper 将会扫过用户数据库（提取用户 ID 作为键，用户的出生日期作为值）。这个过程如下图所示。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://s2.ax1x.com/2020/02/13/1b5OnP.md.png" alt="在用户ID上进行的Reduce端连接。如果输入数据集分区为多个文件，则每个分区都会被多个Mapper并行处理" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>当 MapReduce 框架通过键对 Mapper 输出进行分区，然后对键值对进行排序时，效果是具有相同 ID 的所有活动事件和用户记录在 Reducer 输入中彼此相邻。Map-Reduce 作业甚至可以也让这些记录排序，使 Reducer 总能先看到来自用户数据库的记录，紧接着是按时间戳顺序排序的活动事件，这种技术被称为二次排序（secondary sort）。然后 Reducer 可以容易地执行实际的连接逻辑：每个用户 ID 都会被调用一次 Reducer 函数，且因为二次排序，第一个值应该是来自用户数据库的出生日期记录。Reducer 将出生日期存储在局部变量中，然后使用相同的用户 ID 遍历活动事件，输出已观看网址和观看者年龄的结果对。随后的 Map-Reduce 作业可以计算每个 URL 的查看者年龄分布，并按年龄段进行聚集。</p>
+<p>由于 Reducer 一次处理一个特定用户 ID 的所有记录，因此一次只需要将一条用户记录保存在内存中，而不需要通过网络发出任何请求。这个算法被称为排序合并连接（sort-merge join），因为 Mapper 的输出是按键排序的，然后 Reducer 将来自连接两侧的有序记录列表合并在一起。</p>
+<h2 id="把相关数据放在一起">把相关数据放在一起</h2>
+<p>在排序合并连接中，Mapper 和排序过程确保了所有对特定用户 ID 执行连接操作的必须数据都被放在同一个地方：单次调用 Reducer 的地方。预先排好了所有需要的数据，Reducer 可以是相当简单的单线程代码，能够以高吞吐量和与低内存开销扫过这些记录。</p>
+<p>这种架构可以看做，Mapper 将“消息”发送给 Reducer。当一个 Mapper 发出一个键值对时，这个键的作用就像值应该传递到的目标地址。即使键只是一个任意的字符串（不是像 IP 地址和端口号那样的实际的网络地址），它表现的就像一个地址：所有具有相同键的键值对将被传递到相同的目标（一次 Reduce 的调用）。</p>
+<p>使用 MapReduce 编程模型，能将计算的物理网络通信层面（从正确的机器获取数据）从应用逻辑中剥离出来（获取数据后执行处理）。这种分离与数据库的典型用法形成了鲜明对比，从数据库中获取数据的请求经常出现在应用代码内部。由于 MapReduce 能够处理所有的网络通信，因此它也避免了应用代码去担心部分故障，例如另一个节点的崩溃：MapReduce 在不影响应用逻辑的情况下能透明地重试失败的任务。</p>
+<h1 id="group-by">GROUP BY</h1>
+<p>除了连接之外，“把相关数据放在一起”的另一种常见模式是，按某个键对记录分组（如 SQL 中的 GROUP BY 子句）。所有带有相同键的记录构成一个组，而下一步往往是在每个组内进行某种聚合操作，例如：</p>
+<ul>
+<li>统计每个组中记录的数量（例如在统计 PV 的例子中，在 SQL 中表示为 <code>COUNT(*)</code> 聚合）</li>
+<li>对某个特定字段求和（SQL 中的 SUM(fieldname)）</li>
+<li>按某种分级函数取出排名前 k 条记录。</li>
+</ul>
+<p>使用 MapReduce 实现这种分组操作的最简单方法是设置 Mapper，以便它们生成的键值对使用所需的分组键。然后分区和排序过程将所有具有相同分区键的记录导向同一个 Reducer。因此在 MapReduce 之上实现分组和连接看上去非常相似。分组的另一个常见用途是整理特定用户会话的所有活动事件，以找出用户进行的一系列操作（称为会话化（sessionization））。例如，可以使用这种分析来确定显示新版网站的用户是否比那些显示旧版本（A/B 测试）的用户更有购买欲，或者计算某个营销活动是否值得。如果你有多个 Web 服务器处理用户请求，则特定用户的活动事件很可能分散在各个不同的服务器的日志文件中。你可以通过使用会话 cookie，用户 ID 或类似的标识符作为分组键，以将特定用户的所有活动事件放在一起来实现会话化，与此同时，不同用户的事件仍然散步在不同的分区中。</p>
+<h2 id="处理倾斜">处理倾斜</h2>
+<p>如果存在与单个键关联的大量数据，则“将具有相同键的所有记录放到相同的位置”这种模式就被破坏了。例如在社交网络中，大多数用户可能会与几百人有连接，但少数名人可能有数百万的追随者。这种不成比例的活动数据库记录被称为关键对象（linchpin object）或热键（hot key）。在单个 Reducer 中收集与某个名流相关的所有活动（例如他们发布内容的回复）可能导致严重的倾斜（也称为热点（hot spot）），也就是说，一个 Reducer 必须比其他 Reducer 处理更多的记录。由于 MapReduce 作业只有在所有 Mapper 和 Reducer 都完成时才完成，所有后续作业必须等待最慢的 Reducer 才能启动。</p>
+<p>如果连接的输入存在热点键，可以使用一些算法进行补偿。例如，Pig 中的倾斜连接（skewed join）方法首先运行一个抽样作业来确定哪些键是热键。连接实际执行时，Mapper 会将热键的关联记录随机（相对于传统 MapReduce 基于键哈希的确定性方法）发送到几个 Reducer 之一。对于另外一侧的连接输入，与热键相关的记录需要被复制到所有处理该键的 Reducer 上。这种技术将处理热键的工作分散到多个 Reducer 上，这样可以使其更好地并行化，代价是需要将连接另一侧的输入记录复制到多个 Reducer 上。Crunch 中的分片连接（sharded join）方法与之类似，但需要显式指定热键而不是使用采样作业。</p>
+<p>Hive 的偏斜连接优化采取了另一种方法。它需要在表格元数据中显式指定热键，并将与这些键相关的记录单独存放，与其它文件分开。当在该表上执行连接时，对于热键，它会使用 Map 端连接。当按照热键进行分组并聚合时，可以将分组分两个阶段进行。第一个 MapReduce 阶段将记录发送到随机 Reducer，以便每个 Reducer 只对热键的子集执行分组，为每个键输出一个更紧凑的中间聚合结果。然后第二个 MapReduce 作业将所有来自第一阶段 Reducer 的中间聚合结果合并为每个键一个值。</p>
+<h1 id="map-端连接">Map 端连接</h1>
+<p>上一节描述的连接算法在 Reducer 中执行实际的连接逻辑，因此被称为 Reduce 端连接。Mapper 扮演着预处理输入数据的角色：从每个输入记录中提取键值，将键值对分配给 Reducer 分区，并按键排序。Reduce 端方法的优点是不需要对输入数据做任何假设：无论其属性和结构如何，Mapper 都可以对其预处理以备连接。然而不利的一面是，排序，复制至 Reducer，以及合并 Reducer 输入，所有这些操作可能开销巨大。当数据通过 MapReduce 阶段时，数据可能需要落盘好几次，取决于可用的内存缓冲区。</p>
+<p>另一方面，如果你能对输入数据作出某些假设，则通过使用所谓的 Map 端连接来加快连接速度是可行的。这种方法使用了一个阉掉 Reduce 与排序的 MapReduce 作业，每个 Mapper 只是简单地从分布式文件系统中读取一个输入文件块，然后将输出文件写入文件系统，仅此而已。</p>
+<h1 id="广播哈希连接">广播哈希连接</h1>
+<p>适用于执行 Map 端连接的最简单场景是大数据集与小数据集连接的情况。要点在于小数据集需要足够小，以便可以将其全部加载到每个 Mapper 的内存中。用户数据库小到足以放进内存中。在这种情况下，当 Mapper 启动时，它可以首先将用户数据库从分布式文件系统读取到内存中的哈希中。完成此操作后，Map 程序可以扫描用户活动事件，并简单地在哈希表中查找每个事件的用户 ID。</p>
+<p>参与连接的较大输入的每个文件块各有一个 Mapper，每个 Mapper 都会将较小输入整个加载到内存中。这种简单有效的算法被称为广播哈希连接（broadcast hash join）：广播一词反映了这样一个事实，每个连接较大输入端分区的 Mapper 都会将较小输入端数据集整个读入内存中（所以较小输入实际上“广播”到较大数据的所有分区上），哈希一词反映了它使用一个哈希表。Pig（名为“复制链接（replicated join）”），Hive（“MapJoin”），Cascading 和 Crunch 支持这种连接。它也被诸如 Impala 的数据仓库查询引擎使用。</p>
+<p>除了将连接较小输入加载到内存哈希表中，另一种方法是将较小输入存储在本地磁盘上的只读索引中。索引中经常使用的部分将保留在操作系统的页面缓存中，因而这种方法可以提供与内存哈希表几乎一样快的随机查找性能，但实际上并不需要数据集能放入内存中。</p>
+<h1 id="分区哈希连接">分区哈希连接</h1>
+<p>如果 Map 端连接的输入以相同的方式进行分区，则哈希连接方法可以独立应用于每个分区。譬如你可以根据用户 ID 的最后一位十进制数字来对活动事件和用户数据库进行分区（因此连接两侧各有 10 个分区）。例如，Mapper3 首先将所有具有以 3 结尾的 ID 的用户加载到哈希表中，然后扫描 ID 为 3 的每个用户的所有活动事件。</p>
+<p>如果分区正确无误，可以确定的是，所有你可能需要连接的记录都落在同一个编号的分区中。因此每个 Mapper 只需要从输入两端各读取一个分区就足够了。好处是每个 Mapper 都可以在内存哈希表中少放点数据。这种方法只有当连接两端输入有相同的分区数，且两侧的记录都是使用相同的键与相同的哈希函数做分区时才适用。如果输入是由之前执行过这种分组的 MapReduce 作业生成的，那么这可能是一个合理的假设。</p>
+<p>分区哈希连接在 Hive 中称为 Map 端桶连接（bucketed map joins）。</p>
+<h1 id="map-端合并连接">Map 端合并连接</h1>
+<p>如果输入数据集不仅以相同的方式进行分区，而且还基于相同的键进行排序，则可适用另一种 Map 端联接的变体。在这种情况下，输入是否小到能放入内存并不重要，因为这时候 Mapper 同样可以执行归并操作（通常由 Reducer 执行）的归并操作：按键递增的顺序依次读取两个输入文件，将具有相同键的记录配对。</p>
+<p>如果能进行 Map 端合并连接，这通常意味着前一个 MapReduce 作业可能一开始就已经把输入数据做了分区并进行了排序。原则上这个连接就可以在前一个作业的 Reduce 阶段进行。但使用独立的仅 Map 作业有时也是合适的，例如，分好区且排好序的中间数据集可能还会用于其他目的。</p>
+<h1 id="mapreduce-工作流与-map-端连接">MapReduce 工作流与 Map 端连接</h1>
+<p>当下游作业使用 MapReduce 连接的输出时，选择 Map 端连接或 Reduce 端连接会影响输出的结构。Reduce 端连接的输出是按照连接键进行分区和排序的，而 Map 端连接的输出则按照与较大输入相同的方式进行分区和排序（因为无论是使用分区连接还是广播连接，连接较大输入端的每个文件块都会启动一个 Map 任务）。</p>
+<p>如前所述，Map 端连接也对输入数据集的大小，有序性和分区方式做出了更多假设。在优化连接策略时，了解分布式文件系统中数据集的物理布局变得非常重要：仅仅知道编码格式和数据存储目录的名称是不够的；你还必须知道数据是按哪些键做的分区和排序，以及分区的数量。</p>
+<p>在 Hadoop 生态系统中，这种关于数据集分区的元数据通常在 HCatalog 和 Hive Metastore 中维护。</p>
+
+          </div>
+
+          
+
+
+
+          
+          
+          <div class="article-widget">
+            
+<div class="container-xl row post-nav">
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">下一页</div>
+    <a href="/books/distributedcompute-notes/%E6%89%B9%E5%A4%84%E7%90%86/mapreduce/%E4%BD%9C%E4%B8%9A%E8%BE%93%E5%87%BA/" rel="prev">作业输出</a>
+  </div>
+  
+</div>
+
+          </div>
+          
+
+        <div class="body-footer">
+          <p>最近更新于 0001-01-01</p>
+
+          
+
+
+
+          
+
+
+  
+  
+  
+
+  
+
+  
+  <section id="comments" class="mb-3 pt-0">
+    
+<div id="disqus_thread"></div>
+<script>
+  var disqus_config = function () {
+    
+    
+    
+  };
+  (function() {
+    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+      return;
+    }
+    var d = document, s = d.createElement('script'); 
+    s.async = true;
+    s.src = 'https://' + "ngte" + '.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </section>
+  
+
+
+
+          
+
+
+        </div>
+
+      </article>
+
+      <footer class="site-footer">
+
+  
+
+
+
+  
+
+  
+  <div class="copyright py-4 bg-footer">
+      <div class="row justify-content-center">
+        <div class="text-center footer-color">
+          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
+        </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" id="clstr_globe" async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script>
+  
+</footer>
+
+
+    </main>
+  </div>
+</div>
+<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
+<script>
+  const heti = new Heti('.article');
+  heti.autoSpacing();
+</script>
+<script type="text/javascript">
+  window.$crisp = [];
+  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
+  (function () {
+    setTimeout(function() {
+      d = document;
+      s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    }, 2500);
+  })();
+</script>
+  </div>
+
+  <div class="page-footer">
+    
+    
+  </div>
+
+      
+
+    
+    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
+
+    
+    
+    
+      
+
+      
+      
+
+      
+
+      
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
+        
+        
+      
+
+    
+
+    
+    
+    
+
+    
+    
+    
+      
+      <script id="search-hit-algolia-template" type="text/html">
+        <div class="search-hit">
+          <div class="search-hit-content">
+            <div class="search-hit-name">
+              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
+            </div>
+            <div class="article-metadata search-hit-type">{{type}}</div>
+            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
+          </div>
+        </div>
+      </script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
+      
+      
+    
+
+    
+    
+
+    
+    
+    
+    
+      <script id="dsq-count-scr" src="https://ngte.disqus.com/count.js" async></script>
+      
+    
+
+    
+    
+      
+      
+      
+      
+      
+      
+      
+    
+
+    
+    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
+    
+
+    
+    
+    
+    <script id="page-data" type="application/json">{"use_headroom":false}</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
+
+    
+    
+    
+    
+    
+    
+    <script>
+
+var mybutton = document.getElementById("backTopBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+}
+</script>
+
+
+    
+
+    
+    
+    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+    <script>
+      anchors.add();
+    </script>
+    
+
+    
+    <script>
+
+
+
+(function() {
+  'use strict';
+
+  if(!document.queryCommandSupported('copy')) {
+    return;
+  }
+
+  function flashCopyMessage(el, msg) {
+    el.className = "highlight-copy-btn";
+    el.textContent = msg;
+    setTimeout(function() {
+      el.textContent = "";
+      el.className = "highlight-copy-btn fa fa-copy";
+    }, 1000);
+  }
+
+  function selectText(node) {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection;
+  }
+
+  function addCopyButton(containerEl) {
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "highlight-copy-btn fa fa-copy";
+    copyBtn.textContent = "";
+
+    var codeEl = containerEl.firstElementChild;
+    copyBtn.addEventListener('click', function() {
+      try {
+        var selection = selectText(codeEl);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        
+        flashCopyMessage(copyBtn, '已复制')
+        
+      } catch(e) {
+        console && console.log(e);
+        flashCopyMessage(copyBtn, 'Failed :\'(')
+      }
+    });
+
+    containerEl.appendChild(copyBtn);
+  }
+
+  
+  var highlightBlocks = document.getElementsByClassName('highlight');
+  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
+})();
+</script>
+
+    
+
+
+</body>
+</html>

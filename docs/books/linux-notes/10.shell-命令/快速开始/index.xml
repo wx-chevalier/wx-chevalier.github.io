@@ -1,291 +1,324 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>快速开始 | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/</link><atom:link href="https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/index.xml" rel="self" type="application/rss+xml"/><description>快速开始</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>快速开始</title><link>https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/</link></image><item><title>Unix 设计哲学</title><link>https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/unix-%E8%AE%BE%E8%AE%A1%E5%93%B2%E5%AD%A6/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/unix-%E8%AE%BE%E8%AE%A1%E5%93%B2%E5%AD%A6/</guid><description>&lt;h1 id="unix-设计哲学">Unix 设计哲学&lt;/h1>
-&lt;p>Unix 管道的发明者道格·麦克罗伊（Doug McIlroy）在 1964 年首先描述了这种情况：“当我们需要将消息从一个程序传递另一个程序时，我们需要一种类似水管法兰的拼接程序的方式，I/O 应该也按照这种方式进行“。水管的类比仍然在生效，通过管道连接程序的想法成为了现在被称为 Unix 哲学的一部分，这一组设计原则在 Unix 用户与开发者之间流行起来，该哲学在 1978 年表述如下：&lt;/p>
-&lt;ul>
-&lt;li>&lt;em>Do one thing and do it well&lt;/em> - Write programs that do one thing and do it well. Write programs to work together. Write programs to handle text streams, because that is a universal interface.&lt;/li>
-&lt;li>&lt;em>Everything is file&lt;/em> - Ease of use and security is offered by treating hardware as a file.&lt;/li>
-&lt;li>&lt;em>Small is beautiful&lt;/em>.&lt;/li>
-&lt;li>&lt;em>Store data and configuration in flat text files&lt;/em> - Text file is a universal interface. Easy to create, backup and move to another system.&lt;/li>
-&lt;li>&lt;em>Use shell scripts to increase leverage and portability&lt;/em> - Use shell script to automate common tasks across various UNIX / Linux installations.&lt;/li>
-&lt;li>&lt;em>Chain programs together to complete complex task&lt;/em> - Use shell &lt;a href="https://bash.cyberciti.biz/guide/Pipes" target="_blank" rel="noopener">pipes&lt;/a> and &lt;a href="https://bash.cyberciti.biz/guide/Filters" target="_blank" rel="noopener">filters&lt;/a> to chain small utilities that perform one task at time.&lt;/li>
-&lt;li>&lt;em>Choose portability over efficiency.&lt;/em>&lt;/li>
-&lt;li>&lt;em>Keep it Simple, Stupid (KISS).&lt;/em>&lt;/li>
-&lt;/ul>
-&lt;p>其中文归纳如下：&lt;/p>
-&lt;ul>
-&lt;li>让每个程序都做好一件事。要做一件新的工作，写一个新程序，而不是通过添加“功能”让老程序复杂化。&lt;/li>
-&lt;li>期待每个程序的输出成为另一个程序的输入。不要将无关信息混入输出。避免使用严格的列数据或二进制输入格式。不要坚持交互式输入。&lt;/li>
-&lt;li>设计和构建软件，甚至是操作系统，要尽早尝试，最好在几周内完成。不要犹豫，扔掉笨拙的部分，重建它们。&lt;/li>
-&lt;li>优先使用工具来减轻编程任务，即使必须曲线救国编写工具，且在用完后很可能要扔掉大部分。&lt;/li>
-&lt;/ul>
-&lt;p>这种方法：自动化，快速原型设计，增量式迭代，对实验友好，将大型项目分解成可管理的块，听起来非常像今天的敏捷开发和 DevOps 运动。sort 工具是一个很好的例子。可以说它比大多数编程语言标准库中的实现（它们不会利用磁盘或使用多线程，即使这样做有很大好处）要更好。然而，单独使用 sort 几乎没什么用。它只能与其他 Unix 工具（如 uniq）结合使用。像 bash 这样的 Unix shell 可以让我们轻松地将这些小程序组合成令人讶异的强大数据处理任务。尽管这些程序中有很多是由不同人群编写的，但它们可以灵活地结合在一起。&lt;/p>
-&lt;h2 id="统一的接口">统一的接口&lt;/h2>
-&lt;p>如果你希望一个程序的输出成为另一个程序的输入，那意味着这些程序必须使用相同的数据格式：换句话说，一个兼容的接口。如果你希望能够将任何程序的输出连接到任何程序的输入，那意味着所有程序必须使用相同的 I/O 接口。&lt;/p>
-&lt;p>在 Unix 中，这种接口是一个文件（file）（更准确地说，是一个文件描述符）。一个文件只是一串有序的字节序列。因为这是一个非常简单的接口，所以可以使用相同的接口来表示许多不同的东西：文件系统上的真实文件，到另一个进程（Unix 套接字，stdin，stdout）的通信通道，设备驱动程序（比如/dev/audio 或/dev/lp0），表示 TCP 连接的套接字等等。很容易将这些设计视为理所当然的，但实际上能让这些差异巨大的东西共享一个统一的接口是非常厉害的，这使得它们可以很容易地连接在一起。&lt;/p>
-&lt;p>统一接口的另一个例子是 URL 和 HTTP，这是 Web 的基石。一个 URL 标识一个网站上的一个特定的东西（资源），你可以链接到任何其他网站的任何网址。具有网络浏览器的用户因此可以通过跟随链接在网站之间无缝跳转，即使服务器可能由完全不相关的组织维护。这个原则现在似乎非常明显，但它却是网络取能取得今天成就的关键。之前的系统并不是那么统一：例如，在公告板系统（BBS）时代，每个系统都有自己的电话号码和波特率配置。从一个 BBS 到另一个 BBS 的引用必须以电话号码和调制解调器设置的形式；用户将不得不挂断，拨打其他 BBS，然后手动找到他们正在寻找的信息。这是不可能的直接链接到另一个 BBS 内的一些内容。&lt;/p>
-&lt;p>按照惯例，许多（但不是全部）Unix 程序将这个字节序列视为 ASCII 文本。我们的日志分析示例使用了这个事实：awk，sort，uniq 和 head 都将它们的输入文件视为由 \n（换行符，ASCII 0x0A）字符分隔的记录列表。\n 的选择是任意的：可以说，ASCII 记录分隔符 0x1E 本来就是一个更好的选择，因为它是为了这个目的而设计的，但是无论如何，所有这些程序都使用相同的记录分隔符允许它们互操作。&lt;/p>
-&lt;p>每条记录（即一行输入）的解析则更加模糊。Unix 工具通常通过空白或制表符将行分割成字段，但也使用 CSV（逗号分隔），管道分隔和其他编码。即使像 xargs 这样一个相当简单的工具也有六个命令行选项，用于指定如何解析输入。ASCII 文本的统一接口大多数时候都能工作，但它不是很优雅：我们的日志分析示例使用{print $7}来提取网址，这样可读性不是很好。在理想的世界中可能是{print $request_url}或类似的东西。我们稍后会回顾这个想法。&lt;/p>
-&lt;p>尽管几十年后还不够完美，但统一的 Unix 接口仍然是非常出色的设计。没有多少软件能像 Unix 工具一样交互组合的这么好：你不能通过自定义分析工具轻松地将电子邮件帐户的内容和在线购物历史记录以管道传送至电子表格中，并将结果发布到社交网络或维基。今天，像 Unix 工具一样流畅地运行程序是一种例外，而不是规范。即使是具有相同数据模型的数据库，将数据从一种导出再导入另一种也并不容易。缺乏整合导致了数据的巴尔干化。&lt;/p>
-&lt;h2 id="逻辑与布线相分离">逻辑与布线相分离&lt;/h2>
-&lt;p>Unix 工具的另一个特点是使用标准输入（stdin）和标准输出（stdout）。如果你运行一个程序，而不指定任何其他的东西，标准输入来自键盘，标准输出指向屏幕。但是，你也可以从文件输入和/或将输出重定向到文件。管道允许你将一个进程的标准输出附加到另一个进程的标准输入（有个小内存缓冲区，而不需要将整个中间数据流写入磁盘）。&lt;/p>
-&lt;p>程序仍然可以直接读取和写入文件，但如果程序不担心特定的文件路径，只使用标准输入和标准输出，则 Unix 方法效果最好。这允许 shell 用户以任何他们想要的方式连接输入和输出；该程序不知道或不关心输入来自哪里以及输出到哪里。（人们可以说这是一种松耦合（loose coupling），晚期绑定（late binding）或控制反转（inversion of control））。将输入/输出布线与程序逻辑分开，可以将小工具组合成更大的系统。&lt;/p>
-&lt;p>你甚至可以编写自己的程序，并将它们与操作系统提供的工具组合在一起。你的程序只需要从标准输入读取输入，并将输出写入标准输出，它就可以加入数据处理的管道中。在日志分析示例中，你可以编写一个将 Usage-Agent 字符串转换为更灵敏的浏览器标识符，或者将 IP 地址转换为国家代码的工具，并将其插入管道。sort 程序并不关心它是否与操作系统的另一部分或者你写的程序通信。&lt;/p>
-&lt;p>但是，使用 stdin 和 stdout 能做的事情是有限的。需要多个输入或输出的程序是可能的，但非常棘手。你没法将程序的输出管道连接至网络连接中。如果程序直接打开文件进行读取和写入，或者将另一个程序作为子进程启动，或者打开网络连接，那么 I/O 的布线就取决于程序本身了。它仍然可以被配置（例如通过命令行选项），但在 Shell 中对输入和输出进行布线的灵活性就少了。&lt;/p>
-&lt;h2 id="透明度和实验">透明度和实验&lt;/h2>
-&lt;p>使 Unix 工具如此成功的部分原因是，它们使查看正在发生的事情变得非常容易：&lt;/p>
-&lt;ul>
-&lt;li>
-&lt;p>Unix 命令的输入文件通常被视为不可变的。这意味着你可以随意运行命令，尝试各种命令行选项，而不会损坏输入文件。&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>你可以在任何时候结束管道，将管道输出到 less，然后查看它是否具有预期的形式。这种检查能力对调试非常有用。&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>你可以将一个流水线阶段的输出写入文件，并将该文件用作下一阶段的输入。这使你可以重新启动后面的阶段，而无需重新运行整个管道。&lt;/p>
-&lt;/li>
-&lt;/ul>
-&lt;p>因此，与关系数据库的查询优化器相比，即使 Unix 工具非常简单，但仍然非常有用，特别是对于实验而言。&lt;/p></description></item><item><title>常用 Unix 命令的现代替代</title><link>https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%B8%B8%E7%94%A8-unix-%E5%91%BD%E4%BB%A4%E7%9A%84%E7%8E%B0%E4%BB%A3%E6%9B%BF%E4%BB%A3/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%B8%B8%E7%94%A8-unix-%E5%91%BD%E4%BB%A4%E7%9A%84%E7%8E%B0%E4%BB%A3%E6%9B%BF%E4%BB%A3/</guid><description>&lt;h1 align="center">Modern Unix&lt;/h1>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/sharkdp/bat">&lt;code>bat&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">A &lt;code>cat&lt;/code> clone with syntax highlighting and Git integration.&lt;/p>
-&lt;p align="center">
-&lt;img src="https://camo.githubusercontent.com/c436c206f2c86605ab2f9fb632dd485afc05fccbf14af472770b0c59d876c9cc/68747470733a2f2f692e696d6775722e636f6d2f326c53573452452e706e67" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/ogham/exa">&lt;code>exa&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">A modern replacement for &lt;code>ls&lt;/code>.&lt;/p>
-&lt;p align="center">
-&lt;img src="https://raw.githubusercontent.com/ogham/exa/master/screenshots.png" width="700" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/Peltoche/lsd">&lt;code>lsd&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">The next gen file listing command. Backwards compatible with &lt;code>ls&lt;/code>.&lt;/p>
-&lt;p align="center">
-&lt;img src="https://raw.githubusercontent.com/Peltoche/lsd/assets/screen_lsd.png" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/dandavison/delta">&lt;code>delta&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">A viewer for &lt;code>git&lt;/code> and &lt;code>diff&lt;/code> output&lt;/p>
-&lt;p align="center">
-&lt;img src="https://user-images.githubusercontent.com/52205/86275526-76792100-bba1-11ea-9e78-6be9baa80b29.png" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/bootandy/dust">&lt;code>dust&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">A more intutive version of &lt;code>du&lt;/code> written in rust.&lt;/p>
-&lt;p align="center">
-&lt;img src="https://user-images.githubusercontent.com/200613/90223722-e0c2e980-de0e-11ea-8c75-343273fed6f3.png" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/muesli/duf">&lt;code>duf&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">A better &lt;code>df&lt;/code> alternative &lt;/p>
-&lt;p align="center">
-&lt;img src="https://raw.githubusercontent.com/muesli/duf/master/duf.png" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/Canop/broot">&lt;code>broot&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">A new way to see and navigate directory &lt;code>tree&lt;/code>s&lt;/p>
-&lt;p align="center">
-&lt;img src="https://github.com/Canop/broot/blob/master/website/docs/img/20200629-overview.png" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/sharkdp/fd">&lt;code>fd&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">A simple, fast and user-friendly alternative to &lt;code>find&lt;/code>.&lt;/p>
-&lt;p align="center">
-&lt;img src="https://raw.githubusercontent.com/sharkdp/fd/master/doc/screencast.svg" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/BurntSushi/ripgrep">&lt;code>ripgrep&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">An extremely fast alternative to &lt;code>grep&lt;/code> that respects your gitignore&lt;/p>
-&lt;p align="center">
-&lt;img src="https://user-images.githubusercontent.com/200613/90223748-ecaeab80-de0e-11ea-9140-ac9219f5747c.gif" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/ggreer/the_silver_searcher">&lt;code>ag&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">A code searching tool similar to &lt;code>ack&lt;/code>, but faster.&lt;/p>
-&lt;p align="center">
-&lt;img src="http://cdn-ak.f.st-hatena.com/images/fotolife/s/sona-zip/20130531/20130531223246_original.png?1370007170" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/junegunn/fzf">&lt;code>fzf&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">A general purpose command-line fuzzy finder.&lt;/p>
-&lt;p align="center">
-&lt;img src="https://raw.githubusercontent.com/junegunn/i/master/fzf-preview.png" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/cantino/mcfly">&lt;code>mcfly&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">Fly through your shell &lt;code>history&lt;/code>. Great Scott! &lt;/p>
-&lt;p align="center">
-&lt;img src="https://github.com/cantino/mcfly/blob/master/docs/screenshot.png" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/theryangeary/choose">&lt;code>choose&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center"> A human-friendly and fast alternative to &lt;code>cut&lt;/code> and (sometimes) &lt;code>awk&lt;/code> &lt;/p>
-&lt;p align="center">
-&lt;img src="https://asciinema.org/a/315932.png" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/stedolan/jq">&lt;code>jq&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">
-&lt;code>sed&lt;/code> for JSON data.
-&lt;/p>
-&lt;p align="center">
-&lt;img src="https://blog.noenieto.com/media/gnome-shell-screenshot-VMABUZ.png" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/chmln/sd">&lt;code>sd&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">An intuitive find &amp; replace CLI (&lt;code>sed&lt;/code> alternative).&lt;/p>
-&lt;p align="center">
-&lt;img src="https://rest-reminder.easiestsoft.com/web/command-line-search-replace-string-in-file/img/regular-expression-replace-string-in-file.png" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/cheat/cheat">&lt;code>cheat&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">Create and view interactive cheatsheets on the command-line.&lt;/p>
-&lt;p align="center">
-&lt;img src="https://static.haydenjames.io/wp-content/uploads/2020/09/cheat-command-line-github-868x478.png" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/tldr-pages/tldr">&lt;code>tldr&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">A community effort to simplify &lt;code>man&lt;/code> pages with practical examples.&lt;/p>
-&lt;p align="center">
-&lt;img src="https://raw.githubusercontent.com/tldr-pages/tldr/master/images/tldr.svg" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/dbrgn/tealdeer">&lt;code>tealdeer&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">A very fast implementation of &lt;code>tldr&lt;/code> in Rust&lt;/p>
-&lt;p align="center">
-&lt;img src="https://github.com/dbrgn/tealdeer/blob/master/docs/src/screenshot-default.png" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/ClementTsang/bottom">&lt;code>bottom&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">Yet another cross-platform graphical process/system monitor.&lt;/p>
-&lt;p align="center">
-&lt;img src="https://github.com/ClementTsang/bottom/blob/master/assets/demo.gif" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/nicolargo/glances">&lt;code>glances&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">Glances an Eye on your system. A &lt;code>top&lt;/code>/&lt;code>htop&lt;/code> alternative for GNU/Linux, BSD, Mac OS and Windows operating systems.&lt;/p>
-&lt;p align="center">
-&lt;img src="https://raw.githubusercontent.com/nicolargo/glances/develop/docs/_static/glances-summary.png" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/aksakalli/gtop">&lt;code>gtop&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">System monitoring dashboard for terminal.&lt;/p>
-&lt;p align="center">
-&lt;img src="https://raw.githubusercontent.com/aksakalli/gtop/master/img/demo.gif" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/sharkdp/hyperfine">&lt;code>hyperfine&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">A command-line benchmarking tool.&lt;/p>
-&lt;p align="center">
-&lt;img src="https://camo.githubusercontent.com/88a0cb35f42e02e28b0433d4b5e0029e52e723d8feb8df753e1ed06a5161db56/68747470733a2f2f692e696d6775722e636f6d2f7a31394f5978452e676966" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/dalance/procs">&lt;code>procs&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">A modern replacement for &lt;code>ps&lt;/code> written in Rust.&lt;/p>
-&lt;p align="center">
-&lt;img src="https://user-images.githubusercontent.com/200613/90223676-c8eb6580-de0e-11ea-8e3e-fea30f173aab.png" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/httpie/httpie">&lt;code>httpie&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">A modern, user-friendly command-line HTTP client for the API era.&lt;/p>
-&lt;p align="center">
-&lt;img src="https://raw.githubusercontent.com/httpie/httpie/master/httpie.gif" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/rs/curlie">&lt;code>curlie&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">The power of &lt;code>curl&lt;/code>, the ease of use of &lt;code>httpie&lt;/code>.&lt;/p>
-&lt;p align="center">
-&lt;img src="https://raw.githubusercontent.com/rs/curlie/master/doc/get.png" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/ducaale/xh">&lt;code>xh&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">A friendly and fast tool for sending HTTP requests. It reimplements as much as possible of HTTPie's excellent design, with a focus on improved performance.&lt;/p>
-&lt;p align="center">
-&lt;img src="https://raw.githubusercontent.com/ducaale/xh/master/assets/xh-demo.gif" width="600" />
-&lt;/p>
-&lt;/p>
-&lt;p align="center">
-&lt;h1 align="center">
-&lt;a href="https://github.com/ajeetdsouza/zoxide">&lt;code>zoxide&lt;/code>&lt;/a>
-&lt;/h1>
-&lt;p align="center">A smarter &lt;code>cd&lt;/code> command inspired by &lt;code>z&lt;/code>.&lt;/p>
-&lt;p align="center">
-&lt;img src="https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/contrib/tutorial.webp" width="600" />
-&lt;/p>
-&lt;/p></description></item></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>快速开始 | Next-gen Tech Edu</title>
+    <link>https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/</link>
+      <atom:link href="https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/index.xml" rel="self" type="application/rss+xml" />
+    <description>快速开始</description>
+    <generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language>
+    <image>
+      <url>https://ng-tech.icu/media/sharing.png</url>
+      <title>快速开始</title>
+      <link>https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/</link>
+    </image>
+    
+    <item>
+      <title>Unix 设计哲学</title>
+      <link>https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/unix-%E8%AE%BE%E8%AE%A1%E5%93%B2%E5%AD%A6/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/unix-%E8%AE%BE%E8%AE%A1%E5%93%B2%E5%AD%A6/</guid>
+      <description>&lt;h1 id=&#34;unix-设计哲学&#34;&gt;Unix 设计哲学&lt;/h1&gt;
+&lt;p&gt;Unix 管道的发明者道格·麦克罗伊（Doug McIlroy）在 1964 年首先描述了这种情况：“当我们需要将消息从一个程序传递另一个程序时，我们需要一种类似水管法兰的拼接程序的方式，I/O 应该也按照这种方式进行“。水管的类比仍然在生效，通过管道连接程序的想法成为了现在被称为 Unix 哲学的一部分，这一组设计原则在 Unix 用户与开发者之间流行起来，该哲学在 1978 年表述如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;em&gt;Do one thing and do it well&lt;/em&gt; - Write programs that do one thing and do it well. Write programs to work together. Write programs to handle text streams, because that is a universal interface.&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;Everything is file&lt;/em&gt; - Ease of use and security is offered by treating hardware as a file.&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;Small is beautiful&lt;/em&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;Store data and configuration in flat text files&lt;/em&gt; - Text file is a universal interface. Easy to create, backup and move to another system.&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;Use shell scripts to increase leverage and portability&lt;/em&gt; - Use shell script to automate common tasks across various UNIX / Linux installations.&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;Chain programs together to complete complex task&lt;/em&gt; - Use shell &lt;a href=&#34;https://bash.cyberciti.biz/guide/Pipes&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;pipes&lt;/a&gt; and &lt;a href=&#34;https://bash.cyberciti.biz/guide/Filters&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;filters&lt;/a&gt; to chain small utilities that perform one task at time.&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;Choose portability over efficiency.&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;Keep it Simple, Stupid (KISS).&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;其中文归纳如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;让每个程序都做好一件事。要做一件新的工作，写一个新程序，而不是通过添加“功能”让老程序复杂化。&lt;/li&gt;
+&lt;li&gt;期待每个程序的输出成为另一个程序的输入。不要将无关信息混入输出。避免使用严格的列数据或二进制输入格式。不要坚持交互式输入。&lt;/li&gt;
+&lt;li&gt;设计和构建软件，甚至是操作系统，要尽早尝试，最好在几周内完成。不要犹豫，扔掉笨拙的部分，重建它们。&lt;/li&gt;
+&lt;li&gt;优先使用工具来减轻编程任务，即使必须曲线救国编写工具，且在用完后很可能要扔掉大部分。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这种方法：自动化，快速原型设计，增量式迭代，对实验友好，将大型项目分解成可管理的块，听起来非常像今天的敏捷开发和 DevOps 运动。sort 工具是一个很好的例子。可以说它比大多数编程语言标准库中的实现（它们不会利用磁盘或使用多线程，即使这样做有很大好处）要更好。然而，单独使用 sort 几乎没什么用。它只能与其他 Unix 工具（如 uniq）结合使用。像 bash 这样的 Unix shell 可以让我们轻松地将这些小程序组合成令人讶异的强大数据处理任务。尽管这些程序中有很多是由不同人群编写的，但它们可以灵活地结合在一起。&lt;/p&gt;
+&lt;h2 id=&#34;统一的接口&#34;&gt;统一的接口&lt;/h2&gt;
+&lt;p&gt;如果你希望一个程序的输出成为另一个程序的输入，那意味着这些程序必须使用相同的数据格式：换句话说，一个兼容的接口。如果你希望能够将任何程序的输出连接到任何程序的输入，那意味着所有程序必须使用相同的 I/O 接口。&lt;/p&gt;
+&lt;p&gt;在 Unix 中，这种接口是一个文件（file）（更准确地说，是一个文件描述符）。一个文件只是一串有序的字节序列。因为这是一个非常简单的接口，所以可以使用相同的接口来表示许多不同的东西：文件系统上的真实文件，到另一个进程（Unix 套接字，stdin，stdout）的通信通道，设备驱动程序（比如/dev/audio 或/dev/lp0），表示 TCP 连接的套接字等等。很容易将这些设计视为理所当然的，但实际上能让这些差异巨大的东西共享一个统一的接口是非常厉害的，这使得它们可以很容易地连接在一起。&lt;/p&gt;
+&lt;p&gt;统一接口的另一个例子是 URL 和 HTTP，这是 Web 的基石。一个 URL 标识一个网站上的一个特定的东西（资源），你可以链接到任何其他网站的任何网址。具有网络浏览器的用户因此可以通过跟随链接在网站之间无缝跳转，即使服务器可能由完全不相关的组织维护。这个原则现在似乎非常明显，但它却是网络取能取得今天成就的关键。之前的系统并不是那么统一：例如，在公告板系统（BBS）时代，每个系统都有自己的电话号码和波特率配置。从一个 BBS 到另一个 BBS 的引用必须以电话号码和调制解调器设置的形式；用户将不得不挂断，拨打其他 BBS，然后手动找到他们正在寻找的信息。这是不可能的直接链接到另一个 BBS 内的一些内容。&lt;/p&gt;
+&lt;p&gt;按照惯例，许多（但不是全部）Unix 程序将这个字节序列视为 ASCII 文本。我们的日志分析示例使用了这个事实：awk，sort，uniq 和 head 都将它们的输入文件视为由 \n（换行符，ASCII 0x0A）字符分隔的记录列表。\n 的选择是任意的：可以说，ASCII 记录分隔符 0x1E 本来就是一个更好的选择，因为它是为了这个目的而设计的，但是无论如何，所有这些程序都使用相同的记录分隔符允许它们互操作。&lt;/p&gt;
+&lt;p&gt;每条记录（即一行输入）的解析则更加模糊。Unix 工具通常通过空白或制表符将行分割成字段，但也使用 CSV（逗号分隔），管道分隔和其他编码。即使像 xargs 这样一个相当简单的工具也有六个命令行选项，用于指定如何解析输入。ASCII 文本的统一接口大多数时候都能工作，但它不是很优雅：我们的日志分析示例使用{print $7}来提取网址，这样可读性不是很好。在理想的世界中可能是{print $request_url}或类似的东西。我们稍后会回顾这个想法。&lt;/p&gt;
+&lt;p&gt;尽管几十年后还不够完美，但统一的 Unix 接口仍然是非常出色的设计。没有多少软件能像 Unix 工具一样交互组合的这么好：你不能通过自定义分析工具轻松地将电子邮件帐户的内容和在线购物历史记录以管道传送至电子表格中，并将结果发布到社交网络或维基。今天，像 Unix 工具一样流畅地运行程序是一种例外，而不是规范。即使是具有相同数据模型的数据库，将数据从一种导出再导入另一种也并不容易。缺乏整合导致了数据的巴尔干化。&lt;/p&gt;
+&lt;h2 id=&#34;逻辑与布线相分离&#34;&gt;逻辑与布线相分离&lt;/h2&gt;
+&lt;p&gt;Unix 工具的另一个特点是使用标准输入（stdin）和标准输出（stdout）。如果你运行一个程序，而不指定任何其他的东西，标准输入来自键盘，标准输出指向屏幕。但是，你也可以从文件输入和/或将输出重定向到文件。管道允许你将一个进程的标准输出附加到另一个进程的标准输入（有个小内存缓冲区，而不需要将整个中间数据流写入磁盘）。&lt;/p&gt;
+&lt;p&gt;程序仍然可以直接读取和写入文件，但如果程序不担心特定的文件路径，只使用标准输入和标准输出，则 Unix 方法效果最好。这允许 shell 用户以任何他们想要的方式连接输入和输出；该程序不知道或不关心输入来自哪里以及输出到哪里。（人们可以说这是一种松耦合（loose coupling），晚期绑定（late binding）或控制反转（inversion of control））。将输入/输出布线与程序逻辑分开，可以将小工具组合成更大的系统。&lt;/p&gt;
+&lt;p&gt;你甚至可以编写自己的程序，并将它们与操作系统提供的工具组合在一起。你的程序只需要从标准输入读取输入，并将输出写入标准输出，它就可以加入数据处理的管道中。在日志分析示例中，你可以编写一个将 Usage-Agent 字符串转换为更灵敏的浏览器标识符，或者将 IP 地址转换为国家代码的工具，并将其插入管道。sort 程序并不关心它是否与操作系统的另一部分或者你写的程序通信。&lt;/p&gt;
+&lt;p&gt;但是，使用 stdin 和 stdout 能做的事情是有限的。需要多个输入或输出的程序是可能的，但非常棘手。你没法将程序的输出管道连接至网络连接中。如果程序直接打开文件进行读取和写入，或者将另一个程序作为子进程启动，或者打开网络连接，那么 I/O 的布线就取决于程序本身了。它仍然可以被配置（例如通过命令行选项），但在 Shell 中对输入和输出进行布线的灵活性就少了。&lt;/p&gt;
+&lt;h2 id=&#34;透明度和实验&#34;&gt;透明度和实验&lt;/h2&gt;
+&lt;p&gt;使 Unix 工具如此成功的部分原因是，它们使查看正在发生的事情变得非常容易：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Unix 命令的输入文件通常被视为不可变的。这意味着你可以随意运行命令，尝试各种命令行选项，而不会损坏输入文件。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;你可以在任何时候结束管道，将管道输出到 less，然后查看它是否具有预期的形式。这种检查能力对调试非常有用。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;你可以将一个流水线阶段的输出写入文件，并将该文件用作下一阶段的输入。这使你可以重新启动后面的阶段，而无需重新运行整个管道。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;因此，与关系数据库的查询优化器相比，即使 Unix 工具非常简单，但仍然非常有用，特别是对于实验而言。&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>常用 Unix 命令的现代替代</title>
+      <link>https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%B8%B8%E7%94%A8-unix-%E5%91%BD%E4%BB%A4%E7%9A%84%E7%8E%B0%E4%BB%A3%E6%9B%BF%E4%BB%A3/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/linux-notes/10.shell-%E5%91%BD%E4%BB%A4/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%B8%B8%E7%94%A8-unix-%E5%91%BD%E4%BB%A4%E7%9A%84%E7%8E%B0%E4%BB%A3%E6%9B%BF%E4%BB%A3/</guid>
+      <description>&lt;h1 align=&#34;center&#34;&gt;Modern Unix&lt;/h1&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/sharkdp/bat&#34;&gt;&lt;code&gt;bat&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;A &lt;code&gt;cat&lt;/code&gt; clone with syntax highlighting and Git integration.&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://camo.githubusercontent.com/c436c206f2c86605ab2f9fb632dd485afc05fccbf14af472770b0c59d876c9cc/68747470733a2f2f692e696d6775722e636f6d2f326c53573452452e706e67&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/ogham/exa&#34;&gt;&lt;code&gt;exa&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;A modern replacement for &lt;code&gt;ls&lt;/code&gt;.&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://raw.githubusercontent.com/ogham/exa/master/screenshots.png&#34; width=&#34;700&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/Peltoche/lsd&#34;&gt;&lt;code&gt;lsd&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;The next gen file listing command. Backwards compatible with &lt;code&gt;ls&lt;/code&gt;.&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://raw.githubusercontent.com/Peltoche/lsd/assets/screen_lsd.png&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/dandavison/delta&#34;&gt;&lt;code&gt;delta&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;A viewer for &lt;code&gt;git&lt;/code&gt; and &lt;code&gt;diff&lt;/code&gt; output&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://user-images.githubusercontent.com/52205/86275526-76792100-bba1-11ea-9e78-6be9baa80b29.png&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/bootandy/dust&#34;&gt;&lt;code&gt;dust&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;A more intutive version of &lt;code&gt;du&lt;/code&gt; written in rust.&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://user-images.githubusercontent.com/200613/90223722-e0c2e980-de0e-11ea-8c75-343273fed6f3.png&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/muesli/duf&#34;&gt;&lt;code&gt;duf&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;A better &lt;code&gt;df&lt;/code&gt; alternative &lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://raw.githubusercontent.com/muesli/duf/master/duf.png&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/Canop/broot&#34;&gt;&lt;code&gt;broot&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;A new way to see and navigate directory &lt;code&gt;tree&lt;/code&gt;s&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://github.com/Canop/broot/blob/master/website/docs/img/20200629-overview.png&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/sharkdp/fd&#34;&gt;&lt;code&gt;fd&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;A simple, fast and user-friendly alternative to &lt;code&gt;find&lt;/code&gt;.&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://raw.githubusercontent.com/sharkdp/fd/master/doc/screencast.svg&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/BurntSushi/ripgrep&#34;&gt;&lt;code&gt;ripgrep&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;An extremely fast alternative to &lt;code&gt;grep&lt;/code&gt; that respects your gitignore&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://user-images.githubusercontent.com/200613/90223748-ecaeab80-de0e-11ea-9140-ac9219f5747c.gif&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/ggreer/the_silver_searcher&#34;&gt;&lt;code&gt;ag&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;A code searching tool similar to &lt;code&gt;ack&lt;/code&gt;, but faster.&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;http://cdn-ak.f.st-hatena.com/images/fotolife/s/sona-zip/20130531/20130531223246_original.png?1370007170&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/junegunn/fzf&#34;&gt;&lt;code&gt;fzf&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;A general purpose command-line fuzzy finder.&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://raw.githubusercontent.com/junegunn/i/master/fzf-preview.png&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/cantino/mcfly&#34;&gt;&lt;code&gt;mcfly&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;Fly through your shell &lt;code&gt;history&lt;/code&gt;. Great Scott! &lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://github.com/cantino/mcfly/blob/master/docs/screenshot.png&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/theryangeary/choose&#34;&gt;&lt;code&gt;choose&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt; A human-friendly and fast alternative to &lt;code&gt;cut&lt;/code&gt; and (sometimes) &lt;code&gt;awk&lt;/code&gt; &lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://asciinema.org/a/315932.png&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/stedolan/jq&#34;&gt;&lt;code&gt;jq&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;code&gt;sed&lt;/code&gt; for JSON data.
+  &lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://blog.noenieto.com/media/gnome-shell-screenshot-VMABUZ.png&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/chmln/sd&#34;&gt;&lt;code&gt;sd&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;An intuitive find &amp; replace CLI (&lt;code&gt;sed&lt;/code&gt; alternative).&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://rest-reminder.easiestsoft.com/web/command-line-search-replace-string-in-file/img/regular-expression-replace-string-in-file.png&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/cheat/cheat&#34;&gt;&lt;code&gt;cheat&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;Create and view interactive cheatsheets on the command-line.&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://static.haydenjames.io/wp-content/uploads/2020/09/cheat-command-line-github-868x478.png&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/tldr-pages/tldr&#34;&gt;&lt;code&gt;tldr&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;A community effort to simplify &lt;code&gt;man&lt;/code&gt; pages with practical examples.&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://raw.githubusercontent.com/tldr-pages/tldr/master/images/tldr.svg&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/dbrgn/tealdeer&#34;&gt;&lt;code&gt;tealdeer&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;A very fast implementation of &lt;code&gt;tldr&lt;/code&gt; in Rust&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://github.com/dbrgn/tealdeer/blob/master/docs/src/screenshot-default.png&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/ClementTsang/bottom&#34;&gt;&lt;code&gt;bottom&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;Yet another cross-platform graphical process/system monitor.&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://github.com/ClementTsang/bottom/blob/master/assets/demo.gif&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/nicolargo/glances&#34;&gt;&lt;code&gt;glances&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;Glances an Eye on your system. A &lt;code&gt;top&lt;/code&gt;/&lt;code&gt;htop&lt;/code&gt; alternative for GNU/Linux, BSD, Mac OS and Windows operating systems.&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://raw.githubusercontent.com/nicolargo/glances/develop/docs/_static/glances-summary.png&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/aksakalli/gtop&#34;&gt;&lt;code&gt;gtop&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;System monitoring dashboard for terminal.&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://raw.githubusercontent.com/aksakalli/gtop/master/img/demo.gif&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/sharkdp/hyperfine&#34;&gt;&lt;code&gt;hyperfine&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;A command-line benchmarking tool.&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://camo.githubusercontent.com/88a0cb35f42e02e28b0433d4b5e0029e52e723d8feb8df753e1ed06a5161db56/68747470733a2f2f692e696d6775722e636f6d2f7a31394f5978452e676966&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/dalance/procs&#34;&gt;&lt;code&gt;procs&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;A modern replacement for &lt;code&gt;ps&lt;/code&gt; written in Rust.&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://user-images.githubusercontent.com/200613/90223676-c8eb6580-de0e-11ea-8e3e-fea30f173aab.png&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/httpie/httpie&#34;&gt;&lt;code&gt;httpie&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;A modern, user-friendly command-line HTTP client for the API era.&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://raw.githubusercontent.com/httpie/httpie/master/httpie.gif&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/rs/curlie&#34;&gt;&lt;code&gt;curlie&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;The power of &lt;code&gt;curl&lt;/code&gt;, the ease of use of &lt;code&gt;httpie&lt;/code&gt;.&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://raw.githubusercontent.com/rs/curlie/master/doc/get.png&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/ducaale/xh&#34;&gt;&lt;code&gt;xh&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;A friendly and fast tool for sending HTTP requests. It reimplements as much as possible of HTTPie&#39;s excellent design, with a focus on improved performance.&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://raw.githubusercontent.com/ducaale/xh/master/assets/xh-demo.gif&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+&lt;p align=&#34;center&#34;&gt;
+  &lt;h1 align=&#34;center&#34;&gt;
+    &lt;a href=&#34;https://github.com/ajeetdsouza/zoxide&#34;&gt;&lt;code&gt;zoxide&lt;/code&gt;&lt;/a&gt;
+  &lt;/h1&gt;
+  &lt;p align=&#34;center&#34;&gt;A smarter &lt;code&gt;cd&lt;/code&gt; command inspired by &lt;code&gt;z&lt;/code&gt;.&lt;/p&gt;
+  &lt;p align=&#34;center&#34;&gt;
+    &lt;img src=&#34;https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/contrib/tutorial.webp&#34; width=&#34;600&#34; /&gt;
+  &lt;/p&gt;
+&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

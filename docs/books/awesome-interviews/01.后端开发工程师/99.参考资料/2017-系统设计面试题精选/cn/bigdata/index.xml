@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>bigdata | Next-gen Tech Edu</title>
+    <link>https://ng-tech.icu/books/awesome-interviews/01.%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91%E5%B7%A5%E7%A8%8B%E5%B8%88/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2017-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E9%9D%A2%E8%AF%95%E9%A2%98%E7%B2%BE%E9%80%89/cn/bigdata/</link>
+      <atom:link href="https://ng-tech.icu/books/awesome-interviews/01.%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91%E5%B7%A5%E7%A8%8B%E5%B8%88/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2017-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E9%9D%A2%E8%AF%95%E9%A2%98%E7%B2%BE%E9%80%89/cn/bigdata/index.xml" rel="self" type="application/rss+xml" />
+    <description>bigdata</description>
+    <generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language>
+    <image>
+      <url>https://ng-tech.icu/media/sharing.png</url>
+      <title>bigdata</title>
+      <link>https://ng-tech.icu/books/awesome-interviews/01.%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91%E5%B7%A5%E7%A8%8B%E5%B8%88/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2017-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E9%9D%A2%E8%AF%95%E9%A2%98%E7%B2%BE%E9%80%89/cn/bigdata/</link>
+    </image>
+    
+    <item>
+      <title>cardinality-estimation</title>
+      <link>https://ng-tech.icu/books/awesome-interviews/01.%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91%E5%B7%A5%E7%A8%8B%E5%B8%88/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2017-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E9%9D%A2%E8%AF%95%E9%A2%98%E7%B2%BE%E9%80%89/cn/bigdata/cardinality-estimation/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/awesome-interviews/01.%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91%E5%B7%A5%E7%A8%8B%E5%B8%88/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2017-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E9%9D%A2%E8%AF%95%E9%A2%98%E7%B2%BE%E9%80%89/cn/bigdata/cardinality-estimation/</guid>
+      <description>&lt;p&gt;如何计算数据流中不同元素的个数？例如，独立访客(Unique Visitor，简称 UV)统计。这个问题称为基数估计(Cardinality Estimation)，也是一个很经典的题目。&lt;/p&gt;
+&lt;h3 id=&#34;方案-1-hashset&#34;&gt;方案 1: HashSet&lt;/h3&gt;
+&lt;p&gt;首先最容易想到的办法是用 HashSet，每来一个元素，就往里面塞，HashSet 的大小就所求答案。但是在大数据的场景下，HashSet 在单机内存中存不下。&lt;/p&gt;
+&lt;h3 id=&#34;方案-2-bitmap&#34;&gt;方案 2: bitmap&lt;/h3&gt;
+&lt;p&gt;HashSet 耗内存主要是由于存储了元素的真实值，可不可以不存储元素本身呢？bitmap 就是这样一个方案，假设已经知道不同元素的个数的上限，即基数的最大值，设为 N，则开一个长度为 N 的 bit 数组，地位跟 HashSet 一样。每个元素与 bit 数组的某一位一一对应，该位为 1，表示此元素在集合中，为 0 表示不在集合中。那么 bitmap 中 1 的个数就是所求答案。&lt;/p&gt;
+&lt;p&gt;这个方案的缺点是，bitmap 的长度与实际的基数无关，而是与基数的上限有关。假如要计算上限为 1 亿的基数，则需要 12.5MB 的 bitmap，十个网站就需要 125M。关键在于，这个内存使用与集合元素数量无关，即使一个网站仅仅有一个 1UV，也要为其分配 12.5MB 内存。该算法的空间复杂度是$$O(N_{max})$$。&lt;/p&gt;
+&lt;p&gt;实际上目前还没有发现在大数据场景中准确计算基数的高效算法，因此在不追求绝对准确的情况下，使用近似算法算是一个不错的解决方案。&lt;/p&gt;
+&lt;h3 id=&#34;方案-3-linear-counting&#34;&gt;方案 3: Linear Counting&lt;/h3&gt;
+&lt;p&gt;Linear Counting 的基本思路是：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;选择一个哈希函数 h，其结果服从均匀分布&lt;/li&gt;
+&lt;li&gt;开一个长度为 m 的 bitmap，均初始化为 0(m 设为多大后面有讨论)&lt;/li&gt;
+&lt;li&gt;数据流每来一个元素，计算其哈希值并对 m 取模，然后将该位置为 1&lt;/li&gt;
+&lt;li&gt;查询时，设 bitmap 中还有 u 个 bit 为 0，则不同元素的总数近似为 $$-m\log\dfrac{u}{m}$$&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;在使用 Linear Counting 算法时，主要需要考虑的是 bitmap 长度&lt;code&gt;m&lt;/code&gt;。m 主要由两个因素决定，基数大小以及容许的误差。假设基数大约为 n，允许的误差为 ϵ，则 m 需要满足如下约束，&lt;/p&gt;
+&lt;p&gt;$$m &amp;gt; \dfrac{\epsilon^t-t-1}{(\epsilon t)^2}$$, 其中 $$t=\dfrac{n}{m}$$&lt;/p&gt;
+&lt;p&gt;精度越高，需要的 m 越大。&lt;/p&gt;
+&lt;p&gt;Linear Counting 与方案 1 中的 bitmap 很类似，只是改善了 bitmap 的内存占用，但并没有完全解决，例如一个网站只有一个 UV，依然要为其分配 m 位的 bitmap。该算法的空间复杂度与方案 2 一样，依然是$$O(N_{max})$$。&lt;/p&gt;
+&lt;h3 id=&#34;方案-4-loglog-counting&#34;&gt;方案 4: LogLog Counting&lt;/h3&gt;
+&lt;p&gt;LogLog Counting 的算法流程：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;均匀随机化。选取一个哈希函数 h 应用于所有元素，然后对哈希后的值进行基数估计。哈希函数 h 必须满足如下条件，&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;哈希碰撞可以忽略不计。哈希函数 h 要尽可能的减少冲突&lt;/li&gt;
+&lt;li&gt;h 的结果是均匀分布的。也就是说无论原始数据的分布如何，其哈希后的结果几乎服从均匀分布（完全服从均匀分布是不可能的，D. Knuth 已经证明不可能通过一个哈希函数将一组不服从均匀分布的数据映射为绝对均匀分布，但是很多哈希函数可以生成几乎服从均匀分布的结果，这里我们忽略这种理论上的差异，认为哈希结果就是服从均匀分布）。&lt;/li&gt;
+&lt;li&gt;哈希后的结果是固定长度的&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;对于元素计算出哈希值，由于每个哈希值是等长的，令长度为 L&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;对每个哈希值，从高到低找到第一个 1 出现的位置，取这个位置的最大值，设为 p，则基数约等于$$2^p$$&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;如果直接使用上面的单一估计量进行基数估计会由于偶然性而存在较大误差。因此，LLC 采用了分桶平均的思想来降低误差。具体来说，就是将哈希空间平均分成 m 份，每份称之为一个桶（bucket）。对于每一个元素，其哈希值的前 k 比特作为桶编号，其中$$2^k=m$$，而后 L-k 个比特作为真正用于基数估计的比特串。桶编号相同的元素被分配到同一个桶，在进行基数估计时，首先计算每个桶内最大的第一个 1 的位置，设为&lt;code&gt;p[i]&lt;/code&gt;，然后对这 m 个值取平均后再进行估计，即基数的估计值为$$2^{\frac{1}{m}\Sigma_{i=0}^{m-1} p[i]}$$。这相当于做多次实验然后去平均值，可以有效降低因偶然因素带来的误差。&lt;/p&gt;
+&lt;p&gt;LogLog Counting 的空间复杂度仅有$$O(\log_2(\log_2(N_{max})))$$，内存占用极少，这是它的优点。不过 LLC 也有自己的缺点，当基数不是很大的时候，误差比较大。&lt;/p&gt;
+&lt;p&gt;关于该算法的数学证明，请阅读原始论文和参考资料里的链接，这里不再赘述。&lt;/p&gt;
+&lt;h3 id=&#34;方案-5-hyperloglog-counting&#34;&gt;方案 5: HyperLogLog Counting&lt;/h3&gt;
+&lt;p&gt;HyperLogLog Counting（以下简称 HLLC）的基本思想是在 LLC 的基础上做改进，&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;第 1 个改进是使用调和平均数替代几何平均数，调和平均数可以有效抵抗离群值的扰。注意 LLC 是对各个桶取算术平均数，而算术平均数最终被应用到 2 的指数上，所以总体来看 LLC 取的是几何平均数。由于几何平均数对于离群值（例如 0）特别敏感，因此当存在离群值时，LLC 的偏差就会很大，这也从另一个角度解释了为什么基数 n 不太大时 LLC 的效果不太好。这是因为 n 较小时，可能存在较多空桶，这些特殊的离群值干扰了几何平均数的稳定性。使用调和平均数后，估计公式变为 $$\hat{n}=\frac{\alpha_mm^2}{\Sigma_{i=0}^{m-1} p[i]}$$，其中$$\alpha_m=(m\int_0^{\infty}(log_2(\frac{2+u}{1+u}))^mdu)^{-1}$$&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;第 2 个改进是加入了分段偏差修正。具体来说，设 e 为基数的估计值，&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;当 $$e \leq \frac{5}{2}m$$时，使用 Linear Counting&lt;/li&gt;
+&lt;li&gt;当 $$\frac{5}{2}m&amp;lt;e\leq \frac{1}{30}2^{32}$$时，使用 HyperLogLog Counting&lt;/li&gt;
+&lt;li&gt;当 $$e&amp;gt;\frac{1}{30}2^{32}$$时，修改估计公式为$$\hat{n}=-2^{32}\log(1-e/2^{32})$$&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;关于分段偏差修正的效果分析也可以在原论文中找到。&lt;/p&gt;
+&lt;h3 id=&#34;参考资料&#34;&gt;参考资料&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://blog.codinglabs.org/articles/algorithms-for-cardinality-estimation-part-i.html&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;解读 Cardinality Estimation 算法（第一部分：基本概念）&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://blog.codinglabs.org/articles/algorithms-for-cardinality-estimation-part-ii.html&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;解读 Cardinality Estimation 算法（第二部分：Linear Counting）&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://blog.codinglabs.org/articles/algorithms-for-cardinality-estimation-part-iii.html&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;解读 Cardinality Estimation 算法（第三部分：LogLog Counting）&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://blog.codinglabs.org/articles/algorithms-for-cardinality-estimation-part-iv.html&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;解读 Cardinality Estimation 算法（第四部分：HyperLogLog Counting 及 Adaptive Counting）&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>data-stream-sampling</title>
+      <link>https://ng-tech.icu/books/awesome-interviews/01.%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91%E5%B7%A5%E7%A8%8B%E5%B8%88/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2017-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E9%9D%A2%E8%AF%95%E9%A2%98%E7%B2%BE%E9%80%89/cn/bigdata/data-stream-sampling/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/awesome-interviews/01.%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91%E5%B7%A5%E7%A8%8B%E5%B8%88/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2017-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E9%9D%A2%E8%AF%95%E9%A2%98%E7%B2%BE%E9%80%89/cn/bigdata/data-stream-sampling/</guid>
+      <description>&lt;p&gt;有一个无限的整数数据流，如何从中随机地抽取 k 个整数出来？&lt;/p&gt;
+&lt;p&gt;这是一个经典的数据流采样问题，我们一步一步来分析。&lt;/p&gt;
+&lt;h3 id=&#34;当-k1-时&#34;&gt;当 k=1 时&lt;/h3&gt;
+&lt;p&gt;我们先考虑最简单的情况，k=1，即只需要随机抽取一个样本出来。抽样方法如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;当第一个整数到达时，保存该整数&lt;/li&gt;
+&lt;li&gt;当第 2 个整数到达时，以 1/2 的概率使用该整数替换第 1 个整数，以 1/2 的概率丢弃改整数&lt;/li&gt;
+&lt;li&gt;当第 i 个整数到达时，以$$\dfrac{1}{i}$$的概率使用第 i 个整数替换被选中的整数，以$$1-\dfrac{1}{i}$$的概率丢弃第 i 个整数&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;假设数据流目前已经流出共 n 个整数，这个方法能保证每个元素被选中的概率是$$\dfrac{1}{n}$$吗？用数学归纳法，证明如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;当 n=1 时，由于是第 1 个数，被选中的概率是 100%，命题成立&lt;/li&gt;
+&lt;li&gt;假设当 n=m(m&amp;gt;=1)时，命题成立，即前 m 个数，每一个被选中的概率是 $$\dfrac{1}{m}$$&lt;/li&gt;
+&lt;li&gt;当 n=m+1 时，第 m+1 个数被选中的概率是 $$\dfrac{1}{m+1}$$, 前 m 个数被选中的概率是$$\dfrac{1}{m} \cdot (1-\dfrac{1}{m+1})=\dfrac{1}{m+1}$$，命题依然成立&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;由 1，2，3 知 n&amp;gt;=1 时命题成立，证毕。&lt;/p&gt;
+&lt;h3 id=&#34;当-k1-时-1&#34;&gt;当 k&amp;gt;1 时&lt;/h3&gt;
+&lt;p&gt;当 k &amp;gt; 1，需要随机采样多个样本时，方法跟上面很类似，&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;前 k 个整数到达时，全部保留，即被选中的概率是 100%，&lt;/li&gt;
+&lt;li&gt;第 i 个整数到达时，以$$k/i$$的概率替换 k 个数中的某一个，以$$1-\dfrac{k}{i}$$的概率丢弃，保留 k 个数不变&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;假设数据流目前已经流出共 N 个整数，这个方法能保证每个元素被选中的概率是$$\dfrac{k}{N}$$吗？用数学归纳法，证明如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;当 n=m(m&amp;lt;=k)时，被选中的概率是 100%，命题成立&lt;/li&gt;
+&lt;li&gt;假设当 n=m(m&amp;gt;k)时，命题成立，即前 m 个数，每一个被选中的概率是 $$\dfrac{1}{m}$$&lt;/li&gt;
+&lt;li&gt;当 n=m+1 时，第 m+1 个数被选中的概率是 $$\dfrac{k}{m+1}$$, 前 m 个数被选中的概率是$$\dfrac{1}{m} \cdot [\dfrac{k}{m+1} \cdot (1-\dfrac{1}{k})+1-\dfrac{k}{m+1}]=\dfrac{1}{m+1}$$，命题依然成立&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;由 1，2，3 知 n&amp;gt;=1 时命题成立，证毕。&lt;/p&gt;
+&lt;h3 id=&#34;参考资料&#34;&gt;参考资料&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://rosona.github.io/post/20151223/&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;浅谈流处理算法 (1) – 蓄水池采样&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.glassdoor.com/Interview/Given-a-stream-of-integers-of-unknown-possibly-large-length-how-would-you-pick-one-at-random-Now-prove-its-random-QTN_36764.htm&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Google Interview Question: Given a stream of integers of&amp;hellip; | Glassdoor&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>frequency-estimation</title>
+      <link>https://ng-tech.icu/books/awesome-interviews/01.%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91%E5%B7%A5%E7%A8%8B%E5%B8%88/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2017-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E9%9D%A2%E8%AF%95%E9%A2%98%E7%B2%BE%E9%80%89/cn/bigdata/frequency-estimation/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/awesome-interviews/01.%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91%E5%B7%A5%E7%A8%8B%E5%B8%88/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2017-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E9%9D%A2%E8%AF%95%E9%A2%98%E7%B2%BE%E9%80%89/cn/bigdata/frequency-estimation/</guid>
+      <description>&lt;p&gt;如何计算数据流中任意元素的频率？&lt;/p&gt;
+&lt;p&gt;这个问题也是大数据场景下的一个经典问题，称为频率估计(Frequency Estimation)问题。&lt;/p&gt;
+&lt;h3 id=&#34;方案-1-hashmap&#34;&gt;方案 1: HashMap&lt;/h3&gt;
+&lt;p&gt;用一个 HashMap 记录每个元素的出现次数，每来一个元素，就把相应的计数器增 1。这个方法在大数据的场景下不可行，因为元素太多，单机内存无法存下这个巨大的 HashMap。&lt;/p&gt;
+&lt;h3 id=&#34;方案-2-数据分片--hashmap&#34;&gt;方案 2: 数据分片 + HashMap&lt;/h3&gt;
+&lt;p&gt;既然单机内存存不下所有元素，一个很自然的改进就是使用多台机器。假设有 8 台机器，每台机器都有一个 HashMap，第 1 台机器只处理&lt;code&gt;hash(elem)%8==0&lt;/code&gt;的元素，第 2 台机器只处理&lt;code&gt;hash(elem)%8==1&lt;/code&gt;的元素，以此类推。查询的时候，先计算这个元素在哪台机器上，然后去那台机器上的 HashMap 里取出计数器。&lt;/p&gt;
+&lt;p&gt;方案 2 能够 scale, 但是依旧是把所有元素都存了下来，代价比较高。&lt;/p&gt;
+&lt;p&gt;如果允许近似计算，那么有很多高效的近似算法，单机就可以处理海量的数据。下面讲几个经典的近似算法。&lt;/p&gt;
+&lt;h3 id=&#34;方案-3-count-min-sketch&#34;&gt;方案 3: Count-Min Sketch&lt;/h3&gt;
+&lt;p&gt;Count-Min Sketch 算法流程：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;选定 d 个 hash 函数，开一个 dxm 的二维整数数组作为哈希表&lt;/li&gt;
+&lt;li&gt;对于每个元素，分别使用 d 个 hash 函数计算相应的哈希值，并对 m 取余，然后在对应的位置上增 1，二维数组中的每个整数称为 sketch&lt;/li&gt;
+&lt;li&gt;要查询某个元素的频率时，只需要取出 d 个 sketch, 返回最小的那一个（其实 d 个 sketch 都是该元素的近似频率，返回任意一个都可以，该算法选择最小的那个）&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;../https://assets.ng-tech.icu/book/Andrew-Ng-DeepLearning-AI/count-min-sketch.jpg&#34; alt=&#34;&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;这个方法的思路和 Bloom Filter 比较类似，都是用多个 hash 函数来降低冲突。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;空间复杂度&lt;code&gt;O(dm)&lt;/code&gt;。Count-Min Sketch 需要开一个 &lt;code&gt;dxm&lt;/code&gt; 大小的二位数组，所以空间复杂度是&lt;code&gt;O(dm)&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;时间复杂度&lt;code&gt;O(n)&lt;/code&gt;。Count-Min Sketch 只需要一遍扫描，所以时间复杂度是&lt;code&gt;O(n)&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Count-Min Sketch 算法的优点是省内存，缺点是对于出现次数比较少的元素，准确性很差，因为二维数组相比于原始数据来说还是太小，hash 冲突比较严重，导致结果偏差比较大。&lt;/p&gt;
+&lt;h3 id=&#34;方案-4-count-mean-min-sketch&#34;&gt;方案 4: Count-Mean-Min Sketch&lt;/h3&gt;
+&lt;p&gt;Count-Min Sketch 算法对于低频的元素，结果不太准确，主要是因为 hash 冲突比较严重，产生了噪音，例如当 m=20 时，有 1000 个数 hash 到这个 20 桶，平均每个桶会收到 50 个数，这 50 个数的频率重叠在一块了。Count-Mean-Min Sketch 算法做了如下改进：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;来了一个查询，按照 Count-Min Sketch 的正常流程，取出它的 d 个 sketch&lt;/li&gt;
+&lt;li&gt;对于每个 hash 函数，估算出一个噪音，噪音等于该行所有整数(除了被查询的这个元素)的平均值&lt;/li&gt;
+&lt;li&gt;用该行的 sketch 减去该行的噪音，作为真正的 sketch&lt;/li&gt;
+&lt;li&gt;返回 d 个 sketch 的中位数&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;class&lt;/span&gt; &lt;span class=&#34;nc&#34;&gt;CountMeanMinSketch&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;c1&#34;&gt;// initialization and addition procedures as in CountMinSketch
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;    &lt;span class=&#34;c1&#34;&gt;// n is total number of added elements
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;    &lt;span class=&#34;kt&#34;&gt;long&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;estimateFrequency&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;value&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;kt&#34;&gt;long&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;e&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[]&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;long&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;d&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nf&#34;&gt;for&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;i&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;d&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;++)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;n&#34;&gt;sketchCounter&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;estimators&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;][&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;hash&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;value&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;n&#34;&gt;noiseEstimation&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;n&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;-&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;sketchCounter&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;/&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;m&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;-&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;n&#34;&gt;e&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;]&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;sketchCounter&lt;/span&gt; &lt;span class=&#34;err&#34;&gt;–&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;noiseEstimator&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;median&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;e&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Count-Mean-Min Sketch 算法能够显著的改善在长尾数据上的精确度。&lt;/p&gt;
+&lt;h3 id=&#34;参考资料&#34;&gt;参考资料&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://chuansong.me/n/2035207&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;数据流处理—摘要的艺术&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.cnblogs.com/fxjwind/p/3289221.html&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;大数据处理中基于概率的数据结构 - fxjwind - 博客园&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://dirtysalt.github.io/probabilistic-data-structures-for-web-analytics-and-data-mining.html&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Probabilistic Data Structures for Web Analytics and Data Mining&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>heavy-hitters</title>
+      <link>https://ng-tech.icu/books/awesome-interviews/01.%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91%E5%B7%A5%E7%A8%8B%E5%B8%88/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2017-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E9%9D%A2%E8%AF%95%E9%A2%98%E7%B2%BE%E9%80%89/cn/bigdata/heavy-hitters/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/awesome-interviews/01.%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91%E5%B7%A5%E7%A8%8B%E5%B8%88/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2017-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E9%9D%A2%E8%AF%95%E9%A2%98%E7%B2%BE%E9%80%89/cn/bigdata/heavy-hitters/</guid>
+      <description>&lt;p&gt;寻找数据流中出现最频繁的 k 个元素(find top k frequent items in a data stream)。这个问题也称为 Heavy Hitters.&lt;/p&gt;
+&lt;p&gt;这题也是从实践中提炼而来的，例如搜索引擎的热搜榜，找出访问网站次数最多的前 10 个 IP 地址，等等。&lt;/p&gt;
+&lt;h3 id=&#34;方案-1-hashmap--heap&#34;&gt;方案 1: HashMap + Heap&lt;/h3&gt;
+&lt;p&gt;用一个 &lt;code&gt;HashMap&amp;lt;String, Long&amp;gt;&lt;/code&gt;，存放所有元素出现的次数，用一个小根堆，容量为 k，存放目前出现过的最频繁的 k 个元素，&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;每次从数据流来一个元素，如果在 HashMap 里已存在，则把对应的计数器增 1，如果不存在，则插入，计数器初始化为 1&lt;/li&gt;
+&lt;li&gt;在堆里查找该元素，如果找到，把堆里的计数器也增 1，并调整堆；如果没有找到，把这个元素的次数跟堆顶元素比较，如果大于堆丁元素的出现次数，则把堆丁元素替换为该元素，并调整堆&lt;/li&gt;
+&lt;/ol&gt;
+&lt;ul&gt;
+&lt;li&gt;空间复杂度&lt;code&gt;O(n)&lt;/code&gt;。HashMap 需要存放下所有元素，需要&lt;code&gt;O(n)&lt;/code&gt;的空间，堆需要存放 k 个元素，需要&lt;code&gt;O(k)&lt;/code&gt;的空间，跟&lt;code&gt;O(n)&lt;/code&gt;相比可以忽略不急，总的时间复杂度是&lt;code&gt;O(n)&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;时间复杂度&lt;code&gt;O(n)&lt;/code&gt;。每次来一个新元素，需要在 HashMap 里查找一下，需要&lt;code&gt;O(1)&lt;/code&gt;的时间；然后要在堆里查找一下，&lt;code&gt;O(k)&lt;/code&gt;的时间，有可能需要调堆，又需要&lt;code&gt;O(logk)&lt;/code&gt;的时间，总的时间复杂度是&lt;code&gt;O(n(k+logk))&lt;/code&gt;，k 是常量，所以可以看做是 O(n)。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;如果元素数量巨大，单机内存存不下，怎么办？ 有两个办法，见方案 2 和 3。&lt;/p&gt;
+&lt;h3 id=&#34;方案-2-多机-hashmap--heap&#34;&gt;方案 2: 多机 HashMap + Heap&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;可以把数据进行分片。假设有 8 台机器，第 1 台机器只处理&lt;code&gt;hash(elem)%8==0&lt;/code&gt;的元素，第 2 台机器只处理&lt;code&gt;hash(elem)%8==1&lt;/code&gt;的元素，以此类推。&lt;/li&gt;
+&lt;li&gt;每台机器都有一个 HashMap 和一个 Heap, 各自独立计算出 top k 的元素&lt;/li&gt;
+&lt;li&gt;把每台机器的 Heap，通过网络汇总到一台机器上，将多个 Heap 合并成一个 Heap，就可以计算出总的 top k 个元素了&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;方案-3-count-min-sketch--heap&#34;&gt;方案 3: Count-Min Sketch + Heap&lt;/h3&gt;
+&lt;p&gt;既然方案 1 中的 HashMap 太大，内存装不小，那么可以用&lt;a href=&#34;frequency-estimation.md&#34;&gt;Count-Min Sketch 算法&lt;/a&gt;代替 HashMap，&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;在数据流不断流入的过程中，维护一个标准的 Count-Min Sketch 二维数组&lt;/li&gt;
+&lt;li&gt;维护一个小根堆，容量为 k&lt;/li&gt;
+&lt;li&gt;每次来一个新元素，
+&lt;ul&gt;
+&lt;li&gt;将相应的 sketch 增 1&lt;/li&gt;
+&lt;li&gt;在堆中查找该元素，如果找到，把堆里的计数器也增 1，并调整堆；如果没有找到，把这个元素的 sketch 作为钙元素的频率的近似值，跟堆顶元素比较，如果大于堆丁元素的频率，则把堆丁元素替换为该元素，并调整堆&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这个方法的时间复杂度和空间复杂度如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;空间复杂度&lt;code&gt;O(dm)&lt;/code&gt;。m 是二维数组的列数，d 是二维数组的行数，堆需要&lt;code&gt;O(k)&lt;/code&gt;的空间，不过 k 通常很小，堆的空间可以忽略不计&lt;/li&gt;
+&lt;li&gt;时间复杂度&lt;code&gt;O(nlogk)&lt;/code&gt;。每次来一个新元素，需要在二维数组里查找一下，需要&lt;code&gt;O(1)&lt;/code&gt;的时间；然后要在堆里查找一下，&lt;code&gt;O(logk)&lt;/code&gt;的时间，有可能需要调堆，又需要&lt;code&gt;O(logk)&lt;/code&gt;的时间，总的时间复杂度是&lt;code&gt;O(nlogk)&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;方案-4-lossy-counting&#34;&gt;方案 4: Lossy Counting&lt;/h3&gt;
+&lt;p&gt;Lossy Couting 算法流程：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;建立一个 HashMap&amp;lt;String, Long&amp;gt;，用于存放每个元素的出现次数&lt;/li&gt;
+&lt;li&gt;建立一个窗口（窗口的大小由错误率决定，后面具体讨论）&lt;/li&gt;
+&lt;li&gt;等待数据流不断流进这个窗口，直到窗口满了，开始统计每个元素出现的频率，统计结束后，每个元素的频率减 1，然后将出现次数为 0 的元素从 HashMap 中删除&lt;/li&gt;
+&lt;li&gt;返回第 2 步，不断循环&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Lossy Counting 背后朴素的思想是，出现频率高的元素，不太可能减一后变成 0，如果某个元素在某个窗口内降到了 0，说明它不太可能是高频元素，可以不再跟踪它的计数器了。随着处理的窗口越来越多，HashMap 也会不断增长，同时 HashMap 里的低频元素会被清理出去，这样内存占用会保持在一个很低的水平。&lt;/p&gt;
+&lt;p&gt;很显然，Lossy Counting 算法是个近似算法，但它的错误率是可以在数学上证明它的边界的。假设要求错误率不大于 ε，那么窗口大小为 1/ε，对于长度为 N 的流，有 N／（1/ε）＝ εN 个窗口，由于每个窗口结束时减一了，那么频率最多被少计数了窗口个数 εN。&lt;/p&gt;
+&lt;p&gt;该算法只需要一遍扫描，所以时间复杂度是&lt;code&gt;O(n)&lt;/code&gt;。&lt;/p&gt;
+&lt;p&gt;该算法的内存占用，主要在于那个 HashMap, Gurmeet Singh Manku 在他的论文里，证明了 HashMap 里最多有 &lt;code&gt;1/ε log (εN)&lt;/code&gt;个元素，所以空间复杂度是&lt;code&gt;O(1/ε log (εN))&lt;/code&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;方案-5-spacesaving&#34;&gt;方案 5: SpaceSaving&lt;/h3&gt;
+&lt;p&gt;TODO, 原始论文 &amp;ldquo;Efficient Computation of Frequent and Top-k Elements in Data Streams&amp;rdquo;&lt;/p&gt;
+&lt;h3 id=&#34;参考资料&#34;&gt;参考资料&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;a href=&#34;http://vaffanculo.twiki.di.uniroma1.it/pub/Ing_algo/WebHome/p14_Cormode_JAl_05.pdf&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;An improved data stream summary:the count-min sketch and its applications&lt;/a&gt; by Graham Cormode&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://delab.csd.auth.gr/courses/c_dm_pms/afc.pdf&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Approximate Frequency Counts over Data Streams&lt;/a&gt; by Gurmeet Singh Manku&lt;/li&gt;
+&lt;li&gt;A.Metwally, D.Agrawal, A.El Abbadi. Efficient Computation of Frequent and Top-k Elements in Data Streams. In Proceeding of the 10th International Conference on Database Theory(ICDT), pp 398-412,2005.&lt;/li&gt;
+&lt;li&gt;Massimo Cafaro, et al. “A parallel space saving algorithm for frequent items and the Hurwitz zeta distribution”. Proceeding arXiv: 1401.0702v12 [cs.DS] 19 Setp 2015.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.cse.ust.hk/~raywong/comp5331/References/EfficientComputationOfFrequentAndTop-kElementsInDataStreams.pdf&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Efficient Computation of Frequent and Top-k Elements in Data Streams&lt;/a&gt; by Ahmed Metwally&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://dmac.rutgers.edu/Workshops/WGUnifyingTheory/Slides/cormode.pdf&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Finding Frequent Items in Data Streams &lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.wdiandi.com/p/b3779f.shtml&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;实时大数据流上的频率统计：Lossy Counting Algorithm - 待字闺中&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://stackoverflow.com/a/8033083/381712&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;What is Lossy Counting? - Stack Overflow&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>membership-query</title>
+      <link>https://ng-tech.icu/books/awesome-interviews/01.%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91%E5%B7%A5%E7%A8%8B%E5%B8%88/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2017-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E9%9D%A2%E8%AF%95%E9%A2%98%E7%B2%BE%E9%80%89/cn/bigdata/membership-query/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/awesome-interviews/01.%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91%E5%B7%A5%E7%A8%8B%E5%B8%88/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2017-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E9%9D%A2%E8%AF%95%E9%A2%98%E7%B2%BE%E9%80%89/cn/bigdata/membership-query/</guid>
+      <description>&lt;p&gt;给定一个无限的数据流和一个有限集合，如何判断数据流中的元素是否在这个集合中？&lt;/p&gt;
+&lt;p&gt;在实践中，我们经常需要判断一个元素是否在一个集合中，例如垃圾邮件过滤，爬虫的网址去重，等等。这题也是一道很经典的题目，称为成员查询(Membership Query)。&lt;/p&gt;
+&lt;p&gt;答案: Bloom Filter&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>range-query</title>
+      <link>https://ng-tech.icu/books/awesome-interviews/01.%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91%E5%B7%A5%E7%A8%8B%E5%B8%88/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2017-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E9%9D%A2%E8%AF%95%E9%A2%98%E7%B2%BE%E9%80%89/cn/bigdata/range-query/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/awesome-interviews/01.%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91%E5%B7%A5%E7%A8%8B%E5%B8%88/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2017-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E9%9D%A2%E8%AF%95%E9%A2%98%E7%B2%BE%E9%80%89/cn/bigdata/range-query/</guid>
+      <description>&lt;p&gt;给定一个无限的整数数据流，如何查询在某个范围内的元素出现的总次数？例如数据库常常需要 SELECT count(v) WHERE v &amp;gt;= l AND v &amp;lt; u。这个经典的问题称为范围查询(Range Query)。&lt;/p&gt;
+&lt;h3 id=&#34;方案-1-array-of-count-min-sketches&#34;&gt;方案 1: Array of Count-Min Sketches&lt;/h3&gt;
+&lt;p&gt;有一个简单方法，既然&lt;a href=&#34;https://soulmachine.gitbooks.io/system-design/content/cn/bigdata/frequency-estimation.html&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Count-Min Sketch&lt;/a&gt;可以计算每个元素的频率，那么我们把指定范围内所有元素的 sketch 加起来，不就是这个范围内元素出现的总数了吗？要注意，由于每个 sketch 都是近似值，多个近似值相加，误差会被放大，所以这个方法不可行。&lt;/p&gt;
+&lt;p&gt;解决的办法就是使用多个“分辨率”不同的 Count-Min Sketch。第 1 个 sketch 每个格子存放单个元素的频率，第 2 个 sketch 每个格子存放 2 个元素的频率（做法很简答，把该元素的哈希值的最低位 bit 去掉，即右移一位，等价于除以 2，再继续后续流程），第 3 个 sketch 每个格子存放 4 个元素的频率（哈希值右移 2 位即可），以此类推，最后一个 sketch 有 2 个格子，每个格子存放一半元素的频率总数，即第 1 个格子存放最高 bit 为 0 的元素的总次数，第 2 个格子存放最高 bit 为 1 的元素的总次数。Sketch 的个数约等于&lt;code&gt;log(不同元素的总数)&lt;/code&gt;。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;插入元素时，算法伪代码如下，&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;def insert(x):
+    for i in range(1, d+1):
+        M1[i][h[i](x)] += 1
+        M2[i][h[i](x)/2] += 1
+        M3[i][h[i](x)/4] += 1
+        M4[i][h[i](x)/8] += 1
+        # ...
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;查询范围[l, u)时，从粗粒度到细粒度，找到多个区间，能够不重不漏完整覆盖区间[l, u)，将这些 sketch 的值加起来，就是该范围内的元素总数。举个例子，给定某个范围，如下图所示，最粗粒度的那个 sketch 里找不到一个格子，就往细粒度找，最后找到第 1 个 sketch 的 2 个格子，第 2 个 sketch 的 1 个格子和第 3 个 sketch 的 1 个格子，共 4 个格子，能够不重不漏的覆盖整个范围，把 4 个红线部分的值加起来就是所求结果&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;../https://assets.ng-tech.icu/book/Andrew-Ng-DeepLearning-AI/array-of-count-min-sketch.png&#34; alt=&#34;&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;参考资料&#34;&gt;参考资料&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.cnblogs.com/fxjwind/p/3289221.html&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;大数据处理中基于概率的数据结构 - fxjwind - 博客园&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://dirtysalt.github.io/probabilistic-data-structures-for-web-analytics-and-data-mining.html&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Probabilistic Data Structures for Web Analytics and Data Mining&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

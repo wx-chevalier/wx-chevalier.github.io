@@ -8,13 +8,10 @@ feature:
   - icon: book-open
     icon_pack: fas
     name: 资料索引
-    description: Awesome Lists/CheatSheets/MindMaps
   - icon: book
     icon_pack: fas
     name: 学习笔记
-    description: 体系化的介绍
   - icon: language
     icon_pack: fas
     name: 代码实践
-    description: 模板、库、框架
 ---

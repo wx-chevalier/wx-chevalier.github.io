@@ -1,245 +1,374 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>设计理念 | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/concurrent-notes/02.%E5%B9%B6%E5%8F%91%E6%A8%A1%E5%9E%8B/%E7%94%9F%E4%BA%A7%E8%80%85%E4%B8%8E%E6%B6%88%E8%B4%B9%E8%80%85/disruptor/%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5/</link><atom:link href="https://ng-tech.icu/books/concurrent-notes/02.%E5%B9%B6%E5%8F%91%E6%A8%A1%E5%9E%8B/%E7%94%9F%E4%BA%A7%E8%80%85%E4%B8%8E%E6%B6%88%E8%B4%B9%E8%80%85/disruptor/%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5/index.xml" rel="self" type="application/rss+xml"/><description>设计理念</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>设计理念</title><link>https://ng-tech.icu/books/concurrent-notes/02.%E5%B9%B6%E5%8F%91%E6%A8%A1%E5%9E%8B/%E7%94%9F%E4%BA%A7%E8%80%85%E4%B8%8E%E6%B6%88%E8%B4%B9%E8%80%85/disruptor/%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5/</link></image><item><title>生产与消费流程</title><link>https://ng-tech.icu/books/concurrent-notes/02.%E5%B9%B6%E5%8F%91%E6%A8%A1%E5%9E%8B/%E7%94%9F%E4%BA%A7%E8%80%85%E4%B8%8E%E6%B6%88%E8%B4%B9%E8%80%85/disruptor/%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5/%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9%E6%B5%81%E7%A8%8B/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/concurrent-notes/02.%E5%B9%B6%E5%8F%91%E6%A8%A1%E5%9E%8B/%E7%94%9F%E4%BA%A7%E8%80%85%E4%B8%8E%E6%B6%88%E8%B4%B9%E8%80%85/disruptor/%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5/%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9%E6%B5%81%E7%A8%8B/</guid><description>&lt;h1 id="生产者">生产者&lt;/h1>
-&lt;p>下面忽略数组的环形结构，介绍一下如何实现无锁设计。整个过程通过原子变量 CAS，保证操作的线程安全。&lt;/p>
-&lt;h2 id="单个生产者">单个生产者&lt;/h2>
-&lt;p>生产者单线程写数据的流程比较简单：&lt;/p>
-&lt;ul>
-&lt;li>申请写入 m 个元素；&lt;/li>
-&lt;li>若是有 m 个元素可以入，则返回最大的序列号。这儿主要判断是否会覆盖未读的元素；&lt;/li>
-&lt;li>若是返回的正确，则生产者开始写入元素。&lt;/li>
-&lt;/ul>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/superbed/2021/07/22/60f934b05132923bf8f0058b.jpg" alt="单个生产者生产过程示意图" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;h2 id="多个生产者">多个生产者&lt;/h2>
-&lt;p>多个生产者的情况下，会遇到“如何防止多个线程重复写同一个元素”的问题。Disruptor 的解决方法是，每个线程获取不同的一段数组空间进行操作。这个通过 CAS 很容易达到。只需要在分配元素的时候，通过 CAS 判断一下这段空间是否已经分配出去即可。&lt;/p>
-&lt;p>但是会遇到一个新问题：如何防止读取的时候，读到还未写的元素。Disruptor 在多个生产者的情况下，引入了一个与 Ring Buffer 大小相同的 buffer：available Buffer。当某个位置写入成功的时候，便把 availble Buffer 相应的位置置位，标记为写入成功。读取的时候，会遍历 available Buffer，来判断元素是否已经就绪。&lt;/p>
-&lt;h3 id="读数据">读数据&lt;/h3>
-&lt;p>消费者多线程读取的情况会复杂很多：&lt;/p>
-&lt;ul>
-&lt;li>申请读取到序号 n；&lt;/li>
-&lt;li>若 writer cursor &amp;gt;= n，这时仍然无法确定连续可读的最大下标。从 reader cursor 开始读取 available Buffer，一直查到第一个不可用的元素，然后返回最大连续可读元素的位置；&lt;/li>
-&lt;li>消费者读取元素。&lt;/li>
-&lt;/ul>
-&lt;p>如下图所示，读线程读到下标为 2 的元素，三个线程 Writer1/Writer2/Writer3 正在向 RingBuffer 相应位置写数据，写线程被分配到的最大元素下标是 11。读线程申请读取到下标从 3 到 11 的元素，判断 writer cursor&amp;gt;=11。然后开始读取 availableBuffer，从 3 开始，往后读取，发现下标为 7 的元素没有生产成功，于是 WaitFor(11)返回 6。&lt;/p>
-&lt;p>然后，消费者读取下标从 3 到 6 共计 4 个元素。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/superbed/2021/07/22/60f936b65132923bf8f65818.jpg" alt="多个生产者情况下，消费者消费过程示意图" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;h3 id="写数据">写数据&lt;/h3>
-&lt;p>多个生产者写入的时候：&lt;/p>
-&lt;ul>
-&lt;li>申请写入 m 个元素；&lt;/li>
-&lt;li>若是有 m 个元素可以写入，则返回最大的序列号。每个生产者会被分配一段独享的空间；&lt;/li>
-&lt;li>生产者写入元素，写入元素的同时设置 available Buffer 里面相应的位置，以标记自己哪些位置是已经写入成功的。&lt;/li>
-&lt;/ul>
-&lt;p>如下图所示，Writer1 和 Writer2 两个线程写入数组，都申请可写的数组空间。Writer1 被分配了下标 3 到下表 5 的空间，Writer2 被分配了下标 6 到下标 9 的空间。Writer1 写入下标 3 位置的元素，同时把 available Buffer 相应位置置位，标记已经写入成功，往后移一位，开始写下标 4 位置的元素。Writer2 同样的方式。最终都写入完成。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/superbed/2021/07/22/60f936df5132923bf8f6ef18.jpg" alt="多个生产者情况下，生产者生产过程示意图" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>防止不同生产者对同一段空间写入的代码，如下所示：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kt">long&lt;/span> &lt;span class="nf">tryNext&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">n&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="kd">throws&lt;/span> &lt;span class="n">InsufficientCapacityException&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">n&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="o">)&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">throw&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">IllegalArgumentException&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;n must be &amp;gt; 0&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">long&lt;/span> &lt;span class="n">current&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">long&lt;/span> &lt;span class="n">next&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">do&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">current&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">cursor&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">get&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">next&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">current&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">n&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="o">(!&lt;/span>&lt;span class="n">hasAvailableCapacity&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">gatingSequences&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">n&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">current&lt;/span>&lt;span class="o">))&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">throw&lt;/span> &lt;span class="n">InsufficientCapacityException&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">INSTANCE&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">while&lt;/span> &lt;span class="o">(!&lt;/span>&lt;span class="n">cursor&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">compareAndSet&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">current&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">next&lt;/span>&lt;span class="o">));&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">next&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>通过 do/while 循环的条件 cursor.compareAndSet(current, next)，来判断每次申请的空间是否已经被其他生产者占据。假如已经被占据，该函数会返回失败，While 循环重新执行，申请写入空间。&lt;/p></description></item><item><title>系列设计</title><link>https://ng-tech.icu/books/concurrent-notes/02.%E5%B9%B6%E5%8F%91%E6%A8%A1%E5%9E%8B/%E7%94%9F%E4%BA%A7%E8%80%85%E4%B8%8E%E6%B6%88%E8%B4%B9%E8%80%85/disruptor/%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5/%E7%B3%BB%E5%88%97%E8%AE%BE%E8%AE%A1/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/concurrent-notes/02.%E5%B9%B6%E5%8F%91%E6%A8%A1%E5%9E%8B/%E7%94%9F%E4%BA%A7%E8%80%85%E4%B8%8E%E6%B6%88%E8%B4%B9%E8%80%85/disruptor/%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5/%E7%B3%BB%E5%88%97%E8%AE%BE%E8%AE%A1/</guid><description>&lt;h1 id="disruptor-设计">Disruptor 设计&lt;/h1>
-&lt;p>Disruptor 通过以下设计来解决队列速度慢的问题：&lt;/p>
-&lt;ul>
-&lt;li>环形数组结构：为了避免垃圾回收，采用数组而非链表。同时，数组对处理器的缓存机制更加友好。&lt;/li>
-&lt;li>元素位置定位：数组长度 2^n，通过位运算，加快定位的速度。下标采取递增的形式。不用担心 index 溢出的问题。index 是 long 类型，即使 100 万 QPS 的处理速度，也需要 30 万年才能用完。&lt;/li>
-&lt;li>无锁设计：每个生产者或者消费者线程，会先申请可以操作的元素在数组中的位置，申请到之后，直接在该位置写入或者读取数据。&lt;/li>
-&lt;/ul>
-&lt;h2 id="核心组件">核心组件&lt;/h2>
-&lt;ul>
-&lt;li>RingBuffer: 被看作 Disruptor 最主要的组件，然而从 3.0 开始 RingBuffer 仅仅负责存储和更新在 Disruptor 中流通的数据。对一些特殊的使用场景能够被用户(使用其他数据结构)完全替代。&lt;/li>
-&lt;li>Sequence：Disruptor 使用 Sequence 来表示一个特殊组件处理的序号。和 Disruptor 一样，每个消费者(EventProcessor)都维持着一个 Sequence。大部分的并发代码依赖这些 Sequence 值的运转，因此 Sequence 支持多种当前为 AtomicLong 类的特性。&lt;/li>
-&lt;li>Sequencer：这是 Disruptor 真正的核心。实现了这个接口的两种生产者（单生产者和多生产者）均实现了所有的并发算法，为了在生产者和消费者之间进行准确快速的数据传递。&lt;/li>
-&lt;li>SequenceBarrier: 由 Sequencer 生成，并且包含了已经发布的 Sequence 的引用，这些的 Sequence 源于 Sequencer 和一些独立的消费者的 Sequence。它包含了决定是否有供消费者来消费的 Event 的逻辑。&lt;/li>
-&lt;li>WaitStrategy：决定一个消费者将如何等待生产者将 Event 置入 Disruptor。&lt;/li>
-&lt;li>Event：从生产者到消费者过程中所处理的数据单元。Disruptor 中没有代码表示 Event，因为它完全是由用户定义的。&lt;/li>
-&lt;li>EventProcessor：主要事件循环，处理 Disruptor 中的 Event，并且拥有消费者的 Sequence。它有一个实现类是 BatchEventProcessor，包含了 event loop 有效的实现，并且将回调到一个 EventHandler 接口的实现对象。&lt;/li>
-&lt;li>EventHandler：由用户实现并且代表了 Disruptor 中的一个消费者的接口。&lt;/li>
-&lt;li>Producer：由用户实现，它调用 RingBuffer 来插入事件(Event)，在 Disruptor 中没有相应的实现代码，由用户实现。&lt;/li>
-&lt;li>WorkProcessor：确保每个 sequence 只被一个 processor 消费，在同一个 WorkPool 中的处理多个 WorkProcessor 不会消费同样的 sequence。&lt;/li>
-&lt;li>WorkerPool：一个 WorkProcessor 池，其中 WorkProcessor 将消费 Sequence，所以任务可以在实现 WorkHandler 接口的 worker 吃间移交&lt;/li>
-&lt;li>LifecycleAware：当 BatchEventProcessor 启动和停止时，于实现这个接口用于接收通知。&lt;/li>
-&lt;/ul>
-&lt;h2 id="ringbuffer">RingBuffer&lt;/h2>
-&lt;p>正如名字所说的一样，它是一个环（首尾相接的环），你可以把它用做在不同上下文（线程）间传递数据的 buffer。基本来说，ringbuffer 拥有一个序号，这个序号指向数组中下一个可用元素。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/superbed/2021/07/22/60f93a6d5132923bf801d279.jpg" alt="环示意图" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>Disruptor 说的是生产者和消费者的故事。有一个数组，生产者往里面扔芝麻；消费者从里面捡芝麻。但是扔芝麻和捡芝麻也要考虑速度的问题：&lt;/p>
-&lt;ul>
-&lt;li>消费者捡的比扔的快，那么消费者要停下来。生产者扔了新的芝麻，然后消费者继续。&lt;/li>
-&lt;li>数组的长度是有限的，生产者到末尾的时候会再从数组的开始位置继续。这个时候可能会追上消费者，消费者还没从那个地方捡走芝麻，这个时候生产者要等待消费者捡走芝麻，然后继续。&lt;/li>
-&lt;/ul>
-&lt;p>随着你不停地填充这个 buffer（可能也会有相应的读取），这个序号会一直增长，直到绕过这个环。要找到数组中当前序号指向的元素，可以通过 mod 操作：sequence mod array length = array index（取模操作）以上面的 ringbuffer 为例（java 的 mod 语法）：12 % 10 = 2。很简单吧。&lt;/p>
-&lt;h1 id="java-内置队列的不足">Java 内置队列的不足&lt;/h1>
-&lt;p>PCP 又称 Bounded-Buffer 问题，其核心就是保证对一个 Buffer 的存取操作在多线程环境下不会出错。使用 Java 中的 ArrayBlockingQueue 和 LinkedBlockingQueue 类能轻松的完成 PCP 模型，这对于一般程序已经没问题了，但是对于并发度高、TPS 要求较大的系统则不然。&lt;/p>
-&lt;p>Java 的内置队列如下表所示。&lt;/p>
-&lt;table>
-&lt;thead>
-&lt;tr>
-&lt;th style="text-align:left">队列&lt;/th>
-&lt;th style="text-align:left">有界性&lt;/th>
-&lt;th style="text-align:left">锁&lt;/th>
-&lt;th style="text-align:left">数据结构&lt;/th>
-&lt;/tr>
-&lt;/thead>
-&lt;tbody>
-&lt;tr>
-&lt;td style="text-align:left">ArrayBlockingQueue&lt;/td>
-&lt;td style="text-align:left">bounded&lt;/td>
-&lt;td style="text-align:left">加锁&lt;/td>
-&lt;td style="text-align:left">arraylist&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td style="text-align:left">LinkedBlockingQueue&lt;/td>
-&lt;td style="text-align:left">optionally-bounded&lt;/td>
-&lt;td style="text-align:left">加锁&lt;/td>
-&lt;td style="text-align:left">linkedlist&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td style="text-align:left">ConcurrentLinkedQueue&lt;/td>
-&lt;td style="text-align:left">unbounded&lt;/td>
-&lt;td style="text-align:left">无锁&lt;/td>
-&lt;td style="text-align:left">linkedlist&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td style="text-align:left">LinkedTransferQueue&lt;/td>
-&lt;td style="text-align:left">unbounded&lt;/td>
-&lt;td style="text-align:left">无锁&lt;/td>
-&lt;td style="text-align:left">linkedlist&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td style="text-align:left">PriorityBlockingQueue&lt;/td>
-&lt;td style="text-align:left">unbounded&lt;/td>
-&lt;td style="text-align:left">加锁&lt;/td>
-&lt;td style="text-align:left">heap&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td style="text-align:left">DelayQueue&lt;/td>
-&lt;td style="text-align:left">unbounded&lt;/td>
-&lt;td style="text-align:left">加锁&lt;/td>
-&lt;td style="text-align:left">heap&lt;/td>
-&lt;/tr>
-&lt;/tbody>
-&lt;/table>
-&lt;p>队列的底层一般分成三种：数组、链表和堆。其中，堆一般情况下是为了实现带有优先级特性的队列，暂且不考虑。我们就从数组和链表两种数据结构来看，基于数组线程安全的队列，比较典型的是 ArrayBlockingQueue，它主要通过加锁的方式来保证线程安全；基于链表的线程安全队列分成 LinkedBlockingQueue 和 ConcurrentLinkedQueue 两大类，前者也通过锁的方式来实现线程安全，而后者以及上面表格中的 LinkedTransferQueue 都是通过原子变量 compare and swap（以下简称“CAS”）这种不加锁的方式来实现的。&lt;/p>
-&lt;p>通过不加锁的方式实现的队列都是无界的（无法保证队列的长度在确定的范围内）；而加锁的方式，可以实现有界队列。在稳定性要求特别高的系统中，为了防止生产者速度过快，导致内存溢出，只能选择有界队列；同时，为了减少 Java 的垃圾回收对系统性能的影响，会尽量选择 array/heap 格式的数据结构。这样筛选下来，符合条件的队列就只有 ArrayBlockingQueue。&lt;/p>
-&lt;h2 id="锁的损耗">锁的损耗&lt;/h2>
-&lt;p>BlockingQueue 使用的是 package java.util.concurrent.locks 中实现的锁，当多个线程（例如生产者）同时写入 Queue 时，锁的争抢会导致只有一个生产者可以执行，其他线程都中断了，也就是线程的状态从 RUNNING 切换到 BLOCKED，直到某个生产者线程使用完 Buffer 后释放锁，其他线程状态才从 BLOCKED 切换到 RUNNABLE，然后时间片到其他线程后再进行锁的争抢。上述过程中，一般来说生产者存放一个数据到 Buffer 中所需时间是非常短的，操作系统切换线程上下文的速度也是非常快的，但是当线程数量增多后，OS 切换线程所带来的开销逐渐增多，锁的反复申请和释放成为性能瓶颈。BlockingQueue 除了使用锁带来的性能损失外，还可能因为线程争抢的顺序问题造成性能再次损失：实际使用中发现线程的调度顺序并不理想，可能出现短时间内 OS 频繁调度出生产者或消费者的情况，这样造成缓冲区可能短时间内被填满或被清空的极端情况。（理想情况应该是缓冲区长度适中，生产和消费速度基本一致）&lt;/p>
-&lt;p>下面是 ArrayBlockingQueue 通过加锁的方式实现的 offer 方法，保证线程安全。&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kt">boolean&lt;/span> &lt;span class="nf">offer&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">E&lt;/span> &lt;span class="n">e&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">checkNotNull&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">e&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">final&lt;/span> &lt;span class="n">ReentrantLock&lt;/span> &lt;span class="n">lock&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">this&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">lock&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">lock&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">lock&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">try&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">count&lt;/span> &lt;span class="o">==&lt;/span> &lt;span class="n">items&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">length&lt;/span>&lt;span class="o">)&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="kc">false&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">else&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">insert&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">e&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="kc">true&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span> &lt;span class="k">finally&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">lock&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">unlock&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>对于上面的问题 Disruptor 的解决方案是：不用锁。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/superbed/2021/07/22/60f93c775132923bf80710d4.jpg" alt="环示意图" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>Disruptor 使用一个 Ring Buffer 存放生产者的产品，环形缓冲区实际上还是一段连续内存，之所以称作环形是因为它对数据存放位置的处理，生产者和消费者各有一个指针（数组下标），消费者的指针指向下一个要读取的 Slot，生产者指针指向下一个要放入的 Slot，消费或生产后，各自的指针值 p = (p +1) % n，n 是缓冲区长度，这样指针在缓冲区上反复游走，故可以将缓冲区看成环状。（Ring Buffer 并非 Disruptor 原创，Linux 内核中就有环形缓冲区的实现）使用 Ring Buffer 时：&lt;/p>
-&lt;ul>
-&lt;li>当生产者和消费者都只有一个时，由于两个线程分别操作不同的指针，所以不需要锁。&lt;/li>
-&lt;li>当有多个消费者时，每个消费者各自控制自己的指针，依次读取每个 Slot（也就是每个消费者都会读取到所有的产品），这时只需要保证生产者指针不会超过最慢的消费者（超过最后一个消费者“一圈”）即可，也不需要锁。&lt;/li>
-&lt;li>当有多个生产者时，多个线程共用一个写指针，此处需要考虑多线程问题，例如两个生产者线程同时写数据，当前写指针=0，运行后其中一个线程应获得缓冲区 0 号 Slot，另一个应该获得 1 号，写指针=2。对于这种情况，Disruptor 使用 CAS 来保证多线程安全。&lt;/li>
-&lt;/ul>
-&lt;h2 id="伪共享">伪共享&lt;/h2>
-&lt;p>ArrayBlockingQueue 有三个成员变量：&lt;/p>
-&lt;ul>
-&lt;li>takeIndex：需要被取走的元素下标&lt;/li>
-&lt;li>putIndex：可被元素插入的位置的下标&lt;/li>
-&lt;li>count：队列中元素的数量&lt;/li>
-&lt;/ul>
-&lt;p>这三个变量很容易放到一个缓存行中，但是之间修改没有太多的关联。所以每次修改，都会使之前缓存的数据失效，从而不能完全达到共享的效果。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://assets.ng-tech.icu/superbed/2021/07/22/60f933c45132923bf8ed2e36.jpg" alt="ArrayBlockingQueue 伪共享示意图" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>如上图所示，当生产者线程 put 一个元素到 ArrayBlockingQueue 时，putIndex 会修改，从而导致消费者线程的缓存中的缓存行无效，需要从主存中重新读取。这种无法充分使用缓存行特性的现象，称为伪共享。解决伪共享问题，可以在变量的前后都占据一定的填充位置，尽量让变量占用一个完整的缓存行。CPU1 上的线程更新了 X，则 CPU2 上的 Y 则不会失效。同样地，CPU2 上的线程更新了 Y，则 CPU1 的不会失效。&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">class&lt;/span> &lt;span class="nc">LhsPadding&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">protected&lt;/span> &lt;span class="kt">long&lt;/span> &lt;span class="n">p1&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">p2&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">p3&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">p4&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">p5&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">p6&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">p7&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">class&lt;/span> &lt;span class="nc">Value&lt;/span> &lt;span class="kd">extends&lt;/span> &lt;span class="n">LhsPadding&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">protected&lt;/span> &lt;span class="kd">volatile&lt;/span> &lt;span class="kt">long&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">class&lt;/span> &lt;span class="nc">RhsPadding&lt;/span> &lt;span class="kd">extends&lt;/span> &lt;span class="n">Value&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">protected&lt;/span> &lt;span class="kt">long&lt;/span> &lt;span class="n">p9&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">p10&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">p11&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">p12&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">p13&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">p14&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">p15&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm">/**
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * &amp;lt;p&amp;gt;Concurrent sequence class used for tracking the progress of
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * the ring buffer and event processors. Support a number
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * of concurrent operations including CAS and order writes.
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> *
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * &amp;lt;p&amp;gt;Also attempts to be more efficient with regards to false
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> * sharing by adding padding around the volatile field.
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cm"> */&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">Sequence&lt;/span> &lt;span class="kd">extends&lt;/span> &lt;span class="n">RhsPadding&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">static&lt;/span> &lt;span class="kd">final&lt;/span> &lt;span class="kt">long&lt;/span> &lt;span class="n">INITIAL_VALUE&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="mi">1L&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kd">final&lt;/span> &lt;span class="n">Unsafe&lt;/span> &lt;span class="n">UNSAFE&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">private&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kd">final&lt;/span> &lt;span class="kt">long&lt;/span> &lt;span class="n">VALUE_OFFSET&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">static&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">UNSAFE&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">Util&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getUnsafe&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">try&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">VALUE_OFFSET&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">UNSAFE&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">objectFieldOffset&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">Value&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">class&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getDeclaredField&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;value&amp;#34;&lt;/span>&lt;span class="o">));&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">catch&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="kd">final&lt;/span> &lt;span class="n">Exception&lt;/span> &lt;span class="n">e&lt;/span>&lt;span class="o">)&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">throw&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">RuntimeException&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">e&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// ... ...
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>在 Sequence 的实现中，主要使用的是 Value，但通过 LhsPadding 和 RhsPadding 在 Value 的前后填充了一些空间，使 Value 无冲突的存在于缓存行中。&lt;/p></description></item></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>设计理念 | Next-gen Tech Edu</title>
+    <link>https://ng-tech.icu/books/concurrent-notes/02.%E5%B9%B6%E5%8F%91%E6%A8%A1%E5%9E%8B/%E7%94%9F%E4%BA%A7%E8%80%85%E4%B8%8E%E6%B6%88%E8%B4%B9%E8%80%85/disruptor/%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5/</link>
+      <atom:link href="https://ng-tech.icu/books/concurrent-notes/02.%E5%B9%B6%E5%8F%91%E6%A8%A1%E5%9E%8B/%E7%94%9F%E4%BA%A7%E8%80%85%E4%B8%8E%E6%B6%88%E8%B4%B9%E8%80%85/disruptor/%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5/index.xml" rel="self" type="application/rss+xml" />
+    <description>设计理念</description>
+    <generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language>
+    <image>
+      <url>https://ng-tech.icu/media/sharing.png</url>
+      <title>设计理念</title>
+      <link>https://ng-tech.icu/books/concurrent-notes/02.%E5%B9%B6%E5%8F%91%E6%A8%A1%E5%9E%8B/%E7%94%9F%E4%BA%A7%E8%80%85%E4%B8%8E%E6%B6%88%E8%B4%B9%E8%80%85/disruptor/%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5/</link>
+    </image>
+    
+    <item>
+      <title>生产与消费流程</title>
+      <link>https://ng-tech.icu/books/concurrent-notes/02.%E5%B9%B6%E5%8F%91%E6%A8%A1%E5%9E%8B/%E7%94%9F%E4%BA%A7%E8%80%85%E4%B8%8E%E6%B6%88%E8%B4%B9%E8%80%85/disruptor/%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5/%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9%E6%B5%81%E7%A8%8B/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/concurrent-notes/02.%E5%B9%B6%E5%8F%91%E6%A8%A1%E5%9E%8B/%E7%94%9F%E4%BA%A7%E8%80%85%E4%B8%8E%E6%B6%88%E8%B4%B9%E8%80%85/disruptor/%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5/%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9%E6%B5%81%E7%A8%8B/</guid>
+      <description>&lt;h1 id=&#34;生产者&#34;&gt;生产者&lt;/h1&gt;
+&lt;p&gt;下面忽略数组的环形结构，介绍一下如何实现无锁设计。整个过程通过原子变量 CAS，保证操作的线程安全。&lt;/p&gt;
+&lt;h2 id=&#34;单个生产者&#34;&gt;单个生产者&lt;/h2&gt;
+&lt;p&gt;生产者单线程写数据的流程比较简单：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;申请写入 m 个元素；&lt;/li&gt;
+&lt;li&gt;若是有 m 个元素可以入，则返回最大的序列号。这儿主要判断是否会覆盖未读的元素；&lt;/li&gt;
+&lt;li&gt;若是返回的正确，则生产者开始写入元素。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://assets.ng-tech.icu/superbed/2021/07/22/60f934b05132923bf8f0058b.jpg&#34; alt=&#34;单个生产者生产过程示意图&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;h2 id=&#34;多个生产者&#34;&gt;多个生产者&lt;/h2&gt;
+&lt;p&gt;多个生产者的情况下，会遇到“如何防止多个线程重复写同一个元素”的问题。Disruptor 的解决方法是，每个线程获取不同的一段数组空间进行操作。这个通过 CAS 很容易达到。只需要在分配元素的时候，通过 CAS 判断一下这段空间是否已经分配出去即可。&lt;/p&gt;
+&lt;p&gt;但是会遇到一个新问题：如何防止读取的时候，读到还未写的元素。Disruptor 在多个生产者的情况下，引入了一个与 Ring Buffer 大小相同的 buffer：available Buffer。当某个位置写入成功的时候，便把 availble Buffer 相应的位置置位，标记为写入成功。读取的时候，会遍历 available Buffer，来判断元素是否已经就绪。&lt;/p&gt;
+&lt;h3 id=&#34;读数据&#34;&gt;读数据&lt;/h3&gt;
+&lt;p&gt;消费者多线程读取的情况会复杂很多：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;申请读取到序号 n；&lt;/li&gt;
+&lt;li&gt;若 writer cursor &amp;gt;= n，这时仍然无法确定连续可读的最大下标。从 reader cursor 开始读取 available Buffer，一直查到第一个不可用的元素，然后返回最大连续可读元素的位置；&lt;/li&gt;
+&lt;li&gt;消费者读取元素。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;如下图所示，读线程读到下标为 2 的元素，三个线程 Writer1/Writer2/Writer3 正在向 RingBuffer 相应位置写数据，写线程被分配到的最大元素下标是 11。读线程申请读取到下标从 3 到 11 的元素，判断 writer cursor&amp;gt;=11。然后开始读取 availableBuffer，从 3 开始，往后读取，发现下标为 7 的元素没有生产成功，于是 WaitFor(11)返回 6。&lt;/p&gt;
+&lt;p&gt;然后，消费者读取下标从 3 到 6 共计 4 个元素。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://assets.ng-tech.icu/superbed/2021/07/22/60f936b65132923bf8f65818.jpg&#34; alt=&#34;多个生产者情况下，消费者消费过程示意图&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;h3 id=&#34;写数据&#34;&gt;写数据&lt;/h3&gt;
+&lt;p&gt;多个生产者写入的时候：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;申请写入 m 个元素；&lt;/li&gt;
+&lt;li&gt;若是有 m 个元素可以写入，则返回最大的序列号。每个生产者会被分配一段独享的空间；&lt;/li&gt;
+&lt;li&gt;生产者写入元素，写入元素的同时设置 available Buffer 里面相应的位置，以标记自己哪些位置是已经写入成功的。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;如下图所示，Writer1 和 Writer2 两个线程写入数组，都申请可写的数组空间。Writer1 被分配了下标 3 到下表 5 的空间，Writer2 被分配了下标 6 到下标 9 的空间。Writer1 写入下标 3 位置的元素，同时把 available Buffer 相应位置置位，标记已经写入成功，往后移一位，开始写下标 4 位置的元素。Writer2 同样的方式。最终都写入完成。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://assets.ng-tech.icu/superbed/2021/07/22/60f936df5132923bf8f6ef18.jpg&#34; alt=&#34;多个生产者情况下，生产者生产过程示意图&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;防止不同生产者对同一段空间写入的代码，如下所示：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;long&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;tryNext&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;kt&#34;&gt;int&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;n&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;throws&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;InsufficientCapacityException&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;n&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;throw&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;IllegalArgumentException&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;n must be &amp;gt; 0&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kt&#34;&gt;long&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;current&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kt&#34;&gt;long&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;next&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;do&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;n&#34;&gt;current&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;cursor&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;get&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;n&#34;&gt;next&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;current&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;+&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;n&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(!&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;hasAvailableCapacity&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;gatingSequences&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;n&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;current&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;))&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;k&#34;&gt;throw&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;InsufficientCapacityException&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;INSTANCE&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;while&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(!&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;cursor&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;compareAndSet&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;current&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;next&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;));&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;next&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;通过 do/while 循环的条件 cursor.compareAndSet(current, next)，来判断每次申请的空间是否已经被其他生产者占据。假如已经被占据，该函数会返回失败，While 循环重新执行，申请写入空间。&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>系列设计</title>
+      <link>https://ng-tech.icu/books/concurrent-notes/02.%E5%B9%B6%E5%8F%91%E6%A8%A1%E5%9E%8B/%E7%94%9F%E4%BA%A7%E8%80%85%E4%B8%8E%E6%B6%88%E8%B4%B9%E8%80%85/disruptor/%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5/%E7%B3%BB%E5%88%97%E8%AE%BE%E8%AE%A1/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/concurrent-notes/02.%E5%B9%B6%E5%8F%91%E6%A8%A1%E5%9E%8B/%E7%94%9F%E4%BA%A7%E8%80%85%E4%B8%8E%E6%B6%88%E8%B4%B9%E8%80%85/disruptor/%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5/%E7%B3%BB%E5%88%97%E8%AE%BE%E8%AE%A1/</guid>
+      <description>&lt;h1 id=&#34;disruptor-设计&#34;&gt;Disruptor 设计&lt;/h1&gt;
+&lt;p&gt;Disruptor 通过以下设计来解决队列速度慢的问题：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;环形数组结构：为了避免垃圾回收，采用数组而非链表。同时，数组对处理器的缓存机制更加友好。&lt;/li&gt;
+&lt;li&gt;元素位置定位：数组长度 2^n，通过位运算，加快定位的速度。下标采取递增的形式。不用担心 index 溢出的问题。index 是 long 类型，即使 100 万 QPS 的处理速度，也需要 30 万年才能用完。&lt;/li&gt;
+&lt;li&gt;无锁设计：每个生产者或者消费者线程，会先申请可以操作的元素在数组中的位置，申请到之后，直接在该位置写入或者读取数据。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;核心组件&#34;&gt;核心组件&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;RingBuffer: 被看作 Disruptor 最主要的组件，然而从 3.0 开始 RingBuffer 仅仅负责存储和更新在 Disruptor 中流通的数据。对一些特殊的使用场景能够被用户(使用其他数据结构)完全替代。&lt;/li&gt;
+&lt;li&gt;Sequence：Disruptor 使用 Sequence 来表示一个特殊组件处理的序号。和 Disruptor 一样，每个消费者(EventProcessor)都维持着一个 Sequence。大部分的并发代码依赖这些 Sequence 值的运转，因此 Sequence 支持多种当前为 AtomicLong 类的特性。&lt;/li&gt;
+&lt;li&gt;Sequencer：这是 Disruptor 真正的核心。实现了这个接口的两种生产者（单生产者和多生产者）均实现了所有的并发算法，为了在生产者和消费者之间进行准确快速的数据传递。&lt;/li&gt;
+&lt;li&gt;SequenceBarrier: 由 Sequencer 生成，并且包含了已经发布的 Sequence 的引用，这些的 Sequence 源于 Sequencer 和一些独立的消费者的 Sequence。它包含了决定是否有供消费者来消费的 Event 的逻辑。&lt;/li&gt;
+&lt;li&gt;WaitStrategy：决定一个消费者将如何等待生产者将 Event 置入 Disruptor。&lt;/li&gt;
+&lt;li&gt;Event：从生产者到消费者过程中所处理的数据单元。Disruptor 中没有代码表示 Event，因为它完全是由用户定义的。&lt;/li&gt;
+&lt;li&gt;EventProcessor：主要事件循环，处理 Disruptor 中的 Event，并且拥有消费者的 Sequence。它有一个实现类是 BatchEventProcessor，包含了 event loop 有效的实现，并且将回调到一个 EventHandler 接口的实现对象。&lt;/li&gt;
+&lt;li&gt;EventHandler：由用户实现并且代表了 Disruptor 中的一个消费者的接口。&lt;/li&gt;
+&lt;li&gt;Producer：由用户实现，它调用 RingBuffer 来插入事件(Event)，在 Disruptor 中没有相应的实现代码，由用户实现。&lt;/li&gt;
+&lt;li&gt;WorkProcessor：确保每个 sequence 只被一个 processor 消费，在同一个 WorkPool 中的处理多个 WorkProcessor 不会消费同样的 sequence。&lt;/li&gt;
+&lt;li&gt;WorkerPool：一个 WorkProcessor 池，其中 WorkProcessor 将消费 Sequence，所以任务可以在实现 WorkHandler 接口的 worker 吃间移交&lt;/li&gt;
+&lt;li&gt;LifecycleAware：当 BatchEventProcessor 启动和停止时，于实现这个接口用于接收通知。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;ringbuffer&#34;&gt;RingBuffer&lt;/h2&gt;
+&lt;p&gt;正如名字所说的一样，它是一个环（首尾相接的环），你可以把它用做在不同上下文（线程）间传递数据的 buffer。基本来说，ringbuffer 拥有一个序号，这个序号指向数组中下一个可用元素。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://assets.ng-tech.icu/superbed/2021/07/22/60f93a6d5132923bf801d279.jpg&#34; alt=&#34;环示意图&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;Disruptor 说的是生产者和消费者的故事。有一个数组，生产者往里面扔芝麻；消费者从里面捡芝麻。但是扔芝麻和捡芝麻也要考虑速度的问题：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;消费者捡的比扔的快，那么消费者要停下来。生产者扔了新的芝麻，然后消费者继续。&lt;/li&gt;
+&lt;li&gt;数组的长度是有限的，生产者到末尾的时候会再从数组的开始位置继续。这个时候可能会追上消费者，消费者还没从那个地方捡走芝麻，这个时候生产者要等待消费者捡走芝麻，然后继续。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;随着你不停地填充这个 buffer（可能也会有相应的读取），这个序号会一直增长，直到绕过这个环。要找到数组中当前序号指向的元素，可以通过 mod 操作：sequence mod array length = array index（取模操作）以上面的 ringbuffer 为例（java 的 mod 语法）：12 % 10 = 2。很简单吧。&lt;/p&gt;
+&lt;h1 id=&#34;java-内置队列的不足&#34;&gt;Java 内置队列的不足&lt;/h1&gt;
+&lt;p&gt;PCP 又称 Bounded-Buffer 问题，其核心就是保证对一个 Buffer 的存取操作在多线程环境下不会出错。使用 Java 中的 ArrayBlockingQueue 和 LinkedBlockingQueue 类能轻松的完成 PCP 模型，这对于一般程序已经没问题了，但是对于并发度高、TPS 要求较大的系统则不然。&lt;/p&gt;
+&lt;p&gt;Java 的内置队列如下表所示。&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th style=&#34;text-align:left&#34;&gt;队列&lt;/th&gt;
+&lt;th style=&#34;text-align:left&#34;&gt;有界性&lt;/th&gt;
+&lt;th style=&#34;text-align:left&#34;&gt;锁&lt;/th&gt;
+&lt;th style=&#34;text-align:left&#34;&gt;数据结构&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;ArrayBlockingQueue&lt;/td&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;bounded&lt;/td&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;加锁&lt;/td&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;arraylist&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;LinkedBlockingQueue&lt;/td&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;optionally-bounded&lt;/td&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;加锁&lt;/td&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;linkedlist&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;ConcurrentLinkedQueue&lt;/td&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;unbounded&lt;/td&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;无锁&lt;/td&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;linkedlist&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;LinkedTransferQueue&lt;/td&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;unbounded&lt;/td&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;无锁&lt;/td&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;linkedlist&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;PriorityBlockingQueue&lt;/td&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;unbounded&lt;/td&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;加锁&lt;/td&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;heap&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;DelayQueue&lt;/td&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;unbounded&lt;/td&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;加锁&lt;/td&gt;
+&lt;td style=&#34;text-align:left&#34;&gt;heap&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;队列的底层一般分成三种：数组、链表和堆。其中，堆一般情况下是为了实现带有优先级特性的队列，暂且不考虑。我们就从数组和链表两种数据结构来看，基于数组线程安全的队列，比较典型的是 ArrayBlockingQueue，它主要通过加锁的方式来保证线程安全；基于链表的线程安全队列分成 LinkedBlockingQueue 和 ConcurrentLinkedQueue 两大类，前者也通过锁的方式来实现线程安全，而后者以及上面表格中的 LinkedTransferQueue 都是通过原子变量 compare and swap（以下简称“CAS”）这种不加锁的方式来实现的。&lt;/p&gt;
+&lt;p&gt;通过不加锁的方式实现的队列都是无界的（无法保证队列的长度在确定的范围内）；而加锁的方式，可以实现有界队列。在稳定性要求特别高的系统中，为了防止生产者速度过快，导致内存溢出，只能选择有界队列；同时，为了减少 Java 的垃圾回收对系统性能的影响，会尽量选择 array/heap 格式的数据结构。这样筛选下来，符合条件的队列就只有 ArrayBlockingQueue。&lt;/p&gt;
+&lt;h2 id=&#34;锁的损耗&#34;&gt;锁的损耗&lt;/h2&gt;
+&lt;p&gt;BlockingQueue 使用的是 package java.util.concurrent.locks 中实现的锁，当多个线程（例如生产者）同时写入 Queue 时，锁的争抢会导致只有一个生产者可以执行，其他线程都中断了，也就是线程的状态从 RUNNING 切换到 BLOCKED，直到某个生产者线程使用完 Buffer 后释放锁，其他线程状态才从 BLOCKED 切换到 RUNNABLE，然后时间片到其他线程后再进行锁的争抢。上述过程中，一般来说生产者存放一个数据到 Buffer 中所需时间是非常短的，操作系统切换线程上下文的速度也是非常快的，但是当线程数量增多后，OS 切换线程所带来的开销逐渐增多，锁的反复申请和释放成为性能瓶颈。BlockingQueue 除了使用锁带来的性能损失外，还可能因为线程争抢的顺序问题造成性能再次损失：实际使用中发现线程的调度顺序并不理想，可能出现短时间内 OS 频繁调度出生产者或消费者的情况，这样造成缓冲区可能短时间内被填满或被清空的极端情况。（理想情况应该是缓冲区长度适中，生产和消费速度基本一致）&lt;/p&gt;
+&lt;p&gt;下面是 ArrayBlockingQueue 通过加锁的方式实现的 offer 方法，保证线程安全。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;boolean&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;offer&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;E&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;e&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;checkNotNull&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;e&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kd&#34;&gt;final&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;ReentrantLock&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;lock&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;this&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;lock&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;lock&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;lock&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;try&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;count&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;==&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;items&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;length&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;kc&#34;&gt;false&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;else&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;n&#34;&gt;insert&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;e&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;kc&#34;&gt;true&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;finally&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;n&#34;&gt;lock&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;unlock&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;对于上面的问题 Disruptor 的解决方案是：不用锁。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://assets.ng-tech.icu/superbed/2021/07/22/60f93c775132923bf80710d4.jpg&#34; alt=&#34;环示意图&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;Disruptor 使用一个 Ring Buffer 存放生产者的产品，环形缓冲区实际上还是一段连续内存，之所以称作环形是因为它对数据存放位置的处理，生产者和消费者各有一个指针（数组下标），消费者的指针指向下一个要读取的 Slot，生产者指针指向下一个要放入的 Slot，消费或生产后，各自的指针值 p = (p +1) % n，n 是缓冲区长度，这样指针在缓冲区上反复游走，故可以将缓冲区看成环状。（Ring Buffer 并非 Disruptor 原创，Linux 内核中就有环形缓冲区的实现）使用 Ring Buffer 时：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;当生产者和消费者都只有一个时，由于两个线程分别操作不同的指针，所以不需要锁。&lt;/li&gt;
+&lt;li&gt;当有多个消费者时，每个消费者各自控制自己的指针，依次读取每个 Slot（也就是每个消费者都会读取到所有的产品），这时只需要保证生产者指针不会超过最慢的消费者（超过最后一个消费者“一圈”）即可，也不需要锁。&lt;/li&gt;
+&lt;li&gt;当有多个生产者时，多个线程共用一个写指针，此处需要考虑多线程问题，例如两个生产者线程同时写数据，当前写指针=0，运行后其中一个线程应获得缓冲区 0 号 Slot，另一个应该获得 1 号，写指针=2。对于这种情况，Disruptor 使用 CAS 来保证多线程安全。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;伪共享&#34;&gt;伪共享&lt;/h2&gt;
+&lt;p&gt;ArrayBlockingQueue 有三个成员变量：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;takeIndex：需要被取走的元素下标&lt;/li&gt;
+&lt;li&gt;putIndex：可被元素插入的位置的下标&lt;/li&gt;
+&lt;li&gt;count：队列中元素的数量&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这三个变量很容易放到一个缓存行中，但是之间修改没有太多的关联。所以每次修改，都会使之前缓存的数据失效，从而不能完全达到共享的效果。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://assets.ng-tech.icu/superbed/2021/07/22/60f933c45132923bf8ed2e36.jpg&#34; alt=&#34;ArrayBlockingQueue 伪共享示意图&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;如上图所示，当生产者线程 put 一个元素到 ArrayBlockingQueue 时，putIndex 会修改，从而导致消费者线程的缓存中的缓存行无效，需要从主存中重新读取。这种无法充分使用缓存行特性的现象，称为伪共享。解决伪共享问题，可以在变量的前后都占据一定的填充位置，尽量让变量占用一个完整的缓存行。CPU1 上的线程更新了 X，则 CPU2 上的 Y 则不会失效。同样地，CPU2 上的线程更新了 Y，则 CPU1 的不会失效。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;class&lt;/span&gt; &lt;span class=&#34;nc&#34;&gt;LhsPadding&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kd&#34;&gt;protected&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;long&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;p1&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;p2&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;p3&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;p4&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;p5&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;p6&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;p7&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;class&lt;/span&gt; &lt;span class=&#34;nc&#34;&gt;Value&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;extends&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;LhsPadding&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kd&#34;&gt;protected&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;volatile&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;long&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;value&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;class&lt;/span&gt; &lt;span class=&#34;nc&#34;&gt;RhsPadding&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;extends&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Value&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kd&#34;&gt;protected&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;long&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;p9&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;p10&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;p11&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;p12&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;p13&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;p14&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;p15&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;cm&#34;&gt;/**
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;cm&#34;&gt; * &amp;lt;p&amp;gt;Concurrent sequence class used for tracking the progress of
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;cm&#34;&gt; * the ring buffer and event processors.  Support a number
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;cm&#34;&gt; * of concurrent operations including CAS and order writes.
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;cm&#34;&gt; *
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;cm&#34;&gt; * &amp;lt;p&amp;gt;Also attempts to be more efficient with regards to false
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;cm&#34;&gt; * sharing by adding padding around the volatile field.
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;cm&#34;&gt; */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;class&lt;/span&gt; &lt;span class=&#34;nc&#34;&gt;Sequence&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;extends&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;RhsPadding&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kd&#34;&gt;static&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;final&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;long&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;INITIAL_VALUE&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;-&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1L&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kd&#34;&gt;private&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;static&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;final&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Unsafe&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;UNSAFE&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kd&#34;&gt;private&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;static&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;final&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;long&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;VALUE_OFFSET&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kd&#34;&gt;static&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;n&#34;&gt;UNSAFE&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Util&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;getUnsafe&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;try&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;n&#34;&gt;VALUE_OFFSET&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;UNSAFE&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;objectFieldOffset&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Value&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;class&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;getDeclaredField&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;value&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;));&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;catch&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;kd&#34;&gt;final&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Exception&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;e&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;k&#34;&gt;throw&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;RuntimeException&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;e&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;c1&#34;&gt;// ... ...
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;在 Sequence 的实现中，主要使用的是 Value，但通过 LhsPadding 和 RhsPadding 在 Value 的前后填充了一些空间，使 Value 无冲突的存在于缓存行中。&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

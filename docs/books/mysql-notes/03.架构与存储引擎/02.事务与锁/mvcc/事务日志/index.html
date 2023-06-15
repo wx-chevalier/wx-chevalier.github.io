@@ -1,28 +1,1278 @@
-<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="事务日志 当提交一个事务时，InnoDB 首先会把事务写入日志缓冲（Log buffer），日志缓冲把事务刷新到事务日志；然后存储引擎再把事务写入缓冲池（Buffer Pool）。由此可见，InnoDB 通过事"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/mvcc/%E4%BA%8B%E5%8A%A1%E6%97%A5%E5%BF%97/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.fab3cd1900ae35687457073b2d518207.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/mvcc/%E4%BA%8B%E5%8A%A1%E6%97%A5%E5%BF%97/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/mvcc/%E4%BA%8B%E5%8A%A1%E6%97%A5%E5%BF%97/"><meta property="og:title" content="事务日志 | Next-gen Tech Edu"><meta property="og:description" content="事务日志 当提交一个事务时，InnoDB 首先会把事务写入日志缓冲（Log buffer），日志缓冲把事务刷新到事务日志；然后存储引擎再把事务写入缓冲池（Buffer Pool）。由此可见，InnoDB 通过事"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>事务日志 | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=c9ce64015ca7957644a1e9446c487213><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
-<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
-<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
-<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
-<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
-<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">MVCC</span>
-<span><i class="fas fa-chevron-down"></i></span></div></button>
-<button class="form-control sidebar-search js-search d-none d-md-flex">
-<i class="fas fa-search pr-2"></i>
-<span class=sidebar-search-text>搜索...</span>
-<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
-Back</a>
-<span>|</span>
-<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
-Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id3b367c64c11f659d2b10742a90cae3ed")' href=#id3b367c64c11f659d2b10742a90cae3ed aria-expanded=false aria-controls=id3b367c64c11f659d2b10742a90cae3ed aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/>02.事务与锁</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id3b367c64c11f659d2b10742a90cae3ed aria-expanded=false aria-controls=id3b367c64c11f659d2b10742a90cae3ed><i class="fa-solid fa-angle-down" id=caret-id3b367c64c11f659d2b10742a90cae3ed></i></a></div><ul class="nav docs-sidenav collapse show" id=id3b367c64c11f659d2b10742a90cae3ed><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idf0528a91ba8933461ae41cd83af8172c")' href=#idf0528a91ba8933461ae41cd83af8172c aria-expanded=false aria-controls=idf0528a91ba8933461ae41cd83af8172c aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/mvcc/>MVCC</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idf0528a91ba8933461ae41cd83af8172c aria-expanded=false aria-controls=idf0528a91ba8933461ae41cd83af8172c><i class="fa-solid fa-angle-down" id=caret-idf0528a91ba8933461ae41cd83af8172c></i></a></div><ul class="nav docs-sidenav collapse show" id=idf0528a91ba8933461ae41cd83af8172c><li class="child level"><a href=/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/mvcc/mvcc-%E5%AE%9E%E7%8E%B0/>MVCC 实现</a></li><li class="child level active"><a href=/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/mvcc/%E4%BA%8B%E5%8A%A1%E6%97%A5%E5%BF%97/>事务日志</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id96b66c61e567dc331e6bc0f0834ed35e")' href=#id96b66c61e567dc331e6bc0f0834ed35e aria-expanded=false aria-controls=id96b66c61e567dc331e6bc0f0834ed35e aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/%E9%94%81/>锁</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id96b66c61e567dc331e6bc0f0834ed35e aria-expanded=false aria-controls=id96b66c61e567dc331e6bc0f0834ed35e><i class="fa-solid fa-angle-right" id=caret-id96b66c61e567dc331e6bc0f0834ed35e></i></a></div><ul class="nav docs-sidenav collapse" id=id96b66c61e567dc331e6bc0f0834ed35e><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id5aefdd349fbcb2945298df9b10288ac2")' href=#id5aefdd349fbcb2945298df9b10288ac2 aria-expanded=false aria-controls=id5aefdd349fbcb2945298df9b10288ac2 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/%E9%94%81/01.mysql-%E9%94%81%E5%88%86%E7%B1%BB/>01.MySQL 锁分类</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id5aefdd349fbcb2945298df9b10288ac2 aria-expanded=false aria-controls=id5aefdd349fbcb2945298df9b10288ac2><i class="fa-solid fa-angle-right" id=caret-id5aefdd349fbcb2945298df9b10288ac2></i></a></div><ul class="nav docs-sidenav collapse" id=id5aefdd349fbcb2945298df9b10288ac2><li class="child level"><a href=/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/%E9%94%81/01.mysql-%E9%94%81%E5%88%86%E7%B1%BB/%E4%B8%8D%E5%90%8C%E8%8C%83%E5%9B%B4%E7%9A%84%E9%94%81/>不同范围的锁</a></li></ul></div><li class="child level"><a href=/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/%E9%94%81/innodb-%E5%8A%A0%E9%94%81%E6%B5%81%E7%A8%8B%E6%B5%85%E6%9E%90/>InnoDB 加锁流程浅析</a></li><li class="child level"><a href=/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/%E9%94%81/%E5%85%B1%E4%BA%AB%E9%94%81%E4%B8%8E%E6%8E%92%E4%BB%96%E9%94%81/>共享锁与排他锁</a></li><li class="child level"><a href=/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/%E9%94%81/%E6%AD%BB%E9%94%81/>死锁</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>事务日志</h1><div class=article-style><h1 id=事务日志>事务日志</h1><p>当提交一个事务时，InnoDB 首先会把事务写入日志缓冲（Log buffer），日志缓冲把事务刷新到事务日志；然后存储引擎再把事务写入缓冲池（Buffer Pool）。由此可见，InnoDB 通过事务日志把随机 IO 变成顺序 IO,这大大的提高了 InnoDB 写入时的性能。因为把缓冲池的脏页数据刷新到磁盘可能会涉及大量随机 IO,这些随机 IO 会非常慢，通过事务日志，避开随机 IO，用顺序 IO 替代它。</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/20230416205646.png alt loading=lazy data-zoomable></div></div></figure></p><p>Innodb 日志是环行方式写的：当写到日志的尾部，会重新跳转到开头继续写，但不会覆盖还没应用到数据文件的日志记录，因为这样会清理掉已提交事务的唯一持久化记录。日志文件太小，InnoDB 将必须做更多的检查点，导致更多的日志写，在日志没有空间继续写入前，必须等待变更被应用到数据文件，写语句可能会被拖累。但日志文件太大，在崩溃恢复时 InnoDB 可能不得不做大量的工作，增加恢复时间。应该在这之间找到平衡，设置合适的日志大小。</p><h1 id=redo-log>Redo Log</h1><p>InnoDB 在更新数据的时候会采用 WAL 技术，也就是 Write Ahead Logging，这个日志就是 Redo Log 用来保证数据库宕机后可以通过该文件进行恢复。这个文件一般只会顺序写，只有在数据库启动的时候才会读取 Redo Log 文件看是否需要进行恢复。该文件记录了对某个数据页的物理操作，例如某个 SQL 把某一行的某个列的值改为 10，对应的 Redo Log 文件格式可能为：把第 5 个数据页中偏移量为 99 的位置写入一个值 10。Redo Log 不是无限大的，他的大小是可以配置的，并且是循环使用的，例如配置大小为 4G，一共 4 个文件，每个文件 1G。</p><p>Redo Log 中，存储引擎首先会从第一个文件开始顺序写，写到第四个文件后在从第一个文件开始写，类似一个环，用一个后台线程把 Redo Log 里的数据同步到聚簇索引上的数据页上。首先写入 Redo Log 的时候不能将没有同步到数据页上的记录覆盖，如果碰到这种情况会停下来先进行数据页同步然后在继续写入 Redo Log。另外执行更新操作的时候，会先更新缓冲池里的数据页，然后写入 Redo Log，这个时候真正存储数据的地方还没有更新，也就是说这时候缓冲池中的数据页和磁盘不一致，这种数据页称为脏页，当脏页由于内存不足或者其他原因需要丢弃的时候，一定要先将该脏页对应的 Redo Log 刷新到磁盘里的真实数据页，不然下次查询的时候由于 Redo Log 没有同步到磁盘，而查询直接通过索引定位到数据页就会查询出脏数据。</p><p>更新的时候先从磁盘或者缓冲池中读取对应的数据页，然后对数据页里的数据进行更改并生成 Redo Log 到对应的缓冲池（redolog buffer）进行缓存，当事务提交的时候将缓存写入到 Redo Log 的物理磁盘文件上。这里由于操作系统的文件写入 InnoDB 并没有使用 O_DIRECT 直接写入到文件，为了保证性能而是先写入操作系统的缓存，之后在进行 flush，所以事务提交的时候 InnoDB 需要在调用一次 fsync 的系统调用来确保数据落盘。</p><p>为了提高性能 InnoDB 可以通过参数 innodb_flush_log_at_trx_commit 来控制事务提交时是否强制刷盘。默认为 1，事务每次提交都需要调用 fsync 进行刷盘，0 表示事务提交的时候不会调用 Redo Log 的文件写入，通过后台线程每秒同步一次；2 表示事务提交的时候会写入文件但是只保证写入操作系统缓存，不进行 fsync 操作。Redo Log 文件只会顺序写，所以磁盘操作性能不会太慢，所以建议生产环境都设置为 1，以防止数据库宕机导致数据丢失。</p><h1 id=undo-log>Undo Log</h1><p>Undo Log 存放在共享表空间中，也就是即使打开了 innodb_file_per_table 参数，所有的表的 Undo Log 都存储在同一个文件里。Undo Log 是逻辑日志，主要用于进行事务回滚与 MVCC 操作；譬如执行相反的操作回滚到之前的状态，譬如记录的和原 sql 相反的 sql，例如 insert 对应 delete，delete 对应 insert，update 对应另外一个 update。而 MVCC 是指可重复读，当一个事务需要查询某条记录，而该记录已经被其他事务修改，但该事务还没提交，而当前事务可以通过 Undo Log 计算到之前的值。</p><p>Undo Log 也是需要在执行 update 语句的时候在事务提交前需要写入到文件的。另外 Undo Log 的写入也会有对应的 Redo Log，因为 Undo Log 也需要持久化，通过 WAL 可以提高效率。这里可以总结下，在事务提交的时候要保证 Redo Log 写入到文件里，而这个 Redo Log 包含 主键索引上的数据页的修改，以及共享表空间的回滚段中 Undo Log 的插入。另外 Undo Log 的清理通过一个后台线程定时处理，清理的时候需要判断该 Undo Log 是否所有的事务都不会用到。</p><h1 id=links>Links</h1><ul><li><a href=https://www.cnblogs.com/f-ck-need-u/archive/2018/05/08/9010872.html target=_blank rel=noopener>https://www.cnblogs.com/f-ck-need-u/archive/2018/05/08/9010872.html</a></li></ul></div><div class=article-widget><div class="container-xl row post-nav"><div class="col-6 post-nav-item"><div class=meta-nav>上一页</div><a href=/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/mvcc/mvcc-%E5%AE%9E%E7%8E%B0/ rel=next>MVCC 实现</a></div></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div><script type=text/javascript id=clstr_globe async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
-<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
-<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
-<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
-<script id=dsq-count-scr src=https://ngte.disqus.com/count.js async></script>
-<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
-<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
-<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
-<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>
+<!DOCTYPE html><html lang="zh" >
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  
+  
+    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+
+  
+  
+  
+    
+      
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    
+  
+
+  
+    <meta name="google-site-verification" content="google69a5cccb61297807" />
+    <meta name="baidu-site-verification" content="cqmZHEleVh" />
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+    
+  
+  <meta name="description" content="事务日志 当提交一个事务时，InnoDB 首先会把事务写入日志缓冲（Log buffer），日志缓冲把事务刷新到事务日志；然后存储引擎再把事务写入缓冲池（Buffer Pool）。由此可见，InnoDB 通过事" />
+
+  
+  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/mvcc/%E4%BA%8B%E5%8A%A1%E6%97%A5%E5%BF%97/" />
+
+  
+  
+  
+    <meta name="theme-color" content="#0a55a7" />
+  
+
+  
+  
+
+  
+
+  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
+
+  
+  
+  
+    
+    
+
+    
+    
+    
+    
+      
+      
+    
+    
+    
+
+    
+    
+    
+      
+    
+    
+      
+      
+        
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
+        
+      
+    
+
+    
+    
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
+    
+
+    
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+        
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+  
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/wowchemy.0d97305106da5efa530e28b021b4c580.css" />
+
+  
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', "G-40NYXJ8823");
+</script>
+
+
+  
+
+
+  
+
+
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+  
+  
+  
+
+  
+
+  
+    <link rel="manifest" href="/manifest.webmanifest" />
+  
+
+  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
+  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
+
+  <link rel="canonical" href="https://ng-tech.icu/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/mvcc/%E4%BA%8B%E5%8A%A1%E6%97%A5%E5%BF%97/" />
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+
+  
+  
+    
+    
+  
+  <meta property="twitter:card" content="summary_large_image" />
+  
+    <meta property="twitter:site" content="@wx-chevalier" />
+    <meta property="twitter:creator" content="@wx-chevalier" />
+  
+  <meta property="og:site_name" content="Next-gen Tech Edu" />
+  <meta property="og:url" content="https://ng-tech.icu/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/mvcc/%E4%BA%8B%E5%8A%A1%E6%97%A5%E5%BF%97/" />
+  <meta property="og:title" content="事务日志 | Next-gen Tech Edu" />
+  <meta property="og:description" content="事务日志 当提交一个事务时，InnoDB 首先会把事务写入日志缓冲（Log buffer），日志缓冲把事务刷新到事务日志；然后存储引擎再把事务写入缓冲池（Buffer Pool）。由此可见，InnoDB 通过事" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
+    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
+  
+    
+    
+  
+
+  
+
+
+
+  
+
+  
+
+  
+
+
+
+
+
+  <title>事务日志 | Next-gen Tech Edu</title>
+</head>
+
+
+<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="c9ce64015ca7957644a1e9446c487213" >
+  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
+
+  
+
+
+<aside class="search-modal" id="search">
+  <div class="container">
+    <section class="search-header">
+
+      <div class="row no-gutters justify-content-between mb-3">
+        <div class="col-6 search-title">
+          <p>搜索</p>
+        </div>
+        <div class="col-6 col-search-close">
+          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+      <div id="search-box">
+        
+        
+        
+      </div>
+
+      
+      
+
+      
+    </section>
+    <section class="section-search-results">
+
+      <div id="search-hits">
+        
+      </div>
+
+      <div id="search-common-queries">
+        
+      </div>
+
+    </section>
+  </div>
+</aside>
+
+
+
+  <div class="page-header">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="header--fixed">
+  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
+    <div class="container-xl">
+
+      
+      <div class="d-none d-lg-inline-flex">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      <button type="button" class="navbar-toggler" data-toggle="collapse"
+              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
+      <span><i class="fas fa-bars"></i></span>
+      </button>
+      
+
+      
+      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      
+      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
+
+        
+        <ul class="navbar-nav d-md-inline-flex">
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
+          </li>
+
+          
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+              
+              
+              
+                
+              
+              
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
+              
+                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
+              
+                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+        
+
+          
+        </ul>
+      </div>
+
+      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
+
+        
+        
+        
+        <li class="nav-item">
+          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        <li class="nav-item">
+            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        
+
+        
+        
+        
+        <div></div>
+        
+        <style>
+        @media only screen and (max-width: 600px) {
+          .jimmysong-template {
+            display: none!important;
+          }
+        }
+        </style>
+        
+        <li class="jimmysong-template" style="color: white;font-size: 12px;">
+          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+</header>
+
+
+  </div>
+
+  <div class="page-body">
+    
+    
+    
+
+    
+
+
+
+
+<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
+<div class="container-xl docs">
+  <div class="row flex-xl-nowrap">
+    <div class="docs-sidebar">
+      <form class="docs-search d-flex align-items-center">
+  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    <div class="d-flex">
+      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
+        
+          MVCC
+        
+      </span>
+      <span><i class="fas fa-chevron-down"></i></span>
+    </div>
+  </button>
+
+  
+  <button class="form-control sidebar-search js-search d-none d-md-flex">
+    <i class="fas fa-search pr-2"></i>
+    <span class="sidebar-search-text">搜索...</span>
+    <span class="sidebar-search-shortcut">/</span>
+  </button>
+  
+</form>
+
+<nav class="collapse docs-links" id="docs-nav">
+  
+  
+  
+  
+  
+  
+
+  
+  
+    
+
+    
+      
+
+      <ul class="nav docs-sidenav">
+        <li style="display: inline-flex">
+          <a style="cursor: pointer;" onclick="window.history.back()">
+            <i class="fas fa-arrow-left pr-1"></i>
+            Back
+          </a>
+          <span>|</span>
+          <a href="/books/">
+            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
+            Books
+          </a>
+        </li>
+      </ul>
+
+      
+      
+        
+          
+        
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id3b367c64c11f659d2b10742a90cae3ed&#34;)" href="#id3b367c64c11f659d2b10742a90cae3ed" aria-expanded="false" aria-controls="id3b367c64c11f659d2b10742a90cae3ed" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/">02.事务与锁</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id3b367c64c11f659d2b10742a90cae3ed" aria-expanded="false" aria-controls="id3b367c64c11f659d2b10742a90cae3ed">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id3b367c64c11f659d2b10742a90cae3ed"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id3b367c64c11f659d2b10742a90cae3ed">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idf0528a91ba8933461ae41cd83af8172c&#34;)" href="#idf0528a91ba8933461ae41cd83af8172c" aria-expanded="false" aria-controls="idf0528a91ba8933461ae41cd83af8172c" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/mvcc/">MVCC</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idf0528a91ba8933461ae41cd83af8172c" aria-expanded="false" aria-controls="idf0528a91ba8933461ae41cd83af8172c">
+    
+    <i class="fa-solid fa-angle-down" id="caret-idf0528a91ba8933461ae41cd83af8172c"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="idf0528a91ba8933461ae41cd83af8172c">
+      
+
+
+
+  <li class="child level "><a href="/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/mvcc/mvcc-%E5%AE%9E%E7%8E%B0/">MVCC 实现</a></li>
+
+
+
+
+  <li class="child level active"><a href="/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/mvcc/%E4%BA%8B%E5%8A%A1%E6%97%A5%E5%BF%97/">事务日志</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id96b66c61e567dc331e6bc0f0834ed35e&#34;)" href="#id96b66c61e567dc331e6bc0f0834ed35e" aria-expanded="false" aria-controls="id96b66c61e567dc331e6bc0f0834ed35e" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/%E9%94%81/">锁</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id96b66c61e567dc331e6bc0f0834ed35e" aria-expanded="false" aria-controls="id96b66c61e567dc331e6bc0f0834ed35e">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id96b66c61e567dc331e6bc0f0834ed35e"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id96b66c61e567dc331e6bc0f0834ed35e">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id5aefdd349fbcb2945298df9b10288ac2&#34;)" href="#id5aefdd349fbcb2945298df9b10288ac2" aria-expanded="false" aria-controls="id5aefdd349fbcb2945298df9b10288ac2" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/%E9%94%81/01.mysql-%E9%94%81%E5%88%86%E7%B1%BB/">01.MySQL 锁分类</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id5aefdd349fbcb2945298df9b10288ac2" aria-expanded="false" aria-controls="id5aefdd349fbcb2945298df9b10288ac2">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id5aefdd349fbcb2945298df9b10288ac2"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id5aefdd349fbcb2945298df9b10288ac2">
+      
+
+
+
+  <li class="child level "><a href="/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/%E9%94%81/01.mysql-%E9%94%81%E5%88%86%E7%B1%BB/%E4%B8%8D%E5%90%8C%E8%8C%83%E5%9B%B4%E7%9A%84%E9%94%81/">不同范围的锁</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  <li class="child level "><a href="/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/%E9%94%81/innodb-%E5%8A%A0%E9%94%81%E6%B5%81%E7%A8%8B%E6%B5%85%E6%9E%90/">InnoDB 加锁流程浅析</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/%E9%94%81/%E5%85%B1%E4%BA%AB%E9%94%81%E4%B8%8E%E6%8E%92%E4%BB%96%E9%94%81/">共享锁与排他锁</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/%E9%94%81/%E6%AD%BB%E9%94%81/">死锁</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+    
+  
+</nav>
+
+    </div>
+
+    
+    
+    <div class="d-none d-xl-block col-xl-2 docs-toc">
+      
+     
+      <ul class="nav toc-top">
+        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
+      </ul>
+     
+
+      <nav id="TableOfContents"></nav>
+
+      
+<div class="subscribe-module col-24 mt-1">
+    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
+</div>
+
+
+
+    </div>
+    
+
+    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
+
+      <article class="article">
+
+          
+
+          <h1>事务日志</h1>
+
+          <div class="article-style">
+            <h1 id="事务日志">事务日志</h1>
+<p>当提交一个事务时，InnoDB 首先会把事务写入日志缓冲（Log buffer），日志缓冲把事务刷新到事务日志；然后存储引擎再把事务写入缓冲池（Buffer Pool）。由此可见，InnoDB 通过事务日志把随机 IO 变成顺序 IO,这大大的提高了 InnoDB 写入时的性能。因为把缓冲池的脏页数据刷新到磁盘可能会涉及大量随机 IO,这些随机 IO 会非常慢，通过事务日志，避开随机 IO，用顺序 IO 替代它。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/20230416205646.png" alt="" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>Innodb 日志是环行方式写的：当写到日志的尾部，会重新跳转到开头继续写，但不会覆盖还没应用到数据文件的日志记录，因为这样会清理掉已提交事务的唯一持久化记录。日志文件太小，InnoDB 将必须做更多的检查点，导致更多的日志写，在日志没有空间继续写入前，必须等待变更被应用到数据文件，写语句可能会被拖累。但日志文件太大，在崩溃恢复时 InnoDB 可能不得不做大量的工作，增加恢复时间。应该在这之间找到平衡，设置合适的日志大小。</p>
+<h1 id="redo-log">Redo Log</h1>
+<p>InnoDB 在更新数据的时候会采用 WAL 技术，也就是 Write Ahead Logging，这个日志就是 Redo Log 用来保证数据库宕机后可以通过该文件进行恢复。这个文件一般只会顺序写，只有在数据库启动的时候才会读取 Redo Log 文件看是否需要进行恢复。该文件记录了对某个数据页的物理操作，例如某个 SQL 把某一行的某个列的值改为 10，对应的 Redo Log 文件格式可能为：把第 5 个数据页中偏移量为 99 的位置写入一个值 10。Redo Log 不是无限大的，他的大小是可以配置的，并且是循环使用的，例如配置大小为 4G，一共 4 个文件，每个文件 1G。</p>
+<p>Redo Log 中，存储引擎首先会从第一个文件开始顺序写，写到第四个文件后在从第一个文件开始写，类似一个环，用一个后台线程把 Redo Log 里的数据同步到聚簇索引上的数据页上。首先写入 Redo Log 的时候不能将没有同步到数据页上的记录覆盖，如果碰到这种情况会停下来先进行数据页同步然后在继续写入 Redo Log。另外执行更新操作的时候，会先更新缓冲池里的数据页，然后写入 Redo Log，这个时候真正存储数据的地方还没有更新，也就是说这时候缓冲池中的数据页和磁盘不一致，这种数据页称为脏页，当脏页由于内存不足或者其他原因需要丢弃的时候，一定要先将该脏页对应的 Redo Log 刷新到磁盘里的真实数据页，不然下次查询的时候由于 Redo Log 没有同步到磁盘，而查询直接通过索引定位到数据页就会查询出脏数据。</p>
+<p>更新的时候先从磁盘或者缓冲池中读取对应的数据页，然后对数据页里的数据进行更改并生成 Redo Log 到对应的缓冲池（redolog buffer）进行缓存，当事务提交的时候将缓存写入到 Redo Log 的物理磁盘文件上。这里由于操作系统的文件写入 InnoDB 并没有使用 O_DIRECT 直接写入到文件，为了保证性能而是先写入操作系统的缓存，之后在进行 flush，所以事务提交的时候 InnoDB 需要在调用一次 fsync 的系统调用来确保数据落盘。</p>
+<p>为了提高性能 InnoDB 可以通过参数 innodb_flush_log_at_trx_commit 来控制事务提交时是否强制刷盘。默认为 1，事务每次提交都需要调用 fsync 进行刷盘，0 表示事务提交的时候不会调用 Redo Log 的文件写入，通过后台线程每秒同步一次；2 表示事务提交的时候会写入文件但是只保证写入操作系统缓存，不进行 fsync 操作。Redo Log 文件只会顺序写，所以磁盘操作性能不会太慢，所以建议生产环境都设置为 1，以防止数据库宕机导致数据丢失。</p>
+<h1 id="undo-log">Undo Log</h1>
+<p>Undo Log 存放在共享表空间中，也就是即使打开了 innodb_file_per_table 参数，所有的表的 Undo Log 都存储在同一个文件里。Undo Log 是逻辑日志，主要用于进行事务回滚与 MVCC 操作；譬如执行相反的操作回滚到之前的状态，譬如记录的和原 sql 相反的 sql，例如 insert 对应 delete，delete 对应 insert，update 对应另外一个 update。而 MVCC 是指可重复读，当一个事务需要查询某条记录，而该记录已经被其他事务修改，但该事务还没提交，而当前事务可以通过 Undo Log 计算到之前的值。</p>
+<p>Undo Log 也是需要在执行 update 语句的时候在事务提交前需要写入到文件的。另外 Undo Log 的写入也会有对应的 Redo Log，因为 Undo Log 也需要持久化，通过 WAL 可以提高效率。这里可以总结下，在事务提交的时候要保证 Redo Log 写入到文件里，而这个 Redo Log 包含 主键索引上的数据页的修改，以及共享表空间的回滚段中 Undo Log 的插入。另外 Undo Log 的清理通过一个后台线程定时处理，清理的时候需要判断该 Undo Log 是否所有的事务都不会用到。</p>
+<h1 id="links">Links</h1>
+<ul>
+<li><a href="https://www.cnblogs.com/f-ck-need-u/archive/2018/05/08/9010872.html" target="_blank" rel="noopener">https://www.cnblogs.com/f-ck-need-u/archive/2018/05/08/9010872.html</a></li>
+</ul>
+
+          </div>
+
+          
+
+
+
+          
+          
+          <div class="article-widget">
+            
+<div class="container-xl row post-nav">
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">上一页</div>
+    <a href="/books/mysql-notes/03.%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%94%81/mvcc/mvcc-%E5%AE%9E%E7%8E%B0/" rel="next">MVCC 实现</a>
+  </div>
+  
+  
+</div>
+
+          </div>
+          
+
+        <div class="body-footer">
+          <p>最近更新于 0001-01-01</p>
+
+          
+
+
+
+          
+
+
+  
+  
+  
+
+  
+
+  
+  <section id="comments" class="mb-3 pt-0">
+    
+<div id="disqus_thread"></div>
+<script>
+  var disqus_config = function () {
+    
+    
+    
+  };
+  (function() {
+    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+      return;
+    }
+    var d = document, s = d.createElement('script'); 
+    s.async = true;
+    s.src = 'https://' + "ngte" + '.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </section>
+  
+
+
+
+          
+
+
+        </div>
+
+      </article>
+
+      <footer class="site-footer">
+
+  
+
+
+
+  
+
+  
+  <div class="copyright py-4 bg-footer">
+      <div class="row justify-content-center">
+        <div class="text-center footer-color">
+          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
+        </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" id="clstr_globe" async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script>
+  
+</footer>
+
+
+    </main>
+  </div>
+</div>
+<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
+<script>
+  const heti = new Heti('.article');
+  heti.autoSpacing();
+</script>
+<script type="text/javascript">
+  window.$crisp = [];
+  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
+  (function () {
+    setTimeout(function() {
+      d = document;
+      s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    }, 2500);
+  })();
+</script>
+  </div>
+
+  <div class="page-footer">
+    
+    
+  </div>
+
+      
+
+    
+    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
+
+    
+    
+    
+      
+
+      
+      
+
+      
+
+      
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
+        
+        
+      
+
+    
+
+    
+    
+    
+
+    
+    
+    
+      
+      <script id="search-hit-algolia-template" type="text/html">
+        <div class="search-hit">
+          <div class="search-hit-content">
+            <div class="search-hit-name">
+              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
+            </div>
+            <div class="article-metadata search-hit-type">{{type}}</div>
+            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
+          </div>
+        </div>
+      </script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
+      
+      
+    
+
+    
+    
+
+    
+    
+    
+    
+      <script id="dsq-count-scr" src="https://ngte.disqus.com/count.js" async></script>
+      
+    
+
+    
+    
+      
+      
+      
+      
+      
+      
+      
+    
+
+    
+    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
+    
+
+    
+    
+    
+    <script id="page-data" type="application/json">{"use_headroom":false}</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
+
+    
+    
+    
+    
+    
+    
+    <script>
+
+var mybutton = document.getElementById("backTopBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+}
+</script>
+
+
+    
+
+    
+    
+    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+    <script>
+      anchors.add();
+    </script>
+    
+
+    
+    <script>
+
+
+
+(function() {
+  'use strict';
+
+  if(!document.queryCommandSupported('copy')) {
+    return;
+  }
+
+  function flashCopyMessage(el, msg) {
+    el.className = "highlight-copy-btn";
+    el.textContent = msg;
+    setTimeout(function() {
+      el.textContent = "";
+      el.className = "highlight-copy-btn fa fa-copy";
+    }, 1000);
+  }
+
+  function selectText(node) {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection;
+  }
+
+  function addCopyButton(containerEl) {
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "highlight-copy-btn fa fa-copy";
+    copyBtn.textContent = "";
+
+    var codeEl = containerEl.firstElementChild;
+    copyBtn.addEventListener('click', function() {
+      try {
+        var selection = selectText(codeEl);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        
+        flashCopyMessage(copyBtn, '已复制')
+        
+      } catch(e) {
+        console && console.log(e);
+        flashCopyMessage(copyBtn, 'Failed :\'(')
+      }
+    });
+
+    containerEl.appendChild(copyBtn);
+  }
+
+  
+  var highlightBlocks = document.getElementsByClassName('highlight');
+  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
+})();
+</script>
+
+    
+
+
+</body>
+</html>

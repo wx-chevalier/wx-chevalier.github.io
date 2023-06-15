@@ -1,234 +1,1742 @@
-<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="原文地址 React Fiber 架构 性能优化是一个系统性的工程，如果只看到局部，引入算法，当然是越快越好; 但从整体来看，在关键点引入缓存，可以秒杀 N 多算法，或另辟蹊径，探索事件的本质，可能用户要的并不是快…… React16 启用了全新"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2018-%E5%8F%B8%E5%BE%92%E6%AD%A3%E7%BE%8E-react-fiber-%E6%9E%B6%E6%9E%84/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.fab3cd1900ae35687457073b2d518207.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2018-%E5%8F%B8%E5%BE%92%E6%AD%A3%E7%BE%8E-react-fiber-%E6%9E%B6%E6%9E%84/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2018-%E5%8F%B8%E5%BE%92%E6%AD%A3%E7%BE%8E-react-fiber-%E6%9E%B6%E6%9E%84/"><meta property="og:title" content="2018-司徒正美-React Fiber 架构 | Next-gen Tech Edu"><meta property="og:description" content="原文地址 React Fiber 架构 性能优化是一个系统性的工程，如果只看到局部，引入算法，当然是越快越好; 但从整体来看，在关键点引入缓存，可以秒杀 N 多算法，或另辟蹊径，探索事件的本质，可能用户要的并不是快…… React16 启用了全新"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>2018-司徒正美-React Fiber 架构 | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=b77c71a7549abcc0be75425ad6d109e4><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
-<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
-<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
-<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
-<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
-<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">99.参考资料</span>
-<span><i class="fas fa-chevron-down"></i></span></div></button>
-<button class="form-control sidebar-search js-search d-none d-md-flex">
-<i class="fas fa-search pr-2"></i>
-<span class=sidebar-search-text>搜索...</span>
-<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
-Back</a>
-<span>|</span>
-<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
-Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id5612693222c5229b65f8eaab0812cfad")' href=#id5612693222c5229b65f8eaab0812cfad aria-expanded=false aria-controls=id5612693222c5229b65f8eaab0812cfad aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/>基于 Fiber 的调和</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id5612693222c5229b65f8eaab0812cfad aria-expanded=false aria-controls=id5612693222c5229b65f8eaab0812cfad><i class="fa-solid fa-angle-down" id=caret-id5612693222c5229b65f8eaab0812cfad></i></a></div><ul class="nav docs-sidenav collapse show" id=id5612693222c5229b65f8eaab0812cfad><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idbda019a1061735627d8bfcfd96a2a0bd")' href=#idbda019a1061735627d8bfcfd96a2a0bd aria-expanded=false aria-controls=idbda019a1061735627d8bfcfd96a2a0bd aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/>99.参考资料</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idbda019a1061735627d8bfcfd96a2a0bd aria-expanded=false aria-controls=idbda019a1061735627d8bfcfd96a2a0bd><i class="fa-solid fa-angle-down" id=caret-idbda019a1061735627d8bfcfd96a2a0bd></i></a></div><ul class="nav docs-sidenav collapse show" id=idbda019a1061735627d8bfcfd96a2a0bd><li class="child level"><a href=/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2018-depth-in-react%E8%AF%A6%E8%B0%88-fiber-%E6%9E%B6%E6%9E%84/>2018-Depth in React，详谈 Fiber 架构</a></li><li class="child level active"><a href=/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2018-%E5%8F%B8%E5%BE%92%E6%AD%A3%E7%BE%8E-react-fiber-%E6%9E%B6%E6%9E%84/>2018-司徒正美-React Fiber 架构</a></li><li class="child level"><a href=/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-react-fiber-%E8%AF%A6%E7%BB%86%E8%A7%A3%E6%9E%90/>2021-「React Fiber」 详细解析</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents><ul><li><a href=#痛点>痛点</a></li><li><a href=#解决进度>解决进度</a></li><li><a href=#一个小实验>一个小实验</a></li><li><a href=#如何让代码断开重连>如何让代码断开重连</a></li><li><a href=#如何决定每次更新的数量>如何决定每次更新的数量</a></li><li><a href=#如何调度时间才能保证流畅>如何调度时间才能保证流畅</a></li><li><a href=#批量更新>批量更新</a></li><li><a href=#为什么使用深度优化遍历>为什么使用深度优化遍历</a></li><li><a href=#为什么要对生命周期钩子大换血>为什么要对生命周期钩子大换血</a></li><li><a href=#任务系统>任务系统</a></li><li><a href=#fiber-的连体婴结构>Fiber 的连体婴结构</a></li><li><a href=#中间件系统>中间件系统</a></li><li><a href=#总结>总结</a></li></ul></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>2018-司徒正美-React Fiber 架构</h1><div class=article-style><blockquote><p><a href=https://zhuanlan.zhihu.com/p/37095662 target=_blank rel=noopener>原文地址</a></p></blockquote><h1 id=react-fiber-架构>React Fiber 架构</h1><blockquote><p>性能优化是一个系统性的工程，如果只看到局部，引入算法，当然是越快越好; 但从整体来看，在关键点引入缓存，可以秒杀 N 多算法，或另辟蹊径，探索事件的本质，可能用户要的并不是快……</p></blockquote><p>React16 启用了全新的架构，叫做 Fiber，其最大的使命是解决大型 React 项目的性能问题，再顺手解决之前的一些痛点。</p><h2 id=痛点>痛点</h2><p>主要有如下几个：</p><ul><li>组件不能返回数组，最见的场合是 UL 元素下只能使用 LI，TR 元素下只能使用 TD 或 TH，这时这里有一个组件循环生成 LI 或 TD 列表时，我们并不想再放一个 DIV，这会破坏 HTML 的语义。</li><li>弹窗问题，之前一直使用不稳定的 unstable_renderSubtreeIntoContainer。弹窗是依赖原来 DOM 树的上下文，因此这个 API 第一个参数是组件实例，通过它得到对应虚拟 DOM，然后一级级往上找，得到上下文。它的其他参数也很好用，但这个方法一直没有转正。。。</li><li>异常处理，我们想知道哪个组件出错，虽然有了 React DevTool，但是太深的组件树查找起来还是很吃力。希望有个方法告诉我出错位置，并且出错时能让我有机会进行一些修复工作</li><li>HOC 的流行带来两个问题，毕竟是社区兴起的方案，没有考虑到 ref 与 context 的向下传递。</li><li>组件的性能优化全凭人肉，并且主要集中在 SCU，希望框架能干些事情，即使不用 SCU，性能也能上去。</li></ul><h2 id=解决进度>解决进度</h2><ul><li>16.0 让组件支持返回任何数组类型，从而解决数组问题; 推出 createPortal API ,解决弹窗问题; 推出 componentDidCatch 新钩子， 划分出错误组件与边界组件， 每个边界组件能修复下方组件错误一次， 再次出错，转交更上层的边界组件来处理，解决异常处理问题。</li><li>16.2 推出 Fragment 组件，可以看作是数组的一种语法糖。</li><li>16.3 推出 createRef 与 forwardRef 解决 Ref 在 HOC 中的传递问题，推出 new Context API，解决 HOC 的 context 传递问题（主要是 SCU 作崇）</li><li>而性能问题，从 16.0 开始一直由一些内部机制来保证，涉及到批量更新及基于时间分片的限量更新。</li></ul><h2 id=一个小实验>一个小实验</h2><p>我们可以通过以下实验来窥探 React16 的优化思想。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=kd>function</span> <span class=nx>randomHexColor</span><span class=p>()</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=k>return</span> <span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=s2>&#34;#&#34;</span> <span class=o>+</span> <span class=p>(</span><span class=s2>&#34;0000&#34;</span> <span class=o>+</span> <span class=p>((</span><span class=nb>Math</span><span class=p>.</span><span class=nx>random</span><span class=p>()</span> <span class=o>*</span> <span class=mh>0x1000000</span><span class=p>)</span> <span class=o>&lt;&lt;</span> <span class=mi>0</span><span class=p>).</span><span class=nx>toString</span><span class=p>(</span><span class=mi>16</span><span class=p>)).</span><span class=nx>substr</span><span class=p>(</span><span class=o>-</span><span class=mi>6</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>  <span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=nx>setTimeout</span><span class=p>(</span><span class=kd>function</span> <span class=p>()</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=kd>var</span> <span class=nx>k</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=kd>var</span> <span class=nx>root</span> <span class=o>=</span> <span class=nb>document</span><span class=p>.</span><span class=nx>getElementById</span><span class=p>(</span><span class=s2>&#34;root&#34;</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>  <span class=k>for</span> <span class=p>(</span><span class=kd>var</span> <span class=nx>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=nx>i</span> <span class=o>&lt;</span> <span class=mi>10000</span><span class=p>;</span> <span class=nx>i</span><span class=o>++</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nx>k</span> <span class=o>+=</span> <span class=k>new</span> <span class=nb>Date</span><span class=p>()</span> <span class=o>-</span> <span class=mi>0</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    <span class=kd>var</span> <span class=nx>el</span> <span class=o>=</span> <span class=nb>document</span><span class=p>.</span><span class=nx>createElement</span><span class=p>(</span><span class=s2>&#34;div&#34;</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>    <span class=nx>el</span><span class=p>.</span><span class=nx>innerHTML</span> <span class=o>=</span> <span class=nx>k</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    <span class=nx>root</span><span class=p>.</span><span class=nx>appendChild</span><span class=p>(</span><span class=nx>el</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>    <span class=nx>el</span><span class=p>.</span><span class=nx>style</span><span class=p>.</span><span class=nx>cssText</span> <span class=o>=</span> <span class=sb>`background:</span><span class=si>${</span><span class=nx>randomHexColor</span><span class=p>()</span><span class=si>}</span><span class=sb>;height:40px`</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>},</span> <span class=mi>1000</span><span class=p>);</span>
-</span></span></code></pre></div><p>这是一个拥有 10000 个节点的插入操作，包含了 innerHTML 与样式设置，花掉 1000ms。</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/v2-87527d4cd261c4aebad9fdfa827076f0_1440w.webp alt=img loading=lazy data-zoomable></div></div></figure></p><p>我们再改进一下，分派次插入节点，每次只操作 100 个节点，共 100 次，发现性能异常的好！</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=kd>function</span> <span class=nx>randomHexColor</span><span class=p>()</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=k>return</span> <span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=s2>&#34;#&#34;</span> <span class=o>+</span> <span class=p>(</span><span class=s2>&#34;0000&#34;</span> <span class=o>+</span> <span class=p>((</span><span class=nb>Math</span><span class=p>.</span><span class=nx>random</span><span class=p>()</span> <span class=o>*</span> <span class=mh>0x1000000</span><span class=p>)</span> <span class=o>&lt;&lt;</span> <span class=mi>0</span><span class=p>).</span><span class=nx>toString</span><span class=p>(</span><span class=mi>16</span><span class=p>)).</span><span class=nx>substr</span><span class=p>(</span><span class=o>-</span><span class=mi>6</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>  <span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=kd>var</span> <span class=nx>root</span> <span class=o>=</span> <span class=nb>document</span><span class=p>.</span><span class=nx>getElementById</span><span class=p>(</span><span class=s2>&#34;root&#34;</span><span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=nx>setTimeout</span><span class=p>(</span><span class=kd>function</span> <span class=p>()</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=kd>function</span> <span class=nx>loop</span><span class=p>(</span><span class=nx>n</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=kd>var</span> <span class=nx>k</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    <span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=nx>n</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=kd>var</span> <span class=nx>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=nx>i</span> <span class=o>&lt;</span> <span class=mi>100</span><span class=p>;</span> <span class=nx>i</span><span class=o>++</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>      <span class=nx>k</span> <span class=o>+=</span> <span class=k>new</span> <span class=nb>Date</span><span class=p>()</span> <span class=o>-</span> <span class=mi>0</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>      <span class=kd>var</span> <span class=nx>el</span> <span class=o>=</span> <span class=nb>document</span><span class=p>.</span><span class=nx>createElement</span><span class=p>(</span><span class=s2>&#34;div&#34;</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>      <span class=nx>el</span><span class=p>.</span><span class=nx>innerHTML</span> <span class=o>=</span> <span class=nx>k</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>      <span class=nx>root</span><span class=p>.</span><span class=nx>appendChild</span><span class=p>(</span><span class=nx>el</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>      <span class=nx>el</span><span class=p>.</span><span class=nx>style</span><span class=p>.</span><span class=nx>cssText</span> <span class=o>=</span> <span class=sb>`background:</span><span class=si>${</span><span class=nx>randomHexColor</span><span class=p>()</span><span class=si>}</span><span class=sb>;height:40px`</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span>
-</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=nx>n</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>      <span class=nx>setTimeout</span><span class=p>(</span><span class=kd>function</span> <span class=p>()</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>        <span class=nx>loop</span><span class=p>(</span><span class=nx>n</span> <span class=o>-</span> <span class=mi>1</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>      <span class=p>},</span> <span class=mi>40</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl>  <span class=nx>loop</span><span class=p>(</span><span class=mi>100</span><span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=p>},</span> <span class=mi>1000</span><span class=p>);</span>
-</span></span></code></pre></div><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/v2-2cae392020e785dd07986e9f9029205f_1440w.webp alt=img loading=lazy data-zoomable></div></div></figure></p><p>究其原因是因为浏览器是单线程，它将 GUI 描绘，时间器处理，事件处理，JS 执行，远程资源加载统统放在一起。当做某件事，只有将它做完才能做下一件事。如果有足够的时间，浏览器是会对我们的代码进行编译优化（JIT）及进行热代码优化，一些 DOM 操作，内部也会对 reflow 进行处理。reflow 是一个性能黑洞，很可能让页面的大多数元素进行重新布局。</p><p>浏览器的运作流程</p><blockquote><p>渲染 -> tasks -> 渲染 -> tasks -> 渲染 -> tasks -> &mldr;.</p></blockquote><p>这些 tasks 中有些我们可控，有些不可控，比如 setTimeout 什么时候执行不好说，它总是不准时; 资源加载时间不可控。但一些 JS 我们可以控制，让它们分派执行，tasks 的时长不宜过长，这样浏览器就有时间优化 JS 代码与修正 reflow！下图是我们理想中的渲染过程</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/v2-8a94e1428849853e4ab91407c4f2a85a_1440w.webp alt=img loading=lazy data-zoomable></div></div></figure></p><p>总结一句，<strong>就是让浏览器休息好，浏览器就能跑得更快</strong>。</p><h2 id=如何让代码断开重连>如何让代码断开重连</h2><p>JSX 是一个快乐出奇蛋，一下子满足你两个愿望：<strong>组件化</strong>与<strong>标签化</strong>。并且 JSX 成为组件化的标准化语言。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-html data-lang=html><span class=line><span class=cl><span class=p>&lt;</span><span class=nt>div</span><span class=p>&gt;</span>
-</span></span><span class=line><span class=cl>  <span class=p>&lt;</span><span class=nt>Foo</span><span class=p>&gt;</span>
-</span></span><span class=line><span class=cl>    <span class=p>&lt;</span><span class=nt>Bar</span> <span class=p>/&gt;</span>
-</span></span><span class=line><span class=cl>  <span class=p>&lt;/</span><span class=nt>Foo</span><span class=p>&gt;</span>
-</span></span><span class=line><span class=cl><span class=p>&lt;/</span><span class=nt>div</span><span class=p>&gt;</span>
-</span></span></code></pre></div><p>但标签化是天然套嵌的结构，意味着它会最终编译成递归执行的代码。因此 React 团队称 React16 之前的调度器为栈调度器，栈没有什么不好，栈显浅易懂，代码量少，但它的坏处不能随意 break 掉，continue 掉。根据我们上面的实验，break 后我们还要重新执行，我们需要一种链表的结构。</p><p>链表是对异步友好的。链表在循环时不用每次都进入递归函数，重新生成什么执行上下文，变量对象，激活对象，性能当然比递归好。</p><p>因此 Reat16 设法将组件的递归更新，改成链表的依次执行。如果页面有多个虚拟 DOM 树，那么就将它们的根保存到一个数组中。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=nx>ReactDOM</span><span class=p>.</span><span class=nx>render</span><span class=p>(</span><span class=o>&lt;</span><span class=nx>A</span> <span class=o>/&gt;</span><span class=p>,</span> <span class=nx>node1</span><span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=nx>ReactDOM</span><span class=p>.</span><span class=nx>render</span><span class=p>(</span><span class=o>&lt;</span><span class=nx>B</span> <span class=o>/&gt;</span><span class=p>,</span> <span class=nx>node2</span><span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=c1>//node1与node2不存在包含关系，那么这页面就有两棵虚拟DOM树
-</span></span></span></code></pre></div><p>如果仔细阅读源码，React 这个纯视图库其实也是三层架构。在 React15 有<code>虚拟DOM层</code>，它只负责<strong>描述</strong>结构与逻辑;<code>内部组件层</code>，它们负责组件的更新, ReactDOM.render、 setState、 forceUpdate 都是与它们打交道，能让你多次 setState，只执行一次真实的渲染, 在适合的时机执行你的组件实例的生命周期钩子; <code>底层渲染层</code>， 不同的显示介质有不同的渲染方法，比如说浏览器端，它使用元素节点，文本节点，在 Native 端，会调用 oc， java 的 GUI， 在 canvas 中，有专门的 API 方法。。。</p><p>虚拟 DOM 是由 JSX 转译过来的，JSX 的入口函数是 React.createElement, 可操作空间不大， 第三大的底层 API 也非常稳定，因此我们只能改变第二层。</p><p>React16 将内部组件层改成 Fiber 这种数据结构，因此它的架构名也改叫 Fiber 架构。Fiber 节点拥有 return, child, sibling 三个属性，分别对应父节点， 第一个孩子， 它右边的兄弟， 有了它们就足够将一棵树变成一个链表， 实现深度优化遍历。</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/v2-453e1f48a4f53356bee021c90ee00bed_1440w.webp alt=img loading=lazy data-zoomable></div></div></figure></p><h2 id=如何决定每次更新的数量>如何决定每次更新的数量</h2><p>在 React15 中，每次更新时，都是从根组件或 setState 后的组件开始，更新整个子树，我们唯一能做的是，在某个节点中使用 SCU 断开某一部分的更新，或者是优化 SCU 的比较效率。</p><p>React16 则是需要将虚拟 DOM 转换为 Fiber 节点，首先它规定一个时间段内，然后在这个时间段能转换多少个 FiberNode，就更新多少个。</p><p>因此我们需要将我们的更新逻辑分成两个阶段，第一个阶段是将虚拟 DOM 转换成 Fiber, Fiber 转换成组件实例或真实 DOM（不插入 DOM 树，插入 DOM 树会 reflow）。Fiber 转换成后两者明显会耗时，需要计算还剩下多少时间。并且转换实例需要调用一些钩子，如 componentWillMount, 如果是重复利用已有的实例，这时就是调用 componentWillReceiveProps, shouldComponentUpdate, componentWillUpdate,这时也会耗时。</p><p>为了让读者能直观了解 React Fiber 的运作过程，我们简单实现一下 ReactDOM.render, 但不保证会跑起来。</p><p>首先是一些简单的方法：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=kd>var</span> <span class=nx>queue</span> <span class=o>=</span> <span class=p>[];</span>
-</span></span><span class=line><span class=cl><span class=nx>ReacDOM</span><span class=p>.</span><span class=nx>render</span> <span class=o>=</span> <span class=kd>function</span> <span class=p>(</span><span class=nx>root</span><span class=p>,</span> <span class=nx>container</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nx>queue</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>root</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>  <span class=nx>updateFiberAndView</span><span class=p>();</span>
-</span></span><span class=line><span class=cl><span class=p>};</span>
-</span></span><span class=line><span class=cl><span class=kd>function</span> <span class=nx>getVdomFormQueue</span><span class=p>()</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=k>return</span> <span class=nx>queue</span><span class=p>.</span><span class=nx>shift</span><span class=p>();</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=kd>function</span> <span class=nx>Fiber</span><span class=p>(</span><span class=nx>vnode</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=k>for</span> <span class=p>(</span><span class=kd>var</span> <span class=nx>i</span> <span class=k>in</span> <span class=nx>vnode</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=k>this</span><span class=p>[</span><span class=nx>i</span><span class=p>]</span> <span class=o>=</span> <span class=nx>vnode</span><span class=p>[</span><span class=nx>i</span><span class=p>];</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl>  <span class=k>this</span><span class=p>.</span><span class=nx>uuid</span> <span class=o>=</span> <span class=nb>Math</span><span class=p>.</span><span class=nx>random</span><span class=p>();</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=c1>//我们简单的Fiber目前来看，只比vdom多了一个uuid属性
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kd>function</span> <span class=nx>toFiber</span><span class=p>(</span><span class=nx>vnode</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>vnode</span><span class=p>.</span><span class=nx>uuid</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=k>new</span> <span class=nx>Fiber</span><span class=p>(</span><span class=nx>vnode</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl>  <span class=k>return</span> <span class=nx>vnode</span><span class=p>;</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><p>updateFiberAndView 要实现 React 的时间分片，我们先用 setTimeout 模拟。我们暂时不用理会 updateView 怎么实现，可能它就是 updateComponentOrElement 中将它们放到又一个列队，需再出来执行 insertBefore, componentDidMount 操作呢！</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=kd>function</span> <span class=nx>updateFiberAndView</span><span class=p>()</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=kd>var</span> <span class=nx>now</span> <span class=o>=</span> <span class=k>new</span> <span class=nb>Date</span><span class=p>()</span> <span class=o>-</span> <span class=mi>0</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=kd>var</span> <span class=nx>deadline</span> <span class=o>=</span> <span class=k>new</span> <span class=nb>Date</span><span class=p>()</span> <span class=o>+</span> <span class=mi>100</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=nx>updateView</span><span class=p>();</span> <span class=c1>//更新视图，这会耗时，因此需要check时间
-</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=k>if</span> <span class=p>(</span><span class=k>new</span> <span class=nb>Date</span><span class=p>()</span> <span class=o>&lt;</span> <span class=nx>deadline</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=kd>var</span> <span class=nx>vdom</span> <span class=o>=</span> <span class=nx>getVdomFormQueue</span><span class=p>();</span>
-</span></span><span class=line><span class=cl>    <span class=kd>var</span> <span class=nx>fiber</span> <span class=o>=</span> <span class=nx>vdom</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>      <span class=nx>firstFiber</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    <span class=kd>var</span> <span class=nx>hasVisited</span> <span class=o>=</span> <span class=p>{};</span>
-</span></span><span class=line><span class=cl>    <span class=k>do</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>      <span class=c1>//深度优先遍历
-</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=kd>var</span> <span class=nx>fiber</span> <span class=o>=</span> <span class=nx>toFiber</span><span class=p>(</span><span class=nx>fiber</span><span class=p>);</span> <span class=c1>//A处
-</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>firstFiber</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>        <span class=nx>fibstFiber</span> <span class=o>=</span> <span class=nx>fiber</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>      <span class=p>}</span>
-</span></span><span class=line><span class=cl>      <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>hasVisited</span><span class=p>[</span><span class=nx>fiber</span><span class=p>.</span><span class=nx>uuid</span><span class=p>])</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>        <span class=nx>hasVisited</span><span class=p>[</span><span class=nx>fiber</span><span class=p>.</span><span class=nx>uuid</span><span class=p>]</span> <span class=o>=</span> <span class=mi>1</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>        <span class=c1>//根据fiber.type实例化组件或者创建真实DOM
-</span></span></span><span class=line><span class=cl><span class=c1></span>        <span class=c1>//这会耗时，因此需要check时间
-</span></span></span><span class=line><span class=cl><span class=c1></span>        <span class=nx>updateComponentOrElement</span><span class=p>(</span><span class=nx>fiber</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=nx>fiber</span><span class=p>.</span><span class=nx>child</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>          <span class=c1>//向下转换
-</span></span></span><span class=line><span class=cl><span class=c1></span>          <span class=k>if</span> <span class=p>(</span><span class=nx>newDate</span> <span class=o>-</span> <span class=mi>0</span> <span class=o>&gt;</span> <span class=nx>deadline</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>            <span class=nx>queue</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>fiber</span><span class=p>.</span><span class=nx>child</span><span class=p>);</span> <span class=c1>//时间不够，放入栈
-</span></span></span><span class=line><span class=cl><span class=c1></span>            <span class=k>break</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>          <span class=p>}</span>
-</span></span><span class=line><span class=cl>          <span class=nx>fiber</span> <span class=o>=</span> <span class=nx>fiber</span><span class=p>.</span><span class=nx>child</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>          <span class=k>continue</span><span class=p>;</span> <span class=c1>//让逻辑跑回A处，不断转换child, child.child, child.child.child
-</span></span></span><span class=line><span class=cl><span class=c1></span>        <span class=p>}</span>
-</span></span><span class=line><span class=cl>      <span class=p>}</span>
-</span></span><span class=line><span class=cl>      <span class=c1>//如果组件没有children，那么就向右找
-</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=k>if</span> <span class=p>(</span><span class=nx>fiber</span><span class=p>.</span><span class=nx>sibling</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>        <span class=nx>fiber</span> <span class=o>=</span> <span class=nx>fiber</span><span class=p>.</span><span class=nx>sibling</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>        <span class=k>continue</span><span class=p>;</span> <span class=c1>//让逻辑跑回A处
-</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=p>}</span>
-</span></span><span class=line><span class=cl>      <span class=c1>// 向上找
-</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=nx>fiber</span> <span class=o>=</span> <span class=nx>fiber</span><span class=p>.</span><span class=k>return</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>      <span class=k>if</span> <span class=p>(</span><span class=nx>fiber</span> <span class=o>===</span> <span class=nx>fibstFiber</span> <span class=o>||</span> <span class=o>!</span><span class=nx>fiber</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>        <span class=k>break</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>      <span class=p>}</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span> <span class=k>while</span> <span class=p>(</span><span class=mi>1</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>queue</span><span class=p>.</span><span class=nx>length</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nx>setTimeout</span><span class=p>(</span><span class=nx>updateFiberAndView</span><span class=p>,</span> <span class=mi>40</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><p>里面有一个 do while 循环，每一次都是小心翼翼进行计时，时间不够就将来不及处理的节点放进列队。</p><p>updateComponentOrElement 无非是这样：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=kd>function</span> <span class=nx>updateComponentOrElement</span><span class=p>(</span><span class=nx>fiber</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=kd>var</span> <span class=p>{</span> <span class=nx>type</span><span class=p>,</span> <span class=nx>stateNode</span><span class=p>,</span> <span class=nx>props</span> <span class=p>}</span> <span class=o>=</span> <span class=nx>fiber</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>stateNode</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=k>typeof</span> <span class=nx>type</span> <span class=o>===</span> <span class=s2>&#34;string&#34;</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>      <span class=nx>fiber</span><span class=p>.</span><span class=nx>stateNode</span> <span class=o>=</span> <span class=nb>document</span><span class=p>.</span><span class=nx>createElement</span><span class=p>(</span><span class=nx>type</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span> <span class=k>else</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>      <span class=kd>var</span> <span class=nx>context</span> <span class=o>=</span> <span class=p>{};</span> <span class=c1>//暂时免去这个获取细节
-</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=nx>fiber</span><span class=p>.</span><span class=nx>stateNode</span> <span class=o>=</span> <span class=k>new</span> <span class=nx>type</span><span class=p>(</span><span class=nx>props</span><span class=p>,</span> <span class=nx>context</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>stateNode</span><span class=p>.</span><span class=nx>render</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=c1>//执行componentWillMount等钩子
-</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=nx>children</span> <span class=o>=</span> <span class=nx>stateNode</span><span class=p>.</span><span class=nx>render</span><span class=p>();</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span> <span class=k>else</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nx>children</span> <span class=o>=</span> <span class=nx>fiber</span><span class=p>.</span><span class=nx>childen</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl>  <span class=kd>var</span> <span class=nx>prev</span> <span class=o>=</span> <span class=kc>null</span><span class=p>;</span> <span class=c1>//这里只是mount的实现，update时还需要一个oldChildren, 进行key匹配，重复利用已有节点
-</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=k>for</span> <span class=p>(</span><span class=kd>var</span> <span class=nx>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span> <span class=nx>n</span> <span class=o>=</span> <span class=nx>children</span><span class=p>.</span><span class=nx>length</span><span class=p>;</span> <span class=nx>i</span> <span class=o>&lt;</span> <span class=nx>n</span><span class=p>;</span> <span class=nx>i</span><span class=o>++</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=kd>var</span> <span class=nx>child</span> <span class=o>=</span> <span class=nx>children</span><span class=p>[</span><span class=nx>i</span><span class=p>];</span>
-</span></span><span class=line><span class=cl>    <span class=nx>child</span><span class=p>.</span><span class=k>return</span> <span class=o>=</span> <span class=nx>fiber</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>prev</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>      <span class=nx>fiber</span><span class=p>.</span><span class=nx>child</span> <span class=o>=</span> <span class=nx>child</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span> <span class=k>else</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>      <span class=nx>prev</span><span class=p>.</span><span class=nx>sibling</span> <span class=o>=</span> <span class=nx>child</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span>
-</span></span><span class=line><span class=cl>    <span class=nx>prev</span> <span class=o>=</span> <span class=nx>child</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><p>因此这样 Fiber 的 return, child, sibling 就有了，可以 happy 地进行深度优先遍历了。</p><h2 id=如何调度时间才能保证流畅>如何调度时间才能保证流畅</h2><p>刚才的 updateFiberAndView 其实有一个问题，我们安排了 100ms 来更新视图与虚拟 DOM，然后再安排 40ms 来给浏览器来做其他事。如果我们的虚拟 DOM 树很小，其实不需要 100ms; 如果我们的代码之后， 浏览器有更多其他事要干， 40ms 可能不够。IE10 出现了 setImmediate，requestAnimationFrame 这些新定时器，让我们这些前端，其实浏览器有能力让页面更流畅地运行起来。</p><p>浏览器本身也不断进化中，随着页面由简单的展示转向 WebAPP，它需要一些新能力来承载更多节点的展示与更新。</p><p>下面是一些自救措施：</p><ul><li>requestAnimationFrame</li><li>requestIdleCallback</li><li>web worker</li><li>IntersectionObserver</li></ul><p>我们依次称为浏览器层面的帧数控制调用，闲时调用，多线程调用， 进入可视区调用。</p><p>requestAnimationFrame 在做动画时经常用到，jQuery 新版本都使用它。web worker 在 angular2 开始就释出一些包，实验性地用它进行 diff 数据。IntersectionObserver 可以用到 ListView 中。而 requestIdleCallback 是一个生脸孔，而 React 官方恰恰看上它。</p><p>刚才说 updateFiberAndView 有出两个时间段，一个给自己的，一个给浏览器的。requestAnimationFrame 能帮我们解决第二个时间段，从而确保整体都是 60 帧或 75 帧（这个帧数可以在操作系统的显示器刷新频率中设置）流畅运行。</p><p>我们看 requestIdleCallback 是怎么解决这问题的</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/v2-e1ba24e51c372e7c824bdf4df5a41555_1440w.webp alt=img loading=lazy data-zoomable></div></div></figure></p><p>它的第一个参数是一个回调，回调有一个参数对象，对象有一个 timeRemaining 方法，就相当于<code>new Date - deadline</code>，并且它是一个高精度数据， 比毫秒更准确， 至少浏览器到底安排了多少时间给更新 DOM 与虚拟 DOM，我们不用管。第二个时间段也不用管，不过浏览器可能 1，2 秒才执行这个回调，因此为了保险起见，我们可以设置第二个参数，让它在回调结束后 300ms 才执行。要相信浏览器，因为都是大牛们写的，时间的调度比你安排更有效率。</p><p>于是我们的 updateFiberAndView 可以改成这样：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=kd>function</span> <span class=nx>updateFiberAndView</span><span class=p>(</span><span class=nx>dl</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nx>updateView</span><span class=p>();</span> <span class=c1>//更新视图，这会耗时，因此需要check时间
-</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=k>if</span> <span class=p>(</span><span class=nx>dl</span><span class=p>.</span><span class=nx>timeRemaining</span><span class=p>()</span> <span class=o>&gt;</span> <span class=mi>1</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=kd>var</span> <span class=nx>vdom</span> <span class=o>=</span> <span class=nx>getVdomFormQueue</span><span class=p>();</span>
-</span></span><span class=line><span class=cl>    <span class=kd>var</span> <span class=nx>fiber</span> <span class=o>=</span> <span class=nx>vdom</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>      <span class=nx>firstFiber</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    <span class=kd>var</span> <span class=nx>hasVisited</span> <span class=o>=</span> <span class=p>{};</span>
-</span></span><span class=line><span class=cl>    <span class=k>do</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>      <span class=c1>//深度优先遍历
-</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=kd>var</span> <span class=nx>fiber</span> <span class=o>=</span> <span class=nx>toFiber</span><span class=p>(</span><span class=nx>fiber</span><span class=p>);</span> <span class=c1>//A处
-</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>firstFiber</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>        <span class=nx>fibstFiber</span> <span class=o>=</span> <span class=nx>fiber</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>      <span class=p>}</span>
-</span></span><span class=line><span class=cl>      <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>hasVisited</span><span class=p>[</span><span class=nx>fiber</span><span class=p>.</span><span class=nx>uuid</span><span class=p>])</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>        <span class=nx>hasVisited</span><span class=p>[</span><span class=nx>fiber</span><span class=p>.</span><span class=nx>uuid</span><span class=p>]</span> <span class=o>=</span> <span class=mi>1</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>        <span class=c1>//根据fiber.type实例化组件或者创建真实DOM
-</span></span></span><span class=line><span class=cl><span class=c1></span>        <span class=c1>//这会耗时，因此需要check时间
-</span></span></span><span class=line><span class=cl><span class=c1></span>        <span class=nx>updateComponentOrElement</span><span class=p>(</span><span class=nx>fiber</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=nx>fiber</span><span class=p>.</span><span class=nx>child</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>          <span class=c1>//向下转换
-</span></span></span><span class=line><span class=cl><span class=c1></span>          <span class=k>if</span> <span class=p>(</span><span class=nx>dl</span><span class=p>.</span><span class=nx>timeRemaining</span><span class=p>()</span> <span class=o>&gt;</span> <span class=mi>1</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>            <span class=nx>queue</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>fiber</span><span class=p>.</span><span class=nx>child</span><span class=p>);</span> <span class=c1>//时间不够，放入栈
-</span></span></span><span class=line><span class=cl><span class=c1></span>            <span class=k>break</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>          <span class=p>}</span>
-</span></span><span class=line><span class=cl>          <span class=nx>fiber</span> <span class=o>=</span> <span class=nx>fiber</span><span class=p>.</span><span class=nx>child</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>          <span class=k>continue</span><span class=p>;</span> <span class=c1>//让逻辑跑回A处，不断转换child, child.child, child.child.child
-</span></span></span><span class=line><span class=cl><span class=c1></span>        <span class=p>}</span>
-</span></span><span class=line><span class=cl>      <span class=p>}</span>
-</span></span><span class=line><span class=cl>      <span class=c1>//....略
-</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=p>}</span> <span class=k>while</span> <span class=p>(</span><span class=mi>1</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>queue</span><span class=p>.</span><span class=nx>length</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nx>requetIdleCallback</span><span class=p>(</span><span class=nx>updateFiberAndView</span><span class=p>,</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>      <span class=nx>timeout</span><span class=o>:</span> <span class=k>new</span> <span class=nb>Date</span><span class=p>()</span> <span class=o>+</span> <span class=mi>100</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=p>});</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><p>到这里，ReactFiber 基于时间分片的限量更新讲完了。实际上 React 为了照顾绝大多数的浏览器，自己实现了 requestIdleCallback。</p><h2 id=批量更新>批量更新</h2><p>但 React 团队觉得还不够，需要更强大的东西。因为有的业务对视图的实时同步需求并不强烈，希望将所有逻辑都跑完才更新视图，于是有了 batchedUpdates，目前它还不是一个稳定的 API，因此大家使用它时要这样用 ReactDOM.unstable_batchedUpdates。</p><p>这个东西怎么实现呢？就是搞一个全局的开关，如果打开了，就让 updateView 不起作用。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=kd>var</span> <span class=nx>isBatching</span> <span class=o>=</span> <span class=kc>false</span>
-</span></span><span class=line><span class=cl><span class=kd>function</span> <span class=nx>batchedUpdates</span><span class=p>(</span><span class=nx>callback</span><span class=p>,</span> <span class=nx>event</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=kd>let</span> <span class=nx>keepbook</span> <span class=o>=</span> <span class=nx>isBatching</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    <span class=nx>isBatching</span> <span class=o>=</span> <span class=kc>true</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    <span class=k>try</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nx>callback</span><span class=p>(</span><span class=nx>event</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span> <span class=k>finally</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>        <span class=nx>isBatching</span> <span class=o>=</span> <span class=nx>keepbook</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>isBatching</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>            <span class=nx>requetIdleCallback</span><span class=p>(</span><span class=nx>updateFiberAndView</span><span class=p>,</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>               <span class=nx>timeout</span><span class=o>:</span><span class=k>new</span> <span class=nb>Date</span> <span class=o>+</span> <span class=mi>1</span>
-</span></span><span class=line><span class=cl>            <span class=p>}</span>
-</span></span><span class=line><span class=cl>        <span class=p>}</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>};</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kd>function</span> <span class=nx>updateView</span><span class=p>(){</span>
-</span></span><span class=line><span class=cl>   <span class=k>if</span><span class=p>(</span><span class=nx>isBatching</span><span class=p>){</span>
-</span></span><span class=line><span class=cl>      <span class=k>return</span>
-</span></span><span class=line><span class=cl>   <span class=p>}</span>
-</span></span><span class=line><span class=cl>   <span class=c1>//更新视图
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>}</span>
-</span></span></code></pre></div><p>事实上，当然没有这么简单，考虑到大家看不懂 React 的源码，大家可以看一下 anujs 是怎么实现的：</p><p><a href="https://link.zhihu.com/?target=https%3A//github.com/RubyLouvre/anu/blob/master/packages/fiber/scheduleWork.js%23L94-L113" target=_blank rel=noopener>https://github.com/RubyLouvre/anu/blob/master/packages/fiber/scheduleWork.js#L94-L113</a></p><p>React 内部也大量使用 batchedUpdates 来优化用户代码，比如说在事件回调中 setState，在 commit 阶段的钩子（componentDidXXX）中 setState 。</p><p>可以说，<code>setState是对单个组件的合并渲染，batchedUpdates是对多个组件的合并渲染</code>。合并渲染是 React 最主要的优化手段。</p><h2 id=为什么使用深度优化遍历>为什么使用深度优化遍历</h2><p>React 通过 Fiber 将树的遍历变成了链表的遍历，但遍历手段有这么多种，为什么偏偏使用 DFS？！</p><p>这涉及一个很经典的消息通信问题。如果是父子通信，我们可以通过 props 进行通信，子组件可以保存父的引用，可以随时 call 父组件。如果是多级组件间的通信，或不存在包含关系的组件通信就麻烦了，于是 React 发明了上下文对象（context）。</p><p>context 一开始是一个空对象，为了方便起见，我们称之为<strong>unmaskedContext</strong>。</p><p>当它遇到一个有 getChildContext 方法的组件时，那个方法会产生一个新 context,与上面的合并，然后将新 context 作为 unmaskedContext 往下传。</p><p>当它遇到一个有 contextTypes 的组件，context 就抽取一部分内容给这个组件进行实例化。这个只有部分内容的 context，我们称之为<strong>maskedContext</strong>。</p><p>组件总是从 unmaskedContext 中割一块肉下来作为自己的 context。可怜！</p><p>如果子组件没有 contextTypes，那么它就没有任何属性。</p><p>在 React15 中，为了传递 unmaskedContext，于是大部分方法与钩子都留了一个参数给它。但这么大架子的 context 竟然在文档中没有什么地位。那时 React 团队还没有想好如何处理组件通信，因此社区一直用舶来品 Redux 来救命。这情况一直到 Redux 的作者入主 React 团队。</p><p>还有一个隐患，它可能被 SCU 比较时是用 maskedContext，而不是 unmaskedContext。</p><p>基于这些问题，终于 new Context API 出来了。首先， unmaskedContext 不再像以前那样各个方法中来往穿梭了，有一个独立的 contextStack。开始时就 push 进一个空对象，到达某个组件需要实例化时，就取它第一个。当再次访问这个组件时， 就像它从栈中弹出。因此我们需要深度优先遍历，保证每点节点都访问两次。</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/v2-d629ff51df8b827d6465514c31467179_1440w.webp alt=img loading=lazy data-zoomable></div></div></figure></p><p>相同的情况还有 container，container 是我们某个元素虚拟 DOM 需要用到的真实父节点。在 React15 中，它会装在一个 containerInfo 对象也层层传送。</p><p>我们知道，虚拟 DOM 分成两大类，一种是组件虚拟 DOM，type 为函数或类，它本身不产生节点，而是生成组件实例，而通过 render 方法，产生下一级的虚拟 DOM。一种是元素虚拟 DOM，type 为标签名，会产生 DOM 节点。上面的元素虚拟 DOM 的 stateNode（DOM 节点），就是下方的元素虚拟 DOM 的 contaner。</p><p>这种独立的栈机制有效地解决了内部方法的参数冗余问题。</p><p>但有一个问题，当第一次渲染完毕后，contextStack 置为空了。然后我们位于虚拟 DOM 树的某个组件 setState，这时它的 context 应该如何获取呢？React 的解决方式是，每次都是从根开始渲染，通过 updateQueue 加速跳过没有更新的 节点——每个组件在 setState 或 forceUpdate 时，都会创建一个 updateQueue 属性在它的上面。anujs 则是保存它之前的 unmaskedContext 到实例上，unmaskedContext 可以看作是上面所有 context 的并集，并且一个可以当多个使用。</p><p>当我们批量更新时，可能有多少不连续的子组件被更新了，其中两个组件之间的某个组件使用了 SCU return false，这个 SCU 应该要被忽视。 因此我们引用一些变量让它透明化。就像 forceUpdate 能让组件无视 SCU 一样。</p><h2 id=为什么要对生命周期钩子大换血>为什么要对生命周期钩子大换血</h2><p>React 将虚拟 DOM 的更新过程划分两个阶段，reconciler 阶段与 commit 阶段。reconciler 阶段对应早期版本的 diff 过程，commit 阶段对应早期版本的 patch 过程。</p><p>一些迷你 React，如 preact 会将它们混合在一起，一边 diff 一边 patch(幸好它使用了 Promise.then 来优化，确保每次只更新一个组件) 。</p><p>有些迷你 React 则是通过减少移动进行优化，于是绞尽脑汁，用上各种算法，最短编辑距离，最长公共子序列，最长上升子序列。。。</p><p>其实基于算法的优化是一种绝望的优化，就类似玛雅文明因为找不到铜矿一直停留于石器时代，诞生了伟大的工匠精神把石器打磨得美伦美奂。</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/v2-fa296a08d4a6290397681e7a3b14f572_1440w.webp alt=img loading=lazy data-zoomable></div></div></figure></p><p>之所以这么说，因为 diff 算法都用于组件的新旧 children 比较，children 一般不会出现过长的情况，有点大炮打蚊子。况且当我们的应用变得非常庞大，页面有上万个组件，要 diff 这么多组件，再卓绝的算法也不能保证浏览器不会累趴。因为他们没想到浏览器也会累趴，也没有想到这是一个长跑的问题。如果是 100 米短跑，或者 1000 米竞赛，当然越快越好。如果是马拉松，就需要考虑到保存体力了，需要注意休息了。性能是一个系统性的工程。</p><p>在我们的代码里面，<code>休息</code>就是检测时间然后断开 Fiber 链。</p><p>updateFiberAndView 里面先进行 updateView，由于节点的更新是不可控，因此全部更新完，才检测时间。并且我们完全不用担心 updateView 会出问题，因为 updateView 实质上是在 batchedUpdates 中，里面有 try catch。而接下来我们基于 DFS 更新节点，每个节点都要 check 时间，这个过程其实很害怕出错的， 因为组件在挂载过程中会调三次钩子/方法（constructor, componentWillMount, render）， 组件在更新过程中会调 4 次钩子 （componentWillReceiveProps, shouldUpdate, componentWillUpdate）, 总不能每个方法都用 try catch 包起来，这样会性能很差。而 constructor, render 是不可避免的，于是对三个 willXXX 动刀了。</p><p>在早期版本中，componentWillMount 与 componentWillReceiveProps 会做内部优化，执行多次 setState 都会延后到 render 时进行合并处理。因此用户就肆意 setState 了。这些 willXXX 还可以让用户任意操作 DOM。 操作 DOM 会可能 reflow，这是官方不愿意看到的。于是官方推出了 getDerivedStateFromProps，让你在 render 设置新 state，你主要返回一个新对象，它就主动帮你 setState。由于这是一个静态方法，你不能操作 instance，这就阻止了你多次操作 setState。由于没有 instance,也就没有<a href="https://link.zhihu.com/?target=http%3A//instance.refs.xxx" target=_blank rel=noopener>http://instance.refs.xxx</a>，你也没有机会操作 DOM 了。这样一来，getDerivedStateFromProps 的逻辑应该会很简单，这样就不会出错，不会出错，就不会打断 DFS 过程。</p><p>getDerivedStateFromProps 取代了原来的 componentWillMount 与 componentWillReceiveProps 方法，而 componentWillUpdate 本来就是可有可无，以前完全是为了对称好看。</p><p>在即使到来的异步更新中，reconciler 阶段可能执行多次，才执行一次 commit，这样也会导致 willXXX 钩子执行多次，违反它们的语义，它们的废弃是不可逆转的。</p><p>在进入 commi 阶段时，组件多了一个新钩子叫 getSnapshotBeforeUpdate，它与 commit 阶段的钩子一样只执行一次。</p><p>如果出错呢，在 componentDidMount/Update 后，我们可以使用 componentDidCatch 方法。于是整个流程变成这样：</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/v2-00e64705c849952d58fde002fec930f6_1440w.webp alt=img loading=lazy data-zoomable></div></div></figure></p><p>reconciler 阶段的钩子都不应该操作 DOM，最好也不要 setState，我们称之为***轻量钩子**。commit 阶段的钩子则对应称之为**重量钩子**。</p><h2 id=任务系统>任务系统</h2><p>updateFiberAndView 是位于一个 requestIdleCallback 中，因此它的时间很有限，分给 DFS 部分的时间也更少，因此它们不能做太多事情。这怎么办呢，标记一下，留给 commit 阶段做。于是产生了一个任务系统。</p><p>每个 Fiber 分配到新的任务时，就通过位操作，累加一个 sideEffect。sideEffect 字面上是副作用的意思，非常重 FP 流的味道，但我们理解为任务更方便我们的理解。</p><p>每个 Fiber 可能有多个任务，比如它要插入 DOM 或移动，就需要加上 Replacement，需要设置样式，需要加上 Update。</p><p>怎么添加任务呢？</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=nx>fiber</span><span class=p>.</span><span class=nx>effectTag</span> <span class=o>|=</span> <span class=nx>Update</span><span class=p>;</span>
-</span></span></code></pre></div><p>怎么保证不会重复添加相同的任务？</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=nx>fiber</span><span class=p>.</span><span class=nx>effectTag</span> <span class=o>&amp;=</span> <span class=o>~</span><span class=nx>DidCapture</span><span class=p>;</span>
-</span></span></code></pre></div><p>在 commit 阶段，怎么知道它包含了某项任务？</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=k>if</span> <span class=p>(</span><span class=nx>fiber</span><span class=p>.</span><span class=nx>effectTag</span> <span class=o>&amp;</span> <span class=nx>Update</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=cm>/*操作属性*/</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><p>React 内置这么多任务，从 DOM 操作到 Ref 处理到回调唤起。。。</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/v2-bb1513412a67e243c77ba3a918ca475b_1440w.webp alt=img loading=lazy data-zoomable></div></div></figure></p><p>顺便说一下 anu 的任务名，是基于素数进行乘除。</p><p><a href="https://link.zhihu.com/?target=https%3A//github.com/RubyLouvre/anu/blob/master/packages/fiber/commitWork.js" target=_blank rel=noopener>https://github.com/RubyLouvre/anu/blob/master/packages/fiber/commitWork.js</a></p><p>无论是位操作还是素数，我们只要保证某个 Fiber 的相同性质任务只执行一次就行了。</p><p>此外，任务系统还有另一个存在意义，保证一些任务优先执行，某些任务是在另一些任务之前。我们称之为任务分拣。这就像快递的仓库管理一样，有了归类才好进行优化。比如说，元素虚拟 DOM 的插入移动操作必须在所有任务之前执行，移除操作必须在 componentWillUnmount 后执行。这些任务之所以是这个顺序，因为这样做才合理，都经过高手们的严密推敲，经过 React15 时代的大众验证。</p><h2 id=fiber-的连体婴结构>Fiber 的连体婴结构</h2><p>连体婴是一个可怕的名词，想想就不舒服，因为事实上 Fiber 就是一个不寻常的结构，直到现在我的 anujs 还没有很好实现这结构。Fiber 有一个叫 alternate 的属性，你们称之为备胎，替死鬼，替身演员。你也可以视它为 git 的开发分支，稳定没错的那个则是 master。每次 setState 时，组件实例 stateNode 上有一个_reactInternalFiber 的对象，就是 master 分支，然后立即复制一个一模一样的专门用来踩雷的 alternate 对象。</p><p>alternate 对象会接受上方传递下来的新 props，然后从 getDerivedStateFromProps 得到新 state，于是 render 不一样的子组件，子组件再 render，渐渐的，master 与 alternate 的差异越来越大，当某一个子组件出错，于是我们又回滚到该边界组件的 master 分支。</p><p>可以说，React16 通过 Fiber 这种数据结构模拟了 git 的三种重要操作， git add, git commit, git revert。</p><p>有关连体婴结构的思考，可以参看我另一篇文章<a href=https://zhuanlan.zhihu.com/p/36476969 target=_blank rel=noopener>《从错误边界到回滚到 MWI》</a>，这里就不再展开。</p><h2 id=中间件系统>中间件系统</h2><p>说起中间件系统，大家可能对 koa 与 redux 里面的洋葱模型比较熟悉。</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/v2-97f0a2fadcafcc4537d336a925ec58b0_1440w.webp alt=img loading=lazy data-zoomable></div></div></figure></p><p>早在 React15 时代，已经有一个叫 Transaction 的东西，与洋葱模型一模一样。在 Transaction 的源码中有一幅特别的 ASCII 图，形象的解释了 Transaction 的作用。</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/v2-2a02b111480b0f591fbf291f481709ac_1440w.webp alt=img loading=lazy data-zoomable></div></div></figure></p><p>简单地说，一个 Transaction 就是将需要执行的 method 使用 wrapper 封装起来，再通过 Transaction 提供的 perform 方法执行。而在 perform 之前，先执行所有 wrapper 中的 initialize 方法；perform 完成之后（即 method 执行后）再执行所有的 close 方法。一组 initialize 及 close 方法称为一个 wrapper，从上面的示例图中可以看出 Transaction 支持多个 wrapper 叠加。</p><p>这个东西有什么用呢？ 最少有两个用处，在更新 DOM 时，收集当前获取焦点的元素与选区，更新结束后，还原焦点与选区（因为插入新节点会引起焦点丢失，document.activeElement 变成 body，或者是 autoFocus，让焦点变成其他 input，导致我们正在输入的 input 的光标不见了，无法正常输入）。在更新时，我们需要保存一些非受控组件，在更新后，对非受控组件进行还原（非受控组件是一个隐涩的知识点，目的是让那些没有设置 onChange 的表单元素无法手动改变它的值）。当然了，contextStack, containerStack 的初次入栈与清空也可以做成中间件。中间件就是分布在 batchedUpdates 的两侧，一种非常易于扩展的设计，为什么不多用用呢!</p><h2 id=总结>总结</h2><p>React Fiber 是对 React 来说是一次革命，解决了 React 项目严重依赖于手工优化的痛点，通过系统级别的时间调度，实现划时代的性能优化。鬼才般的 Fiber 结构，为异常边界提供了退路，也为限量更新提供了下一个起点。React 团队的人才济济，创造力非凡，别出心裁，从更高的层次处理问题，这是其他开源团队不可多见。这也是我一直选择与学习 React 的原因所在。</p><p>但是和所有人一样，我最初学习 React16 的源码是非常痛苦的。后来观看他们团队的视频，深刻理解时间分片与 Fiber 的链表结构后，渐渐明确整个思路，不需要对 React 源码进行断点调试，也能将大体流程复制出来。俗话说，看不如写（就是写 anujs，欢迎大家加 star, <a href="https://link.zhihu.com/?target=https%3A//github.com/RubyLouvre/anu" target=_blank rel=noopener>https://github.com/RubyLouvre/anu</a>），与不如再复述出教会别人。于是便有了本文。</p></div><div class=article-widget><div class="container-xl row post-nav"><div class="col-6 post-nav-item"><div class=meta-nav>上一页</div><a href=/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2018-depth-in-react%E8%AF%A6%E8%B0%88-fiber-%E6%9E%B6%E6%9E%84/ rel=next>2018-Depth in React，详谈 Fiber 架构</a></div><div class="col-6 post-nav-item"><div class=meta-nav>下一页</div><a href=/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-react-fiber-%E8%AF%A6%E7%BB%86%E8%A7%A3%E6%9E%90/ rel=prev>2021-「React Fiber」 详细解析</a></div></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div><script type=text/javascript id=clstr_globe async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
-<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
-<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
-<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
-<script id=dsq-count-scr src=https://ngte.disqus.com/count.js async></script>
-<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
-<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
-<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
-<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>
+<!DOCTYPE html><html lang="zh" >
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  
+  
+    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+
+  
+  
+  
+    
+      
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    
+  
+
+  
+    <meta name="google-site-verification" content="google69a5cccb61297807" />
+    <meta name="baidu-site-verification" content="cqmZHEleVh" />
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+    
+  
+  <meta name="description" content="原文地址 React Fiber 架构 性能优化是一个系统性的工程，如果只看到局部，引入算法，当然是越快越好; 但从整体来看，在关键点引入缓存，可以秒杀 N 多算法，或另辟蹊径，探索事件的本质，可能用户要的并不是快…… React16 启用了全新" />
+
+  
+  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2018-%E5%8F%B8%E5%BE%92%E6%AD%A3%E7%BE%8E-react-fiber-%E6%9E%B6%E6%9E%84/" />
+
+  
+  
+  
+    <meta name="theme-color" content="#0a55a7" />
+  
+
+  
+  
+
+  
+
+  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
+
+  
+  
+  
+    
+    
+
+    
+    
+    
+    
+      
+      
+    
+    
+    
+
+    
+    
+    
+      
+    
+    
+      
+      
+        
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
+        
+      
+    
+
+    
+    
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
+    
+
+    
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+        
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+  
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/wowchemy.0d97305106da5efa530e28b021b4c580.css" />
+
+  
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', "G-40NYXJ8823");
+</script>
+
+
+  
+
+
+  
+
+
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+  
+  
+  
+
+  
+
+  
+    <link rel="manifest" href="/manifest.webmanifest" />
+  
+
+  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
+  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
+
+  <link rel="canonical" href="https://ng-tech.icu/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2018-%E5%8F%B8%E5%BE%92%E6%AD%A3%E7%BE%8E-react-fiber-%E6%9E%B6%E6%9E%84/" />
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+
+  
+  
+    
+    
+  
+  <meta property="twitter:card" content="summary_large_image" />
+  
+    <meta property="twitter:site" content="@wx-chevalier" />
+    <meta property="twitter:creator" content="@wx-chevalier" />
+  
+  <meta property="og:site_name" content="Next-gen Tech Edu" />
+  <meta property="og:url" content="https://ng-tech.icu/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2018-%E5%8F%B8%E5%BE%92%E6%AD%A3%E7%BE%8E-react-fiber-%E6%9E%B6%E6%9E%84/" />
+  <meta property="og:title" content="2018-司徒正美-React Fiber 架构 | Next-gen Tech Edu" />
+  <meta property="og:description" content="原文地址 React Fiber 架构 性能优化是一个系统性的工程，如果只看到局部，引入算法，当然是越快越好; 但从整体来看，在关键点引入缓存，可以秒杀 N 多算法，或另辟蹊径，探索事件的本质，可能用户要的并不是快…… React16 启用了全新" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
+    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
+  
+    
+    
+  
+
+  
+
+
+
+  
+
+  
+
+  
+
+
+
+
+
+  <title>2018-司徒正美-React Fiber 架构 | Next-gen Tech Edu</title>
+</head>
+
+
+<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="b77c71a7549abcc0be75425ad6d109e4" >
+  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
+
+  
+
+
+<aside class="search-modal" id="search">
+  <div class="container">
+    <section class="search-header">
+
+      <div class="row no-gutters justify-content-between mb-3">
+        <div class="col-6 search-title">
+          <p>搜索</p>
+        </div>
+        <div class="col-6 col-search-close">
+          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+      <div id="search-box">
+        
+        
+        
+      </div>
+
+      
+      
+
+      
+    </section>
+    <section class="section-search-results">
+
+      <div id="search-hits">
+        
+      </div>
+
+      <div id="search-common-queries">
+        
+      </div>
+
+    </section>
+  </div>
+</aside>
+
+
+
+  <div class="page-header">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="header--fixed">
+  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
+    <div class="container-xl">
+
+      
+      <div class="d-none d-lg-inline-flex">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      <button type="button" class="navbar-toggler" data-toggle="collapse"
+              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
+      <span><i class="fas fa-bars"></i></span>
+      </button>
+      
+
+      
+      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      
+      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
+
+        
+        <ul class="navbar-nav d-md-inline-flex">
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
+          </li>
+
+          
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+              
+              
+              
+                
+              
+              
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
+              
+                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
+              
+                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+        
+
+          
+        </ul>
+      </div>
+
+      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
+
+        
+        
+        
+        <li class="nav-item">
+          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        <li class="nav-item">
+            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        
+
+        
+        
+        
+        <div></div>
+        
+        <style>
+        @media only screen and (max-width: 600px) {
+          .jimmysong-template {
+            display: none!important;
+          }
+        }
+        </style>
+        
+        <li class="jimmysong-template" style="color: white;font-size: 12px;">
+          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+</header>
+
+
+  </div>
+
+  <div class="page-body">
+    
+    
+    
+
+    
+
+
+
+
+<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
+<div class="container-xl docs">
+  <div class="row flex-xl-nowrap">
+    <div class="docs-sidebar">
+      <form class="docs-search d-flex align-items-center">
+  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    <div class="d-flex">
+      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
+        
+          99.参考资料
+        
+      </span>
+      <span><i class="fas fa-chevron-down"></i></span>
+    </div>
+  </button>
+
+  
+  <button class="form-control sidebar-search js-search d-none d-md-flex">
+    <i class="fas fa-search pr-2"></i>
+    <span class="sidebar-search-text">搜索...</span>
+    <span class="sidebar-search-shortcut">/</span>
+  </button>
+  
+</form>
+
+<nav class="collapse docs-links" id="docs-nav">
+  
+  
+  
+  
+  
+  
+
+  
+  
+    
+
+    
+      
+
+      <ul class="nav docs-sidenav">
+        <li style="display: inline-flex">
+          <a style="cursor: pointer;" onclick="window.history.back()">
+            <i class="fas fa-arrow-left pr-1"></i>
+            Back
+          </a>
+          <span>|</span>
+          <a href="/books/">
+            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
+            Books
+          </a>
+        </li>
+      </ul>
+
+      
+      
+        
+          
+        
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id5612693222c5229b65f8eaab0812cfad&#34;)" href="#id5612693222c5229b65f8eaab0812cfad" aria-expanded="false" aria-controls="id5612693222c5229b65f8eaab0812cfad" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/">基于 Fiber 的调和</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id5612693222c5229b65f8eaab0812cfad" aria-expanded="false" aria-controls="id5612693222c5229b65f8eaab0812cfad">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id5612693222c5229b65f8eaab0812cfad"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id5612693222c5229b65f8eaab0812cfad">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idbda019a1061735627d8bfcfd96a2a0bd&#34;)" href="#idbda019a1061735627d8bfcfd96a2a0bd" aria-expanded="false" aria-controls="idbda019a1061735627d8bfcfd96a2a0bd" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/">99.参考资料</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idbda019a1061735627d8bfcfd96a2a0bd" aria-expanded="false" aria-controls="idbda019a1061735627d8bfcfd96a2a0bd">
+    
+    <i class="fa-solid fa-angle-down" id="caret-idbda019a1061735627d8bfcfd96a2a0bd"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="idbda019a1061735627d8bfcfd96a2a0bd">
+      
+
+
+
+  <li class="child level "><a href="/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2018-depth-in-react%E8%AF%A6%E8%B0%88-fiber-%E6%9E%B6%E6%9E%84/">2018-Depth in React，详谈 Fiber 架构</a></li>
+
+
+
+
+  <li class="child level active"><a href="/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2018-%E5%8F%B8%E5%BE%92%E6%AD%A3%E7%BE%8E-react-fiber-%E6%9E%B6%E6%9E%84/">2018-司徒正美-React Fiber 架构</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-react-fiber-%E8%AF%A6%E7%BB%86%E8%A7%A3%E6%9E%90/">2021-「React Fiber」 详细解析</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+    
+  
+</nav>
+
+    </div>
+
+    
+    
+    <div class="d-none d-xl-block col-xl-2 docs-toc">
+      
+     
+      <ul class="nav toc-top">
+        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
+      </ul>
+     
+
+      <nav id="TableOfContents">
+  <ul>
+    <li><a href="#痛点">痛点</a></li>
+    <li><a href="#解决进度">解决进度</a></li>
+    <li><a href="#一个小实验">一个小实验</a></li>
+    <li><a href="#如何让代码断开重连">如何让代码断开重连</a></li>
+    <li><a href="#如何决定每次更新的数量">如何决定每次更新的数量</a></li>
+    <li><a href="#如何调度时间才能保证流畅">如何调度时间才能保证流畅</a></li>
+    <li><a href="#批量更新">批量更新</a></li>
+    <li><a href="#为什么使用深度优化遍历">为什么使用深度优化遍历</a></li>
+    <li><a href="#为什么要对生命周期钩子大换血">为什么要对生命周期钩子大换血</a></li>
+    <li><a href="#任务系统">任务系统</a></li>
+    <li><a href="#fiber-的连体婴结构">Fiber 的连体婴结构</a></li>
+    <li><a href="#中间件系统">中间件系统</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+</nav>
+
+      
+<div class="subscribe-module col-24 mt-1">
+    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
+</div>
+
+
+
+    </div>
+    
+
+    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
+
+      <article class="article">
+
+          
+
+          <h1>2018-司徒正美-React Fiber 架构</h1>
+
+          <div class="article-style">
+            <blockquote>
+<p><a href="https://zhuanlan.zhihu.com/p/37095662" target="_blank" rel="noopener">原文地址</a></p>
+</blockquote>
+<h1 id="react-fiber-架构">React Fiber 架构</h1>
+<blockquote>
+<p>性能优化是一个系统性的工程，如果只看到局部，引入算法，当然是越快越好; 但从整体来看，在关键点引入缓存，可以秒杀 N 多算法，或另辟蹊径，探索事件的本质，可能用户要的并不是快……</p>
+</blockquote>
+<p>React16 启用了全新的架构，叫做 Fiber，其最大的使命是解决大型 React 项目的性能问题，再顺手解决之前的一些痛点。</p>
+<h2 id="痛点">痛点</h2>
+<p>主要有如下几个：</p>
+<ul>
+<li>组件不能返回数组，最见的场合是 UL 元素下只能使用 LI，TR 元素下只能使用 TD 或 TH，这时这里有一个组件循环生成 LI 或 TD 列表时，我们并不想再放一个 DIV，这会破坏 HTML 的语义。</li>
+<li>弹窗问题，之前一直使用不稳定的 unstable_renderSubtreeIntoContainer。弹窗是依赖原来 DOM 树的上下文，因此这个 API 第一个参数是组件实例，通过它得到对应虚拟 DOM，然后一级级往上找，得到上下文。它的其他参数也很好用，但这个方法一直没有转正。。。</li>
+<li>异常处理，我们想知道哪个组件出错，虽然有了 React DevTool，但是太深的组件树查找起来还是很吃力。希望有个方法告诉我出错位置，并且出错时能让我有机会进行一些修复工作</li>
+<li>HOC 的流行带来两个问题，毕竟是社区兴起的方案，没有考虑到 ref 与 context 的向下传递。</li>
+<li>组件的性能优化全凭人肉，并且主要集中在 SCU，希望框架能干些事情，即使不用 SCU，性能也能上去。</li>
+</ul>
+<h2 id="解决进度">解决进度</h2>
+<ul>
+<li>16.0 让组件支持返回任何数组类型，从而解决数组问题; 推出 createPortal API ,解决弹窗问题; 推出 componentDidCatch 新钩子， 划分出错误组件与边界组件， 每个边界组件能修复下方组件错误一次， 再次出错，转交更上层的边界组件来处理，解决异常处理问题。</li>
+<li>16.2 推出 Fragment 组件，可以看作是数组的一种语法糖。</li>
+<li>16.3 推出 createRef 与 forwardRef 解决 Ref 在 HOC 中的传递问题，推出 new Context API，解决 HOC 的 context 传递问题（主要是 SCU 作崇）</li>
+<li>而性能问题，从 16.0 开始一直由一些内部机制来保证，涉及到批量更新及基于时间分片的限量更新。</li>
+</ul>
+<h2 id="一个小实验">一个小实验</h2>
+<p>我们可以通过以下实验来窥探 React16 的优化思想。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">randomHexColor</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;#&#34;</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&#34;0000&#34;</span> <span class="o">+</span> <span class="p">((</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span> <span class="o">*</span> <span class="mh">0x1000000</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="mi">0</span><span class="p">).</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">)).</span><span class="nx">substr</span><span class="p">(</span><span class="o">-</span><span class="mi">6</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kd">var</span> <span class="nx">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kd">var</span> <span class="nx">root</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s2">&#34;root&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">10000</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">k</span> <span class="o">+=</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span> <span class="o">-</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">el</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">createElement</span><span class="p">(</span><span class="s2">&#34;div&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">el</span><span class="p">.</span><span class="nx">innerHTML</span> <span class="o">=</span> <span class="nx">k</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">root</span><span class="p">.</span><span class="nx">appendChild</span><span class="p">(</span><span class="nx">el</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">el</span><span class="p">.</span><span class="nx">style</span><span class="p">.</span><span class="nx">cssText</span> <span class="o">=</span> <span class="sb">`background:</span><span class="si">${</span><span class="nx">randomHexColor</span><span class="p">()</span><span class="si">}</span><span class="sb">;height:40px`</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">},</span> <span class="mi">1000</span><span class="p">);</span>
+</span></span></code></pre></div><p>这是一个拥有 10000 个节点的插入操作，包含了 innerHTML 与样式设置，花掉 1000ms。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/v2-87527d4cd261c4aebad9fdfa827076f0_1440w.webp" alt="img" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>我们再改进一下，分派次插入节点，每次只操作 100 个节点，共 100 次，发现性能异常的好！</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">randomHexColor</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;#&#34;</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&#34;0000&#34;</span> <span class="o">+</span> <span class="p">((</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span> <span class="o">*</span> <span class="mh">0x1000000</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="mi">0</span><span class="p">).</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">)).</span><span class="nx">substr</span><span class="p">(</span><span class="o">-</span><span class="mi">6</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="kd">var</span> <span class="nx">root</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s2">&#34;root&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kd">function</span> <span class="nx">loop</span><span class="p">(</span><span class="nx">n</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">n</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">k</span> <span class="o">+=</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span> <span class="o">-</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="kd">var</span> <span class="nx">el</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">createElement</span><span class="p">(</span><span class="s2">&#34;div&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">el</span><span class="p">.</span><span class="nx">innerHTML</span> <span class="o">=</span> <span class="nx">k</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">root</span><span class="p">.</span><span class="nx">appendChild</span><span class="p">(</span><span class="nx">el</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">el</span><span class="p">.</span><span class="nx">style</span><span class="p">.</span><span class="nx">cssText</span> <span class="o">=</span> <span class="sb">`background:</span><span class="si">${</span><span class="nx">randomHexColor</span><span class="p">()</span><span class="si">}</span><span class="sb">;height:40px`</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="nx">n</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">loop</span><span class="p">(</span><span class="nx">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="p">},</span> <span class="mi">40</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">loop</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">},</span> <span class="mi">1000</span><span class="p">);</span>
+</span></span></code></pre></div><p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/v2-2cae392020e785dd07986e9f9029205f_1440w.webp" alt="img" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>究其原因是因为浏览器是单线程，它将 GUI 描绘，时间器处理，事件处理，JS 执行，远程资源加载统统放在一起。当做某件事，只有将它做完才能做下一件事。如果有足够的时间，浏览器是会对我们的代码进行编译优化（JIT）及进行热代码优化，一些 DOM 操作，内部也会对 reflow 进行处理。reflow 是一个性能黑洞，很可能让页面的大多数元素进行重新布局。</p>
+<p>浏览器的运作流程</p>
+<blockquote>
+<p>渲染 -&gt; tasks -&gt; 渲染 -&gt; tasks -&gt; 渲染 -&gt; tasks -&gt; &hellip;.</p>
+</blockquote>
+<p>这些 tasks 中有些我们可控，有些不可控，比如 setTimeout 什么时候执行不好说，它总是不准时; 资源加载时间不可控。但一些 JS 我们可以控制，让它们分派执行，tasks 的时长不宜过长，这样浏览器就有时间优化 JS 代码与修正 reflow！下图是我们理想中的渲染过程</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/v2-8a94e1428849853e4ab91407c4f2a85a_1440w.webp" alt="img" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>总结一句，<strong>就是让浏览器休息好，浏览器就能跑得更快</strong>。</p>
+<h2 id="如何让代码断开重连">如何让代码断开重连</h2>
+<p>JSX 是一个快乐出奇蛋，一下子满足你两个愿望：<strong>组件化</strong>与<strong>标签化</strong>。并且 JSX 成为组件化的标准化语言。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-html" data-lang="html"><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">div</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">&lt;</span><span class="nt">Foo</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">&lt;</span><span class="nt">Bar</span> <span class="p">/&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">&lt;/</span><span class="nt">Foo</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
+</span></span></code></pre></div><p>但标签化是天然套嵌的结构，意味着它会最终编译成递归执行的代码。因此 React 团队称 React16 之前的调度器为栈调度器，栈没有什么不好，栈显浅易懂，代码量少，但它的坏处不能随意 break 掉，continue 掉。根据我们上面的实验，break 后我们还要重新执行，我们需要一种链表的结构。</p>
+<p>链表是对异步友好的。链表在循环时不用每次都进入递归函数，重新生成什么执行上下文，变量对象，激活对象，性能当然比递归好。</p>
+<p>因此 Reat16 设法将组件的递归更新，改成链表的依次执行。如果页面有多个虚拟 DOM 树，那么就将它们的根保存到一个数组中。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="nx">ReactDOM</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span><span class="o">&lt;</span><span class="nx">A</span> <span class="o">/&gt;</span><span class="p">,</span> <span class="nx">node1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="nx">ReactDOM</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span><span class="o">&lt;</span><span class="nx">B</span> <span class="o">/&gt;</span><span class="p">,</span> <span class="nx">node2</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//node1与node2不存在包含关系，那么这页面就有两棵虚拟DOM树
+</span></span></span></code></pre></div><p>如果仔细阅读源码，React 这个纯视图库其实也是三层架构。在 React15 有<code>虚拟DOM层</code>，它只负责<strong>描述</strong>结构与逻辑;<code>内部组件层</code>，它们负责组件的更新, ReactDOM.render、 setState、 forceUpdate 都是与它们打交道，能让你多次 setState，只执行一次真实的渲染, 在适合的时机执行你的组件实例的生命周期钩子; <code>底层渲染层</code>， 不同的显示介质有不同的渲染方法，比如说浏览器端，它使用元素节点，文本节点，在 Native 端，会调用 oc， java 的 GUI， 在 canvas 中，有专门的 API 方法。。。</p>
+<p>虚拟 DOM 是由 JSX 转译过来的，JSX 的入口函数是 React.createElement, 可操作空间不大， 第三大的底层 API 也非常稳定，因此我们只能改变第二层。</p>
+<p>React16 将内部组件层改成 Fiber 这种数据结构，因此它的架构名也改叫 Fiber 架构。Fiber 节点拥有 return, child, sibling 三个属性，分别对应父节点， 第一个孩子， 它右边的兄弟， 有了它们就足够将一棵树变成一个链表， 实现深度优化遍历。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/v2-453e1f48a4f53356bee021c90ee00bed_1440w.webp" alt="img" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<h2 id="如何决定每次更新的数量">如何决定每次更新的数量</h2>
+<p>在 React15 中，每次更新时，都是从根组件或 setState 后的组件开始，更新整个子树，我们唯一能做的是，在某个节点中使用 SCU 断开某一部分的更新，或者是优化 SCU 的比较效率。</p>
+<p>React16 则是需要将虚拟 DOM 转换为 Fiber 节点，首先它规定一个时间段内，然后在这个时间段能转换多少个 FiberNode，就更新多少个。</p>
+<p>因此我们需要将我们的更新逻辑分成两个阶段，第一个阶段是将虚拟 DOM 转换成 Fiber, Fiber 转换成组件实例或真实 DOM（不插入 DOM 树，插入 DOM 树会 reflow）。Fiber 转换成后两者明显会耗时，需要计算还剩下多少时间。并且转换实例需要调用一些钩子，如 componentWillMount, 如果是重复利用已有的实例，这时就是调用 componentWillReceiveProps, shouldComponentUpdate, componentWillUpdate,这时也会耗时。</p>
+<p>为了让读者能直观了解 React Fiber 的运作过程，我们简单实现一下 ReactDOM.render, 但不保证会跑起来。</p>
+<p>首先是一些简单的方法：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="kd">var</span> <span class="nx">queue</span> <span class="o">=</span> <span class="p">[];</span>
+</span></span><span class="line"><span class="cl"><span class="nx">ReacDOM</span><span class="p">.</span><span class="nx">render</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">root</span><span class="p">,</span> <span class="nx">container</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">queue</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">root</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">updateFiberAndView</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">getVdomFormQueue</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nx">queue</span><span class="p">.</span><span class="nx">shift</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">Fiber</span><span class="p">(</span><span class="nx">vnode</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="k">in</span> <span class="nx">vnode</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">this</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nx">vnode</span><span class="p">[</span><span class="nx">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="p">.</span><span class="nx">uuid</span> <span class="o">=</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//我们简单的Fiber目前来看，只比vdom多了一个uuid属性
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">function</span> <span class="nx">toFiber</span><span class="p">(</span><span class="nx">vnode</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">vnode</span><span class="p">.</span><span class="nx">uuid</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="k">new</span> <span class="nx">Fiber</span><span class="p">(</span><span class="nx">vnode</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nx">vnode</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>updateFiberAndView 要实现 React 的时间分片，我们先用 setTimeout 模拟。我们暂时不用理会 updateView 怎么实现，可能它就是 updateComponentOrElement 中将它们放到又一个列队，需再出来执行 insertBefore, componentDidMount 操作呢！</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">updateFiberAndView</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kd">var</span> <span class="nx">now</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span> <span class="o">-</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kd">var</span> <span class="nx">deadline</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span> <span class="o">+</span> <span class="mi">100</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">updateView</span><span class="p">();</span> <span class="c1">//更新视图，这会耗时，因此需要check时间
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">()</span> <span class="o">&lt;</span> <span class="nx">deadline</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">vdom</span> <span class="o">=</span> <span class="nx">getVdomFormQueue</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">fiber</span> <span class="o">=</span> <span class="nx">vdom</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">firstFiber</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">hasVisited</span> <span class="o">=</span> <span class="p">{};</span>
+</span></span><span class="line"><span class="cl">    <span class="k">do</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="c1">//深度优先遍历
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="kd">var</span> <span class="nx">fiber</span> <span class="o">=</span> <span class="nx">toFiber</span><span class="p">(</span><span class="nx">fiber</span><span class="p">);</span> <span class="c1">//A处
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">firstFiber</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">fibstFiber</span> <span class="o">=</span> <span class="nx">fiber</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">hasVisited</span><span class="p">[</span><span class="nx">fiber</span><span class="p">.</span><span class="nx">uuid</span><span class="p">])</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">hasVisited</span><span class="p">[</span><span class="nx">fiber</span><span class="p">.</span><span class="nx">uuid</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">//根据fiber.type实例化组件或者创建真实DOM
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="c1">//这会耗时，因此需要check时间
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="nx">updateComponentOrElement</span><span class="p">(</span><span class="nx">fiber</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="nx">fiber</span><span class="p">.</span><span class="nx">child</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">          <span class="c1">//向下转换
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>          <span class="k">if</span> <span class="p">(</span><span class="nx">newDate</span> <span class="o">-</span> <span class="mi">0</span> <span class="o">&gt;</span> <span class="nx">deadline</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">queue</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">fiber</span><span class="p">.</span><span class="nx">child</span><span class="p">);</span> <span class="c1">//时间不够，放入栈
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="k">break</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">          <span class="p">}</span>
+</span></span><span class="line"><span class="cl">          <span class="nx">fiber</span> <span class="o">=</span> <span class="nx">fiber</span><span class="p">.</span><span class="nx">child</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">          <span class="k">continue</span><span class="p">;</span> <span class="c1">//让逻辑跑回A处，不断转换child, child.child, child.child.child
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">      <span class="c1">//如果组件没有children，那么就向右找
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="k">if</span> <span class="p">(</span><span class="nx">fiber</span><span class="p">.</span><span class="nx">sibling</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">fiber</span> <span class="o">=</span> <span class="nx">fiber</span><span class="p">.</span><span class="nx">sibling</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">continue</span><span class="p">;</span> <span class="c1">//让逻辑跑回A处
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">      <span class="c1">// 向上找
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="nx">fiber</span> <span class="o">=</span> <span class="nx">fiber</span><span class="p">.</span><span class="k">return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">(</span><span class="nx">fiber</span> <span class="o">===</span> <span class="nx">fibstFiber</span> <span class="o">||</span> <span class="o">!</span><span class="nx">fiber</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">break</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="nx">queue</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">setTimeout</span><span class="p">(</span><span class="nx">updateFiberAndView</span><span class="p">,</span> <span class="mi">40</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>里面有一个 do while 循环，每一次都是小心翼翼进行计时，时间不够就将来不及处理的节点放进列队。</p>
+<p>updateComponentOrElement 无非是这样：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">updateComponentOrElement</span><span class="p">(</span><span class="nx">fiber</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kd">var</span> <span class="p">{</span> <span class="nx">type</span><span class="p">,</span> <span class="nx">stateNode</span><span class="p">,</span> <span class="nx">props</span> <span class="p">}</span> <span class="o">=</span> <span class="nx">fiber</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">stateNode</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">type</span> <span class="o">===</span> <span class="s2">&#34;string&#34;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">fiber</span><span class="p">.</span><span class="nx">stateNode</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">createElement</span><span class="p">(</span><span class="nx">type</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="kd">var</span> <span class="nx">context</span> <span class="o">=</span> <span class="p">{};</span> <span class="c1">//暂时免去这个获取细节
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="nx">fiber</span><span class="p">.</span><span class="nx">stateNode</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">type</span><span class="p">(</span><span class="nx">props</span><span class="p">,</span> <span class="nx">context</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="nx">stateNode</span><span class="p">.</span><span class="nx">render</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">//执行componentWillMount等钩子
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nx">children</span> <span class="o">=</span> <span class="nx">stateNode</span><span class="p">.</span><span class="nx">render</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">children</span> <span class="o">=</span> <span class="nx">fiber</span><span class="p">.</span><span class="nx">childen</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="kd">var</span> <span class="nx">prev</span> <span class="o">=</span> <span class="kc">null</span><span class="p">;</span> <span class="c1">//这里只是mount的实现，update时还需要一个oldChildren, 进行key匹配，重复利用已有节点
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="nx">n</span> <span class="o">=</span> <span class="nx">children</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">n</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">child</span> <span class="o">=</span> <span class="nx">children</span><span class="p">[</span><span class="nx">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">child</span><span class="p">.</span><span class="k">return</span> <span class="o">=</span> <span class="nx">fiber</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">prev</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">fiber</span><span class="p">.</span><span class="nx">child</span> <span class="o">=</span> <span class="nx">child</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">prev</span><span class="p">.</span><span class="nx">sibling</span> <span class="o">=</span> <span class="nx">child</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">prev</span> <span class="o">=</span> <span class="nx">child</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>因此这样 Fiber 的 return, child, sibling 就有了，可以 happy 地进行深度优先遍历了。</p>
+<h2 id="如何调度时间才能保证流畅">如何调度时间才能保证流畅</h2>
+<p>刚才的 updateFiberAndView 其实有一个问题，我们安排了 100ms 来更新视图与虚拟 DOM，然后再安排 40ms 来给浏览器来做其他事。如果我们的虚拟 DOM 树很小，其实不需要 100ms; 如果我们的代码之后， 浏览器有更多其他事要干， 40ms 可能不够。IE10 出现了 setImmediate，requestAnimationFrame 这些新定时器，让我们这些前端，其实浏览器有能力让页面更流畅地运行起来。</p>
+<p>浏览器本身也不断进化中，随着页面由简单的展示转向 WebAPP，它需要一些新能力来承载更多节点的展示与更新。</p>
+<p>下面是一些自救措施：</p>
+<ul>
+<li>requestAnimationFrame</li>
+<li>requestIdleCallback</li>
+<li>web worker</li>
+<li>IntersectionObserver</li>
+</ul>
+<p>我们依次称为浏览器层面的帧数控制调用，闲时调用，多线程调用， 进入可视区调用。</p>
+<p>requestAnimationFrame 在做动画时经常用到，jQuery 新版本都使用它。web worker 在 angular2 开始就释出一些包，实验性地用它进行 diff 数据。IntersectionObserver 可以用到 ListView 中。而 requestIdleCallback 是一个生脸孔，而 React 官方恰恰看上它。</p>
+<p>刚才说 updateFiberAndView 有出两个时间段，一个给自己的，一个给浏览器的。requestAnimationFrame 能帮我们解决第二个时间段，从而确保整体都是 60 帧或 75 帧（这个帧数可以在操作系统的显示器刷新频率中设置）流畅运行。</p>
+<p>我们看 requestIdleCallback 是怎么解决这问题的</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/v2-e1ba24e51c372e7c824bdf4df5a41555_1440w.webp" alt="img" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>它的第一个参数是一个回调，回调有一个参数对象，对象有一个 timeRemaining 方法，就相当于<code>new Date - deadline</code>，并且它是一个高精度数据， 比毫秒更准确， 至少浏览器到底安排了多少时间给更新 DOM 与虚拟 DOM，我们不用管。第二个时间段也不用管，不过浏览器可能 1，2 秒才执行这个回调，因此为了保险起见，我们可以设置第二个参数，让它在回调结束后 300ms 才执行。要相信浏览器，因为都是大牛们写的，时间的调度比你安排更有效率。</p>
+<p>于是我们的 updateFiberAndView 可以改成这样：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">updateFiberAndView</span><span class="p">(</span><span class="nx">dl</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">updateView</span><span class="p">();</span> <span class="c1">//更新视图，这会耗时，因此需要check时间
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="nx">dl</span><span class="p">.</span><span class="nx">timeRemaining</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">vdom</span> <span class="o">=</span> <span class="nx">getVdomFormQueue</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">fiber</span> <span class="o">=</span> <span class="nx">vdom</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">firstFiber</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">hasVisited</span> <span class="o">=</span> <span class="p">{};</span>
+</span></span><span class="line"><span class="cl">    <span class="k">do</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="c1">//深度优先遍历
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="kd">var</span> <span class="nx">fiber</span> <span class="o">=</span> <span class="nx">toFiber</span><span class="p">(</span><span class="nx">fiber</span><span class="p">);</span> <span class="c1">//A处
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">firstFiber</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">fibstFiber</span> <span class="o">=</span> <span class="nx">fiber</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">hasVisited</span><span class="p">[</span><span class="nx">fiber</span><span class="p">.</span><span class="nx">uuid</span><span class="p">])</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">hasVisited</span><span class="p">[</span><span class="nx">fiber</span><span class="p">.</span><span class="nx">uuid</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">//根据fiber.type实例化组件或者创建真实DOM
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="c1">//这会耗时，因此需要check时间
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="nx">updateComponentOrElement</span><span class="p">(</span><span class="nx">fiber</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="nx">fiber</span><span class="p">.</span><span class="nx">child</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">          <span class="c1">//向下转换
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>          <span class="k">if</span> <span class="p">(</span><span class="nx">dl</span><span class="p">.</span><span class="nx">timeRemaining</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">queue</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">fiber</span><span class="p">.</span><span class="nx">child</span><span class="p">);</span> <span class="c1">//时间不够，放入栈
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="k">break</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">          <span class="p">}</span>
+</span></span><span class="line"><span class="cl">          <span class="nx">fiber</span> <span class="o">=</span> <span class="nx">fiber</span><span class="p">.</span><span class="nx">child</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">          <span class="k">continue</span><span class="p">;</span> <span class="c1">//让逻辑跑回A处，不断转换child, child.child, child.child.child
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">      <span class="c1">//....略
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="nx">queue</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">requetIdleCallback</span><span class="p">(</span><span class="nx">updateFiberAndView</span><span class="p">,</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">timeout</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span> <span class="o">+</span> <span class="mi">100</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">});</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>到这里，ReactFiber 基于时间分片的限量更新讲完了。实际上 React 为了照顾绝大多数的浏览器，自己实现了 requestIdleCallback。</p>
+<h2 id="批量更新">批量更新</h2>
+<p>但 React 团队觉得还不够，需要更强大的东西。因为有的业务对视图的实时同步需求并不强烈，希望将所有逻辑都跑完才更新视图，于是有了 batchedUpdates，目前它还不是一个稳定的 API，因此大家使用它时要这样用 ReactDOM.unstable_batchedUpdates。</p>
+<p>这个东西怎么实现呢？就是搞一个全局的开关，如果打开了，就让 updateView 不起作用。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="kd">var</span> <span class="nx">isBatching</span> <span class="o">=</span> <span class="kc">false</span>
+</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">batchedUpdates</span><span class="p">(</span><span class="nx">callback</span><span class="p">,</span> <span class="nx">event</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">let</span> <span class="nx">keepbook</span> <span class="o">=</span> <span class="nx">isBatching</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">isBatching</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">try</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">event</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span> <span class="k">finally</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">isBatching</span> <span class="o">=</span> <span class="nx">keepbook</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">isBatching</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">requetIdleCallback</span><span class="p">(</span><span class="nx">updateFiberAndView</span><span class="p">,</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">               <span class="nx">timeout</span><span class="o">:</span><span class="k">new</span> <span class="nb">Date</span> <span class="o">+</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">updateView</span><span class="p">(){</span>
+</span></span><span class="line"><span class="cl">   <span class="k">if</span><span class="p">(</span><span class="nx">isBatching</span><span class="p">){</span>
+</span></span><span class="line"><span class="cl">      <span class="k">return</span>
+</span></span><span class="line"><span class="cl">   <span class="p">}</span>
+</span></span><span class="line"><span class="cl">   <span class="c1">//更新视图
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div><p>事实上，当然没有这么简单，考虑到大家看不懂 React 的源码，大家可以看一下 anujs 是怎么实现的：</p>
+<p><a href="https://link.zhihu.com/?target=https%3A//github.com/RubyLouvre/anu/blob/master/packages/fiber/scheduleWork.js%23L94-L113" target="_blank" rel="noopener">https://github.com/RubyLouvre/anu/blob/master/packages/fiber/scheduleWork.js#L94-L113</a></p>
+<p>React 内部也大量使用 batchedUpdates 来优化用户代码，比如说在事件回调中 setState，在 commit 阶段的钩子（componentDidXXX）中 setState 。</p>
+<p>可以说，<code>setState是对单个组件的合并渲染，batchedUpdates是对多个组件的合并渲染</code>。合并渲染是 React 最主要的优化手段。</p>
+<h2 id="为什么使用深度优化遍历">为什么使用深度优化遍历</h2>
+<p>React 通过 Fiber 将树的遍历变成了链表的遍历，但遍历手段有这么多种，为什么偏偏使用 DFS？！</p>
+<p>这涉及一个很经典的消息通信问题。如果是父子通信，我们可以通过 props 进行通信，子组件可以保存父的引用，可以随时 call 父组件。如果是多级组件间的通信，或不存在包含关系的组件通信就麻烦了，于是 React 发明了上下文对象（context）。</p>
+<p>context 一开始是一个空对象，为了方便起见，我们称之为<strong>unmaskedContext</strong>。</p>
+<p>当它遇到一个有 getChildContext 方法的组件时，那个方法会产生一个新 context,与上面的合并，然后将新 context 作为 unmaskedContext 往下传。</p>
+<p>当它遇到一个有 contextTypes 的组件，context 就抽取一部分内容给这个组件进行实例化。这个只有部分内容的 context，我们称之为<strong>maskedContext</strong>。</p>
+<p>组件总是从 unmaskedContext 中割一块肉下来作为自己的 context。可怜！</p>
+<p>如果子组件没有 contextTypes，那么它就没有任何属性。</p>
+<p>在 React15 中，为了传递 unmaskedContext，于是大部分方法与钩子都留了一个参数给它。但这么大架子的 context 竟然在文档中没有什么地位。那时 React 团队还没有想好如何处理组件通信，因此社区一直用舶来品 Redux 来救命。这情况一直到 Redux 的作者入主 React 团队。</p>
+<p>还有一个隐患，它可能被 SCU 比较时是用 maskedContext，而不是 unmaskedContext。</p>
+<p>基于这些问题，终于 new Context API 出来了。首先， unmaskedContext 不再像以前那样各个方法中来往穿梭了，有一个独立的 contextStack。开始时就 push 进一个空对象，到达某个组件需要实例化时，就取它第一个。当再次访问这个组件时， 就像它从栈中弹出。因此我们需要深度优先遍历，保证每点节点都访问两次。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/v2-d629ff51df8b827d6465514c31467179_1440w.webp" alt="img" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>相同的情况还有 container，container 是我们某个元素虚拟 DOM 需要用到的真实父节点。在 React15 中，它会装在一个 containerInfo 对象也层层传送。</p>
+<p>我们知道，虚拟 DOM 分成两大类，一种是组件虚拟 DOM，type 为函数或类，它本身不产生节点，而是生成组件实例，而通过 render 方法，产生下一级的虚拟 DOM。一种是元素虚拟 DOM，type 为标签名，会产生 DOM 节点。上面的元素虚拟 DOM 的 stateNode（DOM 节点），就是下方的元素虚拟 DOM 的 contaner。</p>
+<p>这种独立的栈机制有效地解决了内部方法的参数冗余问题。</p>
+<p>但有一个问题，当第一次渲染完毕后，contextStack 置为空了。然后我们位于虚拟 DOM 树的某个组件 setState，这时它的 context 应该如何获取呢？React 的解决方式是，每次都是从根开始渲染，通过 updateQueue 加速跳过没有更新的 节点——每个组件在 setState 或 forceUpdate 时，都会创建一个 updateQueue 属性在它的上面。anujs 则是保存它之前的 unmaskedContext 到实例上，unmaskedContext 可以看作是上面所有 context 的并集，并且一个可以当多个使用。</p>
+<p>当我们批量更新时，可能有多少不连续的子组件被更新了，其中两个组件之间的某个组件使用了 SCU return false，这个 SCU 应该要被忽视。 因此我们引用一些变量让它透明化。就像 forceUpdate 能让组件无视 SCU 一样。</p>
+<h2 id="为什么要对生命周期钩子大换血">为什么要对生命周期钩子大换血</h2>
+<p>React 将虚拟 DOM 的更新过程划分两个阶段，reconciler 阶段与 commit 阶段。reconciler 阶段对应早期版本的 diff 过程，commit 阶段对应早期版本的 patch 过程。</p>
+<p>一些迷你 React，如 preact 会将它们混合在一起，一边 diff 一边 patch(幸好它使用了 Promise.then 来优化，确保每次只更新一个组件) 。</p>
+<p>有些迷你 React 则是通过减少移动进行优化，于是绞尽脑汁，用上各种算法，最短编辑距离，最长公共子序列，最长上升子序列。。。</p>
+<p>其实基于算法的优化是一种绝望的优化，就类似玛雅文明因为找不到铜矿一直停留于石器时代，诞生了伟大的工匠精神把石器打磨得美伦美奂。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/v2-fa296a08d4a6290397681e7a3b14f572_1440w.webp" alt="img" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>之所以这么说，因为 diff 算法都用于组件的新旧 children 比较，children 一般不会出现过长的情况，有点大炮打蚊子。况且当我们的应用变得非常庞大，页面有上万个组件，要 diff 这么多组件，再卓绝的算法也不能保证浏览器不会累趴。因为他们没想到浏览器也会累趴，也没有想到这是一个长跑的问题。如果是 100 米短跑，或者 1000 米竞赛，当然越快越好。如果是马拉松，就需要考虑到保存体力了，需要注意休息了。性能是一个系统性的工程。</p>
+<p>在我们的代码里面，<code>休息</code>就是检测时间然后断开 Fiber 链。</p>
+<p>updateFiberAndView 里面先进行 updateView，由于节点的更新是不可控，因此全部更新完，才检测时间。并且我们完全不用担心 updateView 会出问题，因为 updateView 实质上是在 batchedUpdates 中，里面有 try catch。而接下来我们基于 DFS 更新节点，每个节点都要 check 时间，这个过程其实很害怕出错的， 因为组件在挂载过程中会调三次钩子/方法（constructor, componentWillMount, render）， 组件在更新过程中会调 4 次钩子 （componentWillReceiveProps, shouldUpdate, componentWillUpdate）, 总不能每个方法都用 try catch 包起来，这样会性能很差。而 constructor, render 是不可避免的，于是对三个 willXXX 动刀了。</p>
+<p>在早期版本中，componentWillMount 与 componentWillReceiveProps 会做内部优化，执行多次 setState 都会延后到 render 时进行合并处理。因此用户就肆意 setState 了。这些 willXXX 还可以让用户任意操作 DOM。 操作 DOM 会可能 reflow，这是官方不愿意看到的。于是官方推出了 getDerivedStateFromProps，让你在 render 设置新 state，你主要返回一个新对象，它就主动帮你 setState。由于这是一个静态方法，你不能操作 instance，这就阻止了你多次操作 setState。由于没有 instance,也就没有<a href="https://link.zhihu.com/?target=http%3A//instance.refs.xxx" target="_blank" rel="noopener">http://instance.refs.xxx</a>，你也没有机会操作 DOM 了。这样一来，getDerivedStateFromProps 的逻辑应该会很简单，这样就不会出错，不会出错，就不会打断 DFS 过程。</p>
+<p>getDerivedStateFromProps 取代了原来的 componentWillMount 与 componentWillReceiveProps 方法，而 componentWillUpdate 本来就是可有可无，以前完全是为了对称好看。</p>
+<p>在即使到来的异步更新中，reconciler 阶段可能执行多次，才执行一次 commit，这样也会导致 willXXX 钩子执行多次，违反它们的语义，它们的废弃是不可逆转的。</p>
+<p>在进入 commi 阶段时，组件多了一个新钩子叫 getSnapshotBeforeUpdate，它与 commit 阶段的钩子一样只执行一次。</p>
+<p>如果出错呢，在 componentDidMount/Update 后，我们可以使用 componentDidCatch 方法。于是整个流程变成这样：</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/v2-00e64705c849952d58fde002fec930f6_1440w.webp" alt="img" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>reconciler 阶段的钩子都不应该操作 DOM，最好也不要 setState，我们称之为***轻量钩子**。commit 阶段的钩子则对应称之为**重量钩子**。</p>
+<h2 id="任务系统">任务系统</h2>
+<p>updateFiberAndView 是位于一个 requestIdleCallback 中，因此它的时间很有限，分给 DFS 部分的时间也更少，因此它们不能做太多事情。这怎么办呢，标记一下，留给 commit 阶段做。于是产生了一个任务系统。</p>
+<p>每个 Fiber 分配到新的任务时，就通过位操作，累加一个 sideEffect。sideEffect 字面上是副作用的意思，非常重 FP 流的味道，但我们理解为任务更方便我们的理解。</p>
+<p>每个 Fiber 可能有多个任务，比如它要插入 DOM 或移动，就需要加上 Replacement，需要设置样式，需要加上 Update。</p>
+<p>怎么添加任务呢？</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="nx">fiber</span><span class="p">.</span><span class="nx">effectTag</span> <span class="o">|=</span> <span class="nx">Update</span><span class="p">;</span>
+</span></span></code></pre></div><p>怎么保证不会重复添加相同的任务？</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="nx">fiber</span><span class="p">.</span><span class="nx">effectTag</span> <span class="o">&amp;=</span> <span class="o">~</span><span class="nx">DidCapture</span><span class="p">;</span>
+</span></span></code></pre></div><p>在 commit 阶段，怎么知道它包含了某项任务？</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="nx">fiber</span><span class="p">.</span><span class="nx">effectTag</span> <span class="o">&amp;</span> <span class="nx">Update</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="cm">/*操作属性*/</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>React 内置这么多任务，从 DOM 操作到 Ref 处理到回调唤起。。。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/v2-bb1513412a67e243c77ba3a918ca475b_1440w.webp" alt="img" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>顺便说一下 anu 的任务名，是基于素数进行乘除。</p>
+<p><a href="https://link.zhihu.com/?target=https%3A//github.com/RubyLouvre/anu/blob/master/packages/fiber/commitWork.js" target="_blank" rel="noopener">https://github.com/RubyLouvre/anu/blob/master/packages/fiber/commitWork.js</a></p>
+<p>无论是位操作还是素数，我们只要保证某个 Fiber 的相同性质任务只执行一次就行了。</p>
+<p>此外，任务系统还有另一个存在意义，保证一些任务优先执行，某些任务是在另一些任务之前。我们称之为任务分拣。这就像快递的仓库管理一样，有了归类才好进行优化。比如说，元素虚拟 DOM 的插入移动操作必须在所有任务之前执行，移除操作必须在 componentWillUnmount 后执行。这些任务之所以是这个顺序，因为这样做才合理，都经过高手们的严密推敲，经过 React15 时代的大众验证。</p>
+<h2 id="fiber-的连体婴结构">Fiber 的连体婴结构</h2>
+<p>连体婴是一个可怕的名词，想想就不舒服，因为事实上 Fiber 就是一个不寻常的结构，直到现在我的 anujs 还没有很好实现这结构。Fiber 有一个叫 alternate 的属性，你们称之为备胎，替死鬼，替身演员。你也可以视它为 git 的开发分支，稳定没错的那个则是 master。每次 setState 时，组件实例 stateNode 上有一个_reactInternalFiber 的对象，就是 master 分支，然后立即复制一个一模一样的专门用来踩雷的 alternate 对象。</p>
+<p>alternate 对象会接受上方传递下来的新 props，然后从 getDerivedStateFromProps 得到新 state，于是 render 不一样的子组件，子组件再 render，渐渐的，master 与 alternate 的差异越来越大，当某一个子组件出错，于是我们又回滚到该边界组件的 master 分支。</p>
+<p>可以说，React16 通过 Fiber 这种数据结构模拟了 git 的三种重要操作， git add, git commit, git revert。</p>
+<p>有关连体婴结构的思考，可以参看我另一篇文章<a href="https://zhuanlan.zhihu.com/p/36476969" target="_blank" rel="noopener">《从错误边界到回滚到 MWI》</a>，这里就不再展开。</p>
+<h2 id="中间件系统">中间件系统</h2>
+<p>说起中间件系统，大家可能对 koa 与 redux 里面的洋葱模型比较熟悉。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/v2-97f0a2fadcafcc4537d336a925ec58b0_1440w.webp" alt="img" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>早在 React15 时代，已经有一个叫 Transaction 的东西，与洋葱模型一模一样。在 Transaction 的源码中有一幅特别的 ASCII 图，形象的解释了 Transaction 的作用。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/v2-2a02b111480b0f591fbf291f481709ac_1440w.webp" alt="img" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>简单地说，一个 Transaction 就是将需要执行的 method 使用 wrapper 封装起来，再通过 Transaction 提供的 perform 方法执行。而在 perform 之前，先执行所有 wrapper 中的 initialize 方法；perform 完成之后（即 method 执行后）再执行所有的 close 方法。一组 initialize 及 close 方法称为一个 wrapper，从上面的示例图中可以看出 Transaction 支持多个 wrapper 叠加。</p>
+<p>这个东西有什么用呢？ 最少有两个用处，在更新 DOM 时，收集当前获取焦点的元素与选区，更新结束后，还原焦点与选区（因为插入新节点会引起焦点丢失，document.activeElement 变成 body，或者是 autoFocus，让焦点变成其他 input，导致我们正在输入的 input 的光标不见了，无法正常输入）。在更新时，我们需要保存一些非受控组件，在更新后，对非受控组件进行还原（非受控组件是一个隐涩的知识点，目的是让那些没有设置 onChange 的表单元素无法手动改变它的值）。当然了，contextStack, containerStack 的初次入栈与清空也可以做成中间件。中间件就是分布在 batchedUpdates 的两侧，一种非常易于扩展的设计，为什么不多用用呢!</p>
+<h2 id="总结">总结</h2>
+<p>React Fiber 是对 React 来说是一次革命，解决了 React 项目严重依赖于手工优化的痛点，通过系统级别的时间调度，实现划时代的性能优化。鬼才般的 Fiber 结构，为异常边界提供了退路，也为限量更新提供了下一个起点。React 团队的人才济济，创造力非凡，别出心裁，从更高的层次处理问题，这是其他开源团队不可多见。这也是我一直选择与学习 React 的原因所在。</p>
+<p>但是和所有人一样，我最初学习 React16 的源码是非常痛苦的。后来观看他们团队的视频，深刻理解时间分片与 Fiber 的链表结构后，渐渐明确整个思路，不需要对 React 源码进行断点调试，也能将大体流程复制出来。俗话说，看不如写（就是写 anujs，欢迎大家加 star, <a href="https://link.zhihu.com/?target=https%3A//github.com/RubyLouvre/anu" target="_blank" rel="noopener">https://github.com/RubyLouvre/anu</a>），与不如再复述出教会别人。于是便有了本文。</p>
+
+          </div>
+
+          
+
+
+
+          
+          
+          <div class="article-widget">
+            
+<div class="container-xl row post-nav">
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">上一页</div>
+    <a href="/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2018-depth-in-react%E8%AF%A6%E8%B0%88-fiber-%E6%9E%B6%E6%9E%84/" rel="next">2018-Depth in React，详谈 Fiber 架构</a>
+  </div>
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">下一页</div>
+    <a href="/books/react-notes/05.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%9F%BA%E4%BA%8E-fiber-%E7%9A%84%E8%B0%83%E5%92%8C/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-react-fiber-%E8%AF%A6%E7%BB%86%E8%A7%A3%E6%9E%90/" rel="prev">2021-「React Fiber」 详细解析</a>
+  </div>
+  
+</div>
+
+          </div>
+          
+
+        <div class="body-footer">
+          <p>最近更新于 0001-01-01</p>
+
+          
+
+
+
+          
+
+
+  
+  
+  
+
+  
+
+  
+  <section id="comments" class="mb-3 pt-0">
+    
+<div id="disqus_thread"></div>
+<script>
+  var disqus_config = function () {
+    
+    
+    
+  };
+  (function() {
+    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+      return;
+    }
+    var d = document, s = d.createElement('script'); 
+    s.async = true;
+    s.src = 'https://' + "ngte" + '.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </section>
+  
+
+
+
+          
+
+
+        </div>
+
+      </article>
+
+      <footer class="site-footer">
+
+  
+
+
+
+  
+
+  
+  <div class="copyright py-4 bg-footer">
+      <div class="row justify-content-center">
+        <div class="text-center footer-color">
+          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
+        </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" id="clstr_globe" async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script>
+  
+</footer>
+
+
+    </main>
+  </div>
+</div>
+<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
+<script>
+  const heti = new Heti('.article');
+  heti.autoSpacing();
+</script>
+<script type="text/javascript">
+  window.$crisp = [];
+  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
+  (function () {
+    setTimeout(function() {
+      d = document;
+      s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    }, 2500);
+  })();
+</script>
+  </div>
+
+  <div class="page-footer">
+    
+    
+  </div>
+
+      
+
+    
+    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
+
+    
+    
+    
+      
+
+      
+      
+
+      
+
+      
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
+        
+        
+      
+
+    
+
+    
+    
+    
+
+    
+    
+    
+      
+      <script id="search-hit-algolia-template" type="text/html">
+        <div class="search-hit">
+          <div class="search-hit-content">
+            <div class="search-hit-name">
+              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
+            </div>
+            <div class="article-metadata search-hit-type">{{type}}</div>
+            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
+          </div>
+        </div>
+      </script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
+      
+      
+    
+
+    
+    
+
+    
+    
+    
+    
+      <script id="dsq-count-scr" src="https://ngte.disqus.com/count.js" async></script>
+      
+    
+
+    
+    
+      
+      
+      
+      
+      
+      
+      
+    
+
+    
+    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
+    
+
+    
+    
+    
+    <script id="page-data" type="application/json">{"use_headroom":false}</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
+
+    
+    
+    
+    
+    
+    
+    <script>
+
+var mybutton = document.getElementById("backTopBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+}
+</script>
+
+
+    
+
+    
+    
+    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+    <script>
+      anchors.add();
+    </script>
+    
+
+    
+    <script>
+
+
+
+(function() {
+  'use strict';
+
+  if(!document.queryCommandSupported('copy')) {
+    return;
+  }
+
+  function flashCopyMessage(el, msg) {
+    el.className = "highlight-copy-btn";
+    el.textContent = msg;
+    setTimeout(function() {
+      el.textContent = "";
+      el.className = "highlight-copy-btn fa fa-copy";
+    }, 1000);
+  }
+
+  function selectText(node) {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection;
+  }
+
+  function addCopyButton(containerEl) {
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "highlight-copy-btn fa fa-copy";
+    copyBtn.textContent = "";
+
+    var codeEl = containerEl.firstElementChild;
+    copyBtn.addEventListener('click', function() {
+      try {
+        var selection = selectText(codeEl);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        
+        flashCopyMessage(copyBtn, '已复制')
+        
+      } catch(e) {
+        console && console.log(e);
+        flashCopyMessage(copyBtn, 'Failed :\'(')
+      }
+    });
+
+    containerEl.appendChild(copyBtn);
+  }
+
+  
+  var highlightBlocks = document.getElementsByClassName('highlight');
+  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
+})();
+</script>
+
+    
+
+
+</body>
+</html>

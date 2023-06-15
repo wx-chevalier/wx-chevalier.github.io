@@ -1,23 +1,999 @@
-<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="V8 中对象与数组的存储 上世纪九十年代，随着网景浏览器的发行，JavaScript 首次进入人们的视线。之后随着 AJAX 的大规模应用与富客户端、单页应用时代的到来，JavaScript 在 Web 开发中占据了越来越重要的"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/%E5%AF%B9%E8%B1%A1%E4%B8%8E%E6%95%B0%E7%BB%84/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.fab3cd1900ae35687457073b2d518207.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/%E5%AF%B9%E8%B1%A1%E4%B8%8E%E6%95%B0%E7%BB%84/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/%E5%AF%B9%E8%B1%A1%E4%B8%8E%E6%95%B0%E7%BB%84/"><meta property="og:title" content="对象与数组 | Next-gen Tech Edu"><meta property="og:description" content="V8 中对象与数组的存储 上世纪九十年代，随着网景浏览器的发行，JavaScript 首次进入人们的视线。之后随着 AJAX 的大规模应用与富客户端、单页应用时代的到来，JavaScript 在 Web 开发中占据了越来越重要的"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>对象与数组 | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=f7590a23e83d0bac238a23180560888c><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
-<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
-<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
-<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
-<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
-<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">内存管理</span>
-<span><i class="fas fa-chevron-down"></i></span></div></button>
-<button class="form-control sidebar-search js-search d-none d-md-flex">
-<i class="fas fa-search pr-2"></i>
-<span class=sidebar-search-text>搜索...</span>
-<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
-Back</a>
-<span>|</span>
-<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
-Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id717ab09dc5a2266b077899ad46681476")' href=#id717ab09dc5a2266b077899ad46681476 aria-expanded=false aria-controls=id717ab09dc5a2266b077899ad46681476 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/>20.V8 引擎</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id717ab09dc5a2266b077899ad46681476 aria-expanded=false aria-controls=id717ab09dc5a2266b077899ad46681476><i class="fa-solid fa-angle-down" id=caret-id717ab09dc5a2266b077899ad46681476></i></a></div><ul class="nav docs-sidenav collapse show" id=id717ab09dc5a2266b077899ad46681476><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id2b7b70f92eccbeed357a6bc96bee11a5")' href=#id2b7b70f92eccbeed357a6bc96bee11a5 aria-expanded=false aria-controls=id2b7b70f92eccbeed357a6bc96bee11a5 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/>99.参考资料</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id2b7b70f92eccbeed357a6bc96bee11a5 aria-expanded=false aria-controls=id2b7b70f92eccbeed357a6bc96bee11a5><i class="fa-solid fa-angle-right" id=caret-id2b7b70f92eccbeed357a6bc96bee11a5></i></a></div><ul class="nav docs-sidenav collapse" id=id2b7b70f92eccbeed357a6bc96bee11a5><li class="child level"><a href=/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-google-v8-%E5%BC%95%E6%93%8E%E6%B5%85%E6%9E%90/>2021-Google V8 引擎浅析</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idb287d1f67829c9f3dbbf563266cda3b7")' href=#idb287d1f67829c9f3dbbf563266cda3b7 aria-expanded=false aria-controls=idb287d1f67829c9f3dbbf563266cda3b7 aria-hidden=false data-toggle=collapse></div></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id74a860c66dbbf1a28f5014516b04821c")' href=#id74a860c66dbbf1a28f5014516b04821c aria-expanded=false aria-controls=id74a860c66dbbf1a28f5014516b04821c aria-hidden=false data-toggle=collapse></div></div><li class="child level"><a href=/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/v8-%E7%BA%B5%E8%A7%88/>V8 纵览</a></li><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id2c3949142a7fa8c94d47fbae0447bca8")' href=#id2c3949142a7fa8c94d47fbae0447bca8 aria-expanded=false aria-controls=id2c3949142a7fa8c94d47fbae0447bca8 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/>内存管理</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id2c3949142a7fa8c94d47fbae0447bca8 aria-expanded=false aria-controls=id2c3949142a7fa8c94d47fbae0447bca8><i class="fa-solid fa-angle-down" id=caret-id2c3949142a7fa8c94d47fbae0447bca8></i></a></div><ul class="nav docs-sidenav collapse show" id=id2c3949142a7fa8c94d47fbae0447bca8><li class="child level active"><a href=/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/%E5%AF%B9%E8%B1%A1%E4%B8%8E%E6%95%B0%E7%BB%84/>对象与数组</a></li><li class="child level"><a href=/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/>垃圾回收</a></li><li class="child level"><a href=/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/%E5%86%85%E5%AD%98%E6%B3%84%E9%9C%B2/>内存泄露</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idbc0ba5b906fb04ca27e2732c148304cb")' href=#idbc0ba5b906fb04ca27e2732c148304cb aria-expanded=false aria-controls=idbc0ba5b906fb04ca27e2732c148304cb aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E8%BF%90%E8%A1%8C%E6%97%B6/>运行时</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idbc0ba5b906fb04ca27e2732c148304cb aria-expanded=false aria-controls=idbc0ba5b906fb04ca27e2732c148304cb><i class="fa-solid fa-angle-right" id=caret-idbc0ba5b906fb04ca27e2732c148304cb></i></a></div><ul class="nav docs-sidenav collapse" id=idbc0ba5b906fb04ca27e2732c148304cb><li class="child level"><a href=/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E8%BF%90%E8%A1%8C%E6%97%B6/%E8%B0%83%E7%94%A8%E4%B8%8E%E5%A0%86%E6%A0%88/>调用与堆栈</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents><ul><li><a href=#reused-hidden-class--重复使用的隐藏类>Reused Hidden Class | 重复使用的隐藏类</a></li><li><a href=#methods--prototypes-方法与原型>Methods & Prototypes: 方法与原型</a></li></ul></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>对象与数组</h1><div class=article-style><h1 id=v8-中对象与数组的存储>V8 中对象与数组的存储</h1><p>上世纪九十年代，随着网景浏览器的发行，JavaScript 首次进入人们的视线。之后随着 AJAX 的大规模应用与富客户端、单页应用时代的到来，JavaScript 在 Web 开发中占据了越来越重要的地位。在早期的 JavaScript 引擎中，性能越发成为了开发网页应用的瓶颈。而 V8 引擎设计的目标就是为了保证大型 JavaScript 应用的执行效率，在<a href=https://developers.google.com/v8/benchmarks target=_blank rel=noopener>很多测试</a>中可以明显发现 V8 的性能优于 JScript (Internet Explorer), SpiderMonkey (Firefox), 以及 JavaScriptCore(Safari)。根据 V8 的官方文档介绍，其主要是从属性访问、动态机器码生成以及高效的垃圾回收这三个方面着手性能优化。Obejct 当属 JavaScript 最重要的数据类型之一，本文我们对其内部结构进行详细阐述。其继承关系图如下所示：</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://v8docs.nodesource.com/node-7.2/dc/dc3/classv8_1_1_object__inherit__graph.png alt loading=lazy data-zoomable></div></div></figure></p><p>在 V8 中新分配的 JavaScript 对象结构如下所示：</p><pre tabindex=0><code>[ class / map ] -&gt; ... ; 指向内部类
+<!DOCTYPE html><html lang="zh" >
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  
+  
+    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+
+  
+  
+  
+    
+      
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    
+  
+
+  
+    <meta name="google-site-verification" content="google69a5cccb61297807" />
+    <meta name="baidu-site-verification" content="cqmZHEleVh" />
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+    
+  
+  <meta name="description" content="V8 中对象与数组的存储 上世纪九十年代，随着网景浏览器的发行，JavaScript 首次进入人们的视线。之后随着 AJAX 的大规模应用与富客户端、单页应用时代的到来，JavaScript 在 Web 开发中占据了越来越重要的" />
+
+  
+  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/%E5%AF%B9%E8%B1%A1%E4%B8%8E%E6%95%B0%E7%BB%84/" />
+
+  
+  
+  
+    <meta name="theme-color" content="#0a55a7" />
+  
+
+  
+  
+
+  
+
+  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
+
+  
+  
+  
+    
+    
+
+    
+    
+    
+    
+      
+      
+    
+    
+    
+
+    
+    
+    
+      
+    
+    
+      
+      
+        
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
+        
+      
+    
+
+    
+    
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
+    
+
+    
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+        
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+  
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/wowchemy.0d97305106da5efa530e28b021b4c580.css" />
+
+  
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', "G-40NYXJ8823");
+</script>
+
+
+  
+
+
+  
+
+
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+  
+  
+  
+
+  
+
+  
+    <link rel="manifest" href="/manifest.webmanifest" />
+  
+
+  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
+  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
+
+  <link rel="canonical" href="https://ng-tech.icu/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/%E5%AF%B9%E8%B1%A1%E4%B8%8E%E6%95%B0%E7%BB%84/" />
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+
+  
+  
+    
+    
+  
+  <meta property="twitter:card" content="summary_large_image" />
+  
+    <meta property="twitter:site" content="@wx-chevalier" />
+    <meta property="twitter:creator" content="@wx-chevalier" />
+  
+  <meta property="og:site_name" content="Next-gen Tech Edu" />
+  <meta property="og:url" content="https://ng-tech.icu/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/%E5%AF%B9%E8%B1%A1%E4%B8%8E%E6%95%B0%E7%BB%84/" />
+  <meta property="og:title" content="对象与数组 | Next-gen Tech Edu" />
+  <meta property="og:description" content="V8 中对象与数组的存储 上世纪九十年代，随着网景浏览器的发行，JavaScript 首次进入人们的视线。之后随着 AJAX 的大规模应用与富客户端、单页应用时代的到来，JavaScript 在 Web 开发中占据了越来越重要的" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
+    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
+  
+    
+    
+  
+
+  
+
+
+
+  
+
+  
+
+  
+
+
+
+
+
+  <title>对象与数组 | Next-gen Tech Edu</title>
+</head>
+
+
+<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="f7590a23e83d0bac238a23180560888c" >
+  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
+
+  
+
+
+<aside class="search-modal" id="search">
+  <div class="container">
+    <section class="search-header">
+
+      <div class="row no-gutters justify-content-between mb-3">
+        <div class="col-6 search-title">
+          <p>搜索</p>
+        </div>
+        <div class="col-6 col-search-close">
+          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+      <div id="search-box">
+        
+        
+        
+      </div>
+
+      
+      
+
+      
+    </section>
+    <section class="section-search-results">
+
+      <div id="search-hits">
+        
+      </div>
+
+      <div id="search-common-queries">
+        
+      </div>
+
+    </section>
+  </div>
+</aside>
+
+
+
+  <div class="page-header">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="header--fixed">
+  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
+    <div class="container-xl">
+
+      
+      <div class="d-none d-lg-inline-flex">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      <button type="button" class="navbar-toggler" data-toggle="collapse"
+              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
+      <span><i class="fas fa-bars"></i></span>
+      </button>
+      
+
+      
+      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      
+      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
+
+        
+        <ul class="navbar-nav d-md-inline-flex">
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
+          </li>
+
+          
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+              
+              
+              
+                
+              
+              
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
+              
+                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
+              
+                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+        
+
+          
+        </ul>
+      </div>
+
+      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
+
+        
+        
+        
+        <li class="nav-item">
+          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        <li class="nav-item">
+            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        
+
+        
+        
+        
+        <div></div>
+        
+        <style>
+        @media only screen and (max-width: 600px) {
+          .jimmysong-template {
+            display: none!important;
+          }
+        }
+        </style>
+        
+        <li class="jimmysong-template" style="color: white;font-size: 12px;">
+          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+</header>
+
+
+  </div>
+
+  <div class="page-body">
+    
+    
+    
+
+    
+
+
+
+
+<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
+<div class="container-xl docs">
+  <div class="row flex-xl-nowrap">
+    <div class="docs-sidebar">
+      <form class="docs-search d-flex align-items-center">
+  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    <div class="d-flex">
+      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
+        
+          内存管理
+        
+      </span>
+      <span><i class="fas fa-chevron-down"></i></span>
+    </div>
+  </button>
+
+  
+  <button class="form-control sidebar-search js-search d-none d-md-flex">
+    <i class="fas fa-search pr-2"></i>
+    <span class="sidebar-search-text">搜索...</span>
+    <span class="sidebar-search-shortcut">/</span>
+  </button>
+  
+</form>
+
+<nav class="collapse docs-links" id="docs-nav">
+  
+  
+  
+  
+  
+  
+
+  
+  
+    
+
+    
+      
+
+      <ul class="nav docs-sidenav">
+        <li style="display: inline-flex">
+          <a style="cursor: pointer;" onclick="window.history.back()">
+            <i class="fas fa-arrow-left pr-1"></i>
+            Back
+          </a>
+          <span>|</span>
+          <a href="/books/">
+            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
+            Books
+          </a>
+        </li>
+      </ul>
+
+      
+      
+        
+          
+        
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id717ab09dc5a2266b077899ad46681476&#34;)" href="#id717ab09dc5a2266b077899ad46681476" aria-expanded="false" aria-controls="id717ab09dc5a2266b077899ad46681476" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/">20.V8 引擎</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id717ab09dc5a2266b077899ad46681476" aria-expanded="false" aria-controls="id717ab09dc5a2266b077899ad46681476">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id717ab09dc5a2266b077899ad46681476"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id717ab09dc5a2266b077899ad46681476">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id2b7b70f92eccbeed357a6bc96bee11a5&#34;)" href="#id2b7b70f92eccbeed357a6bc96bee11a5" aria-expanded="false" aria-controls="id2b7b70f92eccbeed357a6bc96bee11a5" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/">99.参考资料</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id2b7b70f92eccbeed357a6bc96bee11a5" aria-expanded="false" aria-controls="id2b7b70f92eccbeed357a6bc96bee11a5">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id2b7b70f92eccbeed357a6bc96bee11a5"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id2b7b70f92eccbeed357a6bc96bee11a5">
+      
+
+
+
+  <li class="child level "><a href="/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-google-v8-%E5%BC%95%E6%93%8E%E6%B5%85%E6%9E%90/">2021-Google V8 引擎浅析</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idb287d1f67829c9f3dbbf563266cda3b7&#34;)" href="#idb287d1f67829c9f3dbbf563266cda3b7" aria-expanded="false" aria-controls="idb287d1f67829c9f3dbbf563266cda3b7" aria-hidden="false" data-toggle="collapse">
+    
+    </div>
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id74a860c66dbbf1a28f5014516b04821c&#34;)" href="#id74a860c66dbbf1a28f5014516b04821c" aria-expanded="false" aria-controls="id74a860c66dbbf1a28f5014516b04821c" aria-hidden="false" data-toggle="collapse">
+    
+    </div>
+    
+
+    
+      </div>
+    
+
+
+
+
+  <li class="child level "><a href="/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/v8-%E7%BA%B5%E8%A7%88/">V8 纵览</a></li>
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id2c3949142a7fa8c94d47fbae0447bca8&#34;)" href="#id2c3949142a7fa8c94d47fbae0447bca8" aria-expanded="false" aria-controls="id2c3949142a7fa8c94d47fbae0447bca8" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">内存管理</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id2c3949142a7fa8c94d47fbae0447bca8" aria-expanded="false" aria-controls="id2c3949142a7fa8c94d47fbae0447bca8">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id2c3949142a7fa8c94d47fbae0447bca8"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id2c3949142a7fa8c94d47fbae0447bca8">
+      
+
+
+
+  <li class="child level active"><a href="/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/%E5%AF%B9%E8%B1%A1%E4%B8%8E%E6%95%B0%E7%BB%84/">对象与数组</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/">垃圾回收</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/%E5%86%85%E5%AD%98%E6%B3%84%E9%9C%B2/">内存泄露</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idbc0ba5b906fb04ca27e2732c148304cb&#34;)" href="#idbc0ba5b906fb04ca27e2732c148304cb" aria-expanded="false" aria-controls="idbc0ba5b906fb04ca27e2732c148304cb" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E8%BF%90%E8%A1%8C%E6%97%B6/">运行时</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idbc0ba5b906fb04ca27e2732c148304cb" aria-expanded="false" aria-controls="idbc0ba5b906fb04ca27e2732c148304cb">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idbc0ba5b906fb04ca27e2732c148304cb"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idbc0ba5b906fb04ca27e2732c148304cb">
+      
+
+
+
+  <li class="child level "><a href="/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E8%BF%90%E8%A1%8C%E6%97%B6/%E8%B0%83%E7%94%A8%E4%B8%8E%E5%A0%86%E6%A0%88/">调用与堆栈</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+    
+  
+</nav>
+
+    </div>
+
+    
+    
+    <div class="d-none d-xl-block col-xl-2 docs-toc">
+      
+     
+      <ul class="nav toc-top">
+        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
+      </ul>
+     
+
+      <nav id="TableOfContents">
+  <ul>
+    <li><a href="#reused-hidden-class--重复使用的隐藏类">Reused Hidden Class | 重复使用的隐藏类</a></li>
+    <li><a href="#methods--prototypes-方法与原型">Methods &amp; Prototypes: 方法与原型</a></li>
+  </ul>
+</nav>
+
+      
+<div class="subscribe-module col-24 mt-1">
+    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
+</div>
+
+
+
+    </div>
+    
+
+    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
+
+      <article class="article">
+
+          
+
+          <h1>对象与数组</h1>
+
+          <div class="article-style">
+            <h1 id="v8-中对象与数组的存储">V8 中对象与数组的存储</h1>
+<p>上世纪九十年代，随着网景浏览器的发行，JavaScript 首次进入人们的视线。之后随着 AJAX 的大规模应用与富客户端、单页应用时代的到来，JavaScript 在 Web 开发中占据了越来越重要的地位。在早期的 JavaScript 引擎中，性能越发成为了开发网页应用的瓶颈。而 V8 引擎设计的目标就是为了保证大型 JavaScript 应用的执行效率，在<a href="https://developers.google.com/v8/benchmarks" target="_blank" rel="noopener">很多测试</a>中可以明显发现 V8 的性能优于 JScript (Internet Explorer), SpiderMonkey (Firefox), 以及 JavaScriptCore(Safari)。根据 V8 的官方文档介绍，其主要是从属性访问、动态机器码生成以及高效的垃圾回收这三个方面着手性能优化。Obejct 当属 JavaScript 最重要的数据类型之一，本文我们对其内部结构进行详细阐述。其继承关系图如下所示：</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://v8docs.nodesource.com/node-7.2/dc/dc3/classv8_1_1_object__inherit__graph.png" alt="" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>在 V8 中新分配的 JavaScript 对象结构如下所示：</p>
+<pre tabindex="0"><code>[ class / map ] -&gt; ... ; 指向内部类
 [ properties] -&gt; [empty array]
 [ elements] -&gt; [empty array] ; 数值类型名称的属性
 [ reserved #1 ] -\
@@ -25,34 +1001,41 @@ Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node 
 [ reserved #3 ]}- in object properties,即预分配的内存空间
 ...............|
 [ reserved #N ] -/
-</code></pre><p>在创建新的对象时，V8 会创建某个预分配的内存区域来存放所谓的 in-object 属性，预分配区域的大小由构造函数中的参数数目决定(<code>this.field = expr</code>)。当你打算向对象中添加某个新属性时，V8 首先会尝试放入所谓的 in-order 槽位中，当 in-object 槽位过载之后，V8 会尝试将新的属性添加到 out-of-object 属性列表。而属性名与属性下标的映射关系即存放在所谓隐藏类中，譬如<code>{ a: 1, b: 2, c: 3, d: 4}</code>对象的存储方式可能如下：</p><pre tabindex=0><code>[ class ] -&gt; [a: in obj #1, b: in obj #2, c: out obj #1, d: out obj #2]
+</code></pre><p>在创建新的对象时，V8 会创建某个预分配的内存区域来存放所谓的 in-object 属性，预分配区域的大小由构造函数中的参数数目决定(<code>this.field = expr</code>)。当你打算向对象中添加某个新属性时，V8 首先会尝试放入所谓的 in-order 槽位中，当 in-object 槽位过载之后，V8 会尝试将新的属性添加到 out-of-object 属性列表。而属性名与属性下标的映射关系即存放在所谓隐藏类中，譬如<code>{ a: 1, b: 2, c: 3, d: 4}</code>对象的存储方式可能如下：</p>
+<pre tabindex="0"><code>[ class ] -&gt; [a: in obj #1, b: in obj #2, c: out obj #1, d: out obj #2]
 [ properties] -&gt; [3][4] ; this is linear array
 [ elements]
 [ 1 ]
 [ 2 ]
-</code></pre><p>随着属性数目的增加，V8 会转回到传统的字典模式/哈希表模式：</p><pre tabindex=0><code>[ class ] -&gt; [ OBJECT IS IN DICTIONARY MODE ]
+</code></pre><p>随着属性数目的增加，V8 会转回到传统的字典模式/哈希表模式：</p>
+<pre tabindex="0"><code>[ class ] -&gt; [ OBJECT IS IN DICTIONARY MODE ]
 [ properties] -&gt; [a: 1, b: 2, c: 3, d: 4, e: 5] ; this is classical hash table
 [elements]
-</code></pre><h1 id=property-name--属性名>Property Name | 属性名</h1><p>作为动态语言，JavaScript 允许我们以非常灵活的方式来定义对象，譬如：</p><pre tabindex=0><code>obj.prop
+</code></pre><h1 id="property-name--属性名">Property Name | 属性名</h1>
+<p>作为动态语言，JavaScript 允许我们以非常灵活的方式来定义对象，譬如：</p>
+<pre tabindex="0"><code>obj.prop
 obj[&#34;prop&#34;]
-</code></pre><p>参照 JavaScript 定义规范中的描述，属性名恒为字符串，即使你使用了某个非字符串的名字，也会隐式地转化为字符串类型。譬如你创建的是个数组，以数值下标进行访问，然而 V8 还是将其转化为了字符串再进行索引，因此以下的方式就会获得相同的效果：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=nx>obj</span><span class=p>[</span><span class=mi>1</span><span class=p>];</span> <span class=c1>//
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=nx>obj</span><span class=p>[</span><span class=s2>&#34;1&#34;</span><span class=p>];</span> <span class=c1>// names for the same property
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=nx>obj</span><span class=p>[</span><span class=mf>1.0</span><span class=p>];</span> <span class=c1>//
-</span></span></span><span class=line><span class=cl><span class=c1></span>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>o</span> <span class=o>=</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nx>toString</span><span class=o>:</span> <span class=kd>function</span> <span class=p>()</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=s2>&#34;-1.5&#34;</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=p>},</span>
-</span></span><span class=line><span class=cl><span class=p>};</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=nx>obj</span><span class=p>[</span><span class=o>-</span><span class=mf>1.5</span><span class=p>];</span> <span class=c1>// also equivalent
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=nx>obj</span><span class=p>[</span><span class=nx>o</span><span class=p>];</span> <span class=c1>// since o is converted to string
-</span></span></span></code></pre></div><p>而 JavaScript 中的 Array 只是包含了额外的<code>length</code>属性的对象而已，<code>length</code>会返回当前最大下标加一的结果(此时字符串下标会被转化为数值类型计算):</p><pre tabindex=0><code>const a = new Array();
+</code></pre><p>参照 JavaScript 定义规范中的描述，属性名恒为字符串，即使你使用了某个非字符串的名字，也会隐式地转化为字符串类型。譬如你创建的是个数组，以数值下标进行访问，然而 V8 还是将其转化为了字符串再进行索引，因此以下的方式就会获得相同的效果：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="nx">obj</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span> <span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">obj</span><span class="p">[</span><span class="s2">&#34;1&#34;</span><span class="p">];</span> <span class="c1">// names for the same property
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">obj</span><span class="p">[</span><span class="mf">1.0</span><span class="p">];</span> <span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">o</span> <span class="o">=</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">toString</span><span class="o">:</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="s2">&#34;-1.5&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">},</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">obj</span><span class="p">[</span><span class="o">-</span><span class="mf">1.5</span><span class="p">];</span> <span class="c1">// also equivalent
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">obj</span><span class="p">[</span><span class="nx">o</span><span class="p">];</span> <span class="c1">// since o is converted to string
+</span></span></span></code></pre></div><p>而 JavaScript 中的 Array 只是包含了额外的<code>length</code>属性的对象而已，<code>length</code>会返回当前最大下标加一的结果(此时字符串下标会被转化为数值类型计算):</p>
+<pre tabindex="0"><code>const a = new Array();
 a[100] = &#34;foo&#34;;
 a.length;//101
 a[undefined] = &#39;a&#39;;
 a.length; //0
-</code></pre><p><code>Function</code>本质上也是对象，只不过<code>length</code>属性会返回参数的长度而已：</p><pre tabindex=0><code>&gt; a = ()=&gt;{}
+</code></pre><p><code>Function</code>本质上也是对象，只不过<code>length</code>属性会返回参数的长度而已：</p>
+<pre tabindex="0"><code>&gt; a = ()=&gt;{}
 [Function: a]
 &gt; a.length
 0
@@ -60,51 +1043,54 @@ a.length; //0
 [Function: a]
 &gt; a.length
 1
-</code></pre><h1 id=in-object-properties--fast-property-access--对象内属性与访问优化>In-Object Properties & Fast Property Access | 对象内属性与访问优化</h1><p>作为动态类型语言，JavaScript 中的对象属性可以在运行时动态地增删，意味着整个对象的结构会频繁地改变。大部分 JavaScript 引擎倾向于使用字典类型的数据结构来存放对象属性(Object Properties)，每次进行属性访问的时候引擎都需要在内层中先动态定位属性对应的下标地址然后读取值。这种方式实现上比较容易，但是会导致较差的性能表现。其他的类似于 Java 与 Smalltalk 这样的静态语言中，成员变量在编译阶段即确定了其在内存中的固定偏移地址，进行属性访问的时候只需要单指令从内存中加载即可。而 V8 则利用动态创建隐藏内部类的方式动态地将属性的内存地址记录在对象内，从而提升整体的属性访问速度。总结而言，每当为某个对象添加新的属性时，V8 会自动修正其隐藏内部类。我们先来感受下隐藏类的存在：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=kr>const</span> <span class=nx>PROPERTIES</span> <span class=o>=</span> <span class=mi>10000000</span><span class=p>;</span>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>o</span> <span class=o>=</span> <span class=p>{};</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>start</span> <span class=o>=</span> <span class=o>+</span><span class=k>new</span> <span class=nb>Date</span><span class=p>();</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=k>for</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=nx>i</span> <span class=o>&lt;</span> <span class=nx>PROPERTIES</span><span class=p>;</span> <span class=nx>i</span><span class=o>++</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nx>o</span><span class=p>[</span><span class=nx>i</span><span class=p>]</span> <span class=o>=</span> <span class=nx>i</span><span class=p>;</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=o>+</span><span class=k>new</span> <span class=nb>Date</span><span class=p>()</span> <span class=o>-</span> <span class=nx>start</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kd>function</span> <span class=nx>O</span><span class=p>(</span><span class=nx>size</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=k>for</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=nx>i</span> <span class=o>&lt;</span> <span class=nx>size</span><span class=p>;</span> <span class=nx>i</span><span class=o>++</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=k>this</span><span class=p>[</span><span class=nx>i</span><span class=p>]</span> <span class=o>=</span> <span class=kc>null</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>o</span> <span class=o>=</span> <span class=k>new</span> <span class=nx>O</span><span class=p>(</span><span class=nx>PROPERTIES</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>start</span> <span class=o>=</span> <span class=o>+</span><span class=k>new</span> <span class=nb>Date</span><span class=p>();</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=k>for</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=nx>i</span> <span class=o>&lt;</span> <span class=nx>PROPERTIES</span><span class=p>;</span> <span class=nx>i</span><span class=o>++</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nx>o</span><span class=p>[</span><span class=nx>i</span><span class=p>]</span> <span class=o>=</span> <span class=nx>i</span><span class=p>;</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=o>+</span><span class=k>new</span> <span class=nb>Date</span><span class=p>()</span> <span class=o>-</span> <span class=nx>start</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kr>class</span> <span class=nx>OClass</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nx>constructor</span><span class=p>(</span><span class=nx>size</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=nx>i</span> <span class=o>&lt;</span> <span class=nx>size</span><span class=p>;</span> <span class=nx>i</span><span class=o>++</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>      <span class=k>this</span><span class=p>[</span><span class=nx>i</span><span class=p>]</span> <span class=o>=</span> <span class=kc>null</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>o</span> <span class=o>=</span> <span class=k>new</span> <span class=nx>OClass</span><span class=p>(</span><span class=nx>PROPERTIES</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>start</span> <span class=o>=</span> <span class=o>+</span><span class=k>new</span> <span class=nb>Date</span><span class=p>();</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=k>for</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=nx>i</span> <span class=o>&lt;</span> <span class=nx>PROPERTIES</span><span class=p>;</span> <span class=nx>i</span><span class=o>++</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nx>o</span><span class=p>[</span><span class=nx>i</span><span class=p>]</span> <span class=o>=</span> <span class=nx>i</span><span class=p>;</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=o>+</span><span class=k>new</span> <span class=nb>Date</span><span class=p>()</span> <span class=o>-</span> <span class=nx>start</span><span class=p>);</span>
-</span></span></code></pre></div><p>该程序的执行结果如下：</p><pre tabindex=0><code>// Babel 下结果
+</code></pre><h1 id="in-object-properties--fast-property-access--对象内属性与访问优化">In-Object Properties &amp; Fast Property Access | 对象内属性与访问优化</h1>
+<p>作为动态类型语言，JavaScript 中的对象属性可以在运行时动态地增删，意味着整个对象的结构会频繁地改变。大部分 JavaScript 引擎倾向于使用字典类型的数据结构来存放对象属性(Object Properties)，每次进行属性访问的时候引擎都需要在内层中先动态定位属性对应的下标地址然后读取值。这种方式实现上比较容易，但是会导致较差的性能表现。其他的类似于 Java 与 Smalltalk 这样的静态语言中，成员变量在编译阶段即确定了其在内存中的固定偏移地址，进行属性访问的时候只需要单指令从内存中加载即可。而 V8 则利用动态创建隐藏内部类的方式动态地将属性的内存地址记录在对象内，从而提升整体的属性访问速度。总结而言，每当为某个对象添加新的属性时，V8 会自动修正其隐藏内部类。我们先来感受下隐藏类的存在：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">PROPERTIES</span> <span class="o">=</span> <span class="mi">10000000</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">o</span> <span class="o">=</span> <span class="p">{};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">start</span> <span class="o">=</span> <span class="o">+</span><span class="k">new</span> <span class="nb">Date</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="p">(</span><span class="kr">const</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">PROPERTIES</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">o</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nx">i</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="o">+</span><span class="k">new</span> <span class="nb">Date</span><span class="p">()</span> <span class="o">-</span> <span class="nx">start</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">O</span><span class="p">(</span><span class="nx">size</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="kr">const</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">size</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">this</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">null</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">o</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">O</span><span class="p">(</span><span class="nx">PROPERTIES</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">start</span> <span class="o">=</span> <span class="o">+</span><span class="k">new</span> <span class="nb">Date</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="p">(</span><span class="kr">const</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">PROPERTIES</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">o</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nx">i</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="o">+</span><span class="k">new</span> <span class="nb">Date</span><span class="p">()</span> <span class="o">-</span> <span class="nx">start</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">class</span> <span class="nx">OClass</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">constructor</span><span class="p">(</span><span class="nx">size</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="kr">const</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">size</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">this</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">null</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">o</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">OClass</span><span class="p">(</span><span class="nx">PROPERTIES</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">start</span> <span class="o">=</span> <span class="o">+</span><span class="k">new</span> <span class="nb">Date</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="p">(</span><span class="kr">const</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">PROPERTIES</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">o</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nx">i</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="o">+</span><span class="k">new</span> <span class="nb">Date</span><span class="p">()</span> <span class="o">-</span> <span class="nx">start</span><span class="p">);</span>
+</span></span></code></pre></div><p>该程序的执行结果如下：</p>
+<pre tabindex="0"><code>// Babel 下结果
 385
 37
 49
@@ -112,11 +1098,83 @@ a.length; //0
 416
 32
 31
-</code></pre><p>第一种实现中，每次为对象 <code>o</code> 设置新的属性时，V8 都会创建新的隐藏内部类(内部称为 Map)来存储新的内存地址以优化属性查找速度。而第二种实现时，我们在创建新的对象时即初始化了内部类，这样在赋值属性时 V8 以及能够高性能地定位这些属性。第三种实现则是用的 ES6 Class，在纯正的 V8 下性能最好。接下来我们具体阐述下隐藏类的工作原理，假设我们定义了描述点的函数：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=kd>function</span> <span class=nx>Point</span><span class=p>(</span><span class=nx>x</span><span class=p>,</span> <span class=nx>y</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=k>this</span><span class=p>.</span><span class=nx>x</span> <span class=o>=</span> <span class=nx>x</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=k>this</span><span class=p>.</span><span class=nx>y</span> <span class=o>=</span> <span class=nx>y</span><span class=p>;</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><p>当我们执行<code>new Point(x,y)</code>语句时，V8 会创建某个新的<code>Point</code>对象。创建的过程中，V8 首先会创建某个所谓<code>C0</code>的隐藏内部类，因为尚未为对象添加任何属性，此时隐藏类还是空的:</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://github.com/v8/v8/wiki/images/map_trans_a.png alt loading=lazy data-zoomable></div></div></figure></p><p>接下来调用首个赋值语句<code>this.x = x;</code>为当前<code>Point</code>对象创建了新的属性<code>x</code>，此时 V8 会基于<code>C0</code>创建另一个隐藏类<code>C1</code>来替换<code>C0</code>，然后在<code>C1</code>中存放对象属性<code>x</code>的内存位置信息:</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://github.com/v8/v8/wiki/images/map_trans_b.png alt loading=lazy data-zoomable></div></div></figure></p><p>这里从<code>C0</code>到<code>C1</code>的变化称为转换(Transitions)，当我们为同一个类型的对象添加新的属性时，并不是每次都会创建新的隐藏类，而是多个对象会共用某个符合转换条件的隐藏类。接下来继续执行<code>this.y = y</code> 这一条语句，会为<code>Point</code>对象创建新的属性。此时 V8 会进行以下步骤：</p><ul><li>基于<code>C1</code>创建另一个隐藏类<code>C1</code>，并且将关于属性<code>y</code>的位置信息写入到<code>C2</code>中。</li><li>更新<code>C1</code>为其添加转换信息，即当为<code>Point</code>对象添加属性 <code>y</code> 时，应该转换到隐藏类 <code>C2</code>。</li></ul><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://github.com/v8/v8/wiki/images/map_trans_c.png alt loading=lazy data-zoomable></div></div></figure></p><p>整个过程的伪代码描述如下：</p><pre tabindex=0><code>&lt;Point object is allocated&gt;
+</code></pre><p>第一种实现中，每次为对象 <code>o</code> 设置新的属性时，V8 都会创建新的隐藏内部类(内部称为 Map)来存储新的内存地址以优化属性查找速度。而第二种实现时，我们在创建新的对象时即初始化了内部类，这样在赋值属性时 V8 以及能够高性能地定位这些属性。第三种实现则是用的 ES6 Class，在纯正的 V8 下性能最好。接下来我们具体阐述下隐藏类的工作原理，假设我们定义了描述点的函数：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">Point</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span> <span class="nx">y</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="p">.</span><span class="nx">x</span> <span class="o">=</span> <span class="nx">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="p">.</span><span class="nx">y</span> <span class="o">=</span> <span class="nx">y</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>当我们执行<code>new Point(x,y)</code>语句时，V8 会创建某个新的<code>Point</code>对象。创建的过程中，V8 首先会创建某个所谓<code>C0</code>的隐藏内部类，因为尚未为对象添加任何属性，此时隐藏类还是空的:</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://github.com/v8/v8/wiki/images/map_trans_a.png" alt="" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>接下来调用首个赋值语句<code>this.x = x;</code>为当前<code>Point</code>对象创建了新的属性<code>x</code>，此时 V8 会基于<code>C0</code>创建另一个隐藏类<code>C1</code>来替换<code>C0</code>，然后在<code>C1</code>中存放对象属性<code>x</code>的内存位置信息:</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://github.com/v8/v8/wiki/images/map_trans_b.png" alt="" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>这里从<code>C0</code>到<code>C1</code>的变化称为转换(Transitions)，当我们为同一个类型的对象添加新的属性时，并不是每次都会创建新的隐藏类，而是多个对象会共用某个符合转换条件的隐藏类。接下来继续执行<code>this.y = y</code> 这一条语句，会为<code>Point</code>对象创建新的属性。此时 V8 会进行以下步骤：</p>
+<ul>
+<li>基于<code>C1</code>创建另一个隐藏类<code>C1</code>，并且将关于属性<code>y</code>的位置信息写入到<code>C2</code>中。</li>
+<li>更新<code>C1</code>为其添加转换信息，即当为<code>Point</code>对象添加属性 <code>y</code> 时，应该转换到隐藏类 <code>C2</code>。</li>
+</ul>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://github.com/v8/v8/wiki/images/map_trans_c.png" alt="" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>整个过程的伪代码描述如下：</p>
+<pre tabindex="0"><code>&lt;Point object is allocated&gt;
   Class C0
   &#34;x&#34;: TRANSITION to C1 at offset 0
 
@@ -131,99 +1189,441 @@ this.y = y;
   Map C2
   &#34;x&#34;: FIELD at offset 0
   &#34;y&#34;: FIELD at offset 1
-</code></pre><h2 id=reused-hidden-class--重复使用的隐藏类>Reused Hidden Class | 重复使用的隐藏类</h2><p>我们在上文中提及，如果每次添加新的属性时都创建新的隐藏类无疑是极大的性能浪费，实际上当我们再次创建新的<code>Point</code>对象时，V8 并不会创建新的隐藏类而是使用已有的，过程描述如下：</p><ul><li>初始化新的<code>Point</code>对象，并将隐藏类指向<code>C0</code>。</li><li>添加<code>x</code>属性时，遵循隐藏类的转换原则指向到<code>C1</code>, 并且根据<code>C1</code>指定的偏移地址写入<code>x</code>。</li><li>添加<code>y</code>属性时，遵循隐藏类的转换原则指向到<code>C2</code>，并且根据<code>C2</code>指定的偏移地址写入<code>y</code>。</li></ul><p>另外我们在上文以链表的方式描述转换，实际上真实场景中 V8 会以树的结构来描述转换及其之间的关系，这样就能够用于类似于下面的属性一致而赋值顺序颠倒的场景：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=kd>function</span> <span class=nx>Point</span><span class=p>(</span><span class=nx>x</span><span class=p>,</span> <span class=nx>y</span><span class=p>,</span> <span class=nx>reverse</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>reverse</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=k>this</span><span class=p>.</span><span class=nx>x</span> <span class=o>=</span> <span class=nx>x</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    <span class=k>this</span><span class=p>.</span><span class=nx>y</span> <span class=o>=</span> <span class=nx>y</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span> <span class=k>else</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=k>this</span><span class=p>.</span><span class=nx>y</span> <span class=o>=</span> <span class=nx>x</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    <span class=k>this</span><span class=p>.</span><span class=nx>x</span> <span class=o>=</span> <span class=nx>y</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><h2 id=methods--prototypes-方法与原型>Methods & Prototypes: 方法与原型</h2><p>JavaScript 中并没有类的概念(语法糖除外)，因此对于方法的调用处理会难于 C++ 或者 Java。下面这个例子中，<code>distance</code>方法可以被看做<code>Point</code>的普通属性之一，不过其并非原始类型的数据，而是指向了另一个函数：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=kd>function</span> <span class=nx>Point</span><span class=p>(</span><span class=nx>x</span><span class=p>,</span> <span class=nx>y</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=k>this</span><span class=p>.</span><span class=nx>x</span> <span class=o>=</span> <span class=nx>x</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=k>this</span><span class=p>.</span><span class=nx>y</span> <span class=o>=</span> <span class=nx>y</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=k>this</span><span class=p>.</span><span class=nx>distance</span> <span class=o>=</span> <span class=nx>PointDistance</span><span class=p>;</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kd>function</span> <span class=nx>PointDistance</span><span class=p>(</span><span class=nx>p</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>dx</span> <span class=o>=</span> <span class=k>this</span><span class=p>.</span><span class=nx>x</span> <span class=o>-</span> <span class=nx>p</span><span class=p>.</span><span class=nx>x</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>dy</span> <span class=o>=</span> <span class=k>this</span><span class=p>.</span><span class=nx>y</span> <span class=o>-</span> <span class=nx>p</span><span class=p>.</span><span class=nx>y</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=k>return</span> <span class=nb>Math</span><span class=p>.</span><span class=nx>sqrt</span><span class=p>(</span><span class=nx>dx</span> <span class=o>*</span> <span class=nx>dx</span> <span class=o>+</span> <span class=nx>dy</span> <span class=o>*</span> <span class=nx>dy</span><span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><p>如果我们像上文介绍的普通的 in-object 域一样来处理<code>distance</code>属性，那么无疑会带来较大的内存浪费，毕竟每个对象都要存放一段外部函数引用(Reference 的内存占用往往大于原始类型)。C++ 中则是以指向多个虚函数的虚函数表(V-Tables )解决这个问题。每个包含虚函数的类的实例都会指向这个虚函数表，当调用某个虚函数时，程序会自动从虚函数表中加载该函数的地址信息然后转向到该地址调用。V8 中我们已经使用了隐藏类这一共享数据结构，因此可以很方便地改造下就可以。我们引入了所谓 Constant Functions 的概念，某个 Constant Function 即代表了对象中仅包含某个名字，而具体的属性值存放在描述符本身的概念：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>&lt;Point object is allocated&gt;
-</span></span><span class=line><span class=cl>  Class C0
-</span></span><span class=line><span class=cl>  <span class=s2>&#34;x&#34;</span>: TRANSITION to C1 at offset <span class=m>0</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>this.x <span class=o>=</span> x<span class=p>;</span>
-</span></span><span class=line><span class=cl>  Class C1
-</span></span><span class=line><span class=cl>  <span class=s2>&#34;x&#34;</span>: FIELD at offset <span class=m>0</span>
-</span></span><span class=line><span class=cl>  <span class=s2>&#34;y&#34;</span>: TRANSITION to C2 at offset <span class=m>1</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>this.y <span class=o>=</span> y<span class=p>;</span>
-</span></span><span class=line><span class=cl>  Class C2
-</span></span><span class=line><span class=cl>  <span class=s2>&#34;x&#34;</span>: FIELD at offset <span class=m>0</span>
-</span></span><span class=line><span class=cl>  <span class=s2>&#34;y&#34;</span>: FIELD at offset <span class=m>1</span>
-</span></span><span class=line><span class=cl>  <span class=s2>&#34;distance&#34;</span>: TRANSITION to C3 &lt;PointDistance&gt;
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>this.distance <span class=o>=</span> PointDistance<span class=p>;</span>
-</span></span><span class=line><span class=cl>  Class C3
-</span></span><span class=line><span class=cl>  <span class=s2>&#34;x&#34;</span>: FIELD at offset <span class=m>0</span>
-</span></span><span class=line><span class=cl>  <span class=s2>&#34;y&#34;</span>: FIELD at offset <span class=m>1</span>
-</span></span><span class=line><span class=cl>  <span class=s2>&#34;distance&#34;</span>: CONSTANT_FUNCTION &lt;PointDistance&gt;
-</span></span></code></pre></div><p>注意，在这里如果我们将<code>PointDistance</code>重定义指向了其他函数，那么这个转换也会自动失效，V8 会创建新的隐藏类。另一种解决这个问题的方法就是使用原型，每个构造函数都会有所谓的<code>Prototype</code>属性，该属性会自动成为对象的原型链上的一环，上面的例子可以改写为以下方式：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=kd>function</span> <span class=nx>Point</span><span class=p>(</span><span class=nx>x</span><span class=p>,</span> <span class=nx>y</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=k>this</span><span class=p>.</span><span class=nx>x</span> <span class=o>=</span> <span class=nx>x</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=k>this</span><span class=p>.</span><span class=nx>y</span> <span class=o>=</span> <span class=nx>y</span><span class=p>;</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=nx>Point</span><span class=p>.</span><span class=nx>prototype</span><span class=p>.</span><span class=nx>distance</span> <span class=o>=</span> <span class=kd>function</span> <span class=p>(</span><span class=nx>p</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>dx</span> <span class=o>=</span> <span class=k>this</span><span class=p>.</span><span class=nx>x</span> <span class=o>-</span> <span class=nx>p</span><span class=p>.</span><span class=nx>x</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>dy</span> <span class=o>=</span> <span class=k>this</span><span class=p>.</span><span class=nx>y</span> <span class=o>-</span> <span class=nx>p</span><span class=p>.</span><span class=nx>y</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>  <span class=k>return</span> <span class=nb>Math</span><span class=p>.</span><span class=nx>sqrt</span><span class=p>(</span><span class=nx>dx</span> <span class=o>*</span> <span class=nx>dx</span> <span class=o>+</span> <span class=nx>dy</span> <span class=o>*</span> <span class=nx>dy</span><span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=p>};</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>// ...
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>const</span> <span class=nx>u</span> <span class=o>=</span> <span class=k>new</span> <span class=nx>Point</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>v</span> <span class=o>=</span> <span class=k>new</span> <span class=nx>Point</span><span class=p>(</span><span class=mi>3</span><span class=p>,</span> <span class=mi>4</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>d</span> <span class=o>=</span> <span class=nx>u</span><span class=p>.</span><span class=nx>distance</span><span class=p>(</span><span class=nx>v</span><span class=p>);</span>
-</span></span></code></pre></div><p>V8 同样会把原型链上的方法在隐藏类中映射为 Constant Function 描述符，而调用原型方法往往会比调用自身方法慢一点，毕竟引擎不仅要去扫描自身的隐藏类，还要去扫描原型链上对象的隐藏类才能得知真正的函数调用地址。不过这个不会对于代码的性能造成明显的影响，因此写代码的时候也不必小心翼翼的避免这个。</p><h1 id=dictionary-mode>Dictionary Mode</h1><p>对于复杂属性的对象，V8 会使用所谓的字典模式(Dictionary Mode )来存储对象，也就是使用哈希表来存放键值信息，这种方式存储开销会小于上文提到的包含了隐藏类的方式，不过查询速度会远小于前者。初始状态下，哈希表中的所有的键与值都被设置为了<code>undefined</code>，当插入新的数据时，计算得出的键名的哈希值的低位会被当做初始的存储索引地址。如果此地址已经被占用了，V8 会尝试向下一个地址进行插入，直到插入成功，伪代码表述如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=c1>// 插入
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=nx>insert</span><span class=p>(</span><span class=nx>table</span><span class=p>,</span> <span class=nx>key</span><span class=p>,</span> <span class=nx>value</span><span class=p>)</span><span class=o>:</span>
-</span></span><span class=line><span class=cl>  <span class=nx>table</span> <span class=o>=</span> <span class=nx>ensureCapacity</span><span class=p>(</span><span class=nx>table</span><span class=p>,</span> <span class=nx>length</span><span class=p>(</span><span class=nx>table</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>  <span class=nx>code</span> <span class=o>=</span> <span class=nx>hash</span><span class=p>(</span><span class=nx>key</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>  <span class=nx>n</span> <span class=o>=</span> <span class=nx>capacity</span><span class=p>(</span><span class=nx>table</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>  <span class=nx>index</span> <span class=o>=</span> <span class=nx>code</span> <span class=p>(</span><span class=nx>mod</span> <span class=nx>n</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>  <span class=k>while</span> <span class=nx>getKey</span><span class=p>(</span><span class=nx>table</span><span class=p>,</span> <span class=nx>index</span><span class=p>)</span> <span class=nx>is</span> <span class=nx>not</span> <span class=kc>undefined</span><span class=o>:</span>
-</span></span><span class=line><span class=cl>	  <span class=nx>index</span> <span class=o>+=</span> <span class=mi>1</span> <span class=p>(</span><span class=nx>mod</span> <span class=nx>n</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>	  <span class=nx>set</span><span class=p>(</span><span class=nx>table</span><span class=p>,</span> <span class=nx>index</span><span class=p>,</span> <span class=nx>key</span><span class=p>,</span> <span class=nx>value</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>//查找
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=nx>lookup</span><span class=p>(</span><span class=nx>table</span><span class=p>,</span> <span class=nx>key</span><span class=p>)</span><span class=o>:</span>
-</span></span><span class=line><span class=cl>  <span class=nx>code</span> <span class=o>=</span> <span class=nx>hash</span><span class=p>(</span><span class=nx>key</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>  <span class=nx>n</span> <span class=o>=</span> <span class=nx>capacity</span><span class=p>(</span><span class=nx>table</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>  <span class=nx>index</span> <span class=o>=</span> <span class=nx>code</span> <span class=p>(</span><span class=nx>mod</span> <span class=nx>n</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>  <span class=nx>k</span> <span class=o>=</span> <span class=nx>getKey</span><span class=p>(</span><span class=nx>table</span><span class=p>,</span> <span class=nx>index</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>  <span class=k>while</span> <span class=nx>k</span> <span class=nx>is</span> <span class=nx>not</span> <span class=kc>null</span> <span class=nx>or</span> <span class=kc>undefined</span>
-</span></span><span class=line><span class=cl>  <span class=nx>and</span> <span class=nx>k</span> <span class=o>!=</span> <span class=nx>key</span><span class=o>:</span>
-</span></span><span class=line><span class=cl>  	<span class=nx>index</span> <span class=o>+=</span> <span class=mi>1</span> <span class=p>(</span><span class=nx>mod</span> <span class=nx>n</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>  	<span class=nx>k</span> <span class=o>=</span> <span class=nx>getKey</span><span class=p>(</span><span class=nx>table</span><span class=p>,</span> <span class=nx>index</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=nx>k</span> <span class=o>==</span> <span class=nx>key</span><span class=o>:</span>
-</span></span><span class=line><span class=cl>	<span class=k>return</span> <span class=nx>getValue</span><span class=p>(</span><span class=nx>table</span><span class=p>,</span> <span class=nx>index</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>  <span class=k>else</span><span class=o>:</span>
-</span></span><span class=line><span class=cl>  	<span class=k>return</span> <span class=kc>undefined</span>
-</span></span></code></pre></div><p>尽管计算键名哈希值与比较的速度会比较快，但是每次读写属性的时候都进行这么多步骤无疑会大大拉低速度，因此 V8 尽可能地会避免使用这种存储方式。</p><h1 id=fast-elements--数值下标的属性>Fast Elements | 数值下标的属性</h1><p>V8 中将属性名为非负整数 <code>(0、1、2…… )</code> 的属性称为 Element，每个对象都有一个指向 Element 数组的指针，其存放和其他属性是分开的。注意，隐藏类中并不包含 Element 的描述符，但可能包含其它有着不同 Element 类型的同一种隐藏类的转换描述符。大多数情况下，对象都会有 Fast Element，也就是说这些 Element 以连续数组的形式存放。有三种不同的 Fast Element：</p><ul><li>Fast small integers</li><li>Fast doubles</li><li>Fast values</li></ul><p>根据标准，JavaScript 中的所有数字都理应以 64 位浮点数形式出现。因此 V8 尽可能以 31 位带符号整数来表达数字(最低位总是 0，这有助于垃圾回收器区分数字和指针)。因此含有 Fast small integers 类型的对象，其 Element 类型只会包含这样的数字。如果需要存储小数、大整数或其他特殊值，如 -0，则需要将数组提升为 Fast doubles。于是这引入了潜在的昂贵的复制 - 转换操作，但通常不会频繁发生。Fast doubles 仍然是很快的，因为所有的数字都是无封箱存储的。但如果我们要存储的是其他类型，比如字符串或者对象，则必须将其提升为普通的 Fast Element 数组。</p><p>JavaScript 不提供任何确定存储元素多少的办法。你可能会说像这样的办法，<code>new Array(100)</code>，但实际上这仅仅针对<code>Array</code>构造函数有用。如果你将值存在一个不存在的下标上，V8 会重新开辟更大的内存，将原有元素复制到新内存。V8 可以处理带空洞的数组，也就是只有某些下标是存有元素，而期间的下标都是空的。其内部会安插特殊的哨兵值，因此试图访问未赋值的下标，会得到<code>undefined</code>。当然，Fast Element 也有其限制。如果你在远远超过当前数组大小的下标赋值，V8 会将数组转换为字典模式，将值以哈希表的形式存储。这对于稀疏数组来说很有用，但性能上肯定打了折扣，无论是从转换这一过程来说，还是从之后的访问来说。如果你需要复制整个数组，不要逆向复制(索引从高到低)，因为这几乎必然触发字典模式。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-js data-lang=js><span class=line><span class=cl><span class=c1>// 这会大大降低大数组的性能
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kd>function</span> <span class=nx>copy</span><span class=p>(</span><span class=nx>a</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>b</span> <span class=o>=</span> <span class=k>new</span> <span class=nb>Array</span><span class=p>();</span>
-</span></span><span class=line><span class=cl>  <span class=k>for</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>i</span> <span class=o>=</span> <span class=nx>a</span><span class=p>.</span><span class=nx>length</span> <span class=o>-</span> <span class=mi>1</span><span class=p>;</span> <span class=nx>i</span> <span class=o>&gt;=</span> <span class=mi>0</span><span class=p>;</span> <span class=nx>i</span><span class=o>--</span><span class=p>)</span> <span class=nx>b</span><span class=p>[</span><span class=nx>i</span><span class=p>]</span> <span class=o>=</span> <span class=nx>a</span><span class=p>[</span><span class=nx>i</span><span class=p>];</span>
-</span></span><span class=line><span class=cl>  <span class=k>return</span> <span class=nx>b</span><span class=p>;</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><p>由于普通的属性和数字式属性分开存放，即使数组退化为字典模式，也不会影响到其他属性的访问速度(反之亦然)。</p></div><div class=article-widget><div class="container-xl row post-nav"><div class="col-6 post-nav-item"><div class=meta-nav>下一页</div><a href=/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/ rel=prev>垃圾回收</a></div></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div><script type=text/javascript id=clstr_globe async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
-<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
-<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
-<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
-<script id=dsq-count-scr src=https://ngte.disqus.com/count.js async></script>
-<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
-<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
-<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
-<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>
+</code></pre><h2 id="reused-hidden-class--重复使用的隐藏类">Reused Hidden Class | 重复使用的隐藏类</h2>
+<p>我们在上文中提及，如果每次添加新的属性时都创建新的隐藏类无疑是极大的性能浪费，实际上当我们再次创建新的<code>Point</code>对象时，V8 并不会创建新的隐藏类而是使用已有的，过程描述如下：</p>
+<ul>
+<li>初始化新的<code>Point</code>对象，并将隐藏类指向<code>C0</code>。</li>
+<li>添加<code>x</code>属性时，遵循隐藏类的转换原则指向到<code>C1</code>, 并且根据<code>C1</code>指定的偏移地址写入<code>x</code>。</li>
+<li>添加<code>y</code>属性时，遵循隐藏类的转换原则指向到<code>C2</code>，并且根据<code>C2</code>指定的偏移地址写入<code>y</code>。</li>
+</ul>
+<p>另外我们在上文以链表的方式描述转换，实际上真实场景中 V8 会以树的结构来描述转换及其之间的关系，这样就能够用于类似于下面的属性一致而赋值顺序颠倒的场景：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">Point</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span> <span class="nx">y</span><span class="p">,</span> <span class="nx">reverse</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="nx">reverse</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">this</span><span class="p">.</span><span class="nx">x</span> <span class="o">=</span> <span class="nx">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">this</span><span class="p">.</span><span class="nx">y</span> <span class="o">=</span> <span class="nx">y</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">this</span><span class="p">.</span><span class="nx">y</span> <span class="o">=</span> <span class="nx">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">this</span><span class="p">.</span><span class="nx">x</span> <span class="o">=</span> <span class="nx">y</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="methods--prototypes-方法与原型">Methods &amp; Prototypes: 方法与原型</h2>
+<p>JavaScript 中并没有类的概念(语法糖除外)，因此对于方法的调用处理会难于 C++ 或者 Java。下面这个例子中，<code>distance</code>方法可以被看做<code>Point</code>的普通属性之一，不过其并非原始类型的数据，而是指向了另一个函数：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">Point</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span> <span class="nx">y</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="p">.</span><span class="nx">x</span> <span class="o">=</span> <span class="nx">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="p">.</span><span class="nx">y</span> <span class="o">=</span> <span class="nx">y</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="p">.</span><span class="nx">distance</span> <span class="o">=</span> <span class="nx">PointDistance</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">PointDistance</span><span class="p">(</span><span class="nx">p</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kr">const</span> <span class="nx">dx</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">x</span> <span class="o">-</span> <span class="nx">p</span><span class="p">.</span><span class="nx">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kr">const</span> <span class="nx">dy</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">y</span> <span class="o">-</span> <span class="nx">p</span><span class="p">.</span><span class="nx">y</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">sqrt</span><span class="p">(</span><span class="nx">dx</span> <span class="o">*</span> <span class="nx">dx</span> <span class="o">+</span> <span class="nx">dy</span> <span class="o">*</span> <span class="nx">dy</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>如果我们像上文介绍的普通的 in-object 域一样来处理<code>distance</code>属性，那么无疑会带来较大的内存浪费，毕竟每个对象都要存放一段外部函数引用(Reference 的内存占用往往大于原始类型)。C++ 中则是以指向多个虚函数的虚函数表(V-Tables )解决这个问题。每个包含虚函数的类的实例都会指向这个虚函数表，当调用某个虚函数时，程序会自动从虚函数表中加载该函数的地址信息然后转向到该地址调用。V8 中我们已经使用了隐藏类这一共享数据结构，因此可以很方便地改造下就可以。我们引入了所谓 Constant Functions 的概念，某个 Constant Function 即代表了对象中仅包含某个名字，而具体的属性值存放在描述符本身的概念：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">&lt;Point object is allocated&gt;
+</span></span><span class="line"><span class="cl">  Class C0
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;x&#34;</span>: TRANSITION to C1 at offset <span class="m">0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">this.x <span class="o">=</span> x<span class="p">;</span>
+</span></span><span class="line"><span class="cl">  Class C1
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;x&#34;</span>: FIELD at offset <span class="m">0</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;y&#34;</span>: TRANSITION to C2 at offset <span class="m">1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">this.y <span class="o">=</span> y<span class="p">;</span>
+</span></span><span class="line"><span class="cl">  Class C2
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;x&#34;</span>: FIELD at offset <span class="m">0</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;y&#34;</span>: FIELD at offset <span class="m">1</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;distance&#34;</span>: TRANSITION to C3 &lt;PointDistance&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">this.distance <span class="o">=</span> PointDistance<span class="p">;</span>
+</span></span><span class="line"><span class="cl">  Class C3
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;x&#34;</span>: FIELD at offset <span class="m">0</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;y&#34;</span>: FIELD at offset <span class="m">1</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;distance&#34;</span>: CONSTANT_FUNCTION &lt;PointDistance&gt;
+</span></span></code></pre></div><p>注意，在这里如果我们将<code>PointDistance</code>重定义指向了其他函数，那么这个转换也会自动失效，V8 会创建新的隐藏类。另一种解决这个问题的方法就是使用原型，每个构造函数都会有所谓的<code>Prototype</code>属性，该属性会自动成为对象的原型链上的一环，上面的例子可以改写为以下方式：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">Point</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span> <span class="nx">y</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="p">.</span><span class="nx">x</span> <span class="o">=</span> <span class="nx">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="p">.</span><span class="nx">y</span> <span class="o">=</span> <span class="nx">y</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">Point</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">distance</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">p</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kr">const</span> <span class="nx">dx</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">x</span> <span class="o">-</span> <span class="nx">p</span><span class="p">.</span><span class="nx">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kr">const</span> <span class="nx">dy</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">y</span> <span class="o">-</span> <span class="nx">p</span><span class="p">.</span><span class="nx">y</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">sqrt</span><span class="p">(</span><span class="nx">dx</span> <span class="o">*</span> <span class="nx">dx</span> <span class="o">+</span> <span class="nx">dy</span> <span class="o">*</span> <span class="nx">dy</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kr">const</span> <span class="nx">u</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Point</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">v</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Point</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">d</span> <span class="o">=</span> <span class="nx">u</span><span class="p">.</span><span class="nx">distance</span><span class="p">(</span><span class="nx">v</span><span class="p">);</span>
+</span></span></code></pre></div><p>V8 同样会把原型链上的方法在隐藏类中映射为 Constant Function 描述符，而调用原型方法往往会比调用自身方法慢一点，毕竟引擎不仅要去扫描自身的隐藏类，还要去扫描原型链上对象的隐藏类才能得知真正的函数调用地址。不过这个不会对于代码的性能造成明显的影响，因此写代码的时候也不必小心翼翼的避免这个。</p>
+<h1 id="dictionary-mode">Dictionary Mode</h1>
+<p>对于复杂属性的对象，V8 会使用所谓的字典模式(Dictionary Mode )来存储对象，也就是使用哈希表来存放键值信息，这种方式存储开销会小于上文提到的包含了隐藏类的方式，不过查询速度会远小于前者。初始状态下，哈希表中的所有的键与值都被设置为了<code>undefined</code>，当插入新的数据时，计算得出的键名的哈希值的低位会被当做初始的存储索引地址。如果此地址已经被占用了，V8 会尝试向下一个地址进行插入，直到插入成功，伪代码表述如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="c1">// 插入
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">insert</span><span class="p">(</span><span class="nx">table</span><span class="p">,</span> <span class="nx">key</span><span class="p">,</span> <span class="nx">value</span><span class="p">)</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">table</span> <span class="o">=</span> <span class="nx">ensureCapacity</span><span class="p">(</span><span class="nx">table</span><span class="p">,</span> <span class="nx">length</span><span class="p">(</span><span class="nx">table</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">code</span> <span class="o">=</span> <span class="nx">hash</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">n</span> <span class="o">=</span> <span class="nx">capacity</span><span class="p">(</span><span class="nx">table</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">index</span> <span class="o">=</span> <span class="nx">code</span> <span class="p">(</span><span class="nx">mod</span> <span class="nx">n</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="k">while</span> <span class="nx">getKey</span><span class="p">(</span><span class="nx">table</span><span class="p">,</span> <span class="nx">index</span><span class="p">)</span> <span class="nx">is</span> <span class="nx">not</span> <span class="kc">undefined</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">	  <span class="nx">index</span> <span class="o">+=</span> <span class="mi">1</span> <span class="p">(</span><span class="nx">mod</span> <span class="nx">n</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	  <span class="nx">set</span><span class="p">(</span><span class="nx">table</span><span class="p">,</span> <span class="nx">index</span><span class="p">,</span> <span class="nx">key</span><span class="p">,</span> <span class="nx">value</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">//查找
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">lookup</span><span class="p">(</span><span class="nx">table</span><span class="p">,</span> <span class="nx">key</span><span class="p">)</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">code</span> <span class="o">=</span> <span class="nx">hash</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">n</span> <span class="o">=</span> <span class="nx">capacity</span><span class="p">(</span><span class="nx">table</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">index</span> <span class="o">=</span> <span class="nx">code</span> <span class="p">(</span><span class="nx">mod</span> <span class="nx">n</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">k</span> <span class="o">=</span> <span class="nx">getKey</span><span class="p">(</span><span class="nx">table</span><span class="p">,</span> <span class="nx">index</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="k">while</span> <span class="nx">k</span> <span class="nx">is</span> <span class="nx">not</span> <span class="kc">null</span> <span class="nx">or</span> <span class="kc">undefined</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">and</span> <span class="nx">k</span> <span class="o">!=</span> <span class="nx">key</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  	<span class="nx">index</span> <span class="o">+=</span> <span class="mi">1</span> <span class="p">(</span><span class="nx">mod</span> <span class="nx">n</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  	<span class="nx">k</span> <span class="o">=</span> <span class="nx">getKey</span><span class="p">(</span><span class="nx">table</span><span class="p">,</span> <span class="nx">index</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="nx">k</span> <span class="o">==</span> <span class="nx">key</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">getValue</span><span class="p">(</span><span class="nx">table</span><span class="p">,</span> <span class="nx">index</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="k">else</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  	<span class="k">return</span> <span class="kc">undefined</span>
+</span></span></code></pre></div><p>尽管计算键名哈希值与比较的速度会比较快，但是每次读写属性的时候都进行这么多步骤无疑会大大拉低速度，因此 V8 尽可能地会避免使用这种存储方式。</p>
+<h1 id="fast-elements--数值下标的属性">Fast Elements | 数值下标的属性</h1>
+<p>V8 中将属性名为非负整数 <code>(0、1、2…… )</code> 的属性称为 Element，每个对象都有一个指向 Element 数组的指针，其存放和其他属性是分开的。注意，隐藏类中并不包含 Element 的描述符，但可能包含其它有着不同 Element 类型的同一种隐藏类的转换描述符。大多数情况下，对象都会有 Fast Element，也就是说这些 Element 以连续数组的形式存放。有三种不同的 Fast Element：</p>
+<ul>
+<li>Fast small integers</li>
+<li>Fast doubles</li>
+<li>Fast values</li>
+</ul>
+<p>根据标准，JavaScript 中的所有数字都理应以 64 位浮点数形式出现。因此 V8 尽可能以 31 位带符号整数来表达数字(最低位总是 0，这有助于垃圾回收器区分数字和指针)。因此含有 Fast small integers 类型的对象，其 Element 类型只会包含这样的数字。如果需要存储小数、大整数或其他特殊值，如 -0，则需要将数组提升为 Fast doubles。于是这引入了潜在的昂贵的复制 - 转换操作，但通常不会频繁发生。Fast doubles 仍然是很快的，因为所有的数字都是无封箱存储的。但如果我们要存储的是其他类型，比如字符串或者对象，则必须将其提升为普通的 Fast Element 数组。</p>
+<p>JavaScript 不提供任何确定存储元素多少的办法。你可能会说像这样的办法，<code>new Array(100)</code>，但实际上这仅仅针对<code>Array</code>构造函数有用。如果你将值存在一个不存在的下标上，V8 会重新开辟更大的内存，将原有元素复制到新内存。V8 可以处理带空洞的数组，也就是只有某些下标是存有元素，而期间的下标都是空的。其内部会安插特殊的哨兵值，因此试图访问未赋值的下标，会得到<code>undefined</code>。当然，Fast Element 也有其限制。如果你在远远超过当前数组大小的下标赋值，V8 会将数组转换为字典模式，将值以哈希表的形式存储。这对于稀疏数组来说很有用，但性能上肯定打了折扣，无论是从转换这一过程来说，还是从之后的访问来说。如果你需要复制整个数组，不要逆向复制(索引从高到低)，因为这几乎必然触发字典模式。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-js" data-lang="js"><span class="line"><span class="cl"><span class="c1">// 这会大大降低大数组的性能
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">function</span> <span class="nx">copy</span><span class="p">(</span><span class="nx">a</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kr">const</span> <span class="nx">b</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Array</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="kr">const</span> <span class="nx">i</span> <span class="o">=</span> <span class="nx">a</span><span class="p">.</span><span class="nx">length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span><span class="o">--</span><span class="p">)</span> <span class="nx">b</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nx">a</span><span class="p">[</span><span class="nx">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nx">b</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>由于普通的属性和数字式属性分开存放，即使数组退化为字典模式，也不会影响到其他属性的访问速度(反之亦然)。</p>
+
+          </div>
+
+          
+
+
+
+          
+          
+          <div class="article-widget">
+            
+<div class="container-xl row post-nav">
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">下一页</div>
+    <a href="/books/javascript-notes/20.v8-%E5%BC%95%E6%93%8E/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" rel="prev">垃圾回收</a>
+  </div>
+  
+</div>
+
+          </div>
+          
+
+        <div class="body-footer">
+          <p>最近更新于 0001-01-01</p>
+
+          
+
+
+
+          
+
+
+  
+  
+  
+
+  
+
+  
+  <section id="comments" class="mb-3 pt-0">
+    
+<div id="disqus_thread"></div>
+<script>
+  var disqus_config = function () {
+    
+    
+    
+  };
+  (function() {
+    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+      return;
+    }
+    var d = document, s = d.createElement('script'); 
+    s.async = true;
+    s.src = 'https://' + "ngte" + '.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </section>
+  
+
+
+
+          
+
+
+        </div>
+
+      </article>
+
+      <footer class="site-footer">
+
+  
+
+
+
+  
+
+  
+  <div class="copyright py-4 bg-footer">
+      <div class="row justify-content-center">
+        <div class="text-center footer-color">
+          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
+        </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" id="clstr_globe" async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script>
+  
+</footer>
+
+
+    </main>
+  </div>
+</div>
+<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
+<script>
+  const heti = new Heti('.article');
+  heti.autoSpacing();
+</script>
+<script type="text/javascript">
+  window.$crisp = [];
+  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
+  (function () {
+    setTimeout(function() {
+      d = document;
+      s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    }, 2500);
+  })();
+</script>
+  </div>
+
+  <div class="page-footer">
+    
+    
+  </div>
+
+      
+
+    
+    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
+
+    
+    
+    
+      
+
+      
+      
+
+      
+
+      
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
+        
+        
+      
+
+    
+
+    
+    
+    
+
+    
+    
+    
+      
+      <script id="search-hit-algolia-template" type="text/html">
+        <div class="search-hit">
+          <div class="search-hit-content">
+            <div class="search-hit-name">
+              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
+            </div>
+            <div class="article-metadata search-hit-type">{{type}}</div>
+            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
+          </div>
+        </div>
+      </script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
+      
+      
+    
+
+    
+    
+
+    
+    
+    
+    
+      <script id="dsq-count-scr" src="https://ngte.disqus.com/count.js" async></script>
+      
+    
+
+    
+    
+      
+      
+      
+      
+      
+      
+      
+    
+
+    
+    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
+    
+
+    
+    
+    
+    <script id="page-data" type="application/json">{"use_headroom":false}</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
+
+    
+    
+    
+    
+    
+    
+    <script>
+
+var mybutton = document.getElementById("backTopBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+}
+</script>
+
+
+    
+
+    
+    
+    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+    <script>
+      anchors.add();
+    </script>
+    
+
+    
+    <script>
+
+
+
+(function() {
+  'use strict';
+
+  if(!document.queryCommandSupported('copy')) {
+    return;
+  }
+
+  function flashCopyMessage(el, msg) {
+    el.className = "highlight-copy-btn";
+    el.textContent = msg;
+    setTimeout(function() {
+      el.textContent = "";
+      el.className = "highlight-copy-btn fa fa-copy";
+    }, 1000);
+  }
+
+  function selectText(node) {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection;
+  }
+
+  function addCopyButton(containerEl) {
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "highlight-copy-btn fa fa-copy";
+    copyBtn.textContent = "";
+
+    var codeEl = containerEl.firstElementChild;
+    copyBtn.addEventListener('click', function() {
+      try {
+        var selection = selectText(codeEl);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        
+        flashCopyMessage(copyBtn, '已复制')
+        
+      } catch(e) {
+        console && console.log(e);
+        flashCopyMessage(copyBtn, 'Failed :\'(')
+      }
+    });
+
+    containerEl.appendChild(copyBtn);
+  }
+
+  
+  var highlightBlocks = document.getElementsByClassName('highlight');
+  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
+})();
+</script>
+
+    
+
+
+</body>
+</html>

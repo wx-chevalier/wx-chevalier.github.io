@@ -1,68 +1,1653 @@
-<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="运行期优化 我们知道，Java 是解释执行的，可是解释执行毕竟还是有点慢的，这也使得 Java 一直被认为是效率低下的语言……，不过随着即时编译技术的发展，Java 的运行速度得到了很大的提升，在本篇文章中，我们将会"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/04.java-%E7%A8%8B%E5%BA%8F%E8%BF%90%E8%A1%8C%E4%BC%98%E5%8C%96/00.java-%E8%BF%90%E8%A1%8C%E6%9C%9F%E4%BC%98%E5%8C%96/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.fab3cd1900ae35687457073b2d518207.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/04.java-%E7%A8%8B%E5%BA%8F%E8%BF%90%E8%A1%8C%E4%BC%98%E5%8C%96/00.java-%E8%BF%90%E8%A1%8C%E6%9C%9F%E4%BC%98%E5%8C%96/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/04.java-%E7%A8%8B%E5%BA%8F%E8%BF%90%E8%A1%8C%E4%BC%98%E5%8C%96/00.java-%E8%BF%90%E8%A1%8C%E6%9C%9F%E4%BC%98%E5%8C%96/"><meta property="og:title" content="00.Java 运行期优化 | Next-gen Tech Edu"><meta property="og:description" content="运行期优化 我们知道，Java 是解释执行的，可是解释执行毕竟还是有点慢的，这也使得 Java 一直被认为是效率低下的语言……，不过随着即时编译技术的发展，Java 的运行速度得到了很大的提升，在本篇文章中，我们将会"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>00.Java 运行期优化 | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=915ece76e83cd1555ea4586e2f92591d><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
-<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
-<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
-<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
-<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
-<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">04.Java 程序运行优化</span>
-<span><i class="fas fa-chevron-down"></i></span></div></button>
-<button class="form-control sidebar-search js-search d-none d-md-flex">
-<i class="fas fa-search pr-2"></i>
-<span class=sidebar-search-text>搜索...</span>
-<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
-Back</a>
-<span>|</span>
-<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
-Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idab3d849fd49730721ec2d1a6d08c5d69")' href=#idab3d849fd49730721ec2d1a6d08c5d69 aria-expanded=false aria-controls=idab3d849fd49730721ec2d1a6d08c5d69 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/>2016-深入理解 Java 虚拟机</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idab3d849fd49730721ec2d1a6d08c5d69 aria-expanded=false aria-controls=idab3d849fd49730721ec2d1a6d08c5d69><i class="fa-solid fa-angle-down" id=caret-idab3d849fd49730721ec2d1a6d08c5d69></i></a></div><ul class="nav docs-sidenav collapse show" id=idab3d849fd49730721ec2d1a6d08c5d69><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id375832111c46c31482efd726d1efb8b2")' href=#id375832111c46c31482efd726d1efb8b2 aria-expanded=false aria-controls=id375832111c46c31482efd726d1efb8b2 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/01.java-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6/>01.Java 内存管理机制</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id375832111c46c31482efd726d1efb8b2 aria-expanded=false aria-controls=id375832111c46c31482efd726d1efb8b2><i class="fa-solid fa-angle-right" id=caret-id375832111c46c31482efd726d1efb8b2></i></a></div><ul class="nav docs-sidenav collapse" id=id375832111c46c31482efd726d1efb8b2><li class="child level"><a href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/01.java-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6/00.java-%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F%E8%AF%A6%E8%A7%A3/>00.Java 内存区域详解</a></li><li class="child level"><a href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/01.java-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6/01.oom-%E5%BC%82%E5%B8%B8/>01.OOM 异常</a></li><li class="child level"><a href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/01.java-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6/02.%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86gc/>02.垃圾收集(GC)</a></li><li class="child level"><a href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/01.java-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6/03.java-%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5/>03.Java 内存分配策略</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id867584db919e5f354880c6e10b3a8b07")' href=#id867584db919e5f354880c6e10b3a8b07 aria-expanded=false aria-controls=id867584db919e5f354880c6e10b3a8b07 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/02.java-%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%A8%8B%E5%BA%8F%E6%89%A7%E8%A1%8C/>02.Java 虚拟机程序执行</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id867584db919e5f354880c6e10b3a8b07 aria-expanded=false aria-controls=id867584db919e5f354880c6e10b3a8b07><i class="fa-solid fa-angle-right" id=caret-id867584db919e5f354880c6e10b3a8b07></i></a></div><ul class="nav docs-sidenav collapse" id=id867584db919e5f354880c6e10b3a8b07><li class="child level"><a href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/02.java-%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%A8%8B%E5%BA%8F%E6%89%A7%E8%A1%8C/00.class-%E6%96%87%E4%BB%B6%E7%9A%84%E7%BB%84%E6%88%90%E7%BB%93%E6%9E%84/>00.Class 文件的组成结构</a></li><li class="child level"><a href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/02.java-%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%A8%8B%E5%BA%8F%E6%89%A7%E8%A1%8C/01.%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%9A%84%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6/>01.虚拟机的类加载机制</a></li><li class="child level"><a href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/02.java-%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%A8%8B%E5%BA%8F%E6%89%A7%E8%A1%8C/02.%E8%99%9A%E6%8B%9F%E6%9C%BA%E5%AD%97%E8%8A%82%E7%A0%81%E6%89%A7%E8%A1%8C%E5%BC%95%E6%93%8E_00-%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%A0%88%E6%A0%88%E5%B8%A7%E7%BB%93%E6%9E%84/>02.虚拟机字节码执行引擎_00-虚拟机栈栈帧结构</a></li><li class="child level"><a href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/02.java-%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%A8%8B%E5%BA%8F%E6%89%A7%E8%A1%8C/02.%E8%99%9A%E6%8B%9F%E6%9C%BA%E5%AD%97%E8%8A%82%E7%A0%81%E6%89%A7%E8%A1%8C%E5%BC%95%E6%93%8E_01-%E6%96%B9%E6%B3%95%E8%B0%83%E7%94%A8/>02.虚拟机字节码执行引擎_01-方法调用</a></li><li class="child level"><a href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/02.java-%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%A8%8B%E5%BA%8F%E6%89%A7%E8%A1%8C/02.%E8%99%9A%E6%8B%9F%E6%9C%BA%E5%AD%97%E8%8A%82%E7%A0%81%E6%89%A7%E8%A1%8C%E5%BC%95%E6%93%8E_02-%E5%9F%BA%E4%BA%8E%E6%A0%88%E7%9A%84%E5%AD%97%E8%8A%82%E7%A0%81%E8%A7%A3%E9%87%8A%E6%89%A7%E8%A1%8C%E5%BC%95%E6%93%8E/>02.虚拟机字节码执行引擎_02-基于栈的字节码解释执行引擎</a></li><li class="child level"><a href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/02.java-%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%A8%8B%E5%BA%8F%E6%89%A7%E8%A1%8C/%E9%99%84%E5%BD%950-%E5%AE%9E%E7%8E%B0java%E7%B1%BB%E7%9A%84%E7%83%AD%E6%9B%BF%E6%8D%A2/>附录0-实现Java类的热替换</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id2b9bd53156dd942ffb8aee99fa696065")' href=#id2b9bd53156dd942ffb8aee99fa696065 aria-expanded=false aria-controls=id2b9bd53156dd942ffb8aee99fa696065 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/03.%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7%E5%8F%8A%E6%95%85%E9%9A%9C%E5%A4%84%E7%90%86/>03.虚拟机性能监控及故障处理</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id2b9bd53156dd942ffb8aee99fa696065 aria-expanded=false aria-controls=id2b9bd53156dd942ffb8aee99fa696065><i class="fa-solid fa-angle-right" id=caret-id2b9bd53156dd942ffb8aee99fa696065></i></a></div><ul class="nav docs-sidenav collapse" id=id2b9bd53156dd942ffb8aee99fa696065><li class="child level"><a href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/03.%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7%E5%8F%8A%E6%95%85%E9%9A%9C%E5%A4%84%E7%90%86/00.%E5%B8%B8%E7%94%A8%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7%E5%B7%A5%E5%85%B7/>00.常用虚拟机性能监控工具</a></li><li class="child level"><a href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/03.%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7%E5%8F%8A%E6%95%85%E9%9A%9C%E5%A4%84%E7%90%86/01.jvm%E5%B8%B8%E8%A7%81%E5%8F%82%E6%95%B0%E8%AE%BE%E7%BD%AE/>01.JVM常见参数设置</a></li><li class="child level"><a href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/03.%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7%E5%8F%8A%E6%95%85%E9%9A%9C%E5%A4%84%E7%90%86/02.%E8%99%9A%E6%8B%9F%E6%9C%BA%E8%B0%83%E4%BC%98%E6%A1%88%E4%BE%8B%E5%88%86%E6%9E%90/>02.虚拟机调优案例分析</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id8c523496e26c2ba6c786212e1892174f")' href=#id8c523496e26c2ba6c786212e1892174f aria-expanded=false aria-controls=id8c523496e26c2ba6c786212e1892174f aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/04.java-%E7%A8%8B%E5%BA%8F%E8%BF%90%E8%A1%8C%E4%BC%98%E5%8C%96/>04.Java 程序运行优化</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id8c523496e26c2ba6c786212e1892174f aria-expanded=false aria-controls=id8c523496e26c2ba6c786212e1892174f><i class="fa-solid fa-angle-down" id=caret-id8c523496e26c2ba6c786212e1892174f></i></a></div><ul class="nav docs-sidenav collapse show" id=id8c523496e26c2ba6c786212e1892174f><li class="child level active"><a href=/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/04.java-%E7%A8%8B%E5%BA%8F%E8%BF%90%E8%A1%8C%E4%BC%98%E5%8C%96/00.java-%E8%BF%90%E8%A1%8C%E6%9C%9F%E4%BC%98%E5%8C%96/>00.Java 运行期优化</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents><ul><li><a href=#即时编译>即时编译</a></li><li><a href=#hotspot-虚拟机内的即时编译器运作过程>HotSpot 虚拟机内的即时编译器运作过程</a><ul><li><a href=#为什么要使用解释器与编译器并存的架构>为什么要使用解释器与编译器并存的架构？</a></li><li><a href=#为什么虚拟机要实现两个不同的-jit-编译器>为什么虚拟机要实现两个不同的 JIT 编译器？</a></li><li><a href=#什么是虚拟机的分层编译>什么是虚拟机的分层编译？</a></li><li><a href=#如何判断热点代码触发编译>如何判断热点代码，触发编译？</a></li><li><a href=#热点代码编译的过程>热点代码编译的过程？</a></li></ul></li><li><a href=#经典优化技术介绍>经典优化技术介绍</a><ul><li><a href=#公共子表达式消除语言无关>公共子表达式消除【语言无关】</a></li><li><a href=#数组范围检查消除语言相关>数组范围检查消除【语言相关】</a></li><li><a href=#方法内联最重要>方法内联【最重要】</a></li><li><a href=#逃逸分析最前沿>逃逸分析【最前沿】</a></li><li><a href=#一个优化的例子>一个优化的例子</a></li></ul></li></ul></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>00.Java 运行期优化</h1><div class=article-style><h1 id=运行期优化>运行期优化</h1><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/book/understanding-the-jvm/%e8%bf%90%e8%a1%8c%e6%9c%9f%e4%bc%98%e5%8c%96.png alt=运行期优化.png loading=lazy data-zoomable></div></div></figure></p><p>我们知道，Java 是解释执行的，可是解释执行毕竟还是有点慢的，这也使得 Java 一直被认为是效率低下的语言……，不过随着即时编译技术的发展，Java 的运行速度得到了很大的提升，在本篇文章中，我们将会对 Java 的运行期优化，也就是即时编译 (Just In Time, JIT) 时进行的优化进行详细的讲解，我们先来看看什么是即时编译。</p><ul><li><a href=#%e8%bf%90%e8%a1%8c%e6%9c%9f%e4%bc%98%e5%8c%96>运行期优化</a><ul><li><a href=#%e5%8d%b3%e6%97%b6%e7%bc%96%e8%af%91>即时编译</a></li><li><a href=#hotspot-%e8%99%9a%e6%8b%9f%e6%9c%ba%e5%86%85%e7%9a%84%e5%8d%b3%e6%97%b6%e7%bc%96%e8%af%91%e5%99%a8%e8%bf%90%e4%bd%9c%e8%bf%87%e7%a8%8b>HotSpot 虚拟机内的即时编译器运作过程</a><ul><li><a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e8%a6%81%e4%bd%bf%e7%94%a8%e8%a7%a3%e9%87%8a%e5%99%a8%e4%b8%8e%e7%bc%96%e8%af%91%e5%99%a8%e5%b9%b6%e5%ad%98%e7%9a%84%e6%9e%b6%e6%9e%84>为什么要使用解释器与编译器并存的架构？</a></li><li><a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e8%99%9a%e6%8b%9f%e6%9c%ba%e8%a6%81%e5%ae%9e%e7%8e%b0%e4%b8%a4%e4%b8%aa%e4%b8%8d%e5%90%8c%e7%9a%84-jit-%e7%bc%96%e8%af%91%e5%99%a8>为什么虚拟机要实现两个不同的 JIT 编译器？</a></li><li><a href=#%e4%bb%80%e4%b9%88%e6%98%af%e8%99%9a%e6%8b%9f%e6%9c%ba%e7%9a%84%e5%88%86%e5%b1%82%e7%bc%96%e8%af%91>什么是虚拟机的分层编译？</a></li><li><a href=#%e5%a6%82%e4%bd%95%e5%88%a4%e6%96%ad%e7%83%ad%e7%82%b9%e4%bb%a3%e7%a0%81%e8%a7%a6%e5%8f%91%e7%bc%96%e8%af%91>如何判断热点代码，触发编译？</a><ul><li><a href=#%e4%bb%80%e4%b9%88%e6%98%af%e7%83%ad%e7%82%b9%e4%bb%a3%e7%a0%81>什么是热点代码？</a></li><li><a href=#%e4%bb%80%e4%b9%88%e6%98%af-%e5%a4%9a%e6%ac%a1-%e6%89%a7%e8%a1%8c>什么是 “多次” 执行？</a></li><li><a href=#hotspot-%e4%b8%ad%e6%af%8f%e4%b8%aa%e6%96%b9%e6%b3%95%e7%9a%84-2-%e4%b8%aa%e8%ae%a1%e6%95%b0%e5%99%a8>HotSpot 中每个方法的 2 个计数器</a></li><li><a href=#hotspot-%e7%83%ad%e7%82%b9%e4%bb%a3%e7%a0%81%e6%8e%a2%e6%b5%8b%e6%b5%81%e7%a8%8b>HotSpot 热点代码探测流程</a></li></ul></li><li><a href=#%e7%83%ad%e7%82%b9%e4%bb%a3%e7%a0%81%e7%bc%96%e8%af%91%e7%9a%84%e8%bf%87%e7%a8%8b>热点代码编译的过程？</a></li></ul></li><li><a href=#%e7%bb%8f%e5%85%b8%e4%bc%98%e5%8c%96%e6%8a%80%e6%9c%af%e4%bb%8b%e7%bb%8d>经典优化技术介绍</a><ul><li><a href=#%e5%85%ac%e5%85%b1%e5%ad%90%e8%a1%a8%e8%be%be%e5%bc%8f%e6%b6%88%e9%99%a4%e8%af%ad%e8%a8%80%e6%97%a0%e5%85%b3>公共子表达式消除【语言无关】</a></li><li><a href=#%e6%95%b0%e7%bb%84%e8%8c%83%e5%9b%b4%e6%a3%80%e6%9f%a5%e6%b6%88%e9%99%a4%e8%af%ad%e8%a8%80%e7%9b%b8%e5%85%b3>数组范围检查消除【语言相关】</a></li><li><a href=#%e6%96%b9%e6%b3%95%e5%86%85%e8%81%94%e6%9c%80%e9%87%8d%e8%a6%81>方法内联【最重要】</a></li><li><a href=#%e9%80%83%e9%80%b8%e5%88%86%e6%9e%90%e6%9c%80%e5%89%8d%e6%b2%bf>逃逸分析【最前沿】</a><ul><li><a href=#%e5%9f%ba%e6%9c%ac%e8%a1%8c%e4%b8%ba>基本行为</a></li><li><a href=#%e5%af%b9%e4%ba%8e%e4%b8%8d%e4%bc%9a%e9%80%83%e9%80%b8%e5%88%b0%e6%96%b9%e6%b3%95%e6%88%96%e7%ba%bf%e7%a8%8b%e5%a4%96%e7%9a%84%e5%af%b9%e8%b1%a1%e8%83%bd%e8%bf%9b%e8%a1%8c%e4%bc%98%e5%8c%96>对于不会逃逸到方法或线程外的对象能进行优化</a></li><li><a href=#%e8%99%9a%e6%8b%9f%e6%9c%ba%e5%8f%82%e6%95%b0>虚拟机参数</a></li></ul></li><li><a href=#%e4%b8%80%e4%b8%aa%e4%bc%98%e5%8c%96%e7%9a%84%e4%be%8b%e5%ad%90>一个优化的例子</a></li></ul></li></ul></li></ul><h2 id=即时编译>即时编译</h2><p><strong>什么是即时编译？</strong></p><ul><li>当虚拟机发现某个方法或某段代码运行的特别频繁时，会把这段代码认为成热点代码；</li><li>在运行时，虚拟机会将这段代码编译成平台相关的机器码，并进行各种层次的优化。</li></ul><h2 id=hotspot-虚拟机内的即时编译器运作过程>HotSpot 虚拟机内的即时编译器运作过程</h2><p>我们主要通过以下 5 个问题来了解 HotSpot 虚拟机的即时编译器。</p><h3 id=为什么要使用解释器与编译器并存的架构>为什么要使用解释器与编译器并存的架构？</h3><ul><li>解释器的优点：可以提高程序的响应速度（省去了编译的时间），并且节约内存。</li><li>编译器的优点：可以提高执行效率。</li><li>虚拟机参数设置：<ul><li>强制运行于解析模式：<code>-Xint</code>，编译器完全不工作；</li><li>强制运行于编译模式：<code>-Xcomp</code>，当编译器编译失败时，解释执行还是会介入的。</li></ul></li></ul><h3 id=为什么虚拟机要实现两个不同的-jit-编译器>为什么虚拟机要实现两个不同的 JIT 编译器？</h3><ul><li>Client Compiler（C1）：不激进优化；</li><li>Server Compiler（C2）：激进优化，如果激进优化不成立，再退回为解释执行或者 C1 编译器执行。</li></ul><h3 id=什么是虚拟机的分层编译>什么是虚拟机的分层编译？</h3><p>分层编译就是根据编译器编译、优化的规模与耗时，划分出不同的编译层次，在代码运行的过程中，可以动态的选择将某一部分代码片段提升一个编译层次或者降低一个编译层次。</p><p>C1 与 C2 编译器会同时工作，许多代码可能会被多次编译。</p><p><strong>目的：</strong> 在程序的启动响应时间和运行效率间达到平衡。</p><p><strong>编译层次的划分：</strong></p><ul><li>第 0 层：解释执行，不开启性能监控；</li><li>第 1 层：将字节编译为机器码，但不进行激进优化，有必要时会加入性能监控；</li><li>第 2 层及以上：将字节编译为机器码，会根据性能监控信息进行激进优化。</li></ul><h3 id=如何判断热点代码触发编译>如何判断热点代码，触发编译？</h3><h4 id=什么是热点代码>什么是热点代码？</h4><ul><li>被多次调用的方法；</li><li>被多次执行的循环体；<ul><li>虽然被判断为热点代码的是循环体，不过因为虚拟机的即时编译是以方法为单位的，所以编译器还是会将循环体所在的方法整个作为编译对象。</li></ul></li></ul><p>我们发现，判断热点代码的一个要点就是： <strong>多次执行</strong> 。那么虚拟机是如何知道一个方法或者一个循环体被多次执行的呢？</p><h4 id=什么是-多次-执行>什么是 “多次” 执行？</h4><ul><li><strong>基于采样的热点探测</strong><ul><li>虚拟机周期检查各个线程的栈顶，如果发现一个方法经常出现在栈顶，则该方法为热点方法。</li><li><strong>优点：</strong> 容易获取方法的调用关系，且简单高效。</li><li><strong>缺点：</strong> 无法精准的判断一个方法的热度，并且容易受到线程阻塞的影响，如果一个方法由于它所在的线程被阻塞的缘故而一直出现在栈顶，我们并不能认为这个方法被调用的十分频繁。</li></ul></li><li><strong>基于计数器的热点探测</strong><ul><li>虚拟机为每一个方法（或代码块）建立一个计数器，一旦执行次数超过一定阈值，就将其判为热点代码。</li><li><strong>优点：</strong> 精确严谨。</li><li><strong>缺点：</strong> 不能直接获取方法的调用关系，且实现复杂。</li><li>HotSpot 使用的是这个，并且还为每个方法建立了两个计数器。</li></ul></li></ul><h4 id=hotspot-中每个方法的-2-个计数器>HotSpot 中每个方法的 2 个计数器</h4><ul><li><strong>方法调用计数器</strong><ul><li>统计方法被调用的次数，处理多次调用的方法的。</li><li>默认统计的不是方法调用的绝对次数，而是方法在一段时间内被调用的次数，如果超过这个时间限制还没有达到判为热点代码的阈值，则该方法的调用计数器值减半。<ul><li>关闭热度衰减：<code>-XX: -UseCounterDecay</code>（此时方法计数器统计的是方法被调用的绝对次数）；</li><li>设置半衰期时间：<code>-XX: CounterHalfLifeTime</code>（单位是秒）；</li><li>热度衰减过程是在 GC 时顺便进行。</li></ul></li></ul></li><li><strong>回边计数器</strong><ul><li>统计一个方法中 “回边” 的次数，处理多次执行的循环体的。<ul><li>回边：在字节码中遇到控制流向后跳转的指令（不是所有循环体都是回边，空循环体是自己跳向自己，没有向后跳，不算回边）。</li></ul></li><li>调整回边计数器阈值：<code>-XX: OnStackReplacePercentage</code>（OSR 比率）<ul><li>Client 模式：<code>回边计数器的阈值 = 方法调用计数器阈值 * OSR比率 / 100</code>；</li><li>Server 模式：<code>回边计数器的阈值 = 方法调用计数器阈值 * ( OSR比率 - 解释器监控比率 ) / 100</code>；</li></ul></li></ul></li></ul><h4 id=hotspot-热点代码探测流程>HotSpot 热点代码探测流程</h4><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/book/understanding-the-jvm/%e5%9f%ba%e4%ba%8e%e8%ae%a1%e6%95%b0%e5%99%a8%e7%9a%84%e7%83%ad%e7%82%b9%e4%bb%a3%e7%a0%81%e6%8e%a2%e6%b5%8b%e6%b5%81%e7%a8%8b.png alt=基于计数器的热点代码探测流程.png loading=lazy data-zoomable></div></div></figure></p><h3 id=热点代码编译的过程>热点代码编译的过程？</h3><p>虚拟机在代码编译未完成时会按照解释方式继续执行，编译动作在后台的编译线程执行。</p><p>禁止后台编译：<code>-XX: -BackgroundCompilation</code>，打开后这个开关参数后，交编译请求的线程会等待编译完成，然后执行编译器输出的本地代码。</p><h2 id=经典优化技术介绍>经典优化技术介绍</h2><p><strong>Content：</strong></p><ul><li>公共子表达式消除【语言无关】</li><li>数组范围检查消除【语言相关】</li><li>方法内联【最重要】</li><li>逃逸分析【最前沿】</li></ul><h3 id=公共子表达式消除语言无关>公共子表达式消除【语言无关】</h3><p>如果一个表达式 E 已经计算过了，并且从先前的计算到现在，E 中所有变量值都没有发生变化，则 E 为公共子表达式，无需再次计算，直接用之前的结果替换。</p><h3 id=数组范围检查消除语言相关>数组范围检查消除【语言相关】</h3><p>在循环中使用循环变量访问数组，如果可以判断循环变量的范围在数组的索引范围内，则可以消除整个循环的数组范围检查</p><h3 id=方法内联最重要>方法内联【最重要】</h3><p>目的是：去除方法调用的成本（如建立栈帧等），并为其他优化建立良好的基础，所以一般将方法内两放在优化序列最前端，因为它对其他优化有帮助。</p><blockquote><p><strong>类型继承关系分析（Class Hierarchy Analysis，CHA）</strong></p><p>用于确定在目前已加载的类中，某个接口是否有多于一种的实现，某个类是否存在子类、子类是否为抽象类等。</p></blockquote><ul><li><strong>对于非虚方法：</strong><ul><li>直接进行内联，其调用方法的版本在编译时已经确定，是根据变量的静态类型决定的。</li></ul></li><li><strong>对于虚方法：</strong> （激进优化，要预留“逃生门”）<ul><li>向 CHA 查询此方法在当前程序下是否有多个目标可选择；<ul><li>只有一个目标版本：<ul><li>先对这唯一的目标进行内联；</li><li>如果之后的执行中，虚拟机没有加载到会令这个方法接收者的继承关系发生改变的新类，则该内联代码可以一直使用；</li><li>如果加载到导致继承关系发生变化的新类，就抛弃已编译的代码。</li></ul></li><li>有多个目标版本：<ul><li>使用内联缓存，未发生方法调用前，内联缓存为空；</li><li>第一次调用发生后，记录调用方法的对象的版本信息；</li><li>之后的每次调用都要先与内联缓存中的对象版本信息进行比较；<ul><li>版本信息一样，继续使用内联代码；</li><li>版本信息不一样，说明程序使用了虚方法的多态特性，这时取消内联，查找虚方法进行方法分派。</li></ul></li></ul></li></ul></li></ul></li></ul><h3 id=逃逸分析最前沿>逃逸分析【最前沿】</h3><h4 id=基本行为>基本行为</h4><p>分析对象的作用域，看它有没有能在当前作用域之外使用：</p><ul><li>方法逃逸：对象在方法中定义之后，能被外部方法引用，如作为参数传递到了其他方法中。</li><li>线程逃逸：赋值给 static 变量，或可以在其他线程中访问的实例变量。</li></ul><h4 id=对于不会逃逸到方法或线程外的对象能进行优化>对于不会逃逸到方法或线程外的对象能进行优化</h4><ul><li><strong>栈上分配：</strong> 对于不会逃逸到方法外的对象，可以在栈上分配内存，这样这个对象所占用的空间可以随栈帧出栈而销毁，减小 GC 的压力。</li><li><strong>标量替换（重要）：</strong><ul><li>标量：基本数据类型和 reference。</li><li>不创建对象，而是将对象拆分成一个一个标量，然后直接在栈上分配，是栈上分配的一种实现方式。</li><li>HotSpot 使用的是标量替换而不是栈上分配，因为实现栈上分配需要更改大量假设了 “对象只能在堆中分配” 的代码。</li></ul></li><li><strong>锁消除：</strong> 不会逃逸到线程外的方法不需要进行同步。</li></ul><h4 id=虚拟机参数>虚拟机参数</h4><ul><li>开启逃逸分析：<code>-XX: +DoEscapeAnalysis</code></li><li>开启标量替换：<code>-XX: +EliminateAnalysis</code></li><li>开启锁消除：<code>-XX: +EliminateLocks</code></li><li>查看分析结果：<code>-XX: PrintEscapeAnalysis</code></li><li>查看标量替换情况：<code>-XX: PrintEliminateAllocations</code></li></ul><h3 id=一个优化的例子>一个优化的例子</h3><p><strong>原始代码：</strong></p><div class=highlight><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=kd>static</span> <span class=kd>class</span> <span class=nc>B</span> <span class=o>{</span>
-</span></span><span class=line><span class=cl>    <span class=kt>int</span> <span class=n>value</span><span class=o>;</span>
-</span></span><span class=line><span class=cl>    <span class=kd>final</span> <span class=kt>int</span> <span class=nf>get</span><span class=o>()</span> <span class=o>{</span>
-</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>value</span><span class=o>;</span>
-</span></span><span class=line><span class=cl>    <span class=o>}</span>
-</span></span><span class=line><span class=cl><span class=o>}</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kd>public</span> <span class=kt>void</span> <span class=nf>foo</span><span class=o>()</span> <span class=o>{</span>
-</span></span><span class=line><span class=cl>    <span class=n>y</span> <span class=o>=</span> <span class=n>b</span><span class=o>.</span><span class=na>get</span><span class=o>();</span>
-</span></span><span class=line><span class=cl>    <span class=c1>// ...do stuff...
-</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=n>z</span> <span class=o>=</span> <span class=n>b</span><span class=o>.</span><span class=na>get</span><span class=o>();</span>
-</span></span><span class=line><span class=cl>    <span class=n>sum</span> <span class=o>=</span> <span class=n>y</span> <span class=o>+</span> <span class=n>z</span><span class=o>;</span>
-</span></span><span class=line><span class=cl><span class=o>}</span>
-</span></span></code></pre></div><p><strong>第一步优化：</strong> 方法内联（一般放在优化序列最前端，因为对其他优化有帮助）</p><p><strong>目的：</strong></p><ul><li>去除方法调用的成本（如建立栈帧等）</li><li>为其他优化建立良好的基础</li></ul><div class=highlight><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=kd>public</span> <span class=kt>void</span> <span class=nf>foo</span><span class=o>()</span> <span class=o>{</span>
-</span></span><span class=line><span class=cl>    <span class=n>y</span> <span class=o>=</span> <span class=n>b</span><span class=o>.</span><span class=na>value</span><span class=o>;</span>
-</span></span><span class=line><span class=cl>    <span class=c1>// ...do stuff...
-</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=n>z</span> <span class=o>=</span> <span class=n>b</span><span class=o>.</span><span class=na>value</span><span class=o>;</span>
-</span></span><span class=line><span class=cl>    <span class=n>sum</span> <span class=o>=</span> <span class=n>y</span> <span class=o>+</span> <span class=n>z</span><span class=o>;</span>
-</span></span><span class=line><span class=cl><span class=o>}</span>
-</span></span></code></pre></div><p><strong>第二步优化：</strong> 公共子表达式消除</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=kd>public</span> <span class=kt>void</span> <span class=nf>foo</span><span class=o>()</span> <span class=o>{</span>
-</span></span><span class=line><span class=cl>    <span class=n>y</span> <span class=o>=</span> <span class=n>b</span><span class=o>.</span><span class=na>value</span><span class=o>;</span>
-</span></span><span class=line><span class=cl>    <span class=c1>// ...do stuff...  // 因为这部分并没有改变 b.value 的值
-</span></span></span><span class=line><span class=cl><span class=c1></span>                       <span class=c1>// 如果把 b.value 看成一个表达式，就是公共表达式消除
-</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=n>z</span> <span class=o>=</span> <span class=n>y</span><span class=o>;</span>             <span class=c1>// 把这一步的 b.value 替换成 y
-</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=n>sum</span> <span class=o>=</span> <span class=n>y</span> <span class=o>+</span> <span class=n>z</span><span class=o>;</span>
-</span></span><span class=line><span class=cl><span class=o>}</span>
-</span></span></code></pre></div><p><strong>第三步优化：</strong> 复写传播</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=kd>public</span> <span class=kt>void</span> <span class=nf>foo</span><span class=o>()</span> <span class=o>{</span>
-</span></span><span class=line><span class=cl>    <span class=n>y</span> <span class=o>=</span> <span class=n>b</span><span class=o>.</span><span class=na>value</span><span class=o>;</span>
-</span></span><span class=line><span class=cl>    <span class=c1>// ...do stuff...
-</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=n>y</span> <span class=o>=</span> <span class=n>y</span><span class=o>;</span>             <span class=c1>// z 变量与以相同，完全没有必要使用一个新的额外变量
-</span></span></span><span class=line><span class=cl><span class=c1></span>                       <span class=c1>// 所以将 z 替换为 y
-</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=n>sum</span> <span class=o>=</span> <span class=n>y</span> <span class=o>+</span> <span class=n>z</span><span class=o>;</span>
-</span></span><span class=line><span class=cl><span class=o>}</span>
-</span></span></code></pre></div><p><strong>第四步优化：</strong> 无用代码消除</p><blockquote><p><strong>无用代码：</strong></p><ul><li>永远不会执行的代码</li><li>完全没有意义的代码</li></ul></blockquote><div class=highlight><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=kd>public</span> <span class=kt>void</span> <span class=nf>foo</span><span class=o>()</span> <span class=o>{</span>
-</span></span><span class=line><span class=cl>    <span class=n>y</span> <span class=o>=</span> <span class=n>b</span><span class=o>.</span><span class=na>value</span><span class=o>;</span>
-</span></span><span class=line><span class=cl>    <span class=c1>// ...do stuff...
-</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=c1>// y = y; 这句没有意义的，去除
-</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=n>sum</span> <span class=o>=</span> <span class=n>y</span> <span class=o>+</span> <span class=n>y</span><span class=o>;</span>
-</span></span><span class=line><span class=cl><span class=o>}</span>
-</span></span></code></pre></div></div><div class=article-widget><div class="container-xl row post-nav"></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div><script type=text/javascript id=clstr_globe async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
-<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
-<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
-<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
-<script id=dsq-count-scr src=https://ngte.disqus.com/count.js async></script>
-<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
-<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
-<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
-<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>
+<!DOCTYPE html><html lang="zh" >
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  
+  
+    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+
+  
+  
+  
+    
+      
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    
+  
+
+  
+    <meta name="google-site-verification" content="google69a5cccb61297807" />
+    <meta name="baidu-site-verification" content="cqmZHEleVh" />
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+    
+  
+  <meta name="description" content="运行期优化 我们知道，Java 是解释执行的，可是解释执行毕竟还是有点慢的，这也使得 Java 一直被认为是效率低下的语言……，不过随着即时编译技术的发展，Java 的运行速度得到了很大的提升，在本篇文章中，我们将会" />
+
+  
+  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/04.java-%E7%A8%8B%E5%BA%8F%E8%BF%90%E8%A1%8C%E4%BC%98%E5%8C%96/00.java-%E8%BF%90%E8%A1%8C%E6%9C%9F%E4%BC%98%E5%8C%96/" />
+
+  
+  
+  
+    <meta name="theme-color" content="#0a55a7" />
+  
+
+  
+  
+
+  
+
+  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
+
+  
+  
+  
+    
+    
+
+    
+    
+    
+    
+      
+      
+    
+    
+    
+
+    
+    
+    
+      
+    
+    
+      
+      
+        
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
+        
+      
+    
+
+    
+    
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
+    
+
+    
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+        
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+  
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/wowchemy.0d97305106da5efa530e28b021b4c580.css" />
+
+  
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', "G-40NYXJ8823");
+</script>
+
+
+  
+
+
+  
+
+
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+  
+  
+  
+
+  
+
+  
+    <link rel="manifest" href="/manifest.webmanifest" />
+  
+
+  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
+  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
+
+  <link rel="canonical" href="https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/04.java-%E7%A8%8B%E5%BA%8F%E8%BF%90%E8%A1%8C%E4%BC%98%E5%8C%96/00.java-%E8%BF%90%E8%A1%8C%E6%9C%9F%E4%BC%98%E5%8C%96/" />
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+
+  
+  
+    
+    
+  
+  <meta property="twitter:card" content="summary_large_image" />
+  
+    <meta property="twitter:site" content="@wx-chevalier" />
+    <meta property="twitter:creator" content="@wx-chevalier" />
+  
+  <meta property="og:site_name" content="Next-gen Tech Edu" />
+  <meta property="og:url" content="https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/04.java-%E7%A8%8B%E5%BA%8F%E8%BF%90%E8%A1%8C%E4%BC%98%E5%8C%96/00.java-%E8%BF%90%E8%A1%8C%E6%9C%9F%E4%BC%98%E5%8C%96/" />
+  <meta property="og:title" content="00.Java 运行期优化 | Next-gen Tech Edu" />
+  <meta property="og:description" content="运行期优化 我们知道，Java 是解释执行的，可是解释执行毕竟还是有点慢的，这也使得 Java 一直被认为是效率低下的语言……，不过随着即时编译技术的发展，Java 的运行速度得到了很大的提升，在本篇文章中，我们将会" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
+    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
+  
+    
+    
+  
+
+  
+
+
+
+  
+
+  
+
+  
+
+
+
+
+
+  <title>00.Java 运行期优化 | Next-gen Tech Edu</title>
+</head>
+
+
+<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="915ece76e83cd1555ea4586e2f92591d" >
+  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
+
+  
+
+
+<aside class="search-modal" id="search">
+  <div class="container">
+    <section class="search-header">
+
+      <div class="row no-gutters justify-content-between mb-3">
+        <div class="col-6 search-title">
+          <p>搜索</p>
+        </div>
+        <div class="col-6 col-search-close">
+          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+      <div id="search-box">
+        
+        
+        
+      </div>
+
+      
+      
+
+      
+    </section>
+    <section class="section-search-results">
+
+      <div id="search-hits">
+        
+      </div>
+
+      <div id="search-common-queries">
+        
+      </div>
+
+    </section>
+  </div>
+</aside>
+
+
+
+  <div class="page-header">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="header--fixed">
+  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
+    <div class="container-xl">
+
+      
+      <div class="d-none d-lg-inline-flex">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      <button type="button" class="navbar-toggler" data-toggle="collapse"
+              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
+      <span><i class="fas fa-bars"></i></span>
+      </button>
+      
+
+      
+      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      
+      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
+
+        
+        <ul class="navbar-nav d-md-inline-flex">
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
+          </li>
+
+          
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+              
+              
+              
+                
+              
+              
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
+              
+                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
+              
+                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+        
+
+          
+        </ul>
+      </div>
+
+      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
+
+        
+        
+        
+        <li class="nav-item">
+          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        <li class="nav-item">
+            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        
+
+        
+        
+        
+        <div></div>
+        
+        <style>
+        @media only screen and (max-width: 600px) {
+          .jimmysong-template {
+            display: none!important;
+          }
+        }
+        </style>
+        
+        <li class="jimmysong-template" style="color: white;font-size: 12px;">
+          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+</header>
+
+
+  </div>
+
+  <div class="page-body">
+    
+    
+    
+
+    
+
+
+
+
+<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
+<div class="container-xl docs">
+  <div class="row flex-xl-nowrap">
+    <div class="docs-sidebar">
+      <form class="docs-search d-flex align-items-center">
+  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    <div class="d-flex">
+      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
+        
+          04.Java 程序运行优化
+        
+      </span>
+      <span><i class="fas fa-chevron-down"></i></span>
+    </div>
+  </button>
+
+  
+  <button class="form-control sidebar-search js-search d-none d-md-flex">
+    <i class="fas fa-search pr-2"></i>
+    <span class="sidebar-search-text">搜索...</span>
+    <span class="sidebar-search-shortcut">/</span>
+  </button>
+  
+</form>
+
+<nav class="collapse docs-links" id="docs-nav">
+  
+  
+  
+  
+  
+  
+
+  
+  
+    
+
+    
+      
+
+      <ul class="nav docs-sidenav">
+        <li style="display: inline-flex">
+          <a style="cursor: pointer;" onclick="window.history.back()">
+            <i class="fas fa-arrow-left pr-1"></i>
+            Back
+          </a>
+          <span>|</span>
+          <a href="/books/">
+            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
+            Books
+          </a>
+        </li>
+      </ul>
+
+      
+      
+        
+          
+        
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idab3d849fd49730721ec2d1a6d08c5d69&#34;)" href="#idab3d849fd49730721ec2d1a6d08c5d69" aria-expanded="false" aria-controls="idab3d849fd49730721ec2d1a6d08c5d69" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/">2016-深入理解 Java 虚拟机</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idab3d849fd49730721ec2d1a6d08c5d69" aria-expanded="false" aria-controls="idab3d849fd49730721ec2d1a6d08c5d69">
+    
+    <i class="fa-solid fa-angle-down" id="caret-idab3d849fd49730721ec2d1a6d08c5d69"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="idab3d849fd49730721ec2d1a6d08c5d69">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id375832111c46c31482efd726d1efb8b2&#34;)" href="#id375832111c46c31482efd726d1efb8b2" aria-expanded="false" aria-controls="id375832111c46c31482efd726d1efb8b2" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/01.java-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6/">01.Java 内存管理机制</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id375832111c46c31482efd726d1efb8b2" aria-expanded="false" aria-controls="id375832111c46c31482efd726d1efb8b2">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id375832111c46c31482efd726d1efb8b2"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id375832111c46c31482efd726d1efb8b2">
+      
+
+
+
+  <li class="child level "><a href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/01.java-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6/00.java-%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F%E8%AF%A6%E8%A7%A3/">00.Java 内存区域详解</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/01.java-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6/01.oom-%E5%BC%82%E5%B8%B8/">01.OOM 异常</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/01.java-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6/02.%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86gc/">02.垃圾收集(GC)</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/01.java-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6/03.java-%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E7%AD%96%E7%95%A5/">03.Java 内存分配策略</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id867584db919e5f354880c6e10b3a8b07&#34;)" href="#id867584db919e5f354880c6e10b3a8b07" aria-expanded="false" aria-controls="id867584db919e5f354880c6e10b3a8b07" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/02.java-%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%A8%8B%E5%BA%8F%E6%89%A7%E8%A1%8C/">02.Java 虚拟机程序执行</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id867584db919e5f354880c6e10b3a8b07" aria-expanded="false" aria-controls="id867584db919e5f354880c6e10b3a8b07">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id867584db919e5f354880c6e10b3a8b07"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id867584db919e5f354880c6e10b3a8b07">
+      
+
+
+
+  <li class="child level "><a href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/02.java-%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%A8%8B%E5%BA%8F%E6%89%A7%E8%A1%8C/00.class-%E6%96%87%E4%BB%B6%E7%9A%84%E7%BB%84%E6%88%90%E7%BB%93%E6%9E%84/">00.Class 文件的组成结构</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/02.java-%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%A8%8B%E5%BA%8F%E6%89%A7%E8%A1%8C/01.%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%9A%84%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6/">01.虚拟机的类加载机制</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/02.java-%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%A8%8B%E5%BA%8F%E6%89%A7%E8%A1%8C/02.%E8%99%9A%E6%8B%9F%E6%9C%BA%E5%AD%97%E8%8A%82%E7%A0%81%E6%89%A7%E8%A1%8C%E5%BC%95%E6%93%8E_00-%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%A0%88%E6%A0%88%E5%B8%A7%E7%BB%93%E6%9E%84/">02.虚拟机字节码执行引擎_00-虚拟机栈栈帧结构</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/02.java-%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%A8%8B%E5%BA%8F%E6%89%A7%E8%A1%8C/02.%E8%99%9A%E6%8B%9F%E6%9C%BA%E5%AD%97%E8%8A%82%E7%A0%81%E6%89%A7%E8%A1%8C%E5%BC%95%E6%93%8E_01-%E6%96%B9%E6%B3%95%E8%B0%83%E7%94%A8/">02.虚拟机字节码执行引擎_01-方法调用</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/02.java-%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%A8%8B%E5%BA%8F%E6%89%A7%E8%A1%8C/02.%E8%99%9A%E6%8B%9F%E6%9C%BA%E5%AD%97%E8%8A%82%E7%A0%81%E6%89%A7%E8%A1%8C%E5%BC%95%E6%93%8E_02-%E5%9F%BA%E4%BA%8E%E6%A0%88%E7%9A%84%E5%AD%97%E8%8A%82%E7%A0%81%E8%A7%A3%E9%87%8A%E6%89%A7%E8%A1%8C%E5%BC%95%E6%93%8E/">02.虚拟机字节码执行引擎_02-基于栈的字节码解释执行引擎</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/02.java-%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%A8%8B%E5%BA%8F%E6%89%A7%E8%A1%8C/%E9%99%84%E5%BD%950-%E5%AE%9E%E7%8E%B0java%E7%B1%BB%E7%9A%84%E7%83%AD%E6%9B%BF%E6%8D%A2/">附录0-实现Java类的热替换</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id2b9bd53156dd942ffb8aee99fa696065&#34;)" href="#id2b9bd53156dd942ffb8aee99fa696065" aria-expanded="false" aria-controls="id2b9bd53156dd942ffb8aee99fa696065" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/03.%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7%E5%8F%8A%E6%95%85%E9%9A%9C%E5%A4%84%E7%90%86/">03.虚拟机性能监控及故障处理</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id2b9bd53156dd942ffb8aee99fa696065" aria-expanded="false" aria-controls="id2b9bd53156dd942ffb8aee99fa696065">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id2b9bd53156dd942ffb8aee99fa696065"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id2b9bd53156dd942ffb8aee99fa696065">
+      
+
+
+
+  <li class="child level "><a href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/03.%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7%E5%8F%8A%E6%95%85%E9%9A%9C%E5%A4%84%E7%90%86/00.%E5%B8%B8%E7%94%A8%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7%E5%B7%A5%E5%85%B7/">00.常用虚拟机性能监控工具</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/03.%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7%E5%8F%8A%E6%95%85%E9%9A%9C%E5%A4%84%E7%90%86/01.jvm%E5%B8%B8%E8%A7%81%E5%8F%82%E6%95%B0%E8%AE%BE%E7%BD%AE/">01.JVM常见参数设置</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/03.%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7%E5%8F%8A%E6%95%85%E9%9A%9C%E5%A4%84%E7%90%86/02.%E8%99%9A%E6%8B%9F%E6%9C%BA%E8%B0%83%E4%BC%98%E6%A1%88%E4%BE%8B%E5%88%86%E6%9E%90/">02.虚拟机调优案例分析</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id8c523496e26c2ba6c786212e1892174f&#34;)" href="#id8c523496e26c2ba6c786212e1892174f" aria-expanded="false" aria-controls="id8c523496e26c2ba6c786212e1892174f" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/04.java-%E7%A8%8B%E5%BA%8F%E8%BF%90%E8%A1%8C%E4%BC%98%E5%8C%96/">04.Java 程序运行优化</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id8c523496e26c2ba6c786212e1892174f" aria-expanded="false" aria-controls="id8c523496e26c2ba6c786212e1892174f">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id8c523496e26c2ba6c786212e1892174f"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id8c523496e26c2ba6c786212e1892174f">
+      
+
+
+
+  <li class="child level active"><a href="/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3-java-%E8%99%9A%E6%8B%9F%E6%9C%BA.md/04.java-%E7%A8%8B%E5%BA%8F%E8%BF%90%E8%A1%8C%E4%BC%98%E5%8C%96/00.java-%E8%BF%90%E8%A1%8C%E6%9C%9F%E4%BC%98%E5%8C%96/">00.Java 运行期优化</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+    
+  
+</nav>
+
+    </div>
+
+    
+    
+    <div class="d-none d-xl-block col-xl-2 docs-toc">
+      
+     
+      <ul class="nav toc-top">
+        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
+      </ul>
+     
+
+      <nav id="TableOfContents">
+  <ul>
+    <li><a href="#即时编译">即时编译</a></li>
+    <li><a href="#hotspot-虚拟机内的即时编译器运作过程">HotSpot 虚拟机内的即时编译器运作过程</a>
+      <ul>
+        <li><a href="#为什么要使用解释器与编译器并存的架构">为什么要使用解释器与编译器并存的架构？</a></li>
+        <li><a href="#为什么虚拟机要实现两个不同的-jit-编译器">为什么虚拟机要实现两个不同的 JIT 编译器？</a></li>
+        <li><a href="#什么是虚拟机的分层编译">什么是虚拟机的分层编译？</a></li>
+        <li><a href="#如何判断热点代码触发编译">如何判断热点代码，触发编译？</a></li>
+        <li><a href="#热点代码编译的过程">热点代码编译的过程？</a></li>
+      </ul>
+    </li>
+    <li><a href="#经典优化技术介绍">经典优化技术介绍</a>
+      <ul>
+        <li><a href="#公共子表达式消除语言无关">公共子表达式消除【语言无关】</a></li>
+        <li><a href="#数组范围检查消除语言相关">数组范围检查消除【语言相关】</a></li>
+        <li><a href="#方法内联最重要">方法内联【最重要】</a></li>
+        <li><a href="#逃逸分析最前沿">逃逸分析【最前沿】</a></li>
+        <li><a href="#一个优化的例子">一个优化的例子</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+      
+<div class="subscribe-module col-24 mt-1">
+    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
+</div>
+
+
+
+    </div>
+    
+
+    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
+
+      <article class="article">
+
+          
+
+          <h1>00.Java 运行期优化</h1>
+
+          <div class="article-style">
+            <h1 id="运行期优化">运行期优化</h1>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/book/understanding-the-jvm/%e8%bf%90%e8%a1%8c%e6%9c%9f%e4%bc%98%e5%8c%96.png" alt="运行期优化.png" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>我们知道，Java 是解释执行的，可是解释执行毕竟还是有点慢的，这也使得 Java 一直被认为是效率低下的语言……，不过随着即时编译技术的发展，Java 的运行速度得到了很大的提升，在本篇文章中，我们将会对 Java 的运行期优化，也就是即时编译 (Just In Time, JIT) 时进行的优化进行详细的讲解，我们先来看看什么是即时编译。</p>
+<!-- TOC -->
+<ul>
+<li><a href="#%e8%bf%90%e8%a1%8c%e6%9c%9f%e4%bc%98%e5%8c%96">运行期优化</a>
+<ul>
+<li><a href="#%e5%8d%b3%e6%97%b6%e7%bc%96%e8%af%91">即时编译</a></li>
+<li><a href="#hotspot-%e8%99%9a%e6%8b%9f%e6%9c%ba%e5%86%85%e7%9a%84%e5%8d%b3%e6%97%b6%e7%bc%96%e8%af%91%e5%99%a8%e8%bf%90%e4%bd%9c%e8%bf%87%e7%a8%8b">HotSpot 虚拟机内的即时编译器运作过程</a>
+<ul>
+<li><a href="#%e4%b8%ba%e4%bb%80%e4%b9%88%e8%a6%81%e4%bd%bf%e7%94%a8%e8%a7%a3%e9%87%8a%e5%99%a8%e4%b8%8e%e7%bc%96%e8%af%91%e5%99%a8%e5%b9%b6%e5%ad%98%e7%9a%84%e6%9e%b6%e6%9e%84">为什么要使用解释器与编译器并存的架构？</a></li>
+<li><a href="#%e4%b8%ba%e4%bb%80%e4%b9%88%e8%99%9a%e6%8b%9f%e6%9c%ba%e8%a6%81%e5%ae%9e%e7%8e%b0%e4%b8%a4%e4%b8%aa%e4%b8%8d%e5%90%8c%e7%9a%84-jit-%e7%bc%96%e8%af%91%e5%99%a8">为什么虚拟机要实现两个不同的 JIT 编译器？</a></li>
+<li><a href="#%e4%bb%80%e4%b9%88%e6%98%af%e8%99%9a%e6%8b%9f%e6%9c%ba%e7%9a%84%e5%88%86%e5%b1%82%e7%bc%96%e8%af%91">什么是虚拟机的分层编译？</a></li>
+<li><a href="#%e5%a6%82%e4%bd%95%e5%88%a4%e6%96%ad%e7%83%ad%e7%82%b9%e4%bb%a3%e7%a0%81%e8%a7%a6%e5%8f%91%e7%bc%96%e8%af%91">如何判断热点代码，触发编译？</a>
+<ul>
+<li><a href="#%e4%bb%80%e4%b9%88%e6%98%af%e7%83%ad%e7%82%b9%e4%bb%a3%e7%a0%81">什么是热点代码？</a></li>
+<li><a href="#%e4%bb%80%e4%b9%88%e6%98%af-%e5%a4%9a%e6%ac%a1-%e6%89%a7%e8%a1%8c">什么是 “多次” 执行？</a></li>
+<li><a href="#hotspot-%e4%b8%ad%e6%af%8f%e4%b8%aa%e6%96%b9%e6%b3%95%e7%9a%84-2-%e4%b8%aa%e8%ae%a1%e6%95%b0%e5%99%a8">HotSpot 中每个方法的 2 个计数器</a></li>
+<li><a href="#hotspot-%e7%83%ad%e7%82%b9%e4%bb%a3%e7%a0%81%e6%8e%a2%e6%b5%8b%e6%b5%81%e7%a8%8b">HotSpot 热点代码探测流程</a></li>
+</ul>
+</li>
+<li><a href="#%e7%83%ad%e7%82%b9%e4%bb%a3%e7%a0%81%e7%bc%96%e8%af%91%e7%9a%84%e8%bf%87%e7%a8%8b">热点代码编译的过程？</a></li>
+</ul>
+</li>
+<li><a href="#%e7%bb%8f%e5%85%b8%e4%bc%98%e5%8c%96%e6%8a%80%e6%9c%af%e4%bb%8b%e7%bb%8d">经典优化技术介绍</a>
+<ul>
+<li><a href="#%e5%85%ac%e5%85%b1%e5%ad%90%e8%a1%a8%e8%be%be%e5%bc%8f%e6%b6%88%e9%99%a4%e8%af%ad%e8%a8%80%e6%97%a0%e5%85%b3">公共子表达式消除【语言无关】</a></li>
+<li><a href="#%e6%95%b0%e7%bb%84%e8%8c%83%e5%9b%b4%e6%a3%80%e6%9f%a5%e6%b6%88%e9%99%a4%e8%af%ad%e8%a8%80%e7%9b%b8%e5%85%b3">数组范围检查消除【语言相关】</a></li>
+<li><a href="#%e6%96%b9%e6%b3%95%e5%86%85%e8%81%94%e6%9c%80%e9%87%8d%e8%a6%81">方法内联【最重要】</a></li>
+<li><a href="#%e9%80%83%e9%80%b8%e5%88%86%e6%9e%90%e6%9c%80%e5%89%8d%e6%b2%bf">逃逸分析【最前沿】</a>
+<ul>
+<li><a href="#%e5%9f%ba%e6%9c%ac%e8%a1%8c%e4%b8%ba">基本行为</a></li>
+<li><a href="#%e5%af%b9%e4%ba%8e%e4%b8%8d%e4%bc%9a%e9%80%83%e9%80%b8%e5%88%b0%e6%96%b9%e6%b3%95%e6%88%96%e7%ba%bf%e7%a8%8b%e5%a4%96%e7%9a%84%e5%af%b9%e8%b1%a1%e8%83%bd%e8%bf%9b%e8%a1%8c%e4%bc%98%e5%8c%96">对于不会逃逸到方法或线程外的对象能进行优化</a></li>
+<li><a href="#%e8%99%9a%e6%8b%9f%e6%9c%ba%e5%8f%82%e6%95%b0">虚拟机参数</a></li>
+</ul>
+</li>
+<li><a href="#%e4%b8%80%e4%b8%aa%e4%bc%98%e5%8c%96%e7%9a%84%e4%be%8b%e5%ad%90">一个优化的例子</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<!-- /TOC -->
+<h2 id="即时编译">即时编译</h2>
+<p><strong>什么是即时编译？</strong></p>
+<ul>
+<li>当虚拟机发现某个方法或某段代码运行的特别频繁时，会把这段代码认为成热点代码；</li>
+<li>在运行时，虚拟机会将这段代码编译成平台相关的机器码，并进行各种层次的优化。</li>
+</ul>
+<h2 id="hotspot-虚拟机内的即时编译器运作过程">HotSpot 虚拟机内的即时编译器运作过程</h2>
+<p>我们主要通过以下 5 个问题来了解 HotSpot 虚拟机的即时编译器。</p>
+<h3 id="为什么要使用解释器与编译器并存的架构">为什么要使用解释器与编译器并存的架构？</h3>
+<ul>
+<li>解释器的优点：可以提高程序的响应速度（省去了编译的时间），并且节约内存。</li>
+<li>编译器的优点：可以提高执行效率。</li>
+<li>虚拟机参数设置：
+<ul>
+<li>强制运行于解析模式：<code>-Xint</code>，编译器完全不工作；</li>
+<li>强制运行于编译模式：<code>-Xcomp</code>，当编译器编译失败时，解释执行还是会介入的。</li>
+</ul>
+</li>
+</ul>
+<h3 id="为什么虚拟机要实现两个不同的-jit-编译器">为什么虚拟机要实现两个不同的 JIT 编译器？</h3>
+<ul>
+<li>Client Compiler（C1）：不激进优化；</li>
+<li>Server Compiler（C2）：激进优化，如果激进优化不成立，再退回为解释执行或者 C1 编译器执行。</li>
+</ul>
+<h3 id="什么是虚拟机的分层编译">什么是虚拟机的分层编译？</h3>
+<p>分层编译就是根据编译器编译、优化的规模与耗时，划分出不同的编译层次，在代码运行的过程中，可以动态的选择将某一部分代码片段提升一个编译层次或者降低一个编译层次。</p>
+<p>C1 与 C2 编译器会同时工作，许多代码可能会被多次编译。</p>
+<p><strong>目的：</strong> 在程序的启动响应时间和运行效率间达到平衡。</p>
+<p><strong>编译层次的划分：</strong></p>
+<ul>
+<li>第 0 层：解释执行，不开启性能监控；</li>
+<li>第 1 层：将字节编译为机器码，但不进行激进优化，有必要时会加入性能监控；</li>
+<li>第 2 层及以上：将字节编译为机器码，会根据性能监控信息进行激进优化。</li>
+</ul>
+<h3 id="如何判断热点代码触发编译">如何判断热点代码，触发编译？</h3>
+<h4 id="什么是热点代码">什么是热点代码？</h4>
+<ul>
+<li>被多次调用的方法；</li>
+<li>被多次执行的循环体；
+<ul>
+<li>虽然被判断为热点代码的是循环体，不过因为虚拟机的即时编译是以方法为单位的，所以编译器还是会将循环体所在的方法整个作为编译对象。</li>
+</ul>
+</li>
+</ul>
+<p>我们发现，判断热点代码的一个要点就是： <strong>多次执行</strong> 。那么虚拟机是如何知道一个方法或者一个循环体被多次执行的呢？</p>
+<h4 id="什么是-多次-执行">什么是 “多次” 执行？</h4>
+<ul>
+<li><strong>基于采样的热点探测</strong>
+<ul>
+<li>虚拟机周期检查各个线程的栈顶，如果发现一个方法经常出现在栈顶，则该方法为热点方法。</li>
+<li><strong>优点：</strong> 容易获取方法的调用关系，且简单高效。</li>
+<li><strong>缺点：</strong> 无法精准的判断一个方法的热度，并且容易受到线程阻塞的影响，如果一个方法由于它所在的线程被阻塞的缘故而一直出现在栈顶，我们并不能认为这个方法被调用的十分频繁。</li>
+</ul>
+</li>
+<li><strong>基于计数器的热点探测</strong>
+<ul>
+<li>虚拟机为每一个方法（或代码块）建立一个计数器，一旦执行次数超过一定阈值，就将其判为热点代码。</li>
+<li><strong>优点：</strong> 精确严谨。</li>
+<li><strong>缺点：</strong> 不能直接获取方法的调用关系，且实现复杂。</li>
+<li>HotSpot 使用的是这个，并且还为每个方法建立了两个计数器。</li>
+</ul>
+</li>
+</ul>
+<h4 id="hotspot-中每个方法的-2-个计数器">HotSpot 中每个方法的 2 个计数器</h4>
+<ul>
+<li><strong>方法调用计数器</strong>
+<ul>
+<li>统计方法被调用的次数，处理多次调用的方法的。</li>
+<li>默认统计的不是方法调用的绝对次数，而是方法在一段时间内被调用的次数，如果超过这个时间限制还没有达到判为热点代码的阈值，则该方法的调用计数器值减半。
+<ul>
+<li>关闭热度衰减：<code>-XX: -UseCounterDecay</code>（此时方法计数器统计的是方法被调用的绝对次数）；</li>
+<li>设置半衰期时间：<code>-XX: CounterHalfLifeTime</code>（单位是秒）；</li>
+<li>热度衰减过程是在 GC 时顺便进行。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>回边计数器</strong>
+<ul>
+<li>统计一个方法中 “回边” 的次数，处理多次执行的循环体的。
+<ul>
+<li>回边：在字节码中遇到控制流向后跳转的指令（不是所有循环体都是回边，空循环体是自己跳向自己，没有向后跳，不算回边）。</li>
+</ul>
+</li>
+<li>调整回边计数器阈值：<code>-XX: OnStackReplacePercentage</code>（OSR 比率）
+<ul>
+<li>Client 模式：<code>回边计数器的阈值 = 方法调用计数器阈值 * OSR比率 / 100</code>；</li>
+<li>Server 模式：<code>回边计数器的阈值 = 方法调用计数器阈值 * ( OSR比率 - 解释器监控比率 ) / 100</code>；</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h4 id="hotspot-热点代码探测流程">HotSpot 热点代码探测流程</h4>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/book/understanding-the-jvm/%e5%9f%ba%e4%ba%8e%e8%ae%a1%e6%95%b0%e5%99%a8%e7%9a%84%e7%83%ad%e7%82%b9%e4%bb%a3%e7%a0%81%e6%8e%a2%e6%b5%8b%e6%b5%81%e7%a8%8b.png" alt="基于计数器的热点代码探测流程.png" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<h3 id="热点代码编译的过程">热点代码编译的过程？</h3>
+<p>虚拟机在代码编译未完成时会按照解释方式继续执行，编译动作在后台的编译线程执行。</p>
+<p>禁止后台编译：<code>-XX: -BackgroundCompilation</code>，打开后这个开关参数后，交编译请求的线程会等待编译完成，然后执行编译器输出的本地代码。</p>
+<h2 id="经典优化技术介绍">经典优化技术介绍</h2>
+<p><strong>Content：</strong></p>
+<ul>
+<li>公共子表达式消除【语言无关】</li>
+<li>数组范围检查消除【语言相关】</li>
+<li>方法内联【最重要】</li>
+<li>逃逸分析【最前沿】</li>
+</ul>
+<h3 id="公共子表达式消除语言无关">公共子表达式消除【语言无关】</h3>
+<p>如果一个表达式 E 已经计算过了，并且从先前的计算到现在，E 中所有变量值都没有发生变化，则 E 为公共子表达式，无需再次计算，直接用之前的结果替换。</p>
+<h3 id="数组范围检查消除语言相关">数组范围检查消除【语言相关】</h3>
+<p>在循环中使用循环变量访问数组，如果可以判断循环变量的范围在数组的索引范围内，则可以消除整个循环的数组范围检查</p>
+<h3 id="方法内联最重要">方法内联【最重要】</h3>
+<p>目的是：去除方法调用的成本（如建立栈帧等），并为其他优化建立良好的基础，所以一般将方法内两放在优化序列最前端，因为它对其他优化有帮助。</p>
+<blockquote>
+<p><strong>类型继承关系分析（Class Hierarchy Analysis，CHA）</strong></p>
+<p>用于确定在目前已加载的类中，某个接口是否有多于一种的实现，某个类是否存在子类、子类是否为抽象类等。</p>
+</blockquote>
+<ul>
+<li><strong>对于非虚方法：</strong>
+<ul>
+<li>直接进行内联，其调用方法的版本在编译时已经确定，是根据变量的静态类型决定的。</li>
+</ul>
+</li>
+<li><strong>对于虚方法：</strong> （激进优化，要预留“逃生门”）
+<ul>
+<li>向 CHA 查询此方法在当前程序下是否有多个目标可选择；
+<ul>
+<li>只有一个目标版本：
+<ul>
+<li>先对这唯一的目标进行内联；</li>
+<li>如果之后的执行中，虚拟机没有加载到会令这个方法接收者的继承关系发生改变的新类，则该内联代码可以一直使用；</li>
+<li>如果加载到导致继承关系发生变化的新类，就抛弃已编译的代码。</li>
+</ul>
+</li>
+<li>有多个目标版本：
+<ul>
+<li>使用内联缓存，未发生方法调用前，内联缓存为空；</li>
+<li>第一次调用发生后，记录调用方法的对象的版本信息；</li>
+<li>之后的每次调用都要先与内联缓存中的对象版本信息进行比较；
+<ul>
+<li>版本信息一样，继续使用内联代码；</li>
+<li>版本信息不一样，说明程序使用了虚方法的多态特性，这时取消内联，查找虚方法进行方法分派。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="逃逸分析最前沿">逃逸分析【最前沿】</h3>
+<h4 id="基本行为">基本行为</h4>
+<p>分析对象的作用域，看它有没有能在当前作用域之外使用：</p>
+<ul>
+<li>方法逃逸：对象在方法中定义之后，能被外部方法引用，如作为参数传递到了其他方法中。</li>
+<li>线程逃逸：赋值给 static 变量，或可以在其他线程中访问的实例变量。</li>
+</ul>
+<h4 id="对于不会逃逸到方法或线程外的对象能进行优化">对于不会逃逸到方法或线程外的对象能进行优化</h4>
+<ul>
+<li><strong>栈上分配：</strong> 对于不会逃逸到方法外的对象，可以在栈上分配内存，这样这个对象所占用的空间可以随栈帧出栈而销毁，减小 GC 的压力。</li>
+<li><strong>标量替换（重要）：</strong>
+<ul>
+<li>标量：基本数据类型和 reference。</li>
+<li>不创建对象，而是将对象拆分成一个一个标量，然后直接在栈上分配，是栈上分配的一种实现方式。</li>
+<li>HotSpot 使用的是标量替换而不是栈上分配，因为实现栈上分配需要更改大量假设了 “对象只能在堆中分配” 的代码。</li>
+</ul>
+</li>
+<li><strong>锁消除：</strong> 不会逃逸到线程外的方法不需要进行同步。</li>
+</ul>
+<h4 id="虚拟机参数">虚拟机参数</h4>
+<ul>
+<li>开启逃逸分析：<code>-XX: +DoEscapeAnalysis</code></li>
+<li>开启标量替换：<code>-XX: +EliminateAnalysis</code></li>
+<li>开启锁消除：<code>-XX: +EliminateLocks</code></li>
+<li>查看分析结果：<code>-XX: PrintEscapeAnalysis</code></li>
+<li>查看标量替换情况：<code>-XX: PrintEliminateAllocations</code></li>
+</ul>
+<h3 id="一个优化的例子">一个优化的例子</h3>
+<p><strong>原始代码：</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">static</span> <span class="kd">class</span> <span class="nc">B</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">value</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">final</span> <span class="kt">int</span> <span class="nf">get</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">value</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">public</span> <span class="kt">void</span> <span class="nf">foo</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">y</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="na">get</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...do stuff...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">z</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="na">get</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sum</span> <span class="o">=</span> <span class="n">y</span> <span class="o">+</span> <span class="n">z</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p><strong>第一步优化：</strong> 方法内联（一般放在优化序列最前端，因为对其他优化有帮助）</p>
+<p><strong>目的：</strong></p>
+<ul>
+<li>去除方法调用的成本（如建立栈帧等）</li>
+<li>为其他优化建立良好的基础</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span> <span class="kt">void</span> <span class="nf">foo</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">y</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="na">value</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...do stuff...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">z</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="na">value</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sum</span> <span class="o">=</span> <span class="n">y</span> <span class="o">+</span> <span class="n">z</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p><strong>第二步优化：</strong> 公共子表达式消除</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span> <span class="kt">void</span> <span class="nf">foo</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">y</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="na">value</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...do stuff...  // 因为这部分并没有改变 b.value 的值
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>                       <span class="c1">// 如果把 b.value 看成一个表达式，就是公共表达式消除
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">z</span> <span class="o">=</span> <span class="n">y</span><span class="o">;</span>             <span class="c1">// 把这一步的 b.value 替换成 y
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">sum</span> <span class="o">=</span> <span class="n">y</span> <span class="o">+</span> <span class="n">z</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p><strong>第三步优化：</strong> 复写传播</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span> <span class="kt">void</span> <span class="nf">foo</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">y</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="na">value</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...do stuff...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">;</span>             <span class="c1">// z 变量与以相同，完全没有必要使用一个新的额外变量
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>                       <span class="c1">// 所以将 z 替换为 y
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">sum</span> <span class="o">=</span> <span class="n">y</span> <span class="o">+</span> <span class="n">z</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p><strong>第四步优化：</strong> 无用代码消除</p>
+<blockquote>
+<p><strong>无用代码：</strong></p>
+<ul>
+<li>永远不会执行的代码</li>
+<li>完全没有意义的代码</li>
+</ul>
+</blockquote>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span> <span class="kt">void</span> <span class="nf">foo</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">y</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="na">value</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...do stuff...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// y = y; 这句没有意义的，去除
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">sum</span> <span class="o">=</span> <span class="n">y</span> <span class="o">+</span> <span class="n">y</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div>
+          </div>
+
+          
+
+
+
+          
+          
+          <div class="article-widget">
+            
+<div class="container-xl row post-nav">
+  
+  
+</div>
+
+          </div>
+          
+
+        <div class="body-footer">
+          <p>最近更新于 0001-01-01</p>
+
+          
+
+
+
+          
+
+
+  
+  
+  
+
+  
+
+  
+  <section id="comments" class="mb-3 pt-0">
+    
+<div id="disqus_thread"></div>
+<script>
+  var disqus_config = function () {
+    
+    
+    
+  };
+  (function() {
+    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+      return;
+    }
+    var d = document, s = d.createElement('script'); 
+    s.async = true;
+    s.src = 'https://' + "ngte" + '.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </section>
+  
+
+
+
+          
+
+
+        </div>
+
+      </article>
+
+      <footer class="site-footer">
+
+  
+
+
+
+  
+
+  
+  <div class="copyright py-4 bg-footer">
+      <div class="row justify-content-center">
+        <div class="text-center footer-color">
+          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
+        </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" id="clstr_globe" async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script>
+  
+</footer>
+
+
+    </main>
+  </div>
+</div>
+<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
+<script>
+  const heti = new Heti('.article');
+  heti.autoSpacing();
+</script>
+<script type="text/javascript">
+  window.$crisp = [];
+  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
+  (function () {
+    setTimeout(function() {
+      d = document;
+      s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    }, 2500);
+  })();
+</script>
+  </div>
+
+  <div class="page-footer">
+    
+    
+  </div>
+
+      
+
+    
+    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
+
+    
+    
+    
+      
+
+      
+      
+
+      
+
+      
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
+        
+        
+      
+
+    
+
+    
+    
+    
+
+    
+    
+    
+      
+      <script id="search-hit-algolia-template" type="text/html">
+        <div class="search-hit">
+          <div class="search-hit-content">
+            <div class="search-hit-name">
+              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
+            </div>
+            <div class="article-metadata search-hit-type">{{type}}</div>
+            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
+          </div>
+        </div>
+      </script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
+      
+      
+    
+
+    
+    
+
+    
+    
+    
+    
+      <script id="dsq-count-scr" src="https://ngte.disqus.com/count.js" async></script>
+      
+    
+
+    
+    
+      
+      
+      
+      
+      
+      
+      
+    
+
+    
+    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
+    
+
+    
+    
+    
+    <script id="page-data" type="application/json">{"use_headroom":false}</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
+
+    
+    
+    
+    
+    
+    
+    <script>
+
+var mybutton = document.getElementById("backTopBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+}
+</script>
+
+
+    
+
+    
+    
+    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+    <script>
+      anchors.add();
+    </script>
+    
+
+    
+    <script>
+
+
+
+(function() {
+  'use strict';
+
+  if(!document.queryCommandSupported('copy')) {
+    return;
+  }
+
+  function flashCopyMessage(el, msg) {
+    el.className = "highlight-copy-btn";
+    el.textContent = msg;
+    setTimeout(function() {
+      el.textContent = "";
+      el.className = "highlight-copy-btn fa fa-copy";
+    }, 1000);
+  }
+
+  function selectText(node) {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection;
+  }
+
+  function addCopyButton(containerEl) {
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "highlight-copy-btn fa fa-copy";
+    copyBtn.textContent = "";
+
+    var codeEl = containerEl.firstElementChild;
+    copyBtn.addEventListener('click', function() {
+      try {
+        var selection = selectText(codeEl);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        
+        flashCopyMessage(copyBtn, '已复制')
+        
+      } catch(e) {
+        console && console.log(e);
+        flashCopyMessage(copyBtn, 'Failed :\'(')
+      }
+    });
+
+    containerEl.appendChild(copyBtn);
+  }
+
+  
+  var highlightBlocks = document.getElementsByClassName('highlight');
+  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
+})();
+</script>
+
+    
+
+
+</body>
+</html>

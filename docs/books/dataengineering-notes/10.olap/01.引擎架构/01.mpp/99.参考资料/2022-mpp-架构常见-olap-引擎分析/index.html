@@ -1,26 +1,1297 @@
-<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="MPP 架构、常见 OLAP 引擎分析 一、MPP 架构 MPP 是系统架构角度的一种服务器分类方法。目前商用的服务器分类大体有三种： SMP（对称多处理器结构） NUMA（非一致存储访问结构） MPP（大规模并行处理结构） 我们今天的"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/dataengineering-notes/10.olap/01.%E5%BC%95%E6%93%8E%E6%9E%B6%E6%9E%84/01.mpp/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2022-mpp-%E6%9E%B6%E6%9E%84%E5%B8%B8%E8%A7%81-olap-%E5%BC%95%E6%93%8E%E5%88%86%E6%9E%90/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.fab3cd1900ae35687457073b2d518207.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/dataengineering-notes/10.olap/01.%E5%BC%95%E6%93%8E%E6%9E%B6%E6%9E%84/01.mpp/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2022-mpp-%E6%9E%B6%E6%9E%84%E5%B8%B8%E8%A7%81-olap-%E5%BC%95%E6%93%8E%E5%88%86%E6%9E%90/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/dataengineering-notes/10.olap/01.%E5%BC%95%E6%93%8E%E6%9E%B6%E6%9E%84/01.mpp/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2022-mpp-%E6%9E%B6%E6%9E%84%E5%B8%B8%E8%A7%81-olap-%E5%BC%95%E6%93%8E%E5%88%86%E6%9E%90/"><meta property="og:title" content="2022-MPP 架构、常见 OLAP 引擎分析 | Next-gen Tech Edu"><meta property="og:description" content="MPP 架构、常见 OLAP 引擎分析 一、MPP 架构 MPP 是系统架构角度的一种服务器分类方法。目前商用的服务器分类大体有三种： SMP（对称多处理器结构） NUMA（非一致存储访问结构） MPP（大规模并行处理结构） 我们今天的"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>2022-MPP 架构、常见 OLAP 引擎分析 | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=0172f6ca30952375b17e6fad1b960cab><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
-<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
-<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
-<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
-<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
-<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">99.参考资料</span>
-<span><i class="fas fa-chevron-down"></i></span></div></button>
-<button class="form-control sidebar-search js-search d-none d-md-flex">
-<i class="fas fa-search pr-2"></i>
-<span class=sidebar-search-text>搜索...</span>
-<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
-Back</a>
-<span>|</span>
-<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
-Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-ide09b5e27ae8fec07774c9808fa701080")' href=#ide09b5e27ae8fec07774c9808fa701080 aria-expanded=false aria-controls=ide09b5e27ae8fec07774c9808fa701080 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/dataengineering-notes/10.olap/01.%E5%BC%95%E6%93%8E%E6%9E%B6%E6%9E%84/01.mpp/>01.MPP</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#ide09b5e27ae8fec07774c9808fa701080 aria-expanded=false aria-controls=ide09b5e27ae8fec07774c9808fa701080><i class="fa-solid fa-angle-down" id=caret-ide09b5e27ae8fec07774c9808fa701080></i></a></div><ul class="nav docs-sidenav collapse show" id=ide09b5e27ae8fec07774c9808fa701080><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id6db6c581fe316c32a975343184b26b14")' href=#id6db6c581fe316c32a975343184b26b14 aria-expanded=false aria-controls=id6db6c581fe316c32a975343184b26b14 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/dataengineering-notes/10.olap/01.%E5%BC%95%E6%93%8E%E6%9E%B6%E6%9E%84/01.mpp/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/>99.参考资料</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id6db6c581fe316c32a975343184b26b14 aria-expanded=false aria-controls=id6db6c581fe316c32a975343184b26b14><i class="fa-solid fa-angle-down" id=caret-id6db6c581fe316c32a975343184b26b14></i></a></div><ul class="nav docs-sidenav collapse show" id=id6db6c581fe316c32a975343184b26b14><li class="child level active"><a href=/books/dataengineering-notes/10.olap/01.%E5%BC%95%E6%93%8E%E6%9E%B6%E6%9E%84/01.mpp/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2022-mpp-%E6%9E%B6%E6%9E%84%E5%B8%B8%E8%A7%81-olap-%E5%BC%95%E6%93%8E%E5%88%86%E6%9E%90/>2022-MPP 架构、常见 OLAP 引擎分析</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents><ul><li><a href=#1smpsymmetrical-multi-processing对称多处理器结构>1、SMP(Symmetrical Multi-Processing)对称多处理器结构</a></li><li><a href=#2numanon-uniform-memory-access非一致存储访问结构>2、NUMA(Non Uniform Memory Access)非一致存储访问结构</a></li><li><a href=#3mppmassively-parallel-processing大规模并行处理结构>3、MPP(Massively Parallel Processing)大规模并行处理结构</a></li></ul><ul><li><a href=#1只负责计算不负责存储的引擎>1）只负责计算，不负责存储的引擎</a><ul><li><a href=#1impala>1、Impala</a></li><li><a href=#2presto>2、Presto</a></li></ul></li><li><a href=#2既负责计算又负责存储的引擎>2）既负责计算，又负责存储的引擎</a><ul><li><a href=#1clickhouse>1、ClickHouse</a></li><li><a href=#2doris>2、Doris</a></li><li><a href=#3druid>3、Druid</a></li><li><a href=#4tidb>4、TiDB</a></li><li><a href=#5greenplum>5、Greenplum</a></li></ul></li><li><a href=#总结常用引擎对比>总结：常用引擎对比</a></li></ul></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>2022-MPP 架构、常见 OLAP 引擎分析</h1><div class=article-style><h1 id=mpp-架构常见-olap-引擎分析>MPP 架构、常见 OLAP 引擎分析</h1><h1 id=一mpp-架构>一、MPP 架构</h1><p>MPP 是系统架构角度的一种服务器分类方法。目前商用的服务器分类大体有三种：</p><ul><li>SMP（对称多处理器结构）</li><li>NUMA（非一致存储访问结构）</li><li>MPP（大规模并行处理结构）</li></ul><p>我们今天的主角是 MPP，因为随着分布式、并行化技术成熟应用，MPP 引擎逐渐表现出强大的高吞吐、低时延计算能力，有很多采用 MPP 架构的引擎都能达到“亿级秒开”。</p><h2 id=1smpsymmetrical-multi-processing对称多处理器结构>1、SMP(Symmetrical Multi-Processing)对称多处理器结构</h2><p>即对称多处理器结构，就是指服务器的多个 CPU 对称工作，无主次或从属关系。SMP 服务器的主要特征是共享，系统中的所有资源（如 CPU、内存、I/O 等）都是共享的。也正是由于这种特征，导致了 SMP 服务器的主要问题，即扩展能力非常有限。</p><h2 id=2numanon-uniform-memory-access非一致存储访问结构>2、NUMA(Non Uniform Memory Access)非一致存储访问结构</h2><p>即非一致存储访问结构。这种结构就是为了解决 SMP 扩展能力不足的问题，利用 NUMA 技术，可以把几十个 CPU 组合在一台服务器内。</p><p>NUMA 的基本特征是拥有多个 CPU 模块，节点之间可以通过互联模块进行连接和信息交互，所以，每个 CPU 可以访问整个系统的内存（这是与 MPP 系统的重要区别）。但是访问的速度是不一样的，因为 CPU 访问本地内存的速度远远高于系统内其他节点的内存速度，这也是非一致存储访问 NUMA 的由来。</p><p>这种结构也有一定的缺陷，由于访问异地内存的时延远远超过访问本地内存，因此，当 CPU 数量增加时，系统性能无法线性增加。</p><h2 id=3mppmassively-parallel-processing大规模并行处理结构>3、MPP(Massively Parallel Processing)大规模并行处理结构</h2><p>即大规模并行处理结构。MPP 的系统扩展和 NUMA 不同，MPP 是由多台 SMP 服务器通过一定的节点互联网络进行连接，协同工作，完成相同的任务，从用户的角度来看是一个服务器系统。每个节点只访问自己的资源，所以是一种完全无共享（Share Nothing）结构。</p><p>MPP 结构扩展能力最强，理论可以无限扩展。由于 MPP 是多台 SPM 服务器连接的，每个节点的 CPU 不能访问另一个节点内存，所以也不存在异地访问的问题。</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/20230407225321.png alt="MPP 架构图" loading=lazy data-zoomable></div></div></figure></p><p>每个节点内的 CPU 不能访问另一个节点的内存，节点之间的信息交互是通过节点互联网络实现的，这个过程称为数据重分配。但是 MPP 服务器需要一种复杂的机制来调度和平衡各个节点的负载和并行处理过程。</p><p>目前，一些基于 MPP 技术的服务器往往通过系统级软件（如数据库）来屏蔽这种复杂性。举个例子，Teradata 就是基于 MPP 技术的一个关系数据库软件（这是最早采用 MPP 架构的数据库），基于此数据库来开发应用时，不管后台服务器由多少节点组成，开发人员面对的都是同一个数据库系统，而无需考虑如何调度其中某几个节点的负载。</p><p>MPP 架构特征：</p><ul><li>任务并行执行;</li><li>数据分布式存储(本地化);</li><li>分布式计算;</li><li>高并发，单个节点并发能力大于 300 用户;</li><li>横向扩展，支持集群节点的扩容;</li><li>Shared Nothing（完全无共享）架构。</li></ul><p>NUMA 和 MPP 区别：二者有许多相似之处，首先 NUMA 和 MPP 都是由多个节点组成的；其次每个节点都有自己的 CPU，内存，I/O 等；都可以都过节点互联机制进行信息交互。那它们的区别是什么呢，首先是节点互联机制不同，NUMA 的节点互联是在同一台物理服务器内部实现的，MPP 的节点互联是在不同的 SMP 服务器外部通过 I/O 实现的。其次是内存访问机制不同，在 NUMA 服务器内部，任何一个 CPU 都可以访问整个系统的内存，但异地内存访问的性能远远低于本地内存访问，因此，在开发应用程序时应该尽量避免异地内存访问。而在 MPP 服务器中，每个节点只访问本地内存，不存在异地内存访问问题。</p><h1 id=二批处理架构和-mpp-架构>二、批处理架构和 MPP 架构</h1><p>批处理架构（如 MapReduce）与 MPP 架构的异同点，以及它们各自的优缺点是什么呢？</p><ul><li>相同点：批处理架构与 MPP 架构都是分布式并行处理，将任务并行的分散到多个服务器和节点上，在每个节点上计算完成后，将各自部分的结果汇总在一起得到最终的结果。</li><li>不同点：批处理架构和 MPP 架构的不同点可以举例来说：我们执行一个任务，首先这个任务会被分成多个 task 执行，对于 MapReduce 来说，这些 tasks 被随机的分配在空闲的 Executor 上；而对于 MPP 架构的引擎来说，每个处理数据的 task 被绑定到持有该数据切片的指定 Executor 上。</li></ul><p>正是由于以上的不同，使得两种架构有各自优势也有各自缺陷：</p><ul><li><p>批处理优劣对比：</p><ul><li>批处理的优势：对于批处理架构来说，如果某个 Executor 执行过慢，那么这个 Executor 会慢慢分配到更少的 task 执行，批处理架构有个推测执行策略，推测出某个 Executor 执行过慢或者有故障，则在接下来分配 task 时就会较少的分配给它或者直接不分配，这样就不会因为某个节点出现问题而导致集群的性能受限。</li><li>批处理的缺陷：任何事情都是有代价的，对于批处理而言，它的优势也造成了它的缺点，会将中间结果写入到磁盘中，这严重限制了处理数据的性能。</li></ul></li><li><p>MPP 优劣对比：</p><ul><li>MPP 的优势：MPP 架构不需要将中间数据写入磁盘，因为一个单一的 Executor 只处理一个单一的 task，因此可以简单直接将数据 stream 到下一个执行阶段。这个过程称为 pipelining，它提供了很大的性能提升。</li><li>MPP 的缺陷：对于 MPP 架构来说，因为 task 和 Executor 是绑定的，如果某个 Executor 执行过慢或故障，将会导致整个集群的性能就会受限于这个故障节点的执行速度(所谓木桶的短板效应)，所以 MPP 架构的最大缺陷就是——短板效应。</li></ul></li></ul><p>另一点，集群中的节点越多，则某个节点出现问题的概率越大，而一旦有节点出现问题，对于 MPP 架构来说，将导致整个集群性能受限，所以一般实际生产中 MPP 架构的集群节点不易过多。举个例子来说下两种架构的数据落盘：要实现两个大表的 join 操作,</p><ul><li>对于批处理而言，如 Spark 将会写磁盘三次(第一次写入：表 1 根据 join key 进行 shuffle；第二次写入：表 2 根据 join key 进行 shuffle；第三次写入：Hash 表写入磁盘)，</li><li>而 MPP 只需要一次写入(Hash 表写入)。这是因为 MPP 将 mapper 和 reducer 同时运行，而 MapReduce 将它们分成有依赖关系的 tasks(DAG),这些 task 是异步执行的，因此必须通过写入中间数据共享内存来解决数据的依赖。</li></ul><h1 id=三-mpp-架构的-olap-引擎>三、 MPP 架构的 OLAP 引擎</h1><p>采用 MPP 架构的 OLAP 引擎有很多，下面只选择常见的几个引擎对比下。采用 MPP 架构的 OLAP 引擎分为两类，一类：是自身不存储数据，只负责计算的引擎；一类：是自身既存储数据，也负责计算的引擎。</p><h2 id=1只负责计算不负责存储的引擎>1）只负责计算，不负责存储的引擎</h2><h3 id=1impala>1、Impala</h3><p>Apache Impala 是采用 MPP 架构的查询引擎，本身不存储任何数据，直接使用内存进行计算，兼顾数据仓库，具有实时，批处理，多并发等优点。提供了类 SQL（类 Hsql）语法，在多用户场景下也能拥有较高的响应速度和吞吐量。它是由 Java 和 C++实现的，Java 提供的查询交互的接口和实现，C++实现了查询引擎部分。</p><p>Impala 支持共享 Hive Metastore，但没有再使用缓慢的 Hive+MapReduce 批处理，而是通过使用与商用并行关系数据库中类似的分布式查询引擎（由 Query Planner、Query Coordinator 和 Query Exec Engine 三部分组成），可以直接从 HDFS 或 HBase 中用 SELECT、JOIN 和统计函数查询数据，从而大大降低了延迟。</p><p>Impala 经常搭配存储引擎 Kudu 一起提供服务，这么做最大的优势是查询比较快，并且支持数据的 Update 和 Delete。</p><h3 id=2presto>2、Presto</h3><p>Presto 是一个分布式的采用 MPP 架构的查询引擎，本身并不存储数据，但是可以接入多种数据源，并且支持跨数据源的级联查询。Presto 是一个 OLAP 的工具，擅长对海量数据进行复杂的分析；但是对于 OLTP 场景，并不是 Presto 所擅长，所以不要把 Presto 当做数据库来使用。</p><p>Presto 是一个低延迟高并发的内存计算引擎。需要从其他数据源获取数据来进行运算分析，它可以连接多种数据源，包括 Hive、RDBMS（Mysql、Oracle、Tidb 等）、Kafka、MongoDB、Redis 等。</p><h2 id=2既负责计算又负责存储的引擎>2）既负责计算，又负责存储的引擎</h2><h3 id=1clickhouse>1、ClickHouse</h3><p>ClickHouse 是近年来备受关注的开源列式数据库，主要用于数据分析（OLAP）领域。它自包含了存储和计算能力，完全自主实现了高可用，而且支持完整的 SQL 语法包括 JOIN 等，技术上有着明显优势。相比于 hadoop 体系，以数据库的方式来做大数据处理更加简单易用，学习成本低且灵活度高。</p><p>ClickHouse 在计算层做了非常细致的工作，竭尽所能榨干硬件能力，提升查询速度。它实现了单机多核并行、分布式计算、向量化执行与 SIMD 指令、代码生成等多种重要技术。ClickHouse 从 OLAP 场景需求出发，定制开发了一套全新的高效列式存储引擎，并且实现了数据有序存储、主键索引、稀疏索引、数据 Sharding、数据 Partitioning、TTL、主备复制等丰富功能。以上功能共同为 ClickHouse 极速的分析性能奠定了基础。</p><h3 id=2doris>2、Doris</h3><p>Doris 是百度主导的，根据 Google Mesa 论文和 Impala 项目改写的一个大数据分析引擎，是一个海量分布式 KV 存储系统，其设计目标是支持中等规模高可用可伸缩的 KV 存储集群。Doris 可以实现海量存储，线性伸缩、平滑扩容，自动容错、故障转移，高并发，且运维成本低。部署规模，建议部署 4-100+台服务器。</p><p>Doris3 的主要架构：DT（Data Transfer）负责数据导入、DS（Data Seacher）模块负责数据查询、DM（Data Master）模块负责集群元数据管理，数据则存储在 Armor 分布式 Key-Value 引擎中。Doris3 依赖 ZooKeeper 存储元数据，从而其他模块依赖 ZooKeeper 做到了无状态，进而整个系统能够做到无故障单点。</p><h3 id=3druid>3、Druid</h3><p>Druid 是一个开源、分布式、面向列式存储的实时分析数据存储系统。</p><p>Druid 的关键特性如下：</p><ul><li>亚秒级的 OLAP 查询分析：采用了列式存储、倒排索引、位图索引等关键技术；</li><li>在亚秒级别内完成海量数据的过滤、聚合以及多维分析等操作；</li><li>实时流数据分析：Druid 提供了实时流数据分析，以及高效实时写入；</li><li>实时数据在亚秒级内的可视化；</li><li>丰富的数据分析功能：Druid 提供了友好的可视化界面；</li><li>SQL 查询语言；</li><li>高可用性与高可拓展性：<ul><li>Druid 工作节点功能单一，不相互依赖；</li><li>Druid 集群在管理、容错、灾备、扩容都很容易；</li></ul></li></ul><h3 id=4tidb>4、TiDB</h3><p>TiDB 是 PingCAP 公司自主设计、研发的开源分布式关系型数据库，是一款同时支持 OLTP 与 OLAP 的融合型分布式数据库产品。</p><p>TiDB 兼容 MySQL 5.7 协议和 MySQL 生态等重要特性。目标是为用户提供一站式 OLTP 、OLAP 、HTAP 解决方案。TiDB 适合高可用、强一致要求较高、数据规模较大等各种应用场景。</p><h3 id=5greenplum>5、Greenplum</h3><p>Greenplum 是在开源的 PostgreSQL 的基础上采用了 MPP 架构的性能非常强大的关系型分布式数据库。为了兼容 Hadoop 生态，又推出了 HAWQ，分析引擎保留了 Greenplum 的高性能引擎，下层存储不再采用本地硬盘而改用 HDFS，规避本地硬盘可靠性差的问题，同时融入 Hadoop 生态。</p><h2 id=总结常用引擎对比>总结：常用引擎对比</h2><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/20230407230212.png alt=常用引擎对比 loading=lazy data-zoomable></div></div></figure></p></div><div class=article-widget><div class="container-xl row post-nav"></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div><script type=text/javascript id=clstr_globe async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
-<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
-<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
-<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
-<script id=dsq-count-scr src=https://ngte.disqus.com/count.js async></script>
-<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
-<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
-<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
-<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>
+<!DOCTYPE html><html lang="zh" >
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  
+  
+    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+
+  
+  
+  
+    
+      
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    
+  
+
+  
+    <meta name="google-site-verification" content="google69a5cccb61297807" />
+    <meta name="baidu-site-verification" content="cqmZHEleVh" />
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+    
+  
+  <meta name="description" content="MPP 架构、常见 OLAP 引擎分析 一、MPP 架构 MPP 是系统架构角度的一种服务器分类方法。目前商用的服务器分类大体有三种： SMP（对称多处理器结构） NUMA（非一致存储访问结构） MPP（大规模并行处理结构） 我们今天的" />
+
+  
+  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/dataengineering-notes/10.olap/01.%E5%BC%95%E6%93%8E%E6%9E%B6%E6%9E%84/01.mpp/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2022-mpp-%E6%9E%B6%E6%9E%84%E5%B8%B8%E8%A7%81-olap-%E5%BC%95%E6%93%8E%E5%88%86%E6%9E%90/" />
+
+  
+  
+  
+    <meta name="theme-color" content="#0a55a7" />
+  
+
+  
+  
+
+  
+
+  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
+
+  
+  
+  
+    
+    
+
+    
+    
+    
+    
+      
+      
+    
+    
+    
+
+    
+    
+    
+      
+    
+    
+      
+      
+        
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
+        
+      
+    
+
+    
+    
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
+    
+
+    
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+        
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+  
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/wowchemy.0d97305106da5efa530e28b021b4c580.css" />
+
+  
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', "G-40NYXJ8823");
+</script>
+
+
+  
+
+
+  
+
+
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+  
+  
+  
+
+  
+
+  
+    <link rel="manifest" href="/manifest.webmanifest" />
+  
+
+  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
+  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
+
+  <link rel="canonical" href="https://ng-tech.icu/books/dataengineering-notes/10.olap/01.%E5%BC%95%E6%93%8E%E6%9E%B6%E6%9E%84/01.mpp/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2022-mpp-%E6%9E%B6%E6%9E%84%E5%B8%B8%E8%A7%81-olap-%E5%BC%95%E6%93%8E%E5%88%86%E6%9E%90/" />
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+
+  
+  
+    
+    
+  
+  <meta property="twitter:card" content="summary_large_image" />
+  
+    <meta property="twitter:site" content="@wx-chevalier" />
+    <meta property="twitter:creator" content="@wx-chevalier" />
+  
+  <meta property="og:site_name" content="Next-gen Tech Edu" />
+  <meta property="og:url" content="https://ng-tech.icu/books/dataengineering-notes/10.olap/01.%E5%BC%95%E6%93%8E%E6%9E%B6%E6%9E%84/01.mpp/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2022-mpp-%E6%9E%B6%E6%9E%84%E5%B8%B8%E8%A7%81-olap-%E5%BC%95%E6%93%8E%E5%88%86%E6%9E%90/" />
+  <meta property="og:title" content="2022-MPP 架构、常见 OLAP 引擎分析 | Next-gen Tech Edu" />
+  <meta property="og:description" content="MPP 架构、常见 OLAP 引擎分析 一、MPP 架构 MPP 是系统架构角度的一种服务器分类方法。目前商用的服务器分类大体有三种： SMP（对称多处理器结构） NUMA（非一致存储访问结构） MPP（大规模并行处理结构） 我们今天的" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
+    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
+  
+    
+    
+  
+
+  
+
+
+
+  
+
+  
+
+  
+
+
+
+
+
+  <title>2022-MPP 架构、常见 OLAP 引擎分析 | Next-gen Tech Edu</title>
+</head>
+
+
+<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="0172f6ca30952375b17e6fad1b960cab" >
+  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
+
+  
+
+
+<aside class="search-modal" id="search">
+  <div class="container">
+    <section class="search-header">
+
+      <div class="row no-gutters justify-content-between mb-3">
+        <div class="col-6 search-title">
+          <p>搜索</p>
+        </div>
+        <div class="col-6 col-search-close">
+          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+      <div id="search-box">
+        
+        
+        
+      </div>
+
+      
+      
+
+      
+    </section>
+    <section class="section-search-results">
+
+      <div id="search-hits">
+        
+      </div>
+
+      <div id="search-common-queries">
+        
+      </div>
+
+    </section>
+  </div>
+</aside>
+
+
+
+  <div class="page-header">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="header--fixed">
+  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
+    <div class="container-xl">
+
+      
+      <div class="d-none d-lg-inline-flex">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      <button type="button" class="navbar-toggler" data-toggle="collapse"
+              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
+      <span><i class="fas fa-bars"></i></span>
+      </button>
+      
+
+      
+      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      
+      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
+
+        
+        <ul class="navbar-nav d-md-inline-flex">
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
+          </li>
+
+          
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+              
+              
+              
+                
+              
+              
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
+              
+                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
+              
+                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+        
+
+          
+        </ul>
+      </div>
+
+      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
+
+        
+        
+        
+        <li class="nav-item">
+          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        <li class="nav-item">
+            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        
+
+        
+        
+        
+        <div></div>
+        
+        <style>
+        @media only screen and (max-width: 600px) {
+          .jimmysong-template {
+            display: none!important;
+          }
+        }
+        </style>
+        
+        <li class="jimmysong-template" style="color: white;font-size: 12px;">
+          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+</header>
+
+
+  </div>
+
+  <div class="page-body">
+    
+    
+    
+
+    
+
+
+
+
+<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
+<div class="container-xl docs">
+  <div class="row flex-xl-nowrap">
+    <div class="docs-sidebar">
+      <form class="docs-search d-flex align-items-center">
+  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    <div class="d-flex">
+      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
+        
+          99.参考资料
+        
+      </span>
+      <span><i class="fas fa-chevron-down"></i></span>
+    </div>
+  </button>
+
+  
+  <button class="form-control sidebar-search js-search d-none d-md-flex">
+    <i class="fas fa-search pr-2"></i>
+    <span class="sidebar-search-text">搜索...</span>
+    <span class="sidebar-search-shortcut">/</span>
+  </button>
+  
+</form>
+
+<nav class="collapse docs-links" id="docs-nav">
+  
+  
+  
+  
+  
+  
+
+  
+  
+    
+
+    
+      
+
+      <ul class="nav docs-sidenav">
+        <li style="display: inline-flex">
+          <a style="cursor: pointer;" onclick="window.history.back()">
+            <i class="fas fa-arrow-left pr-1"></i>
+            Back
+          </a>
+          <span>|</span>
+          <a href="/books/">
+            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
+            Books
+          </a>
+        </li>
+      </ul>
+
+      
+      
+        
+          
+        
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-ide09b5e27ae8fec07774c9808fa701080&#34;)" href="#ide09b5e27ae8fec07774c9808fa701080" aria-expanded="false" aria-controls="ide09b5e27ae8fec07774c9808fa701080" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/dataengineering-notes/10.olap/01.%E5%BC%95%E6%93%8E%E6%9E%B6%E6%9E%84/01.mpp/">01.MPP</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#ide09b5e27ae8fec07774c9808fa701080" aria-expanded="false" aria-controls="ide09b5e27ae8fec07774c9808fa701080">
+    
+    <i class="fa-solid fa-angle-down" id="caret-ide09b5e27ae8fec07774c9808fa701080"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="ide09b5e27ae8fec07774c9808fa701080">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id6db6c581fe316c32a975343184b26b14&#34;)" href="#id6db6c581fe316c32a975343184b26b14" aria-expanded="false" aria-controls="id6db6c581fe316c32a975343184b26b14" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/dataengineering-notes/10.olap/01.%E5%BC%95%E6%93%8E%E6%9E%B6%E6%9E%84/01.mpp/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/">99.参考资料</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id6db6c581fe316c32a975343184b26b14" aria-expanded="false" aria-controls="id6db6c581fe316c32a975343184b26b14">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id6db6c581fe316c32a975343184b26b14"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id6db6c581fe316c32a975343184b26b14">
+      
+
+
+
+  <li class="child level active"><a href="/books/dataengineering-notes/10.olap/01.%E5%BC%95%E6%93%8E%E6%9E%B6%E6%9E%84/01.mpp/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2022-mpp-%E6%9E%B6%E6%9E%84%E5%B8%B8%E8%A7%81-olap-%E5%BC%95%E6%93%8E%E5%88%86%E6%9E%90/">2022-MPP 架构、常见 OLAP 引擎分析</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+    
+  
+</nav>
+
+    </div>
+
+    
+    
+    <div class="d-none d-xl-block col-xl-2 docs-toc">
+      
+     
+      <ul class="nav toc-top">
+        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
+      </ul>
+     
+
+      <nav id="TableOfContents">
+  <ul>
+    <li><a href="#1smpsymmetrical-multi-processing对称多处理器结构">1、SMP(Symmetrical Multi-Processing)对称多处理器结构</a></li>
+    <li><a href="#2numanon-uniform-memory-access非一致存储访问结构">2、NUMA(Non Uniform Memory Access)非一致存储访问结构</a></li>
+    <li><a href="#3mppmassively-parallel-processing大规模并行处理结构">3、MPP(Massively Parallel Processing)大规模并行处理结构</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#1只负责计算不负责存储的引擎">1）只负责计算，不负责存储的引擎</a>
+      <ul>
+        <li><a href="#1impala">1、Impala</a></li>
+        <li><a href="#2presto">2、Presto</a></li>
+      </ul>
+    </li>
+    <li><a href="#2既负责计算又负责存储的引擎">2）既负责计算，又负责存储的引擎</a>
+      <ul>
+        <li><a href="#1clickhouse">1、ClickHouse</a></li>
+        <li><a href="#2doris">2、Doris</a></li>
+        <li><a href="#3druid">3、Druid</a></li>
+        <li><a href="#4tidb">4、TiDB</a></li>
+        <li><a href="#5greenplum">5、Greenplum</a></li>
+      </ul>
+    </li>
+    <li><a href="#总结常用引擎对比">总结：常用引擎对比</a></li>
+  </ul>
+</nav>
+
+      
+<div class="subscribe-module col-24 mt-1">
+    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
+</div>
+
+
+
+    </div>
+    
+
+    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
+
+      <article class="article">
+
+          
+
+          <h1>2022-MPP 架构、常见 OLAP 引擎分析</h1>
+
+          <div class="article-style">
+            <h1 id="mpp-架构常见-olap-引擎分析">MPP 架构、常见 OLAP 引擎分析</h1>
+<h1 id="一mpp-架构">一、MPP 架构</h1>
+<p>MPP 是系统架构角度的一种服务器分类方法。目前商用的服务器分类大体有三种：</p>
+<ul>
+<li>SMP（对称多处理器结构）</li>
+<li>NUMA（非一致存储访问结构）</li>
+<li>MPP（大规模并行处理结构）</li>
+</ul>
+<p>我们今天的主角是 MPP，因为随着分布式、并行化技术成熟应用，MPP 引擎逐渐表现出强大的高吞吐、低时延计算能力，有很多采用 MPP 架构的引擎都能达到“亿级秒开”。</p>
+<h2 id="1smpsymmetrical-multi-processing对称多处理器结构">1、SMP(Symmetrical Multi-Processing)对称多处理器结构</h2>
+<p>即对称多处理器结构，就是指服务器的多个 CPU 对称工作，无主次或从属关系。SMP 服务器的主要特征是共享，系统中的所有资源（如 CPU、内存、I/O 等）都是共享的。也正是由于这种特征，导致了 SMP 服务器的主要问题，即扩展能力非常有限。</p>
+<h2 id="2numanon-uniform-memory-access非一致存储访问结构">2、NUMA(Non Uniform Memory Access)非一致存储访问结构</h2>
+<p>即非一致存储访问结构。这种结构就是为了解决 SMP 扩展能力不足的问题，利用 NUMA 技术，可以把几十个 CPU 组合在一台服务器内。</p>
+<p>NUMA 的基本特征是拥有多个 CPU 模块，节点之间可以通过互联模块进行连接和信息交互，所以，每个 CPU 可以访问整个系统的内存（这是与 MPP 系统的重要区别）。但是访问的速度是不一样的，因为 CPU 访问本地内存的速度远远高于系统内其他节点的内存速度，这也是非一致存储访问 NUMA 的由来。</p>
+<p>这种结构也有一定的缺陷，由于访问异地内存的时延远远超过访问本地内存，因此，当 CPU 数量增加时，系统性能无法线性增加。</p>
+<h2 id="3mppmassively-parallel-processing大规模并行处理结构">3、MPP(Massively Parallel Processing)大规模并行处理结构</h2>
+<p>即大规模并行处理结构。MPP 的系统扩展和 NUMA 不同，MPP 是由多台 SMP 服务器通过一定的节点互联网络进行连接，协同工作，完成相同的任务，从用户的角度来看是一个服务器系统。每个节点只访问自己的资源，所以是一种完全无共享（Share Nothing）结构。</p>
+<p>MPP 结构扩展能力最强，理论可以无限扩展。由于 MPP 是多台 SPM 服务器连接的，每个节点的 CPU 不能访问另一个节点内存，所以也不存在异地访问的问题。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/20230407225321.png" alt="MPP 架构图" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>每个节点内的 CPU 不能访问另一个节点的内存，节点之间的信息交互是通过节点互联网络实现的，这个过程称为数据重分配。但是 MPP 服务器需要一种复杂的机制来调度和平衡各个节点的负载和并行处理过程。</p>
+<p>目前，一些基于 MPP 技术的服务器往往通过系统级软件（如数据库）来屏蔽这种复杂性。举个例子，Teradata 就是基于 MPP 技术的一个关系数据库软件（这是最早采用 MPP 架构的数据库），基于此数据库来开发应用时，不管后台服务器由多少节点组成，开发人员面对的都是同一个数据库系统，而无需考虑如何调度其中某几个节点的负载。</p>
+<p>MPP 架构特征：</p>
+<ul>
+<li>任务并行执行;</li>
+<li>数据分布式存储(本地化);</li>
+<li>分布式计算;</li>
+<li>高并发，单个节点并发能力大于 300 用户;</li>
+<li>横向扩展，支持集群节点的扩容;</li>
+<li>Shared Nothing（完全无共享）架构。</li>
+</ul>
+<p>NUMA 和 MPP 区别：二者有许多相似之处，首先 NUMA 和 MPP 都是由多个节点组成的；其次每个节点都有自己的 CPU，内存，I/O 等；都可以都过节点互联机制进行信息交互。那它们的区别是什么呢，首先是节点互联机制不同，NUMA 的节点互联是在同一台物理服务器内部实现的，MPP 的节点互联是在不同的 SMP 服务器外部通过 I/O 实现的。其次是内存访问机制不同，在 NUMA 服务器内部，任何一个 CPU 都可以访问整个系统的内存，但异地内存访问的性能远远低于本地内存访问，因此，在开发应用程序时应该尽量避免异地内存访问。而在 MPP 服务器中，每个节点只访问本地内存，不存在异地内存访问问题。</p>
+<h1 id="二批处理架构和-mpp-架构">二、批处理架构和 MPP 架构</h1>
+<p>批处理架构（如 MapReduce）与 MPP 架构的异同点，以及它们各自的优缺点是什么呢？</p>
+<ul>
+<li>相同点：批处理架构与 MPP 架构都是分布式并行处理，将任务并行的分散到多个服务器和节点上，在每个节点上计算完成后，将各自部分的结果汇总在一起得到最终的结果。</li>
+<li>不同点：批处理架构和 MPP 架构的不同点可以举例来说：我们执行一个任务，首先这个任务会被分成多个 task 执行，对于 MapReduce 来说，这些 tasks 被随机的分配在空闲的 Executor 上；而对于 MPP 架构的引擎来说，每个处理数据的 task 被绑定到持有该数据切片的指定 Executor 上。</li>
+</ul>
+<p>正是由于以上的不同，使得两种架构有各自优势也有各自缺陷：</p>
+<ul>
+<li>
+<p>批处理优劣对比：</p>
+<ul>
+<li>批处理的优势：对于批处理架构来说，如果某个 Executor 执行过慢，那么这个 Executor 会慢慢分配到更少的 task 执行，批处理架构有个推测执行策略，推测出某个 Executor 执行过慢或者有故障，则在接下来分配 task 时就会较少的分配给它或者直接不分配，这样就不会因为某个节点出现问题而导致集群的性能受限。</li>
+<li>批处理的缺陷：任何事情都是有代价的，对于批处理而言，它的优势也造成了它的缺点，会将中间结果写入到磁盘中，这严重限制了处理数据的性能。</li>
+</ul>
+</li>
+<li>
+<p>MPP 优劣对比：</p>
+<ul>
+<li>MPP 的优势：MPP 架构不需要将中间数据写入磁盘，因为一个单一的 Executor 只处理一个单一的 task，因此可以简单直接将数据 stream 到下一个执行阶段。这个过程称为 pipelining，它提供了很大的性能提升。</li>
+<li>MPP 的缺陷：对于 MPP 架构来说，因为 task 和 Executor 是绑定的，如果某个 Executor 执行过慢或故障，将会导致整个集群的性能就会受限于这个故障节点的执行速度(所谓木桶的短板效应)，所以 MPP 架构的最大缺陷就是——短板效应。</li>
+</ul>
+</li>
+</ul>
+<p>另一点，集群中的节点越多，则某个节点出现问题的概率越大，而一旦有节点出现问题，对于 MPP 架构来说，将导致整个集群性能受限，所以一般实际生产中 MPP 架构的集群节点不易过多。举个例子来说下两种架构的数据落盘：要实现两个大表的 join 操作,</p>
+<ul>
+<li>对于批处理而言，如 Spark 将会写磁盘三次(第一次写入：表 1 根据 join key 进行 shuffle；第二次写入：表 2 根据 join key 进行 shuffle；第三次写入：Hash 表写入磁盘)，</li>
+<li>而 MPP 只需要一次写入(Hash 表写入)。这是因为 MPP 将 mapper 和 reducer 同时运行，而 MapReduce 将它们分成有依赖关系的 tasks(DAG),这些 task 是异步执行的，因此必须通过写入中间数据共享内存来解决数据的依赖。</li>
+</ul>
+<h1 id="三-mpp-架构的-olap-引擎">三、 MPP 架构的 OLAP 引擎</h1>
+<p>采用 MPP 架构的 OLAP 引擎有很多，下面只选择常见的几个引擎对比下。采用 MPP 架构的 OLAP 引擎分为两类，一类：是自身不存储数据，只负责计算的引擎；一类：是自身既存储数据，也负责计算的引擎。</p>
+<h2 id="1只负责计算不负责存储的引擎">1）只负责计算，不负责存储的引擎</h2>
+<h3 id="1impala">1、Impala</h3>
+<p>Apache Impala 是采用 MPP 架构的查询引擎，本身不存储任何数据，直接使用内存进行计算，兼顾数据仓库，具有实时，批处理，多并发等优点。提供了类 SQL（类 Hsql）语法，在多用户场景下也能拥有较高的响应速度和吞吐量。它是由 Java 和 C++实现的，Java 提供的查询交互的接口和实现，C++实现了查询引擎部分。</p>
+<p>Impala 支持共享 Hive Metastore，但没有再使用缓慢的 Hive+MapReduce 批处理，而是通过使用与商用并行关系数据库中类似的分布式查询引擎（由 Query Planner、Query Coordinator 和 Query Exec Engine 三部分组成），可以直接从 HDFS 或 HBase 中用 SELECT、JOIN 和统计函数查询数据，从而大大降低了延迟。</p>
+<p>Impala 经常搭配存储引擎 Kudu 一起提供服务，这么做最大的优势是查询比较快，并且支持数据的 Update 和 Delete。</p>
+<h3 id="2presto">2、Presto</h3>
+<p>Presto 是一个分布式的采用 MPP 架构的查询引擎，本身并不存储数据，但是可以接入多种数据源，并且支持跨数据源的级联查询。Presto 是一个 OLAP 的工具，擅长对海量数据进行复杂的分析；但是对于 OLTP 场景，并不是 Presto 所擅长，所以不要把 Presto 当做数据库来使用。</p>
+<p>Presto 是一个低延迟高并发的内存计算引擎。需要从其他数据源获取数据来进行运算分析，它可以连接多种数据源，包括 Hive、RDBMS（Mysql、Oracle、Tidb 等）、Kafka、MongoDB、Redis 等。</p>
+<h2 id="2既负责计算又负责存储的引擎">2）既负责计算，又负责存储的引擎</h2>
+<h3 id="1clickhouse">1、ClickHouse</h3>
+<p>ClickHouse 是近年来备受关注的开源列式数据库，主要用于数据分析（OLAP）领域。它自包含了存储和计算能力，完全自主实现了高可用，而且支持完整的 SQL 语法包括 JOIN 等，技术上有着明显优势。相比于 hadoop 体系，以数据库的方式来做大数据处理更加简单易用，学习成本低且灵活度高。</p>
+<p>ClickHouse 在计算层做了非常细致的工作，竭尽所能榨干硬件能力，提升查询速度。它实现了单机多核并行、分布式计算、向量化执行与 SIMD 指令、代码生成等多种重要技术。ClickHouse 从 OLAP 场景需求出发，定制开发了一套全新的高效列式存储引擎，并且实现了数据有序存储、主键索引、稀疏索引、数据 Sharding、数据 Partitioning、TTL、主备复制等丰富功能。以上功能共同为 ClickHouse 极速的分析性能奠定了基础。</p>
+<h3 id="2doris">2、Doris</h3>
+<p>Doris 是百度主导的，根据 Google Mesa 论文和 Impala 项目改写的一个大数据分析引擎，是一个海量分布式 KV 存储系统，其设计目标是支持中等规模高可用可伸缩的 KV 存储集群。Doris 可以实现海量存储，线性伸缩、平滑扩容，自动容错、故障转移，高并发，且运维成本低。部署规模，建议部署 4-100+台服务器。</p>
+<p>Doris3 的主要架构：DT（Data Transfer）负责数据导入、DS（Data Seacher）模块负责数据查询、DM（Data Master）模块负责集群元数据管理，数据则存储在 Armor 分布式 Key-Value 引擎中。Doris3 依赖 ZooKeeper 存储元数据，从而其他模块依赖 ZooKeeper 做到了无状态，进而整个系统能够做到无故障单点。</p>
+<h3 id="3druid">3、Druid</h3>
+<p>Druid 是一个开源、分布式、面向列式存储的实时分析数据存储系统。</p>
+<p>Druid 的关键特性如下：</p>
+<ul>
+<li>亚秒级的 OLAP 查询分析：采用了列式存储、倒排索引、位图索引等关键技术；</li>
+<li>在亚秒级别内完成海量数据的过滤、聚合以及多维分析等操作；</li>
+<li>实时流数据分析：Druid 提供了实时流数据分析，以及高效实时写入；</li>
+<li>实时数据在亚秒级内的可视化；</li>
+<li>丰富的数据分析功能：Druid 提供了友好的可视化界面；</li>
+<li>SQL 查询语言；</li>
+<li>高可用性与高可拓展性：
+<ul>
+<li>Druid 工作节点功能单一，不相互依赖；</li>
+<li>Druid 集群在管理、容错、灾备、扩容都很容易；</li>
+</ul>
+</li>
+</ul>
+<h3 id="4tidb">4、TiDB</h3>
+<p>TiDB 是 PingCAP 公司自主设计、研发的开源分布式关系型数据库，是一款同时支持 OLTP 与 OLAP 的融合型分布式数据库产品。</p>
+<p>TiDB 兼容 MySQL 5.7 协议和 MySQL 生态等重要特性。目标是为用户提供一站式 OLTP 、OLAP 、HTAP 解决方案。TiDB 适合高可用、强一致要求较高、数据规模较大等各种应用场景。</p>
+<h3 id="5greenplum">5、Greenplum</h3>
+<p>Greenplum 是在开源的 PostgreSQL 的基础上采用了 MPP 架构的性能非常强大的关系型分布式数据库。为了兼容 Hadoop 生态，又推出了 HAWQ，分析引擎保留了 Greenplum 的高性能引擎，下层存储不再采用本地硬盘而改用 HDFS，规避本地硬盘可靠性差的问题，同时融入 Hadoop 生态。</p>
+<h2 id="总结常用引擎对比">总结：常用引擎对比</h2>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/20230407230212.png" alt="常用引擎对比" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+
+          </div>
+
+          
+
+
+
+          
+          
+          <div class="article-widget">
+            
+<div class="container-xl row post-nav">
+  
+  
+</div>
+
+          </div>
+          
+
+        <div class="body-footer">
+          <p>最近更新于 0001-01-01</p>
+
+          
+
+
+
+          
+
+
+  
+  
+  
+
+  
+
+  
+  <section id="comments" class="mb-3 pt-0">
+    
+<div id="disqus_thread"></div>
+<script>
+  var disqus_config = function () {
+    
+    
+    
+  };
+  (function() {
+    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+      return;
+    }
+    var d = document, s = d.createElement('script'); 
+    s.async = true;
+    s.src = 'https://' + "ngte" + '.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </section>
+  
+
+
+
+          
+
+
+        </div>
+
+      </article>
+
+      <footer class="site-footer">
+
+  
+
+
+
+  
+
+  
+  <div class="copyright py-4 bg-footer">
+      <div class="row justify-content-center">
+        <div class="text-center footer-color">
+          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
+        </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" id="clstr_globe" async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script>
+  
+</footer>
+
+
+    </main>
+  </div>
+</div>
+<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
+<script>
+  const heti = new Heti('.article');
+  heti.autoSpacing();
+</script>
+<script type="text/javascript">
+  window.$crisp = [];
+  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
+  (function () {
+    setTimeout(function() {
+      d = document;
+      s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    }, 2500);
+  })();
+</script>
+  </div>
+
+  <div class="page-footer">
+    
+    
+  </div>
+
+      
+
+    
+    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
+
+    
+    
+    
+      
+
+      
+      
+
+      
+
+      
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
+        
+        
+      
+
+    
+
+    
+    
+    
+
+    
+    
+    
+      
+      <script id="search-hit-algolia-template" type="text/html">
+        <div class="search-hit">
+          <div class="search-hit-content">
+            <div class="search-hit-name">
+              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
+            </div>
+            <div class="article-metadata search-hit-type">{{type}}</div>
+            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
+          </div>
+        </div>
+      </script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
+      
+      
+    
+
+    
+    
+
+    
+    
+    
+    
+      <script id="dsq-count-scr" src="https://ngte.disqus.com/count.js" async></script>
+      
+    
+
+    
+    
+      
+      
+      
+      
+      
+      
+      
+    
+
+    
+    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
+    
+
+    
+    
+    
+    <script id="page-data" type="application/json">{"use_headroom":false}</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
+
+    
+    
+    
+    
+    
+    
+    <script>
+
+var mybutton = document.getElementById("backTopBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+}
+</script>
+
+
+    
+
+    
+    
+    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+    <script>
+      anchors.add();
+    </script>
+    
+
+    
+    <script>
+
+
+
+(function() {
+  'use strict';
+
+  if(!document.queryCommandSupported('copy')) {
+    return;
+  }
+
+  function flashCopyMessage(el, msg) {
+    el.className = "highlight-copy-btn";
+    el.textContent = msg;
+    setTimeout(function() {
+      el.textContent = "";
+      el.className = "highlight-copy-btn fa fa-copy";
+    }, 1000);
+  }
+
+  function selectText(node) {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection;
+  }
+
+  function addCopyButton(containerEl) {
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "highlight-copy-btn fa fa-copy";
+    copyBtn.textContent = "";
+
+    var codeEl = containerEl.firstElementChild;
+    copyBtn.addEventListener('click', function() {
+      try {
+        var selection = selectText(codeEl);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        
+        flashCopyMessage(copyBtn, '已复制')
+        
+      } catch(e) {
+        console && console.log(e);
+        flashCopyMessage(copyBtn, 'Failed :\'(')
+      }
+    });
+
+    containerEl.appendChild(copyBtn);
+  }
+
+  
+  var highlightBlocks = document.getElementsByClassName('highlight');
+  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
+})();
+</script>
+
+    
+
+
+</body>
+</html>

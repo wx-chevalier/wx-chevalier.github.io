@@ -1,246 +1,270 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Mockito | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/spring-notes/04.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E6%B5%8B%E8%AF%95/mock/mockito/</link><atom:link href="https://ng-tech.icu/books/spring-notes/04.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E6%B5%8B%E8%AF%95/mock/mockito/index.xml" rel="self" type="application/rss+xml"/><description>Mockito</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>Mockito</title><link>https://ng-tech.icu/books/spring-notes/04.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E6%B5%8B%E8%AF%95/mock/mockito/</link></image><item><title>Mockito</title><link>https://ng-tech.icu/books/spring-notes/04.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E6%B5%8B%E8%AF%95/mock/mockito/mockito/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/spring-notes/04.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E6%B5%8B%E8%AF%95/mock/mockito/mockito/</guid><description>&lt;h1 id="mockito">Mockito&lt;/h1>
-&lt;p>Mockito 是用于生成模拟对象或者直接点说，就是”假对象“的工具。两者定位不同，所以一般通常的做法就是联合 JUnit 与 Mockito 来进行测试。&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">List&lt;/span> &lt;span class="n">mock&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">mock&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">List&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">class&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">when&lt;/span>&lt;span class="o">(&lt;/span> &lt;span class="n">mock&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">get&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">).&lt;/span>&lt;span class="na">thenReturn&lt;/span>&lt;span class="o">(&lt;/span> &lt;span class="mi">1&lt;/span> &lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">assertEquals&lt;/span>&lt;span class="o">(&lt;/span> &lt;span class="s">&amp;#34;预期返回1&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">mock&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">get&lt;/span>&lt;span class="o">(&lt;/span> &lt;span class="mi">0&lt;/span> &lt;span class="o">)&lt;/span> &lt;span class="o">);&lt;/span>&lt;span class="c1">// mock.get(0) 返回 1
-&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>其中 mock 是模拟 List 的对象，拥有 List 的所有方法和属性。when(xxxx).thenReturn(yyyy); 是指定当执行了这个方法的时候，返回 thenReturn 的值，相当于是对模拟对象的配置过程，为某些条件给定一个预期的返回值。相信通过这个简单的例子你可以明白所谓 Mock 便是这么一回事。&lt;/p>
-&lt;p>我们看到 List 为 Java.util.List 是接口，并不是实现类，但这不妨碍我们使用它作为我们的“打桩”对象，——当然你也可以使用实现类，传入 mock(obj) 方法中。这里提到的是&amp;quot;打桩(Stub，也有人称其为“存根”)&amp;ldquo;的概念，是一个形象的说法，就是把所需的测试数据塞进对象中，适用于基于状态的(state-based)测试，关注的是输入和输出。Mockito 中 when(…).thenReturn(…) 这样的语法来定义对象方法和参数(输入)，然后在 thenReturn 中指定结果(输出)。此过程称为 Stub 打桩。一旦这个方法被 stub 了，就会一直返回这个 stub 的值。&lt;/p>
-&lt;p>打桩需要&lt;a href="http://qiuguo0205.iteye.com/blog/1443344" target="_blank" rel="noopener">注意以下几点&lt;/a>：&lt;/p>
-&lt;ul>
-&lt;li>对于 static 和 final 方法，Mockito 无法对其 when(…).thenReturn(…) 操作。&lt;/li>
-&lt;li>当我们连续两次为同一个方法使用 stub 的时候，他只会只用最新的一次。&lt;/li>
-&lt;/ul>
-&lt;p>mock 对象会覆盖整个被 mock 的对象，因此没有 stub 的方法只能返回默认值。又因为，我们 mock 一个接口的时候，很多成员方法只是一个签名，并没有实现，这就要我们手动写出这些实现方法啦。典型地，我们模拟一个 request 请求对象，你被测试的代码中使用了 HttpSerevletRequest 什么方法，就要写出相应的实现方法！&lt;/p>
-&lt;pre tabindex="0">&lt;code>HttpServletRequest request = mock(HttpServletRequest.class);
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Mockito | Next-gen Tech Edu</title>
+    <link>https://ng-tech.icu/books/spring-notes/04.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E6%B5%8B%E8%AF%95/mock/mockito/</link>
+      <atom:link href="https://ng-tech.icu/books/spring-notes/04.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E6%B5%8B%E8%AF%95/mock/mockito/index.xml" rel="self" type="application/rss+xml" />
+    <description>Mockito</description>
+    <generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language>
+    <image>
+      <url>https://ng-tech.icu/media/sharing.png</url>
+      <title>Mockito</title>
+      <link>https://ng-tech.icu/books/spring-notes/04.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E6%B5%8B%E8%AF%95/mock/mockito/</link>
+    </image>
+    
+    <item>
+      <title>Mockito</title>
+      <link>https://ng-tech.icu/books/spring-notes/04.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E6%B5%8B%E8%AF%95/mock/mockito/mockito/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/spring-notes/04.%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/%E6%B5%8B%E8%AF%95/mock/mockito/mockito/</guid>
+      <description>&lt;h1 id=&#34;mockito&#34;&gt;Mockito&lt;/h1&gt;
+&lt;p&gt;Mockito 是用于生成模拟对象或者直接点说，就是”假对象“的工具。两者定位不同，所以一般通常的做法就是联合 JUnit 与 Mockito 来进行测试。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;List&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;mock&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;mock&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;List&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;class&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;when&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;mock&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;get&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;thenReturn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;assertEquals&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt; &lt;span class=&#34;s&#34;&gt;&amp;#34;预期返回1&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;mock&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;get&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;&lt;span class=&#34;c1&#34;&gt;// mock.get(0) 返回 1
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;其中 mock 是模拟 List 的对象，拥有 List 的所有方法和属性。when(xxxx).thenReturn(yyyy); 是指定当执行了这个方法的时候，返回 thenReturn 的值，相当于是对模拟对象的配置过程，为某些条件给定一个预期的返回值。相信通过这个简单的例子你可以明白所谓 Mock 便是这么一回事。&lt;/p&gt;
+&lt;p&gt;我们看到 List 为 Java.util.List 是接口，并不是实现类，但这不妨碍我们使用它作为我们的“打桩”对象，——当然你也可以使用实现类，传入 mock(obj) 方法中。这里提到的是&amp;quot;打桩(Stub，也有人称其为“存根”)&amp;ldquo;的概念，是一个形象的说法，就是把所需的测试数据塞进对象中，适用于基于状态的(state-based)测试，关注的是输入和输出。Mockito 中 when(…).thenReturn(…) 这样的语法来定义对象方法和参数(输入)，然后在 thenReturn 中指定结果(输出)。此过程称为 Stub 打桩。一旦这个方法被 stub 了，就会一直返回这个 stub 的值。&lt;/p&gt;
+&lt;p&gt;打桩需要&lt;a href=&#34;http://qiuguo0205.iteye.com/blog/1443344&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;注意以下几点&lt;/a&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;对于 static 和 final 方法，Mockito 无法对其 when(…).thenReturn(…) 操作。&lt;/li&gt;
+&lt;li&gt;当我们连续两次为同一个方法使用 stub 的时候，他只会只用最新的一次。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;mock 对象会覆盖整个被 mock 的对象，因此没有 stub 的方法只能返回默认值。又因为，我们 mock 一个接口的时候，很多成员方法只是一个签名，并没有实现，这就要我们手动写出这些实现方法啦。典型地，我们模拟一个 request 请求对象，你被测试的代码中使用了 HttpSerevletRequest 什么方法，就要写出相应的实现方法！&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;HttpServletRequest request = mock(HttpServletRequest.class);
 when(request.getParameter(&amp;#34;foo&amp;#34;)).thenReturn(&amp;#34;boo&amp;#34;);
-&lt;/code>&lt;/pre>&lt;p>这里“打桩”之后，我们执行 request.getParamter(&amp;ldquo;foo&amp;rdquo;) 就会返回 boo，如果不这样设定，Mockito 就会返回默认的 null，也不会报错说这个方法找不到。mock 实例默认的会给所有的方法添加基本实现：返回 null 或空集合，或者 0 等基本类型的值。这取决于方法返回类型，如 int 会返回 0，布尔值返回 false。对于其他 type 会返回 null。&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// 第一种方式
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">when&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">i&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">next&lt;/span>&lt;span class="o">()).&lt;/span>&lt;span class="na">thenReturn&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Hello&amp;#34;&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">thenReturn&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;World&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// 第二种方式
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">when&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">i&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">next&lt;/span>&lt;span class="o">()).&lt;/span>&lt;span class="na">thenReturn&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Hello&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;World&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// 第三种方式，都是等价的
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">when&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">i&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">next&lt;/span>&lt;span class="o">()).&lt;/span>&lt;span class="na">thenReturn&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;Hello&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">when&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">i&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">next&lt;/span>&lt;span class="o">()).&lt;/span>&lt;span class="na">thenReturn&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;World&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>第一次调用 i.next() 将返回 ”Hello”，第二次的调用会返回 ”World”。
-上述我们一直在讨论被测试的方法都有返回值的，那么没有返回值的 void 方法呢？也是测试吗？答案是肯定的。——只不过 Mockito 要求你的写法上有不同，因为都没返回值了，调用 thenReturn(xxx) 肯定不行，取而代之的写法是，&lt;/p>
-&lt;pre tabindex="0">&lt;code>doNothing().when(obj).notify();
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;这里“打桩”之后，我们执行 request.getParamter(&amp;ldquo;foo&amp;rdquo;) 就会返回 boo，如果不这样设定，Mockito 就会返回默认的 null，也不会报错说这个方法找不到。mock 实例默认的会给所有的方法添加基本实现：返回 null 或空集合，或者 0 等基本类型的值。这取决于方法返回类型，如 int 会返回 0，布尔值返回 false。对于其他 type 会返回 null。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;// 第一种方式
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;when&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;next&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;()).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;thenReturn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;Hello&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;thenReturn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;World&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;// 第二种方式
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;when&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;next&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;()).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;thenReturn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;Hello&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s&#34;&gt;&amp;#34;World&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;// 第三种方式，都是等价的
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;when&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;next&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;()).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;thenReturn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;Hello&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;when&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;next&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;()).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;thenReturn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;World&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;第一次调用 i.next() 将返回 ”Hello”，第二次的调用会返回 ”World”。
+上述我们一直在讨论被测试的方法都有返回值的，那么没有返回值的 void 方法呢？也是测试吗？答案是肯定的。——只不过 Mockito 要求你的写法上有不同，因为都没返回值了，调用 thenReturn(xxx) 肯定不行，取而代之的写法是，&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;doNothing().when(obj).notify();
 // 或直接
 when(obj).notify();
-&lt;/code>&lt;/pre>&lt;p>Mockito 还能对被测试的方法强行抛出异常，&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">when&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">i&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">next&lt;/span>&lt;span class="o">()).&lt;/span>&lt;span class="na">thenThrow&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="k">new&lt;/span> &lt;span class="n">RuntimeException&lt;/span>&lt;span class="o">());&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">doThrow&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="k">new&lt;/span> &lt;span class="n">RuntimeException&lt;/span>&lt;span class="o">()).&lt;/span>&lt;span class="na">when&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">i&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">remove&lt;/span>&lt;span class="o">();&lt;/span> &lt;span class="c1">// void 方法的
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// 迭代风格
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">doNothing&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">doThrow&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="k">new&lt;/span> &lt;span class="n">RuntimeException&lt;/span>&lt;span class="o">()).&lt;/span>&lt;span class="na">when&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">i&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">remove&lt;/span>&lt;span class="o">();&lt;/span> &lt;span class="c1">// 第一次调用 remove 方法什么都不做，第二次调用抛出 RuntimeException 异常。
-&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="模拟传入参数-argument-matchers">模拟传入参数 argument matchers&lt;/h2>
-&lt;pre tabindex="0">&lt;code>when(request.getParameter(&amp;#34;foo&amp;#34;)).thenReturn(&amp;#34;boo&amp;#34;);
-&lt;/code>&lt;/pre>&lt;p>这里 getParameter(&amp;ldquo;foo&amp;rdquo;) 这里我们是写死参数 foo 的，但是如果我不关心输入的具体内容，可以吗？可以的，最好能像正则表达式那样，/w+ 表示任意字符串是不是很方便，不用考虑具体什么参数，只要是 字符串 型的参数，就可以打桩。如此方便的想法 Mockito 也考虑到了，提供 argument matchers 机制，例如 anyString() 匹配任何 String 参数，anyInt() 匹配任何 int 参数，anySet() 匹配任何 Set，any() 则意味着参数为任意值。例子如下，&lt;/p>
-&lt;pre tabindex="0">&lt;code>when(mockedList.get(anyInt())).thenReturn(&amp;#34;element&amp;#34;);
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Mockito 还能对被测试的方法强行抛出异常，&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;when&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;next&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;()).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;thenThrow&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;RuntimeException&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;());&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;doThrow&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;RuntimeException&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;()).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;when&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;remove&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt; &lt;span class=&#34;c1&#34;&gt;// void 方法的
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;// 迭代风格
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;doNothing&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;().&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;doThrow&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;RuntimeException&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;()).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;when&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;remove&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt; &lt;span class=&#34;c1&#34;&gt;// 第一次调用 remove 方法什么都不做，第二次调用抛出 RuntimeException 异常。
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;模拟传入参数-argument-matchers&#34;&gt;模拟传入参数 argument matchers&lt;/h2&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;when(request.getParameter(&amp;#34;foo&amp;#34;)).thenReturn(&amp;#34;boo&amp;#34;);
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;这里 getParameter(&amp;ldquo;foo&amp;rdquo;) 这里我们是写死参数 foo 的，但是如果我不关心输入的具体内容，可以吗？可以的，最好能像正则表达式那样，/w+ 表示任意字符串是不是很方便，不用考虑具体什么参数，只要是 字符串 型的参数，就可以打桩。如此方便的想法 Mockito 也考虑到了，提供 argument matchers 机制，例如 anyString() 匹配任何 String 参数，anyInt() 匹配任何 int 参数，anySet() 匹配任何 Set，any() 则意味着参数为任意值。例子如下，&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;when(mockedList.get(anyInt())).thenReturn(&amp;#34;element&amp;#34;);
 System.out.println(mockedList.get(999));// 此时打印是 element
-&lt;/code>&lt;/pre>&lt;p>再进一步，自定义类型也可以，如 any(User.class)，另，参见&lt;a href="http://hotdog.iteye.com/blog/911584" target="_blank" rel="noopener">《学习 Mockito - 自定义参数匹配器》&lt;/a> 和 &lt;a href="http://blog.sina.com.cn/s/blog_6176c38201014jrk.html" target="_blank" rel="noopener">这里&lt;/a> 和 &lt;a href="http://blog.csdn.net/onlyqi/article/details/6544989" target="_blank" rel="noopener">这里&lt;/a>。&lt;/p>
-&lt;h3 id="获取返回的结果">获取返回的结果&lt;/h3>
-&lt;p>一个问题，thenReturn 是返回结果是我们写死的。如果要让被测试的方法不写死，返回实际结果并让我们可以获取到的——怎么做呢？有时我们需要自定义方法执行的返回结果，Answer 接口就是满足这样的需求而存在的。
-例如模拟常见的 request.getAttribute(key)，由于这本来是个接口，所以连内部实现都要自己写了。此次通过 Answer 接口获取参数内容。&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">final&lt;/span> &lt;span class="n">Map&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">Object&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">hash&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">HashMap&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">Object&lt;/span>&lt;span class="o">&amp;gt;();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">Answer&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">aswser&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">Answer&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">&amp;gt;()&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="nf">answer&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">InvocationOnMock&lt;/span> &lt;span class="n">invocation&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Object&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">args&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">invocation&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getArguments&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">hash&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">get&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">args&lt;/span>&lt;span class="o">[&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="o">].&lt;/span>&lt;span class="na">toString&lt;/span>&lt;span class="o">()).&lt;/span>&lt;span class="na">toString&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">};&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">when&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">request&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getAttribute&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;isRawOutput&amp;#34;&lt;/span>&lt;span class="o">)).&lt;/span>&lt;span class="na">thenReturn&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">when&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">request&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getAttribute&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;errMsg&amp;#34;&lt;/span>&lt;span class="o">)).&lt;/span>&lt;span class="na">thenAnswer&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">aswser&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">when&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">request&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getAttribute&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;msg&amp;#34;&lt;/span>&lt;span class="o">)).&lt;/span>&lt;span class="na">thenAnswer&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">aswser&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>利用 InvocationOnMock 提供的方法可以获取 mock 方法的调用信息。下面是它提供的方法：&lt;/p>
-&lt;ul>
-&lt;li>getArguments() 调用后会以 Object 数组的方式返回 mock 方法调用的参数。&lt;/li>
-&lt;li>getMethod() 返回 java.lang.reflect.Method 对象&lt;/li>
-&lt;li>getMock() 返回 mock 对象&lt;/li>
-&lt;li>callRealMethod() 真实方法调用，如果 mock 的是接口它将会抛出异常&lt;/li>
-&lt;/ul>
-&lt;p>void 方法可以获取参数，只是写法上有区别，&lt;/p>
-&lt;pre tabindex="0">&lt;code>doAnswer(new Answer&amp;lt;Object&amp;gt;() {
-public Object answer(InvocationOnMock invocation) {
-Object[] args = invocation.getArguments();
-// Object mock = invocation.getMock();
-System.out.println(args[1]);
-hash.put(args[0].toString(), args[1]);
-return &amp;#34;called with arguments: &amp;#34; + args;
-}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;再进一步，自定义类型也可以，如 any(User.class)，另，参见&lt;a href=&#34;http://hotdog.iteye.com/blog/911584&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;《学习 Mockito - 自定义参数匹配器》&lt;/a&gt; 和 &lt;a href=&#34;http://blog.sina.com.cn/s/blog_6176c38201014jrk.html&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;这里&lt;/a&gt; 和 &lt;a href=&#34;http://blog.csdn.net/onlyqi/article/details/6544989&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;这里&lt;/a&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;获取返回的结果&#34;&gt;获取返回的结果&lt;/h3&gt;
+&lt;p&gt;一个问题，thenReturn 是返回结果是我们写死的。如果要让被测试的方法不写死，返回实际结果并让我们可以获取到的——怎么做呢？有时我们需要自定义方法执行的返回结果，Answer 接口就是满足这样的需求而存在的。
+例如模拟常见的 request.getAttribute(key)，由于这本来是个接口，所以连内部实现都要自己写了。此次通过 Answer 接口获取参数内容。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;final&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Map&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Object&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;hash&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;HashMap&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Object&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;Answer&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;aswser&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Answer&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;()&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;answer&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;InvocationOnMock&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;invocation&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;n&#34;&gt;Object&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[]&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;args&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;invocation&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;getArguments&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;hash&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;get&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;args&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;].&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;toString&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;()).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;toString&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;};&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;when&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;request&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;getAttribute&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;isRawOutput&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;thenReturn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;kc&#34;&gt;true&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;when&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;request&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;getAttribute&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;errMsg&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;thenAnswer&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;aswser&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;when&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;request&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;getAttribute&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;msg&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;thenAnswer&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;aswser&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;利用 InvocationOnMock 提供的方法可以获取 mock 方法的调用信息。下面是它提供的方法：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;getArguments() 调用后会以 Object 数组的方式返回 mock 方法调用的参数。&lt;/li&gt;
+&lt;li&gt;getMethod() 返回 java.lang.reflect.Method 对象&lt;/li&gt;
+&lt;li&gt;getMock() 返回 mock 对象&lt;/li&gt;
+&lt;li&gt;callRealMethod() 真实方法调用，如果 mock 的是接口它将会抛出异常&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;void 方法可以获取参数，只是写法上有区别，&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;doAnswer(new Answer&amp;lt;Object&amp;gt;() {
+    public Object answer(InvocationOnMock invocation) {
+        Object[] args = invocation.getArguments();
+        // Object mock = invocation.getMock();
+        System.out.println(args[1]);
+        hash.put(args[0].toString(), args[1]);
+        return &amp;#34;called with arguments: &amp;#34; + args;
+    }
 }).when(request).setAttribute(anyString(), anyString());
-&lt;/code>&lt;/pre>&lt;h2 id="验证-verify">验证 Verify&lt;/h2>
-&lt;p>前面提到的 when(……).thenReturn(……) 属于状态测试，某些时候，测试不关心返回结果，而是侧重方法有否被正确的参数调用过，这时候就应该使用 验证方法了。从概念上讲，就是和状态测试所不同的“行为测试”了。
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;验证-verify&#34;&gt;验证 Verify&lt;/h2&gt;
+&lt;p&gt;前面提到的 when(……).thenReturn(……) 属于状态测试，某些时候，测试不关心返回结果，而是侧重方法有否被正确的参数调用过，这时候就应该使用 验证方法了。从概念上讲，就是和状态测试所不同的“行为测试”了。
 一旦使用 mock() 对模拟对象打桩，意味着 Mockito 会记录着这个模拟对象调用了什么方法，还有调用了多少次。最后由用户决定是否需要进行验证，即 verify() 方法。
-verify() 说明其作用的例子，&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">mockedList&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">add&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;one&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">mockedList&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">add&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;two&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">verify&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">mockedList&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">add&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;one&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span> &lt;span class="c1">// 如果times不传入，则默认是1
-&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>verify 内部跟踪了所有的方法调用和参数的调用情况，然后会返回一个结果，说明是否通过。参见另外一个详细的例子。&lt;/p>
-&lt;pre tabindex="0">&lt;code>Map mock = Mockito.mock( Map.class );
+verify() 说明其作用的例子，&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;mockedList&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;add&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;one&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;mockedList&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;add&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;two&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;verify&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;mockedList&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;add&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;one&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt; &lt;span class=&#34;c1&#34;&gt;// 如果times不传入，则默认是1
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;verify 内部跟踪了所有的方法调用和参数的调用情况，然后会返回一个结果，说明是否通过。参见另外一个详细的例子。&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;Map mock = Mockito.mock( Map.class );
 when( mock.get( &amp;#34;city&amp;#34; ) ).thenReturn( &amp;#34;广州&amp;#34; );
 // 关注参数有否传入
 verify(mock).get( Matchers.eq( &amp;#34;city&amp;#34; ) );
 // 关注调用的次数
 verify(mock, times( 2 ));
-&lt;/code>&lt;/pre>&lt;p>也就是说，这是对历史记录作一种回溯校验的处理。&lt;/p>
-&lt;p>这里补充一个学究的问题，所谓 Mock 与 Stub 打桩，其实它们之间不能互为其表。但 Mockito 语境中则 &lt;a href="http://stamen.iteye.com/blog/1470066" target="_blank" rel="noopener">Stub 和 Mock 对象同时使用的&lt;/a>。因为它既可以设置方法调用返回值，又可以验证方法的调用。有关 stub 和 mock 的详细论述请见 Martin Fowler 大叔的文章&lt;a href="http://martinfowler.com/articles/mocksArentStubs.html" target="_blank" rel="noopener">《Mocks Aren&amp;rsquo;t Stub》&lt;/a>。&lt;/p>
-&lt;p>Mockito 除了提供 times(N) 方法供我们调用外，还提供了很多可选的方法：&lt;/p>
-&lt;ul>
-&lt;li>never() 没有被调用，相当于 times(0)&lt;/li>
-&lt;li>atLeast(N) 至少被调用 N 次&lt;/li>
-&lt;li>atLeastOnce() 相当于 atLeast(1)&lt;/li>
-&lt;li>atMost(N) 最多被调用 N 次&lt;/li>
-&lt;/ul>
-&lt;p>verify 也可以像 when 那样使用模拟参数，若方法中的某一个参数使用了 matcher，则所有的参数都必须使用 matcher。&lt;/p>
-&lt;pre tabindex="0">&lt;code>// correct
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;也就是说，这是对历史记录作一种回溯校验的处理。&lt;/p&gt;
+&lt;p&gt;这里补充一个学究的问题，所谓 Mock 与 Stub 打桩，其实它们之间不能互为其表。但 Mockito 语境中则 &lt;a href=&#34;http://stamen.iteye.com/blog/1470066&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;Stub 和 Mock 对象同时使用的&lt;/a&gt;。因为它既可以设置方法调用返回值，又可以验证方法的调用。有关 stub 和 mock 的详细论述请见 Martin Fowler 大叔的文章&lt;a href=&#34;http://martinfowler.com/articles/mocksArentStubs.html&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;《Mocks Aren&amp;rsquo;t Stub》&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;Mockito 除了提供 times(N) 方法供我们调用外，还提供了很多可选的方法：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;never() 没有被调用，相当于 times(0)&lt;/li&gt;
+&lt;li&gt;atLeast(N) 至少被调用 N 次&lt;/li&gt;
+&lt;li&gt;atLeastOnce() 相当于 atLeast(1)&lt;/li&gt;
+&lt;li&gt;atMost(N) 最多被调用 N 次&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;verify 也可以像 when 那样使用模拟参数，若方法中的某一个参数使用了 matcher，则所有的参数都必须使用 matcher。&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;// correct
 verify(mock).someMethod(anyInt(), anyString(), eq(&amp;#34;third argument&amp;#34;));
 // will throw exception
 verify(mock).someMethod(anyInt(), anyString(), &amp;#34;third argument&amp;#34;);
-&lt;/code>&lt;/pre>&lt;p>在最后的验证时如果只输入字符串”hello”是会报错的，必须使用 Matchers 类内建的 eq 方法。&lt;/p>
-&lt;pre tabindex="0">&lt;code>Map mapMock = mock(Map.class);
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;在最后的验证时如果只输入字符串”hello”是会报错的，必须使用 Matchers 类内建的 eq 方法。&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;Map mapMock = mock(Map.class);
 when(mapMock.put(anyInt(), anyString())).thenReturn(&amp;#34;world&amp;#34;);
 mapMock.put(1, &amp;#34;hello&amp;#34;);
 verify(mapMock).put(anyInt(), eq(&amp;#34;hello&amp;#34;));
-&lt;/code>&lt;/pre>&lt;p>其他高级用法，详见&lt;a href="http://hotdog.iteye.com/blog/908827" target="_blank" rel="noopener">《学习 Mockito - Mock 对象的行为验证》&lt;/a>，主要特性如下，&lt;/p>
-&lt;ul>
-&lt;li>参数验证，详见&lt;a href="http://hotdog.iteye.com/blog/916364" target="_blank" rel="noopener">《利用 ArgumentCaptor(参数捕获器)捕获方法参数进行验证》&lt;/a>&lt;/li>
-&lt;li>超时验证，通过 timeout，并制定毫秒数验证超时。注意，如果被调用多次，times 还是需要的。&lt;/li>
-&lt;li>方法调用顺序 通过 InOrder 对象，验证方法的执行顺序，如上例子中，如果 mock 的 get(0) 和 get(1) 方法反过来则测试不通过。这里 mock2 其实没有被调用过。所以不需要些。&lt;/li>
-&lt;li>verifyNoMoreInteractions 查询是否存在被调用，但未被验证的方法，如果存在则抛出异常。这里因为验证了 get(anyInt())，相当于所有的 get 方法被验证，所以通过。&lt;/li>
-&lt;li>verifyZeroInteractions 查询对象是否未产生交互，如果传入 的 mock 对象的方法被调用过，则抛出异常。这里 mock2 的方法没有被调用过，所有通过。&lt;/li>
-&lt;/ul>
-&lt;p>参见&lt;a href="http://blog.sina.com.cn/s/blog_6176c38201014lzc.html" target="_blank" rel="noopener">《用 mockito 的 verify 来验证 mock 的方法是否被调用》&lt;/a>：&lt;/p>
-&lt;blockquote>
-&lt;p>看 mockito 的 api 时，一直都不清楚 veriry()这个方法的作用，因为如果我 mock 了某个方法，肯定是为了调用的啊。直到今天在回归接口测试用例的时候，发现有两个用例，用例 2 比用例 1 多了一个 mock 的步骤，不过最后的结果输出是一样的。由于代码做了修改，我重新 mock 后，其实用例 2 中对于的步骤是不会执行的，可测试还是通过了。仔细查看后，发现 mock 的方法没有被调用，所以用例 2 和用例 1 就变成一样的了。于是，就产生了这么个需求：单单通过结果来判断正确与否还是不够的，我还要判断是否按我指定的路径执行的用例。到这里，终于领略到了 mockito 的 verify 的强大威力，以下是示例代码：&lt;/p>
-&lt;p>若调用成功，则程序正常运行，反之则会报告: Wanted but not invoked:verify(mockedList).add(&amp;ldquo;one&amp;rdquo;); 错误。&lt;/p>
-&lt;/blockquote>
-&lt;p>感觉 verify 会用的比较少。&lt;/p>
-&lt;h2 id="spy">Spy&lt;/h2>
-&lt;p>spy 的意思是你可以修改某个真实对象的某些方法的行为特征，而不改变他的基本行为特征，这种策略的使用跟 AOP 有点类似。下面举官方的例子来说明：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">List&lt;/span> &lt;span class="n">list&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">LinkedList&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">List&lt;/span> &lt;span class="n">spy&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">spy&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">list&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">//optionally, you can stub out some methods:
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">when&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">spy&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">size&lt;/span>&lt;span class="o">()).&lt;/span>&lt;span class="na">thenReturn&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">100&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">//using the spy calls &amp;lt;b&amp;gt;real&amp;lt;/b&amp;gt; methods
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">spy&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">add&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;one&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">spy&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">add&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;two&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">//prints &amp;#34;one&amp;#34; - the first element of a list
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">spy&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">get&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="o">));&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">//size() method was stubbed - 100 is printed
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">spy&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">size&lt;/span>&lt;span class="o">());&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">//optionally, you can verify
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">verify&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">spy&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">add&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;one&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">verify&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">spy&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">add&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;two&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>可以看到 spy 保留了 list 的大部分功能，只是将它的 size() 方法改写了。不过 spy 在使用的时候有很多地方需要注意，一不小心就会导致问题，所以不到万不得已还是不要用 spy。&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@Test&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">save&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">User&lt;/span> &lt;span class="n">user&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">User&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">user&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">setLoginName&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;admin&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 第一次调用findUserByLoginName返回user 第二次调用返回null
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">when&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">mockUserDao&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">findUserByLoginName&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">anyString&lt;/span>&lt;span class="o">())).&lt;/span>&lt;span class="na">thenReturn&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">user&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">thenReturn&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="kc">null&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">try&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 测试如果重名会抛出异常
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">userService&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">save&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">user&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 如果没有抛出异常测试不通过
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">failBecauseExceptionWasNotThrown&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">RuntimeException&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">class&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span> &lt;span class="k">catch&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">ServiceException&lt;/span> &lt;span class="n">se&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">verify&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">mockUserDao&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">findUserByLoginName&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;admin&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// userService.save(user);
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">user&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">setPassword&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;123456&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">String&lt;/span> &lt;span class="n">userId&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">userService&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">save&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">user&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 断言返回结果
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">assertThat&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">userId&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">isNotEmpty&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">hasSize&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">32&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">verify&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">mockUserDao&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">times&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="o">)).&lt;/span>&lt;span class="na">findUserByLoginName&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">anyString&lt;/span>&lt;span class="o">());&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">verify&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">mockUserDao&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">save&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">any&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">User&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">class&lt;/span>&lt;span class="o">));&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nd">@Test&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">save2&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">User&lt;/span> &lt;span class="n">user&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">User&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">user&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">setLoginName&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;admin&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">user&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">setPassword&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;123456&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">userService&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">save&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">user&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 通过ArgumentCaptor(参数捕获器) 对传入参数进行验证
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">ArgumentCaptor&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">User&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">argument&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">ArgumentCaptor&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">forClass&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">User&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">class&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">verify&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">mockUserDao&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">save&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">argument&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">capture&lt;/span>&lt;span class="o">());&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">assertThat&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;admin&amp;#34;&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">isEqualTo&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">argument&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getValue&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">getLoginName&lt;/span>&lt;span class="o">());&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// stub 调用save方法时抛出异常
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">doThrow&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="k">new&lt;/span> &lt;span class="n">ServiceException&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;测试抛出异常&amp;#34;&lt;/span>&lt;span class="o">)).&lt;/span>&lt;span class="na">when&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">mockUserDao&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">save&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">any&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">User&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">class&lt;/span>&lt;span class="o">));&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">try&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">userService&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">save&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">user&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">failBecauseExceptionWasNotThrown&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">RuntimeException&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">class&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span> &lt;span class="k">catch&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">ServiceException&lt;/span> &lt;span class="n">se&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="模拟-servlet">模拟 Servlet&lt;/h2>
-&lt;p>&lt;a href="http://blog.csdn.net/zhangxin09/article/details/42487319" target="_blank" rel="noopener">JUnit + Mockito 单元测试(三)&lt;/a>&lt;/p>
-&lt;table>
-&lt;thead>
-&lt;tr>
-&lt;th>FEATURE&lt;/th>
-&lt;th>JUNIT 4&lt;/th>
-&lt;th>JUNIT 5&lt;/th>
-&lt;/tr>
-&lt;/thead>
-&lt;tbody>
-&lt;tr>
-&lt;td>Declare a test method&lt;/td>
-&lt;td>&lt;code>@Test&lt;/code>&lt;/td>
-&lt;td>&lt;code>@Test&lt;/code>&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>Execute before all test methods in the current class&lt;/td>
-&lt;td>&lt;code>@BeforeClass&lt;/code>&lt;/td>
-&lt;td>&lt;code>@BeforeAll&lt;/code>&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>Execute after all test methods in the current class&lt;/td>
-&lt;td>&lt;code>@AfterClass&lt;/code>&lt;/td>
-&lt;td>&lt;code>@AfterAll&lt;/code>&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>Execute before each test method&lt;/td>
-&lt;td>&lt;code>@Before&lt;/code>&lt;/td>
-&lt;td>&lt;code>@BeforeEach&lt;/code>&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>Execute after each test method&lt;/td>
-&lt;td>&lt;code>@After&lt;/code>&lt;/td>
-&lt;td>&lt;code>@AfterEach&lt;/code>&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>Disable a test method / class&lt;/td>
-&lt;td>&lt;code>@Ignore&lt;/code>&lt;/td>
-&lt;td>&lt;code>@Disabled&lt;/code>&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>Test factory for dynamic tests&lt;/td>
-&lt;td>NA&lt;/td>
-&lt;td>&lt;code>@TestFactory&lt;/code>&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>Nested tests&lt;/td>
-&lt;td>NA&lt;/td>
-&lt;td>&lt;code>@Nested&lt;/code>&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>Tagging and filtering&lt;/td>
-&lt;td>&lt;code>@Category&lt;/code>&lt;/td>
-&lt;td>&lt;code>@Tag&lt;/code>&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>Register custom extensions&lt;/td>
-&lt;td>NA&lt;/td>
-&lt;td>&lt;code>@ExtendWith&lt;/code>&lt;/td>
-&lt;/tr>
-&lt;/tbody>
-&lt;/table></description></item></channel></rss>
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;其他高级用法，详见&lt;a href=&#34;http://hotdog.iteye.com/blog/908827&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;《学习 Mockito - Mock 对象的行为验证》&lt;/a&gt;，主要特性如下，&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;参数验证，详见&lt;a href=&#34;http://hotdog.iteye.com/blog/916364&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;《利用 ArgumentCaptor(参数捕获器)捕获方法参数进行验证》&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;超时验证，通过 timeout，并制定毫秒数验证超时。注意，如果被调用多次，times 还是需要的。&lt;/li&gt;
+&lt;li&gt;方法调用顺序 通过 InOrder 对象，验证方法的执行顺序，如上例子中，如果 mock 的 get(0) 和 get(1) 方法反过来则测试不通过。这里 mock2 其实没有被调用过。所以不需要些。&lt;/li&gt;
+&lt;li&gt;verifyNoMoreInteractions 查询是否存在被调用，但未被验证的方法，如果存在则抛出异常。这里因为验证了 get(anyInt())，相当于所有的 get 方法被验证，所以通过。&lt;/li&gt;
+&lt;li&gt;verifyZeroInteractions 查询对象是否未产生交互，如果传入 的 mock 对象的方法被调用过，则抛出异常。这里 mock2 的方法没有被调用过，所有通过。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;参见&lt;a href=&#34;http://blog.sina.com.cn/s/blog_6176c38201014lzc.html&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;《用 mockito 的 verify 来验证 mock 的方法是否被调用》&lt;/a&gt;：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;看 mockito 的 api 时，一直都不清楚 veriry()这个方法的作用，因为如果我 mock 了某个方法，肯定是为了调用的啊。直到今天在回归接口测试用例的时候，发现有两个用例，用例 2 比用例 1 多了一个 mock 的步骤，不过最后的结果输出是一样的。由于代码做了修改，我重新 mock 后，其实用例 2 中对于的步骤是不会执行的，可测试还是通过了。仔细查看后，发现 mock 的方法没有被调用，所以用例 2 和用例 1 就变成一样的了。于是，就产生了这么个需求：单单通过结果来判断正确与否还是不够的，我还要判断是否按我指定的路径执行的用例。到这里，终于领略到了 mockito 的 verify 的强大威力，以下是示例代码：&lt;/p&gt;
+&lt;p&gt;若调用成功，则程序正常运行，反之则会报告: Wanted but not invoked:verify(mockedList).add(&amp;ldquo;one&amp;rdquo;); 错误。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;感觉 verify 会用的比较少。&lt;/p&gt;
+&lt;h2 id=&#34;spy&#34;&gt;Spy&lt;/h2&gt;
+&lt;p&gt;spy 的意思是你可以修改某个真实对象的某些方法的行为特征，而不改变他的基本行为特征，这种策略的使用跟 AOP 有点类似。下面举官方的例子来说明：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;List&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;list&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;LinkedList&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;List&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;spy&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;spy&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;list&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;//optionally, you can stub out some methods:
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;when&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;spy&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;size&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;()).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;thenReturn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;100&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;//using the spy calls &amp;lt;b&amp;gt;real&amp;lt;/b&amp;gt; methods
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;spy&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;add&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;one&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;spy&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;add&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;two&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;//prints &amp;#34;one&amp;#34; - the first element of a list
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;System&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;out&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;println&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;spy&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;get&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;));&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;//size() method was stubbed - 100 is printed
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;System&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;out&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;println&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;spy&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;size&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;());&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;//optionally, you can verify
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;verify&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;spy&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;add&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;one&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;verify&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;spy&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;add&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;two&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;可以看到 spy 保留了 list 的大部分功能，只是将它的 size() 方法改写了。不过 spy 在使用的时候有很多地方需要注意，一不小心就会导致问题，所以不到万不得已还是不要用 spy。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nd&#34;&gt;@Test&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;void&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;save&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;()&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;User&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;user&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;User&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;user&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;setLoginName&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;admin&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;c1&#34;&gt;// 第一次调用findUserByLoginName返回user 第二次调用返回null
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;    &lt;span class=&#34;n&#34;&gt;when&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;mockUserDao&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;findUserByLoginName&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;anyString&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;())).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;thenReturn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;user&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;thenReturn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;kc&#34;&gt;null&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;try&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;c1&#34;&gt;// 测试如果重名会抛出异常
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;        &lt;span class=&#34;n&#34;&gt;userService&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;save&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;user&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;c1&#34;&gt;// 如果没有抛出异常测试不通过
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;        &lt;span class=&#34;n&#34;&gt;failBecauseExceptionWasNotThrown&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;RuntimeException&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;class&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;catch&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ServiceException&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;se&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;verify&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;mockUserDao&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;findUserByLoginName&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;admin&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;c1&#34;&gt;// userService.save(user);
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;    &lt;span class=&#34;n&#34;&gt;user&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;setPassword&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;123456&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;userId&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;userService&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;save&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;user&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;c1&#34;&gt;// 断言返回结果
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;    &lt;span class=&#34;n&#34;&gt;assertThat&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;userId&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;isNotEmpty&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;().&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;hasSize&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;32&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;verify&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;mockUserDao&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;times&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;2&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;findUserByLoginName&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;anyString&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;());&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;verify&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;mockUserDao&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;save&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;any&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;User&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;class&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;));&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nd&#34;&gt;@Test&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;void&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;save2&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;()&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;User&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;user&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;User&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;user&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;setLoginName&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;admin&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;user&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;setPassword&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;123456&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;userService&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;save&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;user&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;c1&#34;&gt;// 通过ArgumentCaptor(参数捕获器) 对传入参数进行验证
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;    &lt;span class=&#34;n&#34;&gt;ArgumentCaptor&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;User&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;argument&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;ArgumentCaptor&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;forClass&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;User&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;class&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;verify&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;mockUserDao&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;save&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;argument&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;capture&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;());&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;assertThat&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;admin&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;isEqualTo&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;argument&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;getValue&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;().&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;getLoginName&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;());&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;c1&#34;&gt;// stub 调用save方法时抛出异常
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;    &lt;span class=&#34;n&#34;&gt;doThrow&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;ServiceException&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;测试抛出异常&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;when&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;mockUserDao&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;save&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;any&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;User&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;class&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;));&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;try&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;n&#34;&gt;userService&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;save&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;user&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;n&#34;&gt;failBecauseExceptionWasNotThrown&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;RuntimeException&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;class&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;catch&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ServiceException&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;se&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;模拟-servlet&#34;&gt;模拟 Servlet&lt;/h2&gt;
+&lt;p&gt;&lt;a href=&#34;http://blog.csdn.net/zhangxin09/article/details/42487319&#34; target=&#34;_blank&#34; rel=&#34;noopener&#34;&gt;JUnit + Mockito 单元测试(三)&lt;/a&gt;&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;FEATURE&lt;/th&gt;
+&lt;th&gt;JUNIT 4&lt;/th&gt;
+&lt;th&gt;JUNIT 5&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;Declare a test method&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;@Test&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;@Test&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Execute before all test methods in the current class&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;@BeforeClass&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;@BeforeAll&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Execute after all test methods in the current class&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;@AfterClass&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;@AfterAll&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Execute before each test method&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;@Before&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;@BeforeEach&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Execute after each test method&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;@After&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;@AfterEach&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Disable a test method / class&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;@Ignore&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;@Disabled&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Test factory for dynamic tests&lt;/td&gt;
+&lt;td&gt;NA&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;@TestFactory&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Nested tests&lt;/td&gt;
+&lt;td&gt;NA&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;@Nested&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Tagging and filtering&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;@Category&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;@Tag&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Register custom extensions&lt;/td&gt;
+&lt;td&gt;NA&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;@ExtendWith&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

@@ -1,36 +1,1147 @@
-<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="22 Three.js 优化之 OffscreenCanvas 与 WebWorker 我们知道 JS 是单线程，可以通过 WebWorker 将一些复杂计算执行命令从主线程中分离出来。 关于 WebWorker 的使用方法，请参考： https://developer.mozilla.org/zh-cn/docs/web/api/web_workers_api/using_web_workers 或者查看我写的另外一篇文章：WebWorker 学习笔记.md 一些比较新的浏览器(例如"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/22.three.js-%E4%BC%98%E5%8C%96%E4%B9%8Boffscreencanvas%E4%B8%8Ewebworker/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.fab3cd1900ae35687457073b2d518207.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/22.three.js-%E4%BC%98%E5%8C%96%E4%B9%8Boffscreencanvas%E4%B8%8Ewebworker/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/22.three.js-%E4%BC%98%E5%8C%96%E4%B9%8Boffscreencanvas%E4%B8%8Ewebworker/"><meta property="og:title" content="22.Three.js 优化之OffscreenCanvas与WebWorker | Next-gen Tech Edu"><meta property="og:description" content="22 Three.js 优化之 OffscreenCanvas 与 WebWorker 我们知道 JS 是单线程，可以通过 WebWorker 将一些复杂计算执行命令从主线程中分离出来。 关于 WebWorker 的使用方法，请参考： https://developer.mozilla.org/zh-cn/docs/web/api/web_workers_api/using_web_workers 或者查看我写的另外一篇文章：WebWorker 学习笔记.md 一些比较新的浏览器(例如"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>22.Three.js 优化之OffscreenCanvas与WebWorker | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=d00cb1be5c2b1ddab12fa81764ee5c53><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
-<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
-<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
-<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
-<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
-<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">2021-puxiao-《Three.js 系列教程》</span>
-<span><i class="fas fa-chevron-down"></i></span></div></button>
-<button class="form-control sidebar-search js-search d-none d-md-flex">
-<i class="fas fa-search pr-2"></i>
-<span class=sidebar-search-text>搜索...</span>
-<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
-Back</a>
-<span>|</span>
-<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
-Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idbb95a2d75baa1d08a35c84b8efe5ad00")' href=#idbb95a2d75baa1d08a35c84b8efe5ad00 aria-expanded=false aria-controls=idbb95a2d75baa1d08a35c84b8efe5ad00 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/>99.参考资料</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idbb95a2d75baa1d08a35c84b8efe5ad00 aria-expanded=false aria-controls=idbb95a2d75baa1d08a35c84b8efe5ad00><i class="fa-solid fa-angle-down" id=caret-idbb95a2d75baa1d08a35c84b8efe5ad00></i></a></div><ul class="nav docs-sidenav collapse show" id=idbb95a2d75baa1d08a35c84b8efe5ad00><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2017-%E5%9B%BE%E8%A7%A3-webgl-%E5%8F%8A-three.js-%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86/>2017-图解 WebGL 及 Three.js 工作原理</a></li><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-ide04f28caa67ef746c1e042a66bd26df7")' href=#ide04f28caa67ef746c1e042a66bd26df7 aria-expanded=false aria-controls=ide04f28caa67ef746c1e042a66bd26df7 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/>2021-puxiao-《Three.js 系列教程》</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#ide04f28caa67ef746c1e042a66bd26df7 aria-expanded=false aria-controls=ide04f28caa67ef746c1e042a66bd26df7><i class="fa-solid fa-angle-down" id=caret-ide04f28caa67ef746c1e042a66bd26df7></i></a></div><ul class="nav docs-sidenav collapse show" id=ide04f28caa67ef746c1e042a66bd26df7><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/01.three.js-%E7%AE%80%E4%BB%8B/>01.Three.js 简介</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/02.%E5%88%9D%E5%A7%8B%E5%8C%96three.js-%E9%A1%B9%E7%9B%AE/>02.初始化Three.js 项目</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/03.%E7%BC%96%E5%86%99hellothreejs/>03.编写HelloThreejs</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/04.%E6%B7%BB%E5%8A%A0%E4%B8%80%E4%BA%9B%E8%87%AA%E9%80%82%E5%BA%94/>04.添加一些自适应</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/05.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E5%9B%BE%E5%85%83/>05.Three.js 基础之图元</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/06.%E5%9B%BE%E5%85%83%E7%BB%83%E4%B9%A0%E7%A4%BA%E4%BE%8B/>06.图元练习示例</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/07.%E5%9B%BE%E5%85%83%E4%B9%8B3d%E6%96%87%E5%AD%97/>07.图元之3D文字</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/08.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E5%9C%BA%E6%99%AF/>08.Three.js 基础之场景</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/09.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E6%9D%90%E8%B4%A8/>09.Three.js 基础之材质</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/10.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E7%BA%B9%E7%90%86/>10.Three.js 基础之纹理</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/11.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E7%81%AF%E5%85%89/>11.Three.js 基础之灯光</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/12.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E9%95%9C%E5%A4%B4/>12.Three.js 基础之镜头</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/13.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E9%98%B4%E5%BD%B1/>13.Three.js 基础之阴影</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/14.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E9%9B%BE/>14.Three.js 基础之雾</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/15.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E7%A6%BB%E5%B1%8F%E6%B8%B2%E6%9F%93/>15.Three.js 基础之离屏渲染</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/16.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E8%87%AA%E5%AE%9A%E4%B9%89%E5%87%A0%E4%BD%95%E4%BD%93/>16.Three.js 基础之自定义几何体</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/17.three.js-%E6%8A%80%E5%B7%A7%E4%B9%8B%E6%8C%89%E9%9C%80%E6%B8%B2%E6%9F%93/>17.Three.js 技巧之按需渲染</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/18.three.js-%E6%8A%80%E5%B7%A7%E4%B9%8B%E8%B0%83%E8%AF%95/>18.Three.js 技巧之调试</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/19.three.js-%E6%8A%80%E5%B7%A7%E4%B9%8B%E7%94%BB%E5%B8%83/>19.Three.js 技巧之画布</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/20.three.js-%E4%BC%98%E5%8C%96%E4%B9%8B%E5%90%88%E5%B9%B6%E5%AF%B9%E8%B1%A1/>20.Three.js 优化之合并对象</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/21.three.js-%E4%BC%98%E5%8C%96%E4%B9%8B%E5%90%88%E5%B9%B6%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%8A%A8%E7%94%BB/>21.Three.js 优化之合并对象的动画</a></li><li class="child level active"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/22.three.js-%E4%BC%98%E5%8C%96%E4%B9%8Boffscreencanvas%E4%B8%8Ewebworker/>22.Three.js 优化之OffscreenCanvas与WebWorker</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/23.three.js-%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8B%E5%8A%A0%E8%BD%BD.obj%E6%A8%A1%E5%9E%8B/>23.Three.js 解决方案之加载.obj模型</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/24.three.js-%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8B%E5%8A%A0%E8%BD%BD.gltf%E6%A8%A1%E5%9E%8B/>24.Three.js 解决方案之加载.gLTF模型</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/25.three.js-%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8B%E6%B7%BB%E5%8A%A0%E8%83%8C%E6%99%AF%E5%92%8C%E5%A4%A9%E7%A9%BA%E7%9B%92/>25.Three.js 解决方案之添加背景和天空盒</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/26.three.js-%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8B%E9%80%8F%E6%98%8E%E5%BA%A6bug/>26.Three.js 解决方案之透明度bug</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/27.three.js-%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8B%E5%A4%9A%E7%94%BB%E5%B8%83%E5%A4%9A%E5%9C%BA%E6%99%AF/>27.Three.js 解决方案之多画布、多场景</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/28.three.js-%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8B%E9%80%89%E4%B8%AD%E6%8B%BE%E5%8F%96%E6%9F%90%E7%89%A9%E4%BD%93/>28.Three.js 解决方案之选中、拾取某物体</a></li><li class="child level"><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/three.js-%E5%AE%9E%E7%94%A8%E7%9F%A5%E8%AF%86%E7%82%B9%E7%AC%94%E8%AE%B0/>Three.js 实用知识点笔记</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents><ul><li><a href=#offscreencanvas-的概念和用法>OffscreenCanvas 的概念和用法</a><ul><li></li></ul></li><li><a href=#离屏画布渲染示例hellooffscreencanvas>离屏画布渲染示例：HelloOffscreenCanvas</a><ul><li></li></ul></li><li><a href=#模拟并添加-orbitcontrols>模拟并添加 OrbitControls</a><ul><li></li><li><a href=#整体思路示意图>整体思路示意图</a></li><li><a href=#项目实际代码>项目实际代码</a></li><li><a href=#说一下我的感受>说一下我的感受</a></li><li><a href=#本小节结束>本小节结束</a></li></ul></li></ul></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>22.Three.js 优化之OffscreenCanvas与WebWorker</h1><div class=article-style><h1 id=22-threejs-优化之-offscreencanvas-与-webworker>22 Three.js 优化之 OffscreenCanvas 与 WebWorker</h1><p>我们知道 JS 是单线程，可以通过 WebWorker 将一些复杂计算执行命令从主线程中分离出来。</p><p>关于 WebWorker 的使用方法，请参考：</p><p><a href=https://developer.mozilla.org/zh-cn/docs/web/api/web_workers_api/using_web_workers target=_blank rel=noopener>https://developer.mozilla.org/zh-cn/docs/web/api/web_workers_api/using_web_workers</a></p><p>或者查看我写的另外一篇文章：<a href=https://github.com/puxiao/notes/blob/master/WebWorker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0.md target=_blank rel=noopener>WebWorker 学习笔记.md</a></p><br><p>一些比较新的浏览器(例如谷歌浏览器) 还有另外一个和 WebWorker 搭配使用、针对画布的类：OffscreenCanvas。</p><p><strong>OffscreenCanvas 的作用就是将 canvas 的控制权转让给 Web Worker。</strong></p><blockquote><p>因此 OffscreenCanvas 必须搭配 Web Worker 一起使用。</p></blockquote><blockquote><p>补充一个知识点：</p><p>和 OffscreenCanvas 类似的还有 ArrayBuffer、 MessagePort、ImageBitmap，他们都可以与 WebWorker 搭配使用</p></blockquote><br><h2 id=offscreencanvas-的概念和用法>OffscreenCanvas 的概念和用法</h2><h4 id=offscreencanvas-的基本概念>OffscreenCanvas 的基本概念</h4><p>你可以把 WebWorker 做为各种复杂类型的后台运算线程，作用范围比较广泛。</p><p>而 OffscreenCanvas 则专门针对 Canvas 做离屏渲染。</p><blockquote><p>注意，这里提到的 离屏渲染 和 我们使用 WebGLRendererTarget 来做的离屏渲染，从概念上是类似的</p></blockquote><blockquote><p>OffscreenCanvas 的 “离屏” 是指浏览器 DOM 而言</p><p>WebGLRenderTarget 的 “离屏” 只指 Three.js 的主场景(Scene) 而言</p></blockquote><p>你可以把 OffscreenCanvas 看作是针对 Canvas 的特殊 WebWorker 应用场景。</p><p>但是请记得：目前绝大多数浏览器均已支持 WebWorker，但是对 OffscreenCanvas 的支持度并不高。</p><br><p><strong>如何创建 OffscreenCanvas ？</strong></p><p>不可以使用 new OffscreenWorker() 的方式来创建 OffscreenCanvas，而是使用 canvas.transferControlToOffscreen() 来获得 canvas 对应的 OffscreenCanvas。</p><br><p><strong>如何检测当前浏览器是否支持 OffscreenCanvas？</strong></p><p>我们只需检查 canvas 是否存在 transferControlToOffscreen 方法：</p><pre tabindex=0><code>if(canvas.transferControlToOffscreen !== null){
+<!DOCTYPE html><html lang="zh" >
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  
+  
+    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+
+  
+  
+  
+    
+      
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    
+  
+
+  
+    <meta name="google-site-verification" content="google69a5cccb61297807" />
+    <meta name="baidu-site-verification" content="cqmZHEleVh" />
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+    
+  
+  <meta name="description" content="22 Three.js 优化之 OffscreenCanvas 与 WebWorker 我们知道 JS 是单线程，可以通过 WebWorker 将一些复杂计算执行命令从主线程中分离出来。 关于 WebWorker 的使用方法，请参考： https://developer.mozilla.org/zh-cn/docs/web/api/web_workers_api/using_web_workers 或者查看我写的另外一篇文章：WebWorker 学习笔记.md 一些比较新的浏览器(例如" />
+
+  
+  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/22.three.js-%E4%BC%98%E5%8C%96%E4%B9%8Boffscreencanvas%E4%B8%8Ewebworker/" />
+
+  
+  
+  
+    <meta name="theme-color" content="#0a55a7" />
+  
+
+  
+  
+
+  
+
+  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
+
+  
+  
+  
+    
+    
+
+    
+    
+    
+    
+      
+      
+    
+    
+    
+
+    
+    
+    
+      
+    
+    
+      
+      
+        
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
+        
+      
+    
+
+    
+    
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
+    
+
+    
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+        
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+  
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/wowchemy.0d97305106da5efa530e28b021b4c580.css" />
+
+  
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', "G-40NYXJ8823");
+</script>
+
+
+  
+
+
+  
+
+
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+  
+  
+  
+
+  
+
+  
+    <link rel="manifest" href="/manifest.webmanifest" />
+  
+
+  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
+  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
+
+  <link rel="canonical" href="https://ng-tech.icu/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/22.three.js-%E4%BC%98%E5%8C%96%E4%B9%8Boffscreencanvas%E4%B8%8Ewebworker/" />
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+
+  
+  
+    
+    
+  
+  <meta property="twitter:card" content="summary_large_image" />
+  
+    <meta property="twitter:site" content="@wx-chevalier" />
+    <meta property="twitter:creator" content="@wx-chevalier" />
+  
+  <meta property="og:site_name" content="Next-gen Tech Edu" />
+  <meta property="og:url" content="https://ng-tech.icu/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/22.three.js-%E4%BC%98%E5%8C%96%E4%B9%8Boffscreencanvas%E4%B8%8Ewebworker/" />
+  <meta property="og:title" content="22.Three.js 优化之OffscreenCanvas与WebWorker | Next-gen Tech Edu" />
+  <meta property="og:description" content="22 Three.js 优化之 OffscreenCanvas 与 WebWorker 我们知道 JS 是单线程，可以通过 WebWorker 将一些复杂计算执行命令从主线程中分离出来。 关于 WebWorker 的使用方法，请参考： https://developer.mozilla.org/zh-cn/docs/web/api/web_workers_api/using_web_workers 或者查看我写的另外一篇文章：WebWorker 学习笔记.md 一些比较新的浏览器(例如" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
+    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
+  
+    
+    
+  
+
+  
+
+
+
+  
+
+  
+
+  
+
+
+
+
+
+  <title>22.Three.js 优化之OffscreenCanvas与WebWorker | Next-gen Tech Edu</title>
+</head>
+
+
+<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="d00cb1be5c2b1ddab12fa81764ee5c53" >
+  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
+
+  
+
+
+<aside class="search-modal" id="search">
+  <div class="container">
+    <section class="search-header">
+
+      <div class="row no-gutters justify-content-between mb-3">
+        <div class="col-6 search-title">
+          <p>搜索</p>
+        </div>
+        <div class="col-6 col-search-close">
+          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+      <div id="search-box">
+        
+        
+        
+      </div>
+
+      
+      
+
+      
+    </section>
+    <section class="section-search-results">
+
+      <div id="search-hits">
+        
+      </div>
+
+      <div id="search-common-queries">
+        
+      </div>
+
+    </section>
+  </div>
+</aside>
+
+
+
+  <div class="page-header">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="header--fixed">
+  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
+    <div class="container-xl">
+
+      
+      <div class="d-none d-lg-inline-flex">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      <button type="button" class="navbar-toggler" data-toggle="collapse"
+              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
+      <span><i class="fas fa-bars"></i></span>
+      </button>
+      
+
+      
+      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      
+      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
+
+        
+        <ul class="navbar-nav d-md-inline-flex">
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
+          </li>
+
+          
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+              
+              
+              
+                
+              
+              
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
+              
+                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
+              
+                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+        
+
+          
+        </ul>
+      </div>
+
+      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
+
+        
+        
+        
+        <li class="nav-item">
+          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        <li class="nav-item">
+            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        
+
+        
+        
+        
+        <div></div>
+        
+        <style>
+        @media only screen and (max-width: 600px) {
+          .jimmysong-template {
+            display: none!important;
+          }
+        }
+        </style>
+        
+        <li class="jimmysong-template" style="color: white;font-size: 12px;">
+          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+</header>
+
+
+  </div>
+
+  <div class="page-body">
+    
+    
+    
+
+    
+
+
+
+
+<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
+<div class="container-xl docs">
+  <div class="row flex-xl-nowrap">
+    <div class="docs-sidebar">
+      <form class="docs-search d-flex align-items-center">
+  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    <div class="d-flex">
+      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
+        
+          2021-puxiao-《Three.js 系列教程》
+        
+      </span>
+      <span><i class="fas fa-chevron-down"></i></span>
+    </div>
+  </button>
+
+  
+  <button class="form-control sidebar-search js-search d-none d-md-flex">
+    <i class="fas fa-search pr-2"></i>
+    <span class="sidebar-search-text">搜索...</span>
+    <span class="sidebar-search-shortcut">/</span>
+  </button>
+  
+</form>
+
+<nav class="collapse docs-links" id="docs-nav">
+  
+  
+  
+  
+  
+  
+
+  
+  
+    
+
+    
+      
+
+      <ul class="nav docs-sidenav">
+        <li style="display: inline-flex">
+          <a style="cursor: pointer;" onclick="window.history.back()">
+            <i class="fas fa-arrow-left pr-1"></i>
+            Back
+          </a>
+          <span>|</span>
+          <a href="/books/">
+            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
+            Books
+          </a>
+        </li>
+      </ul>
+
+      
+      
+        
+          
+        
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idbb95a2d75baa1d08a35c84b8efe5ad00&#34;)" href="#idbb95a2d75baa1d08a35c84b8efe5ad00" aria-expanded="false" aria-controls="idbb95a2d75baa1d08a35c84b8efe5ad00" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/">99.参考资料</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idbb95a2d75baa1d08a35c84b8efe5ad00" aria-expanded="false" aria-controls="idbb95a2d75baa1d08a35c84b8efe5ad00">
+    
+    <i class="fa-solid fa-angle-down" id="caret-idbb95a2d75baa1d08a35c84b8efe5ad00"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="idbb95a2d75baa1d08a35c84b8efe5ad00">
+      
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2017-%E5%9B%BE%E8%A7%A3-webgl-%E5%8F%8A-three.js-%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86/">2017-图解 WebGL 及 Three.js 工作原理</a></li>
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-ide04f28caa67ef746c1e042a66bd26df7&#34;)" href="#ide04f28caa67ef746c1e042a66bd26df7" aria-expanded="false" aria-controls="ide04f28caa67ef746c1e042a66bd26df7" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/">2021-puxiao-《Three.js 系列教程》</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#ide04f28caa67ef746c1e042a66bd26df7" aria-expanded="false" aria-controls="ide04f28caa67ef746c1e042a66bd26df7">
+    
+    <i class="fa-solid fa-angle-down" id="caret-ide04f28caa67ef746c1e042a66bd26df7"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="ide04f28caa67ef746c1e042a66bd26df7">
+      
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/01.three.js-%E7%AE%80%E4%BB%8B/">01.Three.js  简介</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/02.%E5%88%9D%E5%A7%8B%E5%8C%96-three.js-%E9%A1%B9%E7%9B%AE/">02.初始化 Three.js 项目</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/03.%E7%BC%96%E5%86%99-hello-three.js/">03.编写 Hello Three.js</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/04.%E6%B7%BB%E5%8A%A0%E4%B8%80%E4%BA%9B%E8%87%AA%E9%80%82%E5%BA%94/">04.添加一些自适应</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/05.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E5%9B%BE%E5%85%83/">05.Three.js 基础之图元</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/06.%E5%9B%BE%E5%85%83%E7%BB%83%E4%B9%A0%E7%A4%BA%E4%BE%8B/">06.图元练习示例</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/07.%E5%9B%BE%E5%85%83%E4%B9%8B-3d-%E6%96%87%E5%AD%97/">07.图元之 3D 文字</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/08.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E5%9C%BA%E6%99%AF/">08.Three.js 基础之场景</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/09.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E6%9D%90%E8%B4%A8/">09.Three.js 基础之材质</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/10.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E7%BA%B9%E7%90%86/">10.Three.js 基础之纹理</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/11.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E7%81%AF%E5%85%89/">11.Three.js 基础之灯光</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/12.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E9%95%9C%E5%A4%B4/">12.Three.js 基础之镜头</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/13.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E9%98%B4%E5%BD%B1/">13.Three.js 基础之阴影</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/14.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E9%9B%BE/">14.Three.js 基础之雾</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/15.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E7%A6%BB%E5%B1%8F%E6%B8%B2%E6%9F%93/">15.Three.js 基础之离屏渲染</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/16.three.js-%E5%9F%BA%E7%A1%80%E4%B9%8B%E8%87%AA%E5%AE%9A%E4%B9%89%E5%87%A0%E4%BD%95%E4%BD%93/">16.Three.js 基础之自定义几何体</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/17.three.js-%E6%8A%80%E5%B7%A7%E4%B9%8B%E6%8C%89%E9%9C%80%E6%B8%B2%E6%9F%93/">17.Three.js 技巧之按需渲染</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/18.three.js-%E6%8A%80%E5%B7%A7%E4%B9%8B%E8%B0%83%E8%AF%95/">18.Three.js 技巧之调试</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/19.three.js-%E6%8A%80%E5%B7%A7%E4%B9%8B%E7%94%BB%E5%B8%83/">19.Three.js 技巧之画布</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/20.three.js-%E4%BC%98%E5%8C%96%E4%B9%8B%E5%90%88%E5%B9%B6%E5%AF%B9%E8%B1%A1/">20.Three.js 优化之合并对象</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/21.three.js-%E4%BC%98%E5%8C%96%E4%B9%8B%E5%90%88%E5%B9%B6%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%8A%A8%E7%94%BB/">21.Three.js 优化之合并对象的动画</a></li>
+
+
+
+
+  <li class="child level active"><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/22.three.js-%E4%BC%98%E5%8C%96%E4%B9%8Boffscreencanvas%E4%B8%8Ewebworker/">22.Three.js 优化之OffscreenCanvas与WebWorker</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/23.three.js-%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8B%E5%8A%A0%E8%BD%BD.obj%E6%A8%A1%E5%9E%8B/">23.Three.js 解决方案之加载.obj模型</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/24.three.js-%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8B%E5%8A%A0%E8%BD%BD.gltf%E6%A8%A1%E5%9E%8B/">24.Three.js 解决方案之加载.gLTF模型</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/25.three.js-%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8B%E6%B7%BB%E5%8A%A0%E8%83%8C%E6%99%AF%E5%92%8C%E5%A4%A9%E7%A9%BA%E7%9B%92/">25.Three.js 解决方案之添加背景和天空盒</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/26.three.js-%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8B%E9%80%8F%E6%98%8E%E5%BA%A6bug/">26.Three.js 解决方案之透明度bug</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/27.three.js-%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8B%E5%A4%9A%E7%94%BB%E5%B8%83%E5%A4%9A%E5%9C%BA%E6%99%AF/">27.Three.js 解决方案之多画布、多场景</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/28.three.js-%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8B%E9%80%89%E4%B8%AD%E6%8B%BE%E5%8F%96%E6%9F%90%E7%89%A9%E4%BD%93/">28.Three.js 解决方案之选中、拾取某物体</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/three.js-%E5%AE%9E%E7%94%A8%E7%9F%A5%E8%AF%86%E7%82%B9%E7%AC%94%E8%AE%B0/">Three.js 实用知识点笔记</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+    
+  
+</nav>
+
+    </div>
+
+    
+    
+    <div class="d-none d-xl-block col-xl-2 docs-toc">
+      
+     
+      <ul class="nav toc-top">
+        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
+      </ul>
+     
+
+      <nav id="TableOfContents">
+  <ul>
+    <li><a href="#offscreencanvas-的概念和用法">OffscreenCanvas 的概念和用法</a>
+      <ul>
+        <li></li>
+      </ul>
+    </li>
+    <li><a href="#离屏画布渲染示例hellooffscreencanvas">离屏画布渲染示例：HelloOffscreenCanvas</a>
+      <ul>
+        <li></li>
+      </ul>
+    </li>
+    <li><a href="#模拟并添加-orbitcontrols">模拟并添加 OrbitControls</a>
+      <ul>
+        <li></li>
+        <li><a href="#整体思路示意图">整体思路示意图</a></li>
+        <li><a href="#项目实际代码">项目实际代码</a></li>
+        <li><a href="#说一下我的感受">说一下我的感受</a></li>
+        <li><a href="#本小节结束">本小节结束</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+      
+<div class="subscribe-module col-24 mt-1">
+    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
+</div>
+
+
+
+    </div>
+    
+
+    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
+
+      <article class="article">
+
+          
+
+          <h1>22.Three.js 优化之OffscreenCanvas与WebWorker</h1>
+
+          <div class="article-style">
+            <h1 id="22-threejs-优化之-offscreencanvas-与-webworker">22 Three.js 优化之 OffscreenCanvas 与 WebWorker</h1>
+<p>我们知道 JS 是单线程，可以通过 WebWorker 将一些复杂计算执行命令从主线程中分离出来。</p>
+<p>关于 WebWorker 的使用方法，请参考：</p>
+<p><a href="https://developer.mozilla.org/zh-cn/docs/web/api/web_workers_api/using_web_workers" target="_blank" rel="noopener">https://developer.mozilla.org/zh-cn/docs/web/api/web_workers_api/using_web_workers</a></p>
+<p>或者查看我写的另外一篇文章：<a href="https://github.com/puxiao/notes/blob/master/WebWorker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0.md" target="_blank" rel="noopener">WebWorker 学习笔记.md</a></p>
+<br>
+<p>一些比较新的浏览器(例如谷歌浏览器) 还有另外一个和 WebWorker 搭配使用、针对画布的类：OffscreenCanvas。</p>
+<p><strong>OffscreenCanvas 的作用就是将 canvas 的控制权转让给 Web Worker。</strong></p>
+<blockquote>
+<p>因此 OffscreenCanvas 必须搭配 Web Worker 一起使用。</p>
+</blockquote>
+<blockquote>
+<p>补充一个知识点：</p>
+<p>和 OffscreenCanvas 类似的还有 ArrayBuffer、 MessagePort、ImageBitmap，他们都可以与 WebWorker 搭配使用</p>
+</blockquote>
+<br>
+<h2 id="offscreencanvas-的概念和用法">OffscreenCanvas 的概念和用法</h2>
+<h4 id="offscreencanvas-的基本概念">OffscreenCanvas 的基本概念</h4>
+<p>你可以把 WebWorker 做为各种复杂类型的后台运算线程，作用范围比较广泛。</p>
+<p>而 OffscreenCanvas 则专门针对 Canvas 做离屏渲染。</p>
+<blockquote>
+<p>注意，这里提到的 离屏渲染 和 我们使用 WebGLRendererTarget 来做的离屏渲染，从概念上是类似的</p>
+</blockquote>
+<blockquote>
+<p>OffscreenCanvas 的 “离屏” 是指浏览器 DOM 而言</p>
+<p>WebGLRenderTarget 的 “离屏” 只指 Three.js 的主场景(Scene) 而言</p>
+</blockquote>
+<p>你可以把 OffscreenCanvas 看作是针对 Canvas 的特殊 WebWorker 应用场景。</p>
+<p>但是请记得：目前绝大多数浏览器均已支持 WebWorker，但是对 OffscreenCanvas 的支持度并不高。</p>
+<br>
+<p><strong>如何创建 OffscreenCanvas ？</strong></p>
+<p>不可以使用 new OffscreenWorker() 的方式来创建 OffscreenCanvas，而是使用 canvas.transferControlToOffscreen() 来获得 canvas 对应的 OffscreenCanvas。</p>
+<br>
+<p><strong>如何检测当前浏览器是否支持 OffscreenCanvas？</strong></p>
+<p>我们只需检查 canvas 是否存在 transferControlToOffscreen 方法：</p>
+<pre tabindex="0"><code>if(canvas.transferControlToOffscreen !== null){
     console.log(&#39;当前浏览器支持 OffscreenCanvas&#39;)
 }else{
     console.log(&#39;当前浏览器不支持 OffscreenCanvas&#39;)
 }
-</code></pre><blockquote><p>我们是通过检查 canvas 对象上是否包含 .transferControlToOffscreen 方法来判断是否当前浏览器支持 OffscreenCanvas 的。</p><p>这里补充一个 JS 知识，如何判断某个对象上是否有某个属性。</p><p>假设有一个对象</p><pre tabindex=0><code>const obj = {
+</code></pre><blockquote>
+<p>我们是通过检查 canvas 对象上是否包含 .transferControlToOffscreen 方法来判断是否当前浏览器支持 OffscreenCanvas 的。</p>
+<p>这里补充一个 JS 知识，如何判断某个对象上是否有某个属性。</p>
+<p>假设有一个对象</p>
+<pre tabindex="0"><code>const obj = {
   a:undefined,
   b:null
 }
-</code></pre><p>此时我们使用 if(obj.a) 或 if(obj.b) 都是无法准确判断出到底 属性 a、b 是否存在。</p><p>那么这个时候就可以使用以下 2 种方式来进行判断：</p><pre tabindex=0><code>if(&#39;a&#39; in obj) { ... }
+</code></pre><p>此时我们使用 if(obj.a) 或 if(obj.b) 都是无法准确判断出到底 属性 a、b 是否存在。</p>
+<p>那么这个时候就可以使用以下 2 种方式来进行判断：</p>
+<pre tabindex="0"><code>if(&#39;a&#39; in obj) { ... }
 
 if(Reflect.has(obj,&#39;b&#39;)){ ... }
-</code></pre><p>使用 in 或者 Reflect.has() 就可以准确判断出对象上是否具有某属性或方法，即使该属性的值为 undefined</p><blockquote><p>注意：上面 2 种查询方式都需要属性名的字符串值，为了更好的语法提示，我们示例中并不这样用。</p></blockquote></blockquote><br><h4 id=offscreencanvas-的用法>OffscreenCanvas 的用法</h4><blockquote><p>再次强调：通常情况下 OffscreenCanvas 必须搭配 Web Worker 一起使用。</p></blockquote><p>我们单独创建一个 JS 文件，将 canvas 绘制的一些 JS 代码写在这个文件中。</p><p><strong>大体步骤：</strong></p><ol><li><p>创建一个单独的 JS 文件，用来编写 Three.js 场景内容和渲染代码</p><blockquote><p>会以这个 JS 文件来作为 web worker 的调用文件对象</p></blockquote></li><li><p>在主场景中，获得 DOM 中的 canvas</p></li><li><p>获取 canvas 对应的 OffscreenCanvas</p><pre tabindex=0><code>const offscreen = canvas.transferCountrolToOffscreen()
-</code></pre></li><li><p>创建一个 worker 对象，并且设置一些消息参数</p><pre tabindex=0><code>const worker = new Window.Worker(&#39;xx/xxxx.js&#39;,{type:&#39;module&#39;})
+</code></pre><p>使用 in 或者 Reflect.has() 就可以准确判断出对象上是否具有某属性或方法，即使该属性的值为 undefined</p>
+<blockquote>
+<p>注意：上面 2 种查询方式都需要属性名的字符串值，为了更好的语法提示，我们示例中并不这样用。</p>
+</blockquote>
+</blockquote>
+<br>
+<h4 id="offscreencanvas-的用法">OffscreenCanvas 的用法</h4>
+<blockquote>
+<p>再次强调：通常情况下 OffscreenCanvas 必须搭配 Web Worker 一起使用。</p>
+</blockquote>
+<p>我们单独创建一个 JS 文件，将 canvas 绘制的一些 JS 代码写在这个文件中。</p>
+<p><strong>大体步骤：</strong></p>
+<ol>
+<li>
+<p>创建一个单独的 JS 文件，用来编写 Three.js 场景内容和渲染代码</p>
+<blockquote>
+<p>会以这个 JS 文件来作为 web worker 的调用文件对象</p>
+</blockquote>
+</li>
+<li>
+<p>在主场景中，获得 DOM 中的 canvas</p>
+</li>
+<li>
+<p>获取 canvas 对应的 OffscreenCanvas</p>
+<pre tabindex="0"><code>const offscreen = canvas.transferCountrolToOffscreen()
+</code></pre></li>
+<li>
+<p>创建一个 worker 对象，并且设置一些消息参数</p>
+<pre tabindex="0"><code>const worker = new Window.Worker(&#39;xx/xxxx.js&#39;,{type:&#39;module&#39;})
 worker.postMessage({type:&#39;main&#39;,canvas:offscreen},[offscreen])
-</code></pre></li><li><p>由于 web worker 不允许访问 DOM 事件，例如浏览器窗口尺寸改变事件、鼠标事件等，所以当这些事件发生后，我们需要通知 worker，将事件对应的一些参数和变动发送给 worker，以便 worker 中的 canvas 渲染逻辑作出对应的响应。</p><blockquote><p>窗口尺寸改变事件我们还比较容易解决，无非就是把新的尺寸发送给 worker，比较难的是像 鼠标事件、键盘事件等，需要稍微复杂的一些传递方式才可以解决。</p><p>在本文后半部分会有详细讲解。</p></blockquote></li></ol><br><p><strong>实际差异：</strong></p><p>刚才将的是理论上大体步骤，但是由于我们本教程的示例代码，实际上是运行在 React + TypeScript 环境上的，也就是说我们需要编写的是 worker.ts 而不是 worker.js。</p><blockquote><p>当然你也可以采取在编写 worker 时使用 .js 而不是 .ts，只不过这样就失去了 TypeScript 的便利性。</p></blockquote><p>我们推荐的解决方案是使用 webpack 的插件：worker-loader 来解决 react + typescript 环境中编写 worker。</p><p>具体的配置步骤，请参考我写的另外一篇文章：<a href=https://github.com/puxiao/notes/blob/master/WebWorker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0.md#React%E5%86%85%E5%B5%8CWebWorker%E4%BB%A3%E7%A0%81 target=_blank rel=noopener>React 内嵌 WebWorker 代码</a></p><p>接下来，我们将通过一个实际的例子，来演示一遍 OffscreenCanvas + Worker。</p><br><h2 id=离屏画布渲染示例hellooffscreencanvas>离屏画布渲染示例：HelloOffscreenCanvas</h2><p>假设你已经配置好了 worker-loader，那么我们开始本示例。</p><br><h4 id=示例目标>示例目标：</h4><ol><li>场景上有 3 个不同颜色，不断旋转的立方体</li><li>我们将场景中的渲染工作，从主程序中抽离出去，让 Web Worker 来负责场景的渲染工作，依次来减轻主程序的运算负担。</li></ol><br><p><strong>补充说明：</strong></p><ol><li>我们场景中动画渲染本身计算量并不是很大，即使我们不使用 web worker 浏览器也不会卡顿，但本示例只是为了演示如何使用 OffscreenCanvas + Worker。</li><li>我们先假设你的浏览器是支持 OffscreenCanvas 的。</li></ol><br><h4 id=关键点说明>关键点说明：</h4><p>默认 主程序(index.tsx 或 index.ts) 与 分线程(Worker.ts) 彼此通过 .postMessage() 互相发送数据。</p><p>而 .postMessage() 默认发送的数据是深拷贝，而不是引用。</p><blockquote><p>因为本质上 index.tsx 和 worker.ts 就不在同一个线程中，无法共享数据</p><p>支持共享数据的 SharedWorker 目前浏览器支持度还不够高。</p></blockquote><p>假设我们是把场景渲染的计算工作转移到了 worker.ts 中，但是 worker.ts 每次计算好 canvas 画面内容后再发送给 index.tsx，每次都执行一次深拷贝，性能反而低下。</p><blockquote><p>Web Worker 本身是无法访问 DOM 元素的</p></blockquote><p>幸好 .postMessage() 方法的第 2 个参数，允许我们将一些数据类型比较大的对象，直接将控制权转移给 worker.ts。</p><p><strong>也就是说，OffscreenCanvas + Worker 不是走以下流程：</strong></p><ol><li>worker.ts 负责创建 Three.js 场景和物体</li><li>worket.ts 负责渲染得到 场景画面数据</li><li>worket.ts 通过 .postMessage() 将离屏渲染得到的 画布画面内容数据 发送给 index.tsx</li><li>index.tsx 接收 画布画面内容数据 并渲染到 canvas DOM 中</li></ol><p><strong>而是走以下流程：</strong></p><ol><li>index.tsx 通过 canvas.transferToOffscreenCanvas() 得到 OffscreenCanvas</li><li>index.tsx 通过 .postMessage() 第 2 个参数，将 [OffscreenCanavs] 传递给 worker.ts，也就是说将 canvas 的控制权完全交给 worker.ts</li><li>接下来就是 worker.ts 负责创建 Three.js 场景和物体，并且渲染场景画面内容直接赋予给 OffscreenCanavas。</li></ol><br><h4 id=其他补充>其他补充：</h4><p>由于 worker 本身无法获取 DOM ，以及无法获取浏览器某些事件，例如浏览器的窗口大小变动事件。</p><p>所以当浏览器窗口尺寸发生变化后，我们要让 index.tsx 及时通知 worker.ts 新的浏览器窗口宽高，以便让 worker.ts 作出相应的调整。</p><blockquote><p>与窗口尺寸改变相似的还有鼠标移动事件，也可以通过传递当前鼠标坐标位置传递给 Worker 以便做出相应的处理。后期我们会学习如何做场景物体拾取效果，就是鼠标放到某个物体上时物体做出相应变化，这种场景就会需要用到鼠标坐标。</p></blockquote><p>接下来，就开始具体编写代码吧。</p><br><h4 id=message-datats>message-data.ts</h4><blockquote><p>src/components/hello-offscreen-canvas/message-data.ts</p></blockquote><p>message-data.ts 的作用是定义一些参数名、参数值的类型，以便我们获得好的 TS 语法提示。</p><blockquote><p>注意：message-data.ts 会同时被 index.tsx 和 worker.ts 引入，这样做的效果是：</p><ol><li>index.tsx 可以比较容易知道 worker.ts 内部定义的函数名叫什么</li><li>worker.ts 可以比较容易知道 index.tsx 传递过来的参数类型是什么</li></ol></blockquote><pre tabindex=0><code>//定义画布的尺寸类型数据结构
+</code></pre></li>
+<li>
+<p>由于 web worker 不允许访问 DOM 事件，例如浏览器窗口尺寸改变事件、鼠标事件等，所以当这些事件发生后，我们需要通知 worker，将事件对应的一些参数和变动发送给 worker，以便 worker 中的 canvas 渲染逻辑作出对应的响应。</p>
+<blockquote>
+<p>窗口尺寸改变事件我们还比较容易解决，无非就是把新的尺寸发送给 worker，比较难的是像 鼠标事件、键盘事件等，需要稍微复杂的一些传递方式才可以解决。</p>
+<p>在本文后半部分会有详细讲解。</p>
+</blockquote>
+</li>
+</ol>
+<br>
+<p><strong>实际差异：</strong></p>
+<p>刚才将的是理论上大体步骤，但是由于我们本教程的示例代码，实际上是运行在 React + TypeScript 环境上的，也就是说我们需要编写的是 worker.ts 而不是 worker.js。</p>
+<blockquote>
+<p>当然你也可以采取在编写 worker 时使用 .js 而不是 .ts，只不过这样就失去了 TypeScript 的便利性。</p>
+</blockquote>
+<p>我们推荐的解决方案是使用 webpack 的插件：worker-loader 来解决 react + typescript 环境中编写 worker。</p>
+<p>具体的配置步骤，请参考我写的另外一篇文章：<a href="https://github.com/puxiao/notes/blob/master/WebWorker%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0.md#React%E5%86%85%E5%B5%8CWebWorker%E4%BB%A3%E7%A0%81" target="_blank" rel="noopener">React 内嵌 WebWorker 代码</a></p>
+<p>接下来，我们将通过一个实际的例子，来演示一遍 OffscreenCanvas + Worker。</p>
+<br>
+<h2 id="离屏画布渲染示例hellooffscreencanvas">离屏画布渲染示例：HelloOffscreenCanvas</h2>
+<p>假设你已经配置好了 worker-loader，那么我们开始本示例。</p>
+<br>
+<h4 id="示例目标">示例目标：</h4>
+<ol>
+<li>场景上有 3 个不同颜色，不断旋转的立方体</li>
+<li>我们将场景中的渲染工作，从主程序中抽离出去，让 Web Worker 来负责场景的渲染工作，依次来减轻主程序的运算负担。</li>
+</ol>
+<br>
+<p><strong>补充说明：</strong></p>
+<ol>
+<li>我们场景中动画渲染本身计算量并不是很大，即使我们不使用 web worker 浏览器也不会卡顿，但本示例只是为了演示如何使用 OffscreenCanvas + Worker。</li>
+<li>我们先假设你的浏览器是支持 OffscreenCanvas 的。</li>
+</ol>
+<br>
+<h4 id="关键点说明">关键点说明：</h4>
+<p>默认 主程序(index.tsx 或 index.ts) 与 分线程(Worker.ts) 彼此通过 .postMessage() 互相发送数据。</p>
+<p>而 .postMessage() 默认发送的数据是深拷贝，而不是引用。</p>
+<blockquote>
+<p>因为本质上 index.tsx 和 worker.ts 就不在同一个线程中，无法共享数据</p>
+<p>支持共享数据的 SharedWorker 目前浏览器支持度还不够高。</p>
+</blockquote>
+<p>假设我们是把场景渲染的计算工作转移到了 worker.ts 中，但是 worker.ts 每次计算好 canvas 画面内容后再发送给 index.tsx，每次都执行一次深拷贝，性能反而低下。</p>
+<blockquote>
+<p>Web Worker 本身是无法访问 DOM 元素的</p>
+</blockquote>
+<p>幸好 .postMessage() 方法的第 2 个参数，允许我们将一些数据类型比较大的对象，直接将控制权转移给 worker.ts。</p>
+<p><strong>也就是说，OffscreenCanvas + Worker 不是走以下流程：</strong></p>
+<ol>
+<li>worker.ts 负责创建 Three.js 场景和物体</li>
+<li>worket.ts 负责渲染得到 场景画面数据</li>
+<li>worket.ts 通过 .postMessage() 将离屏渲染得到的 画布画面内容数据 发送给 index.tsx</li>
+<li>index.tsx 接收 画布画面内容数据 并渲染到 canvas DOM 中</li>
+</ol>
+<p><strong>而是走以下流程：</strong></p>
+<ol>
+<li>index.tsx 通过 canvas.transferToOffscreenCanvas() 得到 OffscreenCanvas</li>
+<li>index.tsx 通过 .postMessage() 第 2 个参数，将 [OffscreenCanavs] 传递给 worker.ts，也就是说将 canvas 的控制权完全交给 worker.ts</li>
+<li>接下来就是 worker.ts 负责创建 Three.js 场景和物体，并且渲染场景画面内容直接赋予给 OffscreenCanavas。</li>
+</ol>
+<br>
+<h4 id="其他补充">其他补充：</h4>
+<p>由于 worker 本身无法获取 DOM ，以及无法获取浏览器某些事件，例如浏览器的窗口大小变动事件。</p>
+<p>所以当浏览器窗口尺寸发生变化后，我们要让 index.tsx 及时通知 worker.ts 新的浏览器窗口宽高，以便让 worker.ts 作出相应的调整。</p>
+<blockquote>
+<p>与窗口尺寸改变相似的还有鼠标移动事件，也可以通过传递当前鼠标坐标位置传递给 Worker 以便做出相应的处理。后期我们会学习如何做场景物体拾取效果，就是鼠标放到某个物体上时物体做出相应变化，这种场景就会需要用到鼠标坐标。</p>
+</blockquote>
+<p>接下来，就开始具体编写代码吧。</p>
+<br>
+<h4 id="message-datats">message-data.ts</h4>
+<blockquote>
+<p>src/components/hello-offscreen-canvas/message-data.ts</p>
+</blockquote>
+<p>message-data.ts 的作用是定义一些参数名、参数值的类型，以便我们获得好的 TS 语法提示。</p>
+<blockquote>
+<p>注意：message-data.ts 会同时被 index.tsx 和 worker.ts 引入，这样做的效果是：</p>
+<ol>
+<li>index.tsx 可以比较容易知道 worker.ts 内部定义的函数名叫什么</li>
+<li>worker.ts 可以比较容易知道 index.tsx 传递过来的参数类型是什么</li>
+</ol>
+</blockquote>
+<pre tabindex="0"><code>//定义画布的尺寸类型数据结构
 export type CanvasSize = {
     width: number,
     height: number
@@ -46,7 +1157,12 @@ export type MessageData =
     { type: WorkerFunName.main, params: OffscreenCanvas }
     |
     { type: WorkerFunName.updateSize, params: CanvasSize }
-</code></pre><br><h4 id=workerts>worker.ts</h4><blockquote><p>src/components/hello-offscreen-canvas/worker.ts</p></blockquote><pre tabindex=0><code>import * as Three from &#39;three&#39;
+</code></pre><br>
+<h4 id="workerts">worker.ts</h4>
+<blockquote>
+<p>src/components/hello-offscreen-canvas/worker.ts</p>
+</blockquote>
+<pre tabindex="0"><code>import * as Three from &#39;three&#39;
 import { CanvasSize, MessageData, WorkerFunName } from &#39;./message-data&#39;
 
 let renderer: Three.WebGLRenderer
@@ -115,7 +1231,12 @@ self.addEventListener(&#39;messageerror&#39;, handleMessageError)
 
 //导出 {} 是因为 .ts 类型的文件必须有导出对象才可以被 TS 编译成模块，而不是全局对象
 export { }
-</code></pre><br><h4 id=indextsx>index.tsx</h4><blockquote><p>src/components/hello-offscreen-canvas/index.tsx</p></blockquote><pre tabindex=0><code>import { useEffect, useRef } from &#39;react&#39;
+</code></pre><br>
+<h4 id="indextsx">index.tsx</h4>
+<blockquote>
+<p>src/components/hello-offscreen-canvas/index.tsx</p>
+</blockquote>
+<pre tabindex="0"><code>import { useEffect, useRef } from &#39;react&#39;
 import { WorkerFunName } from &#39;./message-data&#39;
 import Worker from &#39;worker-loader!./worker&#39;
 
@@ -165,12 +1286,45 @@ const HelloOffscreenCanvas = () =&gt; {
 }
 
 export default HelloOffscreenCanvas
-</code></pre><p>我们可以看到 index.tsx 中已经没有任何 Three.js 相关的代码了。</p><p>运行调试一切正常。</p><br><p><strong>接下来我们要解决 2 个问题：</strong></p><ol><li><p>控制 3D 场景用到的 OrbitControls 类，在新建时需要传递 HTML DOM 元素，交互的过程中需要 DOM 元素的鼠标事件和键盘事件，但是 worker 内部又不能访问 DOM 元素，那该如何解决？</p></li><li><p>假设浏览器不支持 OffscreenCanvas ，那又该如何拆分我们的代码可以做到兼容？</p><blockquote><p>在软件开发术语中，会使用 “鲁棒性或健壮性” 来指代码的兼容性和容错性。</p></blockquote></li></ol><br><h2 id=模拟并添加-orbitcontrols>模拟并添加 OrbitControls</h2><blockquote><p>你需要先忘记我们上面刚才讲过的示例代码，本小节中所有的代码和上面示例代码没有任何关联。</p></blockquote><h4 id=目前无法使用-orbitcontrols-的困境>目前无法使用 OrbitControls 的困境</h4><p>在以前所有的例子中，我们添加镜头轨道控制器，都是使用以下代码：</p><pre tabindex=0><code>import { OrbitControls } from &#39;three/examples/jsm/controls/OrbitControls&#39;
+</code></pre><p>我们可以看到 index.tsx 中已经没有任何 Three.js 相关的代码了。</p>
+<p>运行调试一切正常。</p>
+<br>
+<p><strong>接下来我们要解决 2 个问题：</strong></p>
+<ol>
+<li>
+<p>控制 3D 场景用到的 OrbitControls 类，在新建时需要传递 HTML DOM 元素，交互的过程中需要 DOM 元素的鼠标事件和键盘事件，但是 worker 内部又不能访问 DOM 元素，那该如何解决？</p>
+</li>
+<li>
+<p>假设浏览器不支持 OffscreenCanvas ，那又该如何拆分我们的代码可以做到兼容？</p>
+<blockquote>
+<p>在软件开发术语中，会使用 “鲁棒性或健壮性” 来指代码的兼容性和容错性。</p>
+</blockquote>
+</li>
+</ol>
+<br>
+<h2 id="模拟并添加-orbitcontrols">模拟并添加 OrbitControls</h2>
+<blockquote>
+<p>你需要先忘记我们上面刚才讲过的示例代码，本小节中所有的代码和上面示例代码没有任何关联。</p>
+</blockquote>
+<h4 id="目前无法使用-orbitcontrols-的困境">目前无法使用 OrbitControls 的困境</h4>
+<p>在以前所有的例子中，我们添加镜头轨道控制器，都是使用以下代码：</p>
+<pre tabindex="0"><code>import { OrbitControls } from &#39;three/examples/jsm/controls/OrbitControls&#39;
 
 const controls = new OrbitControls(camera,canvas)
 或者
 const controls = new OrbitControls(camera,window.body)
-</code></pre><p>OrbitControls 构造函数第 2 个参数无论是 canvas 还是 window.body，一定是一个 DOM 元素。</p><p>我们已经将 Three.js 相关代码都转移到了 Worker 内部，但是 Web Worker 内部是无法获取 DOM 元素的，那么意味着 OrbitControls 根本就无法初始化。</p><blockquote><p>不要想着尝试将 DOM 元素作为 参数，使用 .postMessage() 函数传递给 Worker 内部，因为 .postMessage() 函数中的参数并不是传递引用，而是直接深度复制一份。</p></blockquote><br><h4 id=那么究竟该怎么办呢>那么究竟该怎么办呢？</h4><p>我们先研究一下 OrbitControls 的源码：</p><p><a href=https://github.com/mrdoob/three.js/blob/dev/examples/jsm/controls/OrbitControls.js target=_blank rel=noopener>https://github.com/mrdoob/three.js/blob/dev/examples/jsm/controls/OrbitControls.js</a></p><br><p>我把源码中和 Dom 元素相关的一些关键代码摘录出来：</p><pre tabindex=0><code>//设置 scope = this
+</code></pre><p>OrbitControls 构造函数第 2 个参数无论是 canvas 还是 window.body，一定是一个 DOM 元素。</p>
+<p>我们已经将 Three.js 相关代码都转移到了 Worker 内部，但是 Web Worker 内部是无法获取 DOM 元素的，那么意味着 OrbitControls 根本就无法初始化。</p>
+<blockquote>
+<p>不要想着尝试将 DOM 元素作为 参数，使用 .postMessage() 函数传递给 Worker 内部，因为 .postMessage() 函数中的参数并不是传递引用，而是直接深度复制一份。</p>
+</blockquote>
+<br>
+<h4 id="那么究竟该怎么办呢">那么究竟该怎么办呢？</h4>
+<p>我们先研究一下 OrbitControls 的源码：</p>
+<p><a href="https://github.com/mrdoob/three.js/blob/dev/examples/jsm/controls/OrbitControls.js" target="_blank" rel="noopener">https://github.com/mrdoob/three.js/blob/dev/examples/jsm/controls/OrbitControls.js</a></p>
+<br>
+<p>我把源码中和 Dom 元素相关的一些关键代码摘录出来：</p>
+<pre tabindex="0"><code>//设置 scope = this
 var scope = this;
 
 var OrbitControls = function ( object, domElement ) {
@@ -202,21 +1356,714 @@ if ( state !== STATE.NONE ) {
     scope.domElement.ownerDocument.addEventListener( &#39;pointerup&#39;, onPointerUp, false );
     scope.dispatchEvent( startEvent );
 }
-</code></pre><blockquote><p>补充说明：在最新的浏览器事件中 pointer 相关事件即包含触控笔，也包含鼠标。所以 pointerdown、pointermove、pointerup 这 3 个事件对应 触控笔或鼠标 对应的事件，相当于是 2 者的合体。</p></blockquote><br><p>从上面可以看出，我们初始化传递给 OrbitControls 的 DOM 元素主要是用来添加各种事件侦听。</p><blockquote><p>当然 OrbitControls 代码中也有对应的 removeEventListener 移除事件侦听。</p></blockquote><blockquote><p>补充一点：contextmenu 事件虽然目前部分浏览器支持(主要是火狐浏览器)，但是在 MDN 的文档中已经明确该事件即将被废除。</p></blockquote><br><p><strong>重点来了，请听好：</strong></p><ol><li><p>既然 OrbitControls 需要 DOM 元素的目的是为了获取并添加各种事件侦听</p></li><li><p>而 Worker 中无法获取 DOM 元素</p></li><li><p>那么有没有可能我们虚拟出来一个对象，让该对象拥有和 DOM 元素相同的事件 API</p><blockquote><p>换句话说，就是让这个虚拟出来的对象具备抛出事件的能力</p></blockquote><blockquote><p>补充一点，这里说的 DOM 事件其实有 2 种：</p><ol><li>DOM 元素上的各种用户交互 5 种事件：鼠标事件、滚轴事件、键盘事件、触摸事件、右键菜单事件</li><li>浏览器窗口尺寸发生变化引发 DOM 元素尺寸发生变化的 window resize 事件</li><li>我们需要做的就是分别模拟出以上 6 种事件</li></ol></blockquote></li><li><p>然后我们让 OrbitControls 去侦听这个虚拟对象所发出的各种事件</p></li><li><p>也就是说让这个虚拟对象代替真实的 DOM 元素，以此来解决我们目前的困境</p></li></ol><br><p><strong>思路有了，那该具体怎么做呢？</strong></p><p>首先我们要明白一件事，原生 DOM 对应的属性、方法、事件、以及事件携带的属性 种类繁多且复杂。</p><p>而 OrbitControls 并不是每一个属性、方法、事件、事件每一个属性 都使用到了，也就是说我们所谓的 “模拟”不需要 100% 一模一样，我们只需要提供 OrbitControls 需要的即可。</p><p>究竟需要模拟出 DOM 元素哪些属性和方法，我们会在具体代码时讲解。</p><p>此刻，我们只以事件携带的属性来举例说明：</p><ol><li><p>对于鼠标滚轴滚动来说，OrbitControls 只需要使用到该事件的 deltaY 值</p></li><li><p>对于键盘事件来说，OrbitControls 只需要使用到该事件的 ctrlKey、metaKey、shiftKey、keyCode 值</p><blockquote><p>meta 键？</p><p>这个 meta 键在 Windows 键盘上相当于 windows 键、在苹果键盘上是一个四瓣的小花。</p></blockquote><blockquote><p>在 OrbitControls 内部并未使用到 altKey 值</p></blockquote><blockquote><p>注意：由于 OrbitControls 仅使用到键盘 上/下/左/右 4 个键，我们还可以主动过滤掉一些无用的摁键，换句话说也就是提前判断一下是否是以上 4 个方向键，如果不是，则直接跳过，不传递该事件</p></blockquote><blockquote><p>注意：对于目前版本 Three.js r126 版本而言，OrbitControls 键盘事件读取使用的是 keyCode，但是 event.keyCode 事实上已经不被推荐使用，建议使用 event.code 属性。</p><p>所以我顺带向 Three.js 官方提交了 PR，将 keyCode 修改为 code，这个 PR 已经被官方审查通过了，会在 r127 版本中使用。因此，我也成为 Three.js 代码贡献者了。</p><p>我提交的这个 PR：https://github.com/mrdoob/three.js/pull/21409</p></blockquote><blockquote><p>关于为什么不再推荐使用 event.keyCode 主要是因为 keyCode 不能够比较清晰正确返回键盘所摁键，例如 冒号和分号 都是同一个键，此时 keyCode 就无法精确区分。</p></blockquote></li><li><p>对于鼠标事件，OrbitControls 需要使用到该事件的 pointerType、button、clientX、clientY、ctrlKey、metaKey、shiftKey 值</p></li><li><p>对于触摸(touch)事件，OrbitControls 需要使用每一个 触摸点的 pageX、pageY 属性值</p></li><li><p>&mldr;</p></li></ol><br><p>我们需要让 “虚拟对象” 抛出 “虚拟事件”，并且虚拟事件拥有上面那些属性值。</p><blockquote><p>补充说明：这里所说的 “抛出事件” 暗含 2 种事件：</p><ol><li><p>用户交互事件：鼠标事件、滚轴事件、键盘事件&mldr;</p></li><li><p>浏览器窗口变化引发 “DOM 元素” 内部尺寸属性相关的修改事件</p><blockquote><p>除了 window 拥有 resize 事件之外，普通 DOM 元素是不具备 resize 事件的，我们可以将这个原本不存在的 DOM 元素 resize 追加到 我们的消息中，对于 用户交互事件 我们选择直接抛出、对于 window resize 引发的尺寸修改事件，我们选择内部直接处理。</p></blockquote></li></ol></blockquote><br><p><strong>属性补充说明：</strong></p><p>在 OrbitControls 内部，还会对监听的 DOM 元素的根元素添加 2 个事件侦听。</p><pre tabindex=0><code>// scope = this
+</code></pre><blockquote>
+<p>补充说明：在最新的浏览器事件中 pointer 相关事件即包含触控笔，也包含鼠标。所以 pointerdown、pointermove、pointerup 这 3 个事件对应 触控笔或鼠标 对应的事件，相当于是 2 者的合体。</p>
+</blockquote>
+<br>
+<p>从上面可以看出，我们初始化传递给 OrbitControls 的 DOM 元素主要是用来添加各种事件侦听。</p>
+<blockquote>
+<p>当然 OrbitControls 代码中也有对应的 removeEventListener 移除事件侦听。</p>
+</blockquote>
+<blockquote>
+<p>补充一点：contextmenu 事件虽然目前部分浏览器支持(主要是火狐浏览器)，但是在 MDN 的文档中已经明确该事件即将被废除。</p>
+</blockquote>
+<br>
+<p><strong>重点来了，请听好：</strong></p>
+<ol>
+<li>
+<p>既然 OrbitControls 需要 DOM 元素的目的是为了获取并添加各种事件侦听</p>
+</li>
+<li>
+<p>而 Worker 中无法获取 DOM 元素</p>
+</li>
+<li>
+<p>那么有没有可能我们虚拟出来一个对象，让该对象拥有和 DOM 元素相同的事件 API</p>
+<blockquote>
+<p>换句话说，就是让这个虚拟出来的对象具备抛出事件的能力</p>
+</blockquote>
+<blockquote>
+<p>补充一点，这里说的 DOM 事件其实有 2 种：</p>
+<ol>
+<li>DOM 元素上的各种用户交互 5 种事件：鼠标事件、滚轴事件、键盘事件、触摸事件、右键菜单事件</li>
+<li>浏览器窗口尺寸发生变化引发 DOM 元素尺寸发生变化的 window resize 事件</li>
+<li>我们需要做的就是分别模拟出以上 6 种事件</li>
+</ol>
+</blockquote>
+</li>
+<li>
+<p>然后我们让 OrbitControls 去侦听这个虚拟对象所发出的各种事件</p>
+</li>
+<li>
+<p>也就是说让这个虚拟对象代替真实的 DOM 元素，以此来解决我们目前的困境</p>
+</li>
+</ol>
+<br>
+<p><strong>思路有了，那该具体怎么做呢？</strong></p>
+<p>首先我们要明白一件事，原生 DOM 对应的属性、方法、事件、以及事件携带的属性 种类繁多且复杂。</p>
+<p>而 OrbitControls 并不是每一个属性、方法、事件、事件每一个属性 都使用到了，也就是说我们所谓的 “模拟”不需要 100% 一模一样，我们只需要提供 OrbitControls 需要的即可。</p>
+<p>究竟需要模拟出 DOM 元素哪些属性和方法，我们会在具体代码时讲解。</p>
+<p>此刻，我们只以事件携带的属性来举例说明：</p>
+<ol>
+<li>
+<p>对于鼠标滚轴滚动来说，OrbitControls 只需要使用到该事件的 deltaY 值</p>
+</li>
+<li>
+<p>对于键盘事件来说，OrbitControls 只需要使用到该事件的 ctrlKey、metaKey、shiftKey、keyCode 值</p>
+<blockquote>
+<p>meta 键？</p>
+<p>这个 meta 键在 Windows 键盘上相当于 windows 键、在苹果键盘上是一个四瓣的小花。</p>
+</blockquote>
+<blockquote>
+<p>在 OrbitControls 内部并未使用到 altKey 值</p>
+</blockquote>
+<blockquote>
+<p>注意：由于 OrbitControls 仅使用到键盘 上/下/左/右 4 个键，我们还可以主动过滤掉一些无用的摁键，换句话说也就是提前判断一下是否是以上 4 个方向键，如果不是，则直接跳过，不传递该事件</p>
+</blockquote>
+<blockquote>
+<p>注意：对于目前版本 Three.js r126 版本而言，OrbitControls 键盘事件读取使用的是 keyCode，但是 event.keyCode 事实上已经不被推荐使用，建议使用 event.code 属性。</p>
+<p>所以我顺带向 Three.js 官方提交了 PR，将 keyCode 修改为 code，这个 PR 已经被官方审查通过了，会在 r127 版本中使用。因此，我也成为 Three.js 代码贡献者了。</p>
+<p>我提交的这个 PR：https://github.com/mrdoob/three.js/pull/21409</p>
+</blockquote>
+<blockquote>
+<p>关于为什么不再推荐使用 event.keyCode 主要是因为 keyCode 不能够比较清晰正确返回键盘所摁键，例如 冒号和分号 都是同一个键，此时 keyCode 就无法精确区分。</p>
+</blockquote>
+</li>
+<li>
+<p>对于鼠标事件，OrbitControls 需要使用到该事件的 pointerType、button、clientX、clientY、ctrlKey、metaKey、shiftKey 值</p>
+</li>
+<li>
+<p>对于触摸(touch)事件，OrbitControls 需要使用每一个 触摸点的 pageX、pageY 属性值</p>
+</li>
+<li>
+<p>&hellip;</p>
+</li>
+</ol>
+<br>
+<p>我们需要让 “虚拟对象” 抛出 “虚拟事件”，并且虚拟事件拥有上面那些属性值。</p>
+<blockquote>
+<p>补充说明：这里所说的 “抛出事件” 暗含 2 种事件：</p>
+<ol>
+<li>
+<p>用户交互事件：鼠标事件、滚轴事件、键盘事件&hellip;</p>
+</li>
+<li>
+<p>浏览器窗口变化引发 “DOM 元素” 内部尺寸属性相关的修改事件</p>
+<blockquote>
+<p>除了 window 拥有 resize 事件之外，普通 DOM 元素是不具备 resize 事件的，我们可以将这个原本不存在的 DOM 元素 resize 追加到 我们的消息中，对于 用户交互事件 我们选择直接抛出、对于 window resize 引发的尺寸修改事件，我们选择内部直接处理。</p>
+</blockquote>
+</li>
+</ol>
+</blockquote>
+<br>
+<p><strong>属性补充说明：</strong></p>
+<p>在 OrbitControls 内部，还会对监听的 DOM 元素的根元素添加 2 个事件侦听。</p>
+<pre tabindex="0"><code>// scope = this
 scope.domElement.ownerDocument.addEventListener( &#39;pointermove&#39;, onPointerMove );
 scope.domElement.ownerDocument.addEventListener( &#39;pointerup&#39;, onPointerUp );
-</code></pre><p>因此我们模拟的元素还要拥有 .ownerDocument 属性值。</p><blockquote><p>在后面的实际代码中你会看到，我们会让 模拟元素 .ownerDocument 指向自身。</p><p>this.ownerDocument = this</p></blockquote><br><p><strong>document 补充说明：</strong></p><p>在 OrbitControls 类的构造函数中，有以下代码：</p><pre tabindex=0><code>if ( domElement === undefined ) console.warn( &#39;THREE.OrbitControls: The second parameter &#34;domElement&#34; is now mandatory.&#39; );
+</code></pre><p>因此我们模拟的元素还要拥有 .ownerDocument 属性值。</p>
+<blockquote>
+<p>在后面的实际代码中你会看到，我们会让 模拟元素 .ownerDocument 指向自身。</p>
+<p>this.ownerDocument = this</p>
+</blockquote>
+<br>
+<p><strong>document 补充说明：</strong></p>
+<p>在 OrbitControls 类的构造函数中，有以下代码：</p>
+<pre tabindex="0"><code>if ( domElement === undefined ) console.warn( &#39;THREE.OrbitControls: The second parameter &#34;domElement&#34; is now mandatory.&#39; );
 
 if ( domElement === document ) console.error( &#39;THREE.OrbitControls: &#34;document&#34; should not be used as the target &#34;domElement&#34;. Please use &#34;renderer.domElement&#34; instead.&#39; );
-</code></pre><p>也就是说在初始化 OrbitControls 时会对要侦听的 DOM 元素进行检查。在第 2 行代码中需要使用到 document 这个对象，但是在 web worker 中根本无法访问 document，所以我们需要给 worker 添加一个 document 对象。代码如下：</p><pre tabindex=0><code>//@ts-ignore
+</code></pre><p>也就是说在初始化 OrbitControls 时会对要侦听的 DOM 元素进行检查。在第 2 行代码中需要使用到 document 这个对象，但是在 web worker 中根本无法访问 document，所以我们需要给 worker 添加一个 document 对象。代码如下：</p>
+<pre tabindex="0"><code>//@ts-ignore
 self.document = {}
-</code></pre><ol><li><p>添加 //@ts-ignore 这样注释，可以让 TypeScript 忽略下面一行代码的检查。</p><blockquote><p>因为 window.document 在 TS 版本里被定义为 只读对象，是无法修改的。</p><p>如果我们不选择忽略 TS 检查，当去执行 self.document = {} 时 TS 就会报错。</p></blockquote></li><li><p>我们添加的 self.document = {} 纯粹是为了让 OrbitControls 构造函数可以去访问到 document 对象，避免报错。</p></li></ol><br><p><strong>所谓的 “抛出事件” 实现的途径是由 我们虚构出的一个 事件派发器 来实现的。</strong></p><p><strong>该事件派发器的 3 个功能责任：</strong></p><ol><li>监听功能：监听真实 DOM 元素事件：用户交互事件、浏览器尺寸变化事件</li><li>事件转化：将监听到的事件内容，转化为一条数据，该数据包含该事件中 OrbitControls 所需要的各种属性值</li><li>消息传递：将事件转化后的数据，通过 web worker 的 postMessage() 传递给 web worker</li></ol><br><p><strong>所谓的“模拟的 DOM 元素”，也就是在 web worker 中工作的 DOM 元素。</strong></p><p><strong>该“模拟的 DOM 元素”的 2 个功能责任：</strong></p><ol><li>模拟 DOM 元素的属性和方法</li><li>处理 DOM 元素需要处理的各种事件</li></ol><p><strong>该“模拟的 DOM 元素”的生命工作流程为：</strong></p><ol><li><p>index.tsx 中添加对 真实 DOM 元素的监听，并且通知 worker 创建“模拟元素”的消息</p></li><li><p>worker.ts 中接收消息，开始创建一个 “模拟元素”，并且把该元素传递给 OrbitControls</p></li><li><p>index.tsx 中监听到真实 DOM 元素触发的各种事件，将该事件分析处理，转化为一条约定好的消息 并发送给 worker</p></li><li><p>worker.ts 中接收到事件消息后，将该消息转发给 “模拟的 DOM 元素”</p></li><li><p>“模拟的 DOM 元素” 接收该消息，然后将该消息(包含事件类型、事件属性)抛出，供 OrbitControls 使用</p><blockquote><p>我们抛出的事件，也是模拟出来的事件，并不是原始 DOM 事件，只不过我们模拟出来的事件中恰好包含 OrbitControls 需要的所有属性和方法。</p></blockquote><blockquote><p>在 web worker 中工作的 OrbitControls，从始至终都不知道自己操作的其实是一个假的 DOM 元素，以及监听的事件也是假的 DOM 事件。</p></blockquote></li></ol><br><p><strong>整个事件的流程为：</strong></p><p><strong>真实 DOM 事件 > 转化为消息 > 发送给 worker > 传递给“模拟的 DOM 元素” > 抛出该消息(相当于抛出该事件)</strong></p><p>通过 事件 > 消息 > 消息 > 事件 这样一波操作过后，可以让 OrbitControls 就像监控真实 DOM 元素一样监控运行在 web worker 中的那个 “模拟的 DOM 元素”。</p><blockquote><p>我故意一直使用 “模拟的 DOM 元素”这个词，而没有使用 “虚拟 DOM”，就是为了让我们避免和 react 中 虚拟 DOM 的一词弄混淆。</p></blockquote><br><p><strong>关于 事件抛出 的补充说明：</strong></p><p>我们让 “虚构元素” 继承于 Three 已内置的 EventDispatcher，这样 “虚构元素” 就 具备 .dispatcheEvent() 方法。</p><pre tabindex=0><code>import { EventDispatcher } from &#39;three&#39;
-</code></pre><br><p>为什么不使用 原生 JS 提供的 EventTarget ？</p><p>这是因为原生 JS 提供的 EventTarget 虽然也有 .dispatcheEvent()，但问题是它只可以抛出 JS 中的 Event 实例，而我们在 worker 中并不能使用 Event。</p><br><p><strong>补充说明：</strong></p><p>无论 JS 原生的 EventTarget，还是 Three.js 内置的 EventDispatcher，他们内部本质上都是执行的是函数调用，所以他们的执行过程都是 同步的。</p><blockquote><p>浏览器中原生的各种事件处理函数 其实是异步的。</p></blockquote><br><p><strong>整体解决思路回顾：为什么我们可以实现？</strong></p><p>回顾一下本小节开头的困境问题：web worker 本身不可以访问真实 DOM 元素，当然也包括 DOM 事件。</p><br><p><strong>那么我们究竟是怎么做到的？以及为什么我们可以做到？</strong></p><p><strong>答：机缘巧合</strong></p><p>**第 1 种机缘巧合：**虽然 web worker 无法访问真实的 DOM 元素，但是 canvas 元素对应的 OffscreenCanvas 却是一个例外，通过主线程让出 canvas 绘制控制权，让 web worker 拥有了可以操作并绘制 canvas 元素的能力。</p><blockquote><p>目前火狐浏览器并不支持 OffscreenCanvas，所以本示例还要考虑在非 worker 情况下的场景创建。</p></blockquote><br><p>**第 2 种机缘巧合：**虽然 web worker 无法直接监听真实 DOM 元素事件，但是 web worker 内部却可以运行 抛出事件 这个操作。于是我们通过 事件 > 消息 > 消息 > 事件 的操作让 web worker 内部模拟出的 DOM 元素拥有了像真实 DOM 元素一样的各种事件抛出机制。</p><blockquote><p>再次提醒一下：在 web worker 中，不光 DOM 元素是我们模拟出来的，就连抛出的 DOM 元素事件也是我们模拟出来的。</p></blockquote><p>最终我们让 web worker 中 OrbitControls 正常运行起来了。</p><br><blockquote><p>如果你对我上面的讲述还不太理解，那么多读几遍，不要着急接着往下看。因为如果整体的思路你没有理解透，那么下面这些具体实现的代码，阅读起来也会一头雾水。</p></blockquote><blockquote><p>实话实说，在学习本章内容，看英文原版教程，我花了将近一周的时间，才弄明白整个原理。</p><p>本文讲的内容可能是整个 three.js 教程中最绕、最复杂的，但是为了性能优化，学习一下是非常值得的。</p></blockquote><br><p><strong>补充一个和本文无关的知识点：</strong></p><p>除了 window 之外，其他 DOM 元素尺寸发生变化时，是不会触发任何事件的。</p><ol><li>通过 css 修改 DOM 元素尺寸</li><li>因为 window resize 事件而修改 DOM 元素尺寸</li></ol><p>如果你想监听某 DOM 元素尺寸的变化，在最新的 DOM3 标准中，可以通过 MutationObserver 来监控，具体用法请查阅 MDN 官方文档。</p><p><a href=https://developer.mozilla.org/zh-CN/docs/Web/API/MutationObserver target=_blank rel=noopener>https://developer.mozilla.org/zh-CN/docs/Web/API/MutationObserver</a></p><br><h3 id=整体思路示意图>整体思路示意图</h3><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://puxiao.com/demo/using-orbitcontrols-in-worker/using-orbitcontrols-in-worker.jpg alt=using-orbitcontrols-in-worker.jpg loading=lazy data-zoomable></div></div></figure></p><br><p>接下来开始讲解具体代码如何实现。</p><blockquote><p>由于我使用的是 React + TypeScript，加上我有一些自己代码理解和划分，所以我下面讲述的代码和原教程很多地方都不一样。</p></blockquote><blockquote><p>过程有点复杂，希望我能讲清楚。</p></blockquote><br><h4 id=代码模块规划>代码模块规划</h4><ol><li><p>定义一个类 FictionalElement 继承于 EventDispatcher，用这个类的实例来模拟 “DOM 元素本身”</p><blockquote><p>请注意：FictionalElement 只具备(模仿、模拟) “DOM 元素” 本身的一些属性和方法(例如 width、height、left、top、getBoundingClientRect() 等)，但并不具备可以直接和 web worker 通信的能力</p></blockquote><blockquote><p>在模拟一些 “无用” 的方法时，例如 focus()、preventDefault()、stopPropagation()，将该方法代码体内不添加任何代码，只是保证有这个方法但无需有实际执行内容。</p></blockquote></li><li><p>定义一个类 FictionalElementManager 用来创建和管理所有 FictionalElement 实例</p><blockquote><p>事实上我认为这一步骤不是必须的，因为实际项目中，绝大多数情况下网页中都只会有一个 用户交互元素(通常为 canvas 或 document.body)，并不会有太多元素需要我们管理。但是本文对应的 <a href=https://threejsfundamentals.org/threejs/lessons/threejs-offscreencanvas.html target=_blank rel=noopener>原版教程</a> 中有这一环节(管理层)，那么我们也继续遵循。</p></blockquote><blockquote><p>为了区别不同的管理对象，我们将在内部给每一个 ElementProxyReceiver 添加一个对应的 id</p><p>原版教程中，id 是由 FictionalElementManager 提供的，但是我认为这样并不合理，我采用的是通过外部传递 id 为 string 类型的值。</p></blockquote></li><li><p>定义一个类 FictionalWindow 用来模拟 window</p><blockquote><p>请注意，目前来说 FictionalWindow 仅仅是继承了 EventDispatcher，并没有做其他设置，先这样做，也许未来有其他需求了，再根据需要扩展它。</p></blockquote></li><li><p>定义一个类 ControlsProxy 用来负责基础的 真实 DOM 元素与 Web Worker 之间通信。</p><blockquote><p>当浏览器窗口尺寸发生变化时，我们模拟的 &ldquo;DOM 元素本身"也应该会发生尺寸变化，而这个变化的触发并不是由 FictionalElement 完成的，而是由 ControlsProxy 来完成的。</p></blockquote></li><li><p>定义一个类 OrbitControlsProxy 继承于 ControlsProxy，然后重写 configEventListener() 和 dispose()</p><blockquote><p>你可能疑惑为什么我没有直接把代码写在同一个类里，而是要拆分成 2 个。我这样做的原因是想将一些基础的、共性的属性和方法抽离出来，这样未来有一天我们要去实现其他轨道控制器，都可以继承于 ControlsProxy</p></blockquote></li><li><p>定义一个类 WorkerMessageType，用来定义 发送消息 的类型</p><blockquote><p>每次都靠手写消息类型是不靠谱的，万一手抖拼写错字母了想检查出来都不容易。</p></blockquote></li><li><p>此外，虽然本教程一直都是用的是 TypeScript，但是在编写这些类的时候，考虑有些人并不使用 TS，所以我采用的是 .js + JSDoc 的方式，通过 JSDoc 代码注释的形式来定义不同消息的数据结构，没有使用 .ts。</p><blockquote><p>我也是因为这个示例而去学习了 JSDoc，感兴趣可查看我另外一篇学习笔记：<a href=https://github.com/puxiao/notes/blob/master/JSDoc%E7%9A%84%E5%AE%89%E8%A3%85%E4%B8%8E%E4%BD%BF%E7%94%A8.md target=_blank rel=noopener>JSDoc 的安装与使用.md</a></p></blockquote></li></ol><br><p>以上仅仅是 “虚构” 的核心代码，除此之外，我们还需要编写对应的 “应用” 层面的代码：</p><ol><li><p>index.tsx：JS 主场景 main 代码</p></li><li><p>worker.ts：Worker 场景代码</p></li><li><p>create-world.ts：负责创建 Three.js 3D 场景的核心代码</p><blockquote><p>create-world.ts 中的代码并不知道自己将来是运行在 Worker 中还是运行在 主场景中(Main)</p></blockquote></li></ol><br><p><strong>如果你能坚持看到这里没有被我绕晕，那恭喜你。</strong></p><p>是不是该展示具体代码了？</p><br><h3 id=项目实际代码>项目实际代码</h3><p>原理都讲述完了，但是每个类的代码细节实在是太多，我也不想再细致讲述了，所以在 Github 单独创建了一个项目：</p><p><strong><a href=https://github.com/puxiao/using-orbitcontrols-in-worker target=_blank rel=noopener>https://github.com/puxiao/using-orbitcontrols-in-worker</a></strong></p><br><blockquote><p>为了让全世界的人能看到我的这个代码，我竟然写了一个英文版 README.MD</p></blockquote><p>你可以直接查看我写的简体中文介绍文档：</p><p><a href=https://github.com/puxiao/using-orbitcontrols-in-worker/blob/main/README-zh_CN.md target=_blank rel=noopener>https://github.com/puxiao/using-orbitcontrols-in-worker/blob/main/README-zh_CN.md</a></p><br><h3 id=说一下我的感受>说一下我的感受</h3><p>本节后面的代码实现，花费了我有 1 个月的时间，整个过程即充实有痛苦。</p><ol><li>从阅读原版教程，完全看不懂 理解不了</li><li>后来可以理解</li><li>改为自己的实现方式</li><li>不断得修改、优化代码</li><li>上传到 Github 编写文档</li></ol><p>尽管掌握了本章所写的示例代码，但是这些对实际 Three.js 的使用提升并不会有立竿见影的效果。</p><br><h4 id=但是>但是！</h4><p>因为不断的深入去理解，学习，我也有很多收获：</p><ol><li><p>我成功向 Three.js 贡献了自己的一点点代码，尤其是在提交自己的 PR 过程中，用蹩脚英语与 Three.js 代码审查人员的不断沟通，是一次很神奇的体验。</p></li><li><p>通过 OrbitControls，顺带我也看了其他 轨道控制器的 一些源码，事实上我原本的野心计划是编写出所有轨道控制器的 ControlsProxy 版，但是时间和精力，这个事情只能暂时放下，等待将来或者其他感兴趣的人来编写吧。</p><blockquote><p>目前我的项目中只编写了 OrbitControlsProxy.js，如果你感兴趣，也可以尝试编写出其他 轨道控制器对应的 XxxControlsProxy。</p><p>提醒：如果你想编写其他轨道控制器的代理管理类，它需要继承于 ControlsProxy，然后重写 configEventListener() 和 dispose() 这 2 个方法。</p></blockquote></li><li><p>学习了 JSDoc 注释规范，也就是即使我们不使用 TypeScript，通过 JSDoc 注释依然可以进行类型定义。</p><blockquote><p>通过 JSDoc 的学习，让我对 TypeScript 有更加深一层的理解。</p><p>无论 TypeScript 还是 JSDoc，还是 VSCode IDE 本身的代码提示和自动检查，本质上都仅仅在 开发阶段 对我们编写的代码进行约束，将来 JS 运行阶段就管不了那么多了。</p></blockquote></li><li><p>接触了 //@ts-ignore 这个特殊注释</p></li></ol><br><h3 id=本小节结束>本小节结束</h3><p>本小节至此结束，同时也意味着本系列教程的 “优化” 篇章讲解完成。</p><p>接下来，我们要开始新的阶段学习，下一阶段才决定我们 Three.js 实际应用领域 “质的飞越”。</p><br><p><strong>下一阶段，我们要开始学习 Three.js 中常见的各种应用场景解决方案。</strong></p><p>加油，好玩有趣的事情终于要开始了。</p><br></div><div class=article-widget><div class="container-xl row post-nav"><div class="col-6 post-nav-item"><div class=meta-nav>上一页</div><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/21.three.js-%E4%BC%98%E5%8C%96%E4%B9%8B%E5%90%88%E5%B9%B6%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%8A%A8%E7%94%BB/ rel=next>21.Three.js 优化之合并对象的动画</a></div><div class="col-6 post-nav-item"><div class=meta-nav>下一页</div><a href=/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/23.three.js-%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8B%E5%8A%A0%E8%BD%BD.obj%E6%A8%A1%E5%9E%8B/ rel=prev>23.Three.js 解决方案之加载.obj模型</a></div></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div><script type=text/javascript id=clstr_globe async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
-<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
-<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
-<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
-<script id=dsq-count-scr src=https://ngte.disqus.com/count.js async></script>
-<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
-<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
-<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
-<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>
+</code></pre><ol>
+<li>
+<p>添加 //@ts-ignore 这样注释，可以让 TypeScript 忽略下面一行代码的检查。</p>
+<blockquote>
+<p>因为 window.document 在 TS 版本里被定义为 只读对象，是无法修改的。</p>
+<p>如果我们不选择忽略 TS 检查，当去执行 self.document = {} 时 TS 就会报错。</p>
+</blockquote>
+</li>
+<li>
+<p>我们添加的 self.document = {} 纯粹是为了让 OrbitControls 构造函数可以去访问到 document 对象，避免报错。</p>
+</li>
+</ol>
+<br>
+<p><strong>所谓的 “抛出事件” 实现的途径是由 我们虚构出的一个 事件派发器 来实现的。</strong></p>
+<p><strong>该事件派发器的 3 个功能责任：</strong></p>
+<ol>
+<li>监听功能：监听真实 DOM 元素事件：用户交互事件、浏览器尺寸变化事件</li>
+<li>事件转化：将监听到的事件内容，转化为一条数据，该数据包含该事件中 OrbitControls 所需要的各种属性值</li>
+<li>消息传递：将事件转化后的数据，通过 web worker 的 postMessage() 传递给 web worker</li>
+</ol>
+<br>
+<p><strong>所谓的“模拟的 DOM 元素”，也就是在 web worker 中工作的 DOM 元素。</strong></p>
+<p><strong>该“模拟的 DOM 元素”的 2 个功能责任：</strong></p>
+<ol>
+<li>模拟 DOM 元素的属性和方法</li>
+<li>处理 DOM 元素需要处理的各种事件</li>
+</ol>
+<p><strong>该“模拟的 DOM 元素”的生命工作流程为：</strong></p>
+<ol>
+<li>
+<p>index.tsx 中添加对 真实 DOM 元素的监听，并且通知 worker 创建“模拟元素”的消息</p>
+</li>
+<li>
+<p>worker.ts 中接收消息，开始创建一个 “模拟元素”，并且把该元素传递给 OrbitControls</p>
+</li>
+<li>
+<p>index.tsx 中监听到真实 DOM 元素触发的各种事件，将该事件分析处理，转化为一条约定好的消息 并发送给 worker</p>
+</li>
+<li>
+<p>worker.ts 中接收到事件消息后，将该消息转发给 “模拟的 DOM 元素”</p>
+</li>
+<li>
+<p>“模拟的 DOM 元素” 接收该消息，然后将该消息(包含事件类型、事件属性)抛出，供 OrbitControls 使用</p>
+<blockquote>
+<p>我们抛出的事件，也是模拟出来的事件，并不是原始 DOM 事件，只不过我们模拟出来的事件中恰好包含 OrbitControls 需要的所有属性和方法。</p>
+</blockquote>
+<blockquote>
+<p>在 web worker 中工作的 OrbitControls，从始至终都不知道自己操作的其实是一个假的 DOM 元素，以及监听的事件也是假的 DOM 事件。</p>
+</blockquote>
+</li>
+</ol>
+<br>
+<p><strong>整个事件的流程为：</strong></p>
+<p><strong>真实 DOM 事件 &gt; 转化为消息 &gt; 发送给 worker &gt; 传递给“模拟的 DOM 元素” &gt; 抛出该消息(相当于抛出该事件)</strong></p>
+<p>通过 事件 &gt; 消息 &gt; 消息 &gt; 事件 这样一波操作过后，可以让 OrbitControls 就像监控真实 DOM 元素一样监控运行在 web worker 中的那个 “模拟的 DOM 元素”。</p>
+<blockquote>
+<p>我故意一直使用 “模拟的 DOM 元素”这个词，而没有使用 “虚拟 DOM”，就是为了让我们避免和 react 中 虚拟 DOM 的一词弄混淆。</p>
+</blockquote>
+<br>
+<p><strong>关于 事件抛出 的补充说明：</strong></p>
+<p>我们让 “虚构元素” 继承于 Three 已内置的 EventDispatcher，这样 “虚构元素” 就 具备 .dispatcheEvent() 方法。</p>
+<pre tabindex="0"><code>import { EventDispatcher } from &#39;three&#39;
+</code></pre><br>
+<p>为什么不使用 原生 JS 提供的 EventTarget ？</p>
+<p>这是因为原生 JS 提供的 EventTarget 虽然也有 .dispatcheEvent()，但问题是它只可以抛出 JS 中的 Event 实例，而我们在 worker 中并不能使用 Event。</p>
+<br>
+<p><strong>补充说明：</strong></p>
+<p>无论 JS 原生的 EventTarget，还是 Three.js 内置的 EventDispatcher，他们内部本质上都是执行的是函数调用，所以他们的执行过程都是 同步的。</p>
+<blockquote>
+<p>浏览器中原生的各种事件处理函数 其实是异步的。</p>
+</blockquote>
+<br>
+<p><strong>整体解决思路回顾：为什么我们可以实现？</strong></p>
+<p>回顾一下本小节开头的困境问题：web worker 本身不可以访问真实 DOM 元素，当然也包括 DOM 事件。</p>
+<br>
+<p><strong>那么我们究竟是怎么做到的？以及为什么我们可以做到？</strong></p>
+<p><strong>答：机缘巧合</strong></p>
+<p>**第 1 种机缘巧合：**虽然 web worker 无法访问真实的 DOM 元素，但是 canvas 元素对应的 OffscreenCanvas 却是一个例外，通过主线程让出 canvas 绘制控制权，让 web worker 拥有了可以操作并绘制 canvas 元素的能力。</p>
+<blockquote>
+<p>目前火狐浏览器并不支持 OffscreenCanvas，所以本示例还要考虑在非 worker 情况下的场景创建。</p>
+</blockquote>
+<br>
+<p>**第 2 种机缘巧合：**虽然 web worker 无法直接监听真实 DOM 元素事件，但是 web worker 内部却可以运行 抛出事件 这个操作。于是我们通过 事件 &gt; 消息 &gt; 消息 &gt; 事件 的操作让 web worker 内部模拟出的 DOM 元素拥有了像真实 DOM 元素一样的各种事件抛出机制。</p>
+<blockquote>
+<p>再次提醒一下：在 web worker 中，不光 DOM 元素是我们模拟出来的，就连抛出的 DOM 元素事件也是我们模拟出来的。</p>
+</blockquote>
+<p>最终我们让 web worker 中 OrbitControls 正常运行起来了。</p>
+<br>
+<blockquote>
+<p>如果你对我上面的讲述还不太理解，那么多读几遍，不要着急接着往下看。因为如果整体的思路你没有理解透，那么下面这些具体实现的代码，阅读起来也会一头雾水。</p>
+</blockquote>
+<blockquote>
+<p>实话实说，在学习本章内容，看英文原版教程，我花了将近一周的时间，才弄明白整个原理。</p>
+<p>本文讲的内容可能是整个 three.js 教程中最绕、最复杂的，但是为了性能优化，学习一下是非常值得的。</p>
+</blockquote>
+<br/>
+<p><strong>补充一个和本文无关的知识点：</strong></p>
+<p>除了 window 之外，其他 DOM 元素尺寸发生变化时，是不会触发任何事件的。</p>
+<ol>
+<li>通过 css 修改 DOM 元素尺寸</li>
+<li>因为 window resize 事件而修改 DOM 元素尺寸</li>
+</ol>
+<p>如果你想监听某 DOM 元素尺寸的变化，在最新的 DOM3 标准中，可以通过 MutationObserver 来监控，具体用法请查阅 MDN 官方文档。</p>
+<p><a href="https://developer.mozilla.org/zh-CN/docs/Web/API/MutationObserver" target="_blank" rel="noopener">https://developer.mozilla.org/zh-CN/docs/Web/API/MutationObserver</a></p>
+<br/>
+<h3 id="整体思路示意图">整体思路示意图</h3>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://puxiao.com/demo/using-orbitcontrols-in-worker/using-orbitcontrols-in-worker.jpg" alt="using-orbitcontrols-in-worker.jpg" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<br>
+<p>接下来开始讲解具体代码如何实现。</p>
+<blockquote>
+<p>由于我使用的是 React + TypeScript，加上我有一些自己代码理解和划分，所以我下面讲述的代码和原教程很多地方都不一样。</p>
+</blockquote>
+<blockquote>
+<p>过程有点复杂，希望我能讲清楚。</p>
+</blockquote>
+<br>
+<h4 id="代码模块规划">代码模块规划</h4>
+<ol>
+<li>
+<p>定义一个类 FictionalElement 继承于 EventDispatcher，用这个类的实例来模拟 “DOM 元素本身”</p>
+<blockquote>
+<p>请注意：FictionalElement 只具备(模仿、模拟) “DOM 元素” 本身的一些属性和方法(例如 width、height、left、top、getBoundingClientRect() 等)，但并不具备可以直接和 web worker 通信的能力</p>
+</blockquote>
+<blockquote>
+<p>在模拟一些 “无用” 的方法时，例如 focus()、preventDefault()、stopPropagation()，将该方法代码体内不添加任何代码，只是保证有这个方法但无需有实际执行内容。</p>
+</blockquote>
+</li>
+<li>
+<p>定义一个类 FictionalElementManager 用来创建和管理所有 FictionalElement 实例</p>
+<blockquote>
+<p>事实上我认为这一步骤不是必须的，因为实际项目中，绝大多数情况下网页中都只会有一个 用户交互元素(通常为 canvas 或 document.body)，并不会有太多元素需要我们管理。但是本文对应的 <a href="https://threejsfundamentals.org/threejs/lessons/threejs-offscreencanvas.html" target="_blank" rel="noopener">原版教程</a> 中有这一环节(管理层)，那么我们也继续遵循。</p>
+</blockquote>
+<blockquote>
+<p>为了区别不同的管理对象，我们将在内部给每一个 ElementProxyReceiver 添加一个对应的 id</p>
+<p>原版教程中，id 是由 FictionalElementManager 提供的，但是我认为这样并不合理，我采用的是通过外部传递 id 为 string 类型的值。</p>
+</blockquote>
+</li>
+<li>
+<p>定义一个类 FictionalWindow 用来模拟 window</p>
+<blockquote>
+<p>请注意，目前来说 FictionalWindow 仅仅是继承了 EventDispatcher，并没有做其他设置，先这样做，也许未来有其他需求了，再根据需要扩展它。</p>
+</blockquote>
+</li>
+<li>
+<p>定义一个类 ControlsProxy 用来负责基础的 真实 DOM 元素与 Web Worker 之间通信。</p>
+<blockquote>
+<p>当浏览器窗口尺寸发生变化时，我们模拟的 &ldquo;DOM 元素本身&quot;也应该会发生尺寸变化，而这个变化的触发并不是由 FictionalElement 完成的，而是由 ControlsProxy 来完成的。</p>
+</blockquote>
+</li>
+<li>
+<p>定义一个类 OrbitControlsProxy 继承于 ControlsProxy，然后重写 configEventListener() 和 dispose()</p>
+<blockquote>
+<p>你可能疑惑为什么我没有直接把代码写在同一个类里，而是要拆分成 2 个。我这样做的原因是想将一些基础的、共性的属性和方法抽离出来，这样未来有一天我们要去实现其他轨道控制器，都可以继承于 ControlsProxy</p>
+</blockquote>
+</li>
+<li>
+<p>定义一个类 WorkerMessageType，用来定义 发送消息 的类型</p>
+<blockquote>
+<p>每次都靠手写消息类型是不靠谱的，万一手抖拼写错字母了想检查出来都不容易。</p>
+</blockquote>
+</li>
+<li>
+<p>此外，虽然本教程一直都是用的是 TypeScript，但是在编写这些类的时候，考虑有些人并不使用 TS，所以我采用的是 .js + JSDoc 的方式，通过 JSDoc 代码注释的形式来定义不同消息的数据结构，没有使用 .ts。</p>
+<blockquote>
+<p>我也是因为这个示例而去学习了 JSDoc，感兴趣可查看我另外一篇学习笔记：<a href="https://github.com/puxiao/notes/blob/master/JSDoc%E7%9A%84%E5%AE%89%E8%A3%85%E4%B8%8E%E4%BD%BF%E7%94%A8.md" target="_blank" rel="noopener">JSDoc 的安装与使用.md</a></p>
+</blockquote>
+</li>
+</ol>
+<br>
+<p>以上仅仅是 “虚构” 的核心代码，除此之外，我们还需要编写对应的 “应用” 层面的代码：</p>
+<ol>
+<li>
+<p>index.tsx：JS 主场景 main 代码</p>
+</li>
+<li>
+<p>worker.ts：Worker 场景代码</p>
+</li>
+<li>
+<p>create-world.ts：负责创建 Three.js 3D 场景的核心代码</p>
+<blockquote>
+<p>create-world.ts 中的代码并不知道自己将来是运行在 Worker 中还是运行在 主场景中(Main)</p>
+</blockquote>
+</li>
+</ol>
+<br>
+<p><strong>如果你能坚持看到这里没有被我绕晕，那恭喜你。</strong></p>
+<p>是不是该展示具体代码了？</p>
+<br>
+<h3 id="项目实际代码">项目实际代码</h3>
+<p>原理都讲述完了，但是每个类的代码细节实在是太多，我也不想再细致讲述了，所以在 Github 单独创建了一个项目：</p>
+<p><strong><a href="https://github.com/puxiao/using-orbitcontrols-in-worker" target="_blank" rel="noopener">https://github.com/puxiao/using-orbitcontrols-in-worker</a></strong></p>
+<br>
+<blockquote>
+<p>为了让全世界的人能看到我的这个代码，我竟然写了一个英文版 README.MD</p>
+</blockquote>
+<p>你可以直接查看我写的简体中文介绍文档：</p>
+<p><a href="https://github.com/puxiao/using-orbitcontrols-in-worker/blob/main/README-zh_CN.md" target="_blank" rel="noopener">https://github.com/puxiao/using-orbitcontrols-in-worker/blob/main/README-zh_CN.md</a></p>
+<br>
+<h3 id="说一下我的感受">说一下我的感受</h3>
+<p>本节后面的代码实现，花费了我有 1 个月的时间，整个过程即充实有痛苦。</p>
+<ol>
+<li>从阅读原版教程，完全看不懂 理解不了</li>
+<li>后来可以理解</li>
+<li>改为自己的实现方式</li>
+<li>不断得修改、优化代码</li>
+<li>上传到 Github 编写文档</li>
+</ol>
+<p>尽管掌握了本章所写的示例代码，但是这些对实际 Three.js 的使用提升并不会有立竿见影的效果。</p>
+<br>
+<h4 id="但是">但是！</h4>
+<p>因为不断的深入去理解，学习，我也有很多收获：</p>
+<ol>
+<li>
+<p>我成功向 Three.js 贡献了自己的一点点代码，尤其是在提交自己的 PR 过程中，用蹩脚英语与 Three.js 代码审查人员的不断沟通，是一次很神奇的体验。</p>
+</li>
+<li>
+<p>通过 OrbitControls，顺带我也看了其他 轨道控制器的 一些源码，事实上我原本的野心计划是编写出所有轨道控制器的 ControlsProxy 版，但是时间和精力，这个事情只能暂时放下，等待将来或者其他感兴趣的人来编写吧。</p>
+<blockquote>
+<p>目前我的项目中只编写了 OrbitControlsProxy.js，如果你感兴趣，也可以尝试编写出其他 轨道控制器对应的 XxxControlsProxy。</p>
+<p>提醒：如果你想编写其他轨道控制器的代理管理类，它需要继承于 ControlsProxy，然后重写 configEventListener() 和 dispose() 这 2 个方法。</p>
+</blockquote>
+</li>
+<li>
+<p>学习了 JSDoc 注释规范，也就是即使我们不使用 TypeScript，通过 JSDoc 注释依然可以进行类型定义。</p>
+<blockquote>
+<p>通过 JSDoc 的学习，让我对 TypeScript 有更加深一层的理解。</p>
+<p>无论 TypeScript 还是 JSDoc，还是 VSCode IDE 本身的代码提示和自动检查，本质上都仅仅在 开发阶段 对我们编写的代码进行约束，将来 JS 运行阶段就管不了那么多了。</p>
+</blockquote>
+</li>
+<li>
+<p>接触了 //@ts-ignore 这个特殊注释</p>
+</li>
+</ol>
+<br>
+<h3 id="本小节结束">本小节结束</h3>
+<p>本小节至此结束，同时也意味着本系列教程的 “优化” 篇章讲解完成。</p>
+<p>接下来，我们要开始新的阶段学习，下一阶段才决定我们 Three.js 实际应用领域 “质的飞越”。</p>
+<br>
+<p><strong>下一阶段，我们要开始学习 Three.js 中常见的各种应用场景解决方案。</strong></p>
+<p>加油，好玩有趣的事情终于要开始了。</p>
+<br>
+
+          </div>
+
+          
+
+
+
+          
+          
+          <div class="article-widget">
+            
+<div class="container-xl row post-nav">
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">上一页</div>
+    <a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/21.three.js-%E4%BC%98%E5%8C%96%E4%B9%8B%E5%90%88%E5%B9%B6%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%8A%A8%E7%94%BB/" rel="next">21.Three.js 优化之合并对象的动画</a>
+  </div>
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">下一页</div>
+    <a href="/books/cg-notes/03.%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6%E5%BA%93/web-%E5%9B%BE%E5%BD%A2%E7%BB%98%E5%88%B6/three.js/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-puxiao-three.js-%E7%B3%BB%E5%88%97%E6%95%99%E7%A8%8B/23.three.js-%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%B9%8B%E5%8A%A0%E8%BD%BD.obj%E6%A8%A1%E5%9E%8B/" rel="prev">23.Three.js 解决方案之加载.obj模型</a>
+  </div>
+  
+</div>
+
+          </div>
+          
+
+        <div class="body-footer">
+          <p>最近更新于 0001-01-01</p>
+
+          
+
+
+
+          
+
+
+  
+  
+  
+
+  
+
+  
+  <section id="comments" class="mb-3 pt-0">
+    
+<div id="disqus_thread"></div>
+<script>
+  var disqus_config = function () {
+    
+    
+    
+  };
+  (function() {
+    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+      return;
+    }
+    var d = document, s = d.createElement('script'); 
+    s.async = true;
+    s.src = 'https://' + "ngte" + '.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </section>
+  
+
+
+
+          
+
+
+        </div>
+
+      </article>
+
+      <footer class="site-footer">
+
+  
+
+
+
+  
+
+  
+  <div class="copyright py-4 bg-footer">
+      <div class="row justify-content-center">
+        <div class="text-center footer-color">
+          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
+        </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" id="clstr_globe" async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script>
+  
+</footer>
+
+
+    </main>
+  </div>
+</div>
+<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
+<script>
+  const heti = new Heti('.article');
+  heti.autoSpacing();
+</script>
+<script type="text/javascript">
+  window.$crisp = [];
+  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
+  (function () {
+    setTimeout(function() {
+      d = document;
+      s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    }, 2500);
+  })();
+</script>
+  </div>
+
+  <div class="page-footer">
+    
+    
+  </div>
+
+      
+
+    
+    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
+
+    
+    
+    
+      
+
+      
+      
+
+      
+
+      
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
+        
+        
+      
+
+    
+
+    
+    
+    
+
+    
+    
+    
+      
+      <script id="search-hit-algolia-template" type="text/html">
+        <div class="search-hit">
+          <div class="search-hit-content">
+            <div class="search-hit-name">
+              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
+            </div>
+            <div class="article-metadata search-hit-type">{{type}}</div>
+            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
+          </div>
+        </div>
+      </script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
+      
+      
+    
+
+    
+    
+
+    
+    
+    
+    
+      <script id="dsq-count-scr" src="https://ngte.disqus.com/count.js" async></script>
+      
+    
+
+    
+    
+      
+      
+      
+      
+      
+      
+      
+    
+
+    
+    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
+    
+
+    
+    
+    
+    <script id="page-data" type="application/json">{"use_headroom":false}</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
+
+    
+    
+    
+    
+    
+    
+    <script>
+
+var mybutton = document.getElementById("backTopBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+}
+</script>
+
+
+    
+
+    
+    
+    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+    <script>
+      anchors.add();
+    </script>
+    
+
+    
+    <script>
+
+
+
+(function() {
+  'use strict';
+
+  if(!document.queryCommandSupported('copy')) {
+    return;
+  }
+
+  function flashCopyMessage(el, msg) {
+    el.className = "highlight-copy-btn";
+    el.textContent = msg;
+    setTimeout(function() {
+      el.textContent = "";
+      el.className = "highlight-copy-btn fa fa-copy";
+    }, 1000);
+  }
+
+  function selectText(node) {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection;
+  }
+
+  function addCopyButton(containerEl) {
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "highlight-copy-btn fa fa-copy";
+    copyBtn.textContent = "";
+
+    var codeEl = containerEl.firstElementChild;
+    copyBtn.addEventListener('click', function() {
+      try {
+        var selection = selectText(codeEl);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        
+        flashCopyMessage(copyBtn, '已复制')
+        
+      } catch(e) {
+        console && console.log(e);
+        flashCopyMessage(copyBtn, 'Failed :\'(')
+      }
+    });
+
+    containerEl.appendChild(copyBtn);
+  }
+
+  
+  var highlightBlocks = document.getElementsByClassName('highlight');
+  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
+})();
+</script>
+
+    
+
+
+</body>
+</html>

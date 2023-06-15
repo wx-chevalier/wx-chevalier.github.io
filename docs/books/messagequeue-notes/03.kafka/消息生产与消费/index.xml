@@ -1,327 +1,657 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>消息生产与消费 | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/messagequeue-notes/03.kafka/%E6%B6%88%E6%81%AF%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9/</link><atom:link href="https://ng-tech.icu/books/messagequeue-notes/03.kafka/%E6%B6%88%E6%81%AF%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9/index.xml" rel="self" type="application/rss+xml"/><description>消息生产与消费</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>消息生产与消费</title><link>https://ng-tech.icu/books/messagequeue-notes/03.kafka/%E6%B6%88%E6%81%AF%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9/</link></image><item><title>生产者</title><link>https://ng-tech.icu/books/messagequeue-notes/03.kafka/%E6%B6%88%E6%81%AF%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9/%E7%94%9F%E4%BA%A7%E8%80%85/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/messagequeue-notes/03.kafka/%E6%B6%88%E6%81%AF%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9/%E7%94%9F%E4%BA%A7%E8%80%85/</guid><description>&lt;h1 id="kafka-producer">Kafka Producer&lt;/h1>
-&lt;p>在 Kafka 中，我们把产生消息的那一方称为生产者，比如登录电商网站的时候，你的登陆信息，登陆次数都会作为消息传输到 Kafka 后台，当你浏览购物的时候，你的浏览信息，你的搜索指数，你的购物爱好都会作为一个个消息传递给 Kafka 后台，然后系统会根据你的爱好做智能推荐。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6077eb408322e6675c92ad73.jpg" alt="生产者设计" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>Kafka 中的生产者设计主要考虑了以下方面：&lt;/p>
-&lt;ul>
-&lt;li>
-&lt;p>负载均衡：由于消息 topic 由多个 partition 组成，且 partition 会均衡分布到不同 broker 上，因此，为了有效利用 broker 集群的性能，提高消息的吞吐量，producer 可以通过随机或者 hash 等方式，将消息平均发送到多个 partition 上，以实现负载均衡。&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>批量发送：是提高消息吞吐量重要的方式，Producer 端可以在内存中合并多条消息后，以一次请求的方式发送了批量的消息给 broker，从而大大减少 broker 存储消息的 IO 操作次数。但也一定程度上影响了消息的实时性，相当于以时延代价，换取更好的吞吐量。&lt;/p>
-&lt;/li>
-&lt;/ul>
-&lt;h1 id="创建-kafka-生产者">创建 Kafka 生产者&lt;/h1>
-&lt;p>要向 Kafka 写入消息，首先需要创建一个生产者对象，并设置一些属性。Kafka 生产者有 3 个必选的属性：&lt;/p>
-&lt;ul>
-&lt;li>
-&lt;p>bootstrap.servers：该属性指定 broker 的地址清单，地址的格式为 host:port。清单里不需要包含所有的 broker 地址，生产者会从给定的 broker 里查找到其他的 broker 信息。不过建议至少要提供两个 broker 信息，一旦其中一个宕机，生产者仍然能够连接到集群上。&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>key.serializer：broker 需要接收到序列化之后的 key/value 值，所以生产者发送的消息需要经过序列化之后才传递给 Kafka Broker。生产者需要知道采用何种方式把 Java 对象转换为字节数组。key.serializer 必须被设置为一个实现了 org.apache.kafka.common.serialization.Serializer 接口的类，生产者会使用这个类把键对象序列化为字节数组。这里拓展一下 Serializer 类，Serializer 是一个接口，它表示类将会采用何种方式序列化，它的作用是把对象转换为字节，实现了 Serializer 接口的类主要有 ByteArraySerializer、StringSerializer、IntegerSerializer ，其中 ByteArraySerialize 是 Kafka 默认使用的序列化器，其他的序列化器还有很多，你可以通过 这里 查看其他序列化器。要注意的一点：key.serializer 是必须要设置的，即使你打算只发送值的内容。&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>value.serializer：与 key.serializer 一样，value.serializer 指定的类会将值序列化。&lt;/p>
-&lt;/li>
-&lt;/ul>
-&lt;p>下面代码演示了如何创建一个 Kafka 生产者，这里只指定了必要的属性，其他使用默认的配置&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">private&lt;/span> &lt;span class="n">Properties&lt;/span> &lt;span class="n">properties&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">Properties&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">properties&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">put&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;bootstrap.servers&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span>&lt;span class="s">&amp;#34;broker1:9092,broker2:9092&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">properties&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">put&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;key.serializer&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span>&lt;span class="s">&amp;#34;org.apache.kafka.common.serialization.StringSerializer&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">properties&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">put&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;value.serializer&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span>&lt;span class="s">&amp;#34;org.apache.kafka.common.serialization.StringSerializer&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">properties&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">KafkaProducer&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">,&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">&amp;gt;(&lt;/span>&lt;span class="n">properties&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="kafka-消息发送">Kafka 消息发送&lt;/h1>
-&lt;p>实例化生产者对象后，接下来就可以开始发送消息了，我们从创建一个 ProducerRecord 对象开始，ProducerRecord 是 Kafka 中的一个核心类，它代表了一组 Kafka 需要发送的 key/value 键值对，它由记录要发送到的主题名称（Topic Name），可选的分区号（Partition Number）以及可选的键值对构成。在发送 ProducerRecord 时，我们需要将键值对对象由序列化器转换为字节数组，这样它们才能够在网络上传输。然后消息到达了分区器。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6076ebe28322e6675cf42160.jpg" alt="Producer 发送流程" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>如果发送过程中指定了有效的分区号，那么在发送记录时将使用该分区。如果发送过程中未指定分区，则将使用 key 的 hash 函数映射指定一个分区。如果发送的过程中既没有分区号也没有，则将以循环的方式分配一个分区。选好分区后，生产者就知道向哪个主题和分区发送数据了。ProducerRecord 还有关联的时间戳，如果用户没有提供时间戳，那么生产者将会在记录中使用当前的时间作为时间戳。Kafka 最终使用的时间戳取决于 topic 主题配置的时间戳类型。&lt;/p>
-&lt;ul>
-&lt;li>如果将主题配置为使用 CreateTime，则生产者记录中的时间戳将由 broker 使用。&lt;/li>
-&lt;li>如果将主题配置为使用 LogAppendTime，则生产者记录中的时间戳在将消息添加到其日志中时，将由 broker 重写。&lt;/li>
-&lt;/ul>
-&lt;p>然后，这条消息被存放在一个记录批次里，这个批次里的所有消息会被发送到相同的主题和分区上。由一个独立的线程负责把它们发到 Kafka Broker 上。Kafka Broker 在收到消息时会返回一个响应，如果写入成功，会返回一个 RecordMetaData 对象，它包含了主题和分区信息，以及记录在分区里的偏移量，上面两种的时间戳类型也会返回给用户。如果写入失败，会返回一个错误。生产者在收到错误之后会尝试重新发送消息，几次之后如果还是失败的话，就返回错误消息。&lt;/p>
-&lt;h2 id="简单消息发送">简单消息发送&lt;/h2>
-&lt;p>Kafka 最简单的消息发送如下：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">ProducerRecord&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">,&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">record&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">ProducerRecord&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">&amp;gt;(&lt;/span>&lt;span class="s">&amp;#34;CustomerCountry&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span>&lt;span class="s">&amp;#34;West&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span>&lt;span class="s">&amp;#34;France&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">producer&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">send&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">record&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>代码中生产者(producer)的 send() 方法需要把 ProducerRecord 的对象作为参数进行发送，ProducerRecord 有很多构造函数，这个我们下面讨论，这里调用的是：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="nf">ProducerRecord&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">topic&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">K&lt;/span> &lt;span class="n">key&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">V&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{}&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这个构造函数，需要传递的是 topic 主题，key 和 value。把对应的参数传递完成后，生产者调用 send() 方法发送消息（ProducerRecord 对象）。我们可以从生产者的架构图中看出，消息是先被写入分区中的缓冲区中，然后分批次发送给 Kafka Broker。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6076f9438322e6675c12a5d0.jpg" alt="不同的主题与批次" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>发送成功后，send() 方法会返回一个 Future(java.util.concurrent) 对象，Future 对象的类型是 RecordMetadata 类型，我们上面这段代码没有考虑返回值，所以没有生成对应的 Future 对象，所以没有办法知道消息是否发送成功。如果不是很重要的信息或者对结果不会产生影响的信息，可以使用这种方式进行发送。我们可以忽略发送消息时可能发生的错误或者在服务器端可能发生的错误，但在消息发送之前，生产者还可能发生其他的异常。这些异常有可能是 SerializationException(序列化失败)，BufferedExhaustedException 或 TimeoutException(说明缓冲区已满)，又或是 InterruptedException(说明发送线程被中断)。&lt;/p>
-&lt;h2 id="同步发送消息">同步发送消息&lt;/h2>
-&lt;p>第二种消息发送机制如下所示：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">ProducerRecord&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">,&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">record&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">ProducerRecord&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">&amp;gt;(&lt;/span>&lt;span class="s">&amp;#34;CustomerCountry&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span>&lt;span class="s">&amp;#34;West&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span>&lt;span class="s">&amp;#34;France&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">try&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">RecordMetadata&lt;/span> &lt;span class="n">recordMetadata&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">producer&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">send&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">record&lt;/span>&lt;span class="o">).&lt;/span>&lt;span class="na">get&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>&lt;span class="k">catch&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">Exception&lt;/span> &lt;span class="n">e&lt;/span>&lt;span class="o">){&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">e&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">printStackTrace&lt;/span>&lt;span class="o">()&lt;/span>&lt;span class="err">；&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这种发送消息的方式较上面的发送方式有了改进，首先调用 send() 方法，然后再调用 get() 方法等待 Kafka 响应。如果服务器返回错误，get() 方法会抛出异常，如果没有发生错误，我们会得到 RecordMetadata 对象，可以用它来查看消息记录。&lt;/p>
-&lt;p>生产者（KafkaProducer）在发送的过程中会出现两类错误：其中一类是重试错误，这类错误可以通过重发消息来解决。比如连接的错误，可以通过再次建立连接来解决；无主错误则可以通过重新为分区选举首领来解决。KafkaProducer 被配置为自动重试，如果多次重试后仍无法解决问题，则会抛出重试异常。另一类错误是无法通过重试来解决的，比如消息过大对于这类错误，KafkaProducer 不会进行重试，直接抛出异常。&lt;/p>
-&lt;h2 id="异步发送消息">异步发送消息&lt;/h2>
-&lt;p>同步发送消息都有个问题，那就是同一时间只能有一个消息在发送，这会造成许多消息无法直接发送，造成消息滞后，无法发挥效益最大化。比如消息在应用程序和 Kafka 集群之间一个来回需要 10ms。如果发送完每个消息后都等待响应的话，那么发送 100 个消息需要 1 秒，但是如果是异步方式的话，发送 100 条消息所需要的时间就会少很多很多。大多数时候，虽然 Kafka 会返回 RecordMetadata 消息，但是我们并不需要等待响应。&lt;/p>
-&lt;p>为了在异步发送消息的同时能够对异常情况进行处理，生产者提供了回掉支持。下面是回调的一个例子：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">ProducerRecord&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">producerRecord&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">ProducerRecord&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="o">&amp;gt;&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;CustomerCountry&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;Huston&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;America&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">producer&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">send&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">producerRecord&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">DemoProducerCallBack&lt;/span>&lt;span class="o">());&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">class&lt;/span> &lt;span class="nc">DemoProducerCallBack&lt;/span> &lt;span class="kd">implements&lt;/span> &lt;span class="n">Callback&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">onCompletion&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">RecordMetadata&lt;/span> &lt;span class="n">metadata&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">Exception&lt;/span> &lt;span class="n">exception&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">exception&lt;/span> &lt;span class="o">!=&lt;/span> &lt;span class="kc">null&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">exception&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">printStackTrace&lt;/span>&lt;span class="o">();;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>首先实现回调需要定义一个实现了 org.apache.kafka.clients.producer.Callback 的类，这个接口只有一个 onCompletion 方法。如果 kafka 返回一个错误，onCompletion 方法会抛出一个非空(non null)异常，这里我们只是简单的把它打印出来，如果是生产环境需要更详细的处理，然后在 send() 方法发送的时候传递一个 Callback 回调的对象。&lt;/p>
-&lt;h1 id="生产者分区机制">生产者分区机制&lt;/h1>
-&lt;p>Kafka 对于数据的读写是以分区为粒度的，分区可以分布在多个主机（Broker）中，这样每个节点能够实现独立的数据写入和读取，并且能够通过增加新的节点来增加 Kafka 集群的吞吐量，通过分区部署在多个 Broker 来实现负载均衡的效果。上面我们介绍了生产者的发送方式有三种：不管结果如何直接发送、发送并返回结果、发送并回调。由于消息是存在主题（topic）的分区（partition）中的，所以当 Producer 生产者发送产生一条消息发给 topic 的时候，你如何判断这条消息会存在哪个分区中呢？&lt;/p>
-&lt;p>这其实就设计到 Kafka 的分区机制了。&lt;/p>
-&lt;h2 id="分区策略">分区策略&lt;/h2>
-&lt;p>Kafka 的分区策略指的就是将生产者发送到哪个分区的算法。Kafka 为我们提供了默认的分区策略，同时它也支持你自定义分区策略。如果要自定义分区策略的话，你需要显示配置生产者端的参数 Partitioner.class，我们可以看一下这个类它位于 org.apache.kafka.clients.producer 包下：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">interface&lt;/span> &lt;span class="nc">Partitioner&lt;/span> &lt;span class="kd">extends&lt;/span> &lt;span class="n">Configurable&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">Closeable&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="nf">partition&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">topic&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">Object&lt;/span> &lt;span class="n">key&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kt">byte&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">keyBytes&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">Object&lt;/span> &lt;span class="n">value&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kt">byte&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">valueBytes&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">Cluster&lt;/span> &lt;span class="n">cluster&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">close&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">default&lt;/span> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">onNewBatch&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span> &lt;span class="n">topic&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">Cluster&lt;/span> &lt;span class="n">cluster&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">prevPartition&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Partitioner 类有三个方法，分别来解释一下&lt;/p>
-&lt;ul>
-&lt;li>partition(): 这个类有几个参数: topic，表示需要传递的主题；key 表示消息中的键值；keyBytes 表示分区中序列化过后的 key，byte 数组的形式传递；value 表示消息的 value 值；valueBytes 表示分区中序列化后的值数组；cluster 表示当前集群的原数据。Kafka 给你这么多信息，就是希望让你能够充分地利用这些信息对消息进行分区，计算出它要被发送到哪个分区中。&lt;/li>
-&lt;li>close() : 继承了 Closeable 接口能够实现 close() 方法，在分区关闭时调用。&lt;/li>
-&lt;li>onNewBatch(): 表示通知分区程序用来创建新的批次&lt;/li>
-&lt;/ul>
-&lt;p>其中与分区策略息息相关的就是 partition() 方法了。&lt;/p>
-&lt;h2 id="顺序轮询">顺序轮询&lt;/h2>
-&lt;p>顺序分配，消息是均匀的分配给每个 partition，即每个分区存储一次消息。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6076faa18322e6675c15d490.jpg" alt="分区顺序分配" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>上图表示的就是轮询策略，轮训策略是 Kafka Producer 提供的默认策略，如果你不使用指定的轮训策略的话，Kafka 默认会使用顺序轮训策略的方式。&lt;/p>
-&lt;h2 id="随机轮询">随机轮询&lt;/h2>
-&lt;p>随机轮询简而言之就是随机的向 partition 中保存消息，如下图所示。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6076fafc8322e6675c169361.jpg" alt="随机分配示意图" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>实现随机分配的代码只需要两行，如下：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">List&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="n">PartitionInfo&lt;/span> &lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">partitions&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">cluster&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">partitionsForTopic&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">topic&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">return&lt;/span> &lt;span class="n">ThreadLocalRandom&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">current&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">nextInt&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">partitions&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">size&lt;/span>&lt;span class="o">());&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>先计算出该主题总的分区数，然后随机地返回一个小于它的正整数。本质上看随机策略也是力求将数据均匀地打散到各个分区，但从实际表现来看，它要逊于轮询策略，所以如果追求数据的均匀分布，还是使用轮询策略比较好。事实上，随机策略是老版本生产者使用的分区策略，在新版本中已经改为轮询了。&lt;/p>
-&lt;h2 id="按照-key-进行消息保存">按照 key 进行消息保存&lt;/h2>
-&lt;p>这个策略也叫做 key-ordering 策略，Kafka 中每条消息都会有自己的 key，一旦消息被定义了 Key，那么你就可以保证同一个 Key 的所有消息都进入到相同的分区里面，由于每个分区下的消息处理都是有顺序的，故这个策略被称为按消息键保序策略，如下图所示。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6076fb448322e6675c17362b.jpg" alt="key-ordering 分配示意图" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>实现这个策略的 partition 方法同样简单，只需要下面两行代码即可：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">List&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="n">PartitionInfo&lt;/span> &lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">partitions&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">cluster&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">partitionsForTopic&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">topic&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">return&lt;/span> &lt;span class="n">Math&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">abs&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">key&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">hashCode&lt;/span>&lt;span class="o">())&lt;/span> &lt;span class="o">%&lt;/span> &lt;span class="n">partitions&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">size&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>上面这几种分区策略都是比较基础的策略，除此之外，你还可以自定义分区策略。&lt;/p>
-&lt;h1 id="生产者压缩机制">生产者压缩机制&lt;/h1>
-&lt;p>压缩一词简单来讲就是一种互换思想，它是一种经典的用 CPU 时间去换磁盘空间或者 I/O 传输量的思想，希望以较小的 CPU 开销带来更少的磁盘占用或更少的网络 I/O 传输。Kafka 的消息分为两层：消息集合 和 消息。一个消息集合中包含若干条日志项，而日志项才是真正封装消息的地方。Kafka 底层的消息日志由一系列消息集合日志项组成。Kafka 通常不会直接操作具体的一条条消息，它总是在消息集合这个层面上进行写入操作。&lt;/p>
-&lt;p>在 Kafka 中，压缩会发生在两个地方：Kafka Producer 和 Kafka Consumer，为什么启用压缩？说白了就是消息太大，需要变小一点 来使消息发的更快一些。Kafka Producer 中使用 compression.type 来开启压缩&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">private&lt;/span> &lt;span class="n">Properties&lt;/span> &lt;span class="n">properties&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">Properties&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">properties&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">put&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;bootstrap.servers&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;192.168.1.9:9092&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">properties&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">put&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;key.serializer&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;org.apache.kafka.common.serialization.StringSerializer&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">properties&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">put&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;value.serializer&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;org.apache.kafka.common.serialization.StringSerializer&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">properties&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">put&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;compression.type&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;gzip&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">Producer&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">producer&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">KafkaProducer&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="o">&amp;gt;&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">properties&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">ProducerRecord&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">record&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">ProducerRecord&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="o">&amp;gt;&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;CustomerCountry&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;Precision Products&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;France&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>上面代码表明该 Producer 的压缩算法使用的是 GZIP&lt;/p></description></item><item><title>事务消息</title><link>https://ng-tech.icu/books/messagequeue-notes/03.kafka/%E6%B6%88%E6%81%AF%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9/%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/messagequeue-notes/03.kafka/%E6%B6%88%E6%81%AF%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9/%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF/</guid><description>&lt;h1 id="高可用及幂等">高可用及幂等&lt;/h1>
-&lt;p>在分布式系统中一般有三种处理语义:&lt;/p>
-&lt;ul>
-&lt;li>
-&lt;p>at-least-once：至少一次，有可能会有多次。如果 producer 收到来自 ack 的确认，则表示该消息已经写入到 Kafka 了，此时刚好是一次，也就是我们后面的 exactly-once。但是如果 producer 超时或收到错误，并且 request.required.acks 配置的不是-1，则会重试发送消息，客户端会认为该消息未写入 Kafka。如果 broker 在发送 Ack 之前失败，但在消息成功写入 Kafka 之后，这一次重试将会导致我们的消息会被写入两次，所以消息就不止一次地传递给最终 consumer，如果 consumer 处理逻辑没有保证幂等的话就会得到不正确的结果。在这种语义中会出现乱序，也就是当第一次 ack 失败准备重试的时候，但是第二消息已经发送过去了，这个时候会出现单分区中乱序的现象,我们需要设置 Prouducer 的参数 max.in.flight.requests.per.connection，flight.requests 是 Producer 端用来保存发送请求且没有响应的队列，保证 Producer 端未响应的请求个数为 1。&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>at-most-once：如果在 ack 超时或返回错误时 producer 不重试，也就是我们讲 request.required.acks=-1，则该消息可能最终没有写入 kafka，所以 consumer 不会接收消息。&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>exactly-once：刚好一次，即使 producer 重试发送消息，消息也会保证最多一次地传递给 consumer。该语义是最理想的，也是最难实现的。在 0.10 之前并不能保证 exactly-once，需要使用 consumer 自带的幂等性保证。0.11.0 使用事务保证了。&lt;/p>
-&lt;/li>
-&lt;/ul>
-&lt;h1 id="如何实现-exactly-once">如何实现 exactly-once&lt;/h1>
-&lt;p>要实现 exactly-once 在 Kafka 0.11.0 中有两个官方策略。&lt;/p>
-&lt;h2 id="单-producer-单-topic">单 Producer 单 Topic&lt;/h2>
-&lt;p>每个 producer 在初始化的时候都会被分配一个唯一的 PID，对于每个唯一的 PID，Producer 向指定的 Topic 中某个特定的 Partition 发送的消息都会携带一个从 0 单调递增的 sequence number。在我们的 Broker 端也会维护一个维度为，每次提交一次消息的时候都会对齐进行校验:&lt;/p>
-&lt;ul>
-&lt;li>如果消息序号比 Broker 维护的序号大一以上，说明中间有数据尚未写入，也即乱序，此时 Broker 拒绝该消息，Producer 抛出 InvalidSequenceNumber。&lt;/li>
-&lt;li>如果消息序号小于等于 Broker 维护的序号，说明该消息已被保存，即为重复消息，Broker 直接丢弃该消息，Producer 抛出 DuplicateSequenceNumber&lt;/li>
-&lt;li>如果消息序号刚好大一，就证明是合法的。&lt;/li>
-&lt;/ul>
-&lt;p>上面所说的解决了两个问题:&lt;/p>
-&lt;ul>
-&lt;li>当 Prouducer 发送了一条消息之后失败，broker 并没有保存，但是第二条消息却发送成功，造成了数据的乱序。&lt;/li>
-&lt;li>当 Producer 发送了一条消息之后，broker 保存成功，ack 回传失败，producer 再次投递重复的消息。&lt;/li>
-&lt;/ul>
-&lt;p>上面所说的都是在同一个 PID 下面，意味着必须保证在单个 Producer 中的同一个 seesion 内，如果 Producer 挂了，被分配了新的 PID，这样就无法保证了，所以 Kafka 中又有事务机制去保证。&lt;/p>
-&lt;h1 id="事务">事务&lt;/h1>
-&lt;p>在 kafka 中事务的作用是：&lt;/p>
-&lt;ul>
-&lt;li>实现 exactly-once 语义&lt;/li>
-&lt;li>保证操作的原子性，要么全部成功，要么全部失败。&lt;/li>
-&lt;li>有状态的操作的恢复&lt;/li>
-&lt;/ul>
-&lt;p>事务可以保证就算跨多个，在本次事务中的对消费队列的操作都当成原子性，要么全部成功，要么全部失败。并且，有状态的应用也可以保证重启后从断点处继续处理，也即事务恢复。在 kafka 的事务中，应用程序必须提供一个唯一的事务 ID，即 Transaction ID，并且宕机重启之后，也不会发生改变，Transactin ID 与 PID 可能一一对应。区别在于 Transaction ID 由用户提供，而 PID 是内部的实现对用户透明。为了 Producer 重启之后，旧的 Producer 具有相同的 Transaction ID 失效，每次 Producer 通过 Transaction ID 拿到 PID 的同时，还会获取一个单调递增的 epoch。由于旧的 Producer 的 epoch 比新 Producer 的 epoch 小，Kafka 可以很容易识别出该 Producer 是老的 Producer 并拒绝其请求。&lt;/p>
-&lt;p>为了实现这一点，Kafka 0.11.0.0 引入了一个服务器端的模块，名为 Transaction Coordinator，用于管理 Producer 发送的消息的事务性。该 Transaction Coordinator 维护 Transaction Log，该 log 存于一个内部的 Topic 内。由于 Topic 数据具有持久性，因此事务的状态也具有持久性。Producer 并不直接读写 Transaction Log，它与 Transaction Coordinator 通信，然后由 Transaction Coordinator 将该事务的状态插入相应的 Transaction Log。Transaction Log 的设计与 Offset Log 用于保存 Consumer 的 Offset 类似。&lt;/p></description></item><item><title>消费者</title><link>https://ng-tech.icu/books/messagequeue-notes/03.kafka/%E6%B6%88%E6%81%AF%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9/%E6%B6%88%E8%B4%B9%E8%80%85/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/messagequeue-notes/03.kafka/%E6%B6%88%E6%81%AF%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9/%E6%B6%88%E8%B4%B9%E8%80%85/</guid><description>&lt;h1 id="kafka-消费者">Kafka 消费者&lt;/h1>
-&lt;p>消息由生产者发送到 kafka 集群后，会被消费者消费。一般来说我们的消费模型有两种:推送模型(push)和拉取模型(pull)基于推送模型的消息系统，由消息代理记录消费状态。消息代理将消息推送到消费者后，标记这条消息为已经被消费，但是这种方式无法很好地保证消费的处理语义。比如当我们把已经把消息发送给消费者之后，由于消费进程挂掉或者由于网络原因没有收到这条消息，如果我们在消费代理将其标记为已消费，这个消息就永久丢失了。如果我们利用生产者收到消息后回复这种方法，消息代理需要记录消费状态，这种不可取。如果采用 push，消息消费的速率就完全由消费代理控制，一旦消费者发生阻塞，就会出现问题。Kafka 采取拉取模型(pull)，由自己控制消费速度，以及消费的进度，消费者可以按照任意的偏移量进行消费。比如消费者可以消费已经消费过的消息进行重新处理，或者消费最近的消息等等。&lt;/p>
-&lt;p>消费者组（Consumer Group）是由一个或多个消费者实例（Consumer Instance）组成的群组，具有可扩展性和可容错性的一种机制。消费者组内的消费者共享一个消费者组 ID，这个 ID 也叫做 Group ID，组内的消费者共同对一个主题进行订阅和消费，同一个组中的消费者只能消费一个分区的消息，多余的消费者会闲置，派不上用场。换言之，同一主题的一条消息只能被同一个消费者组内的一个消费者消费，但多个消费者组可同时消费这一消息。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6077ebd78322e6675c948e1c.jpg" alt="消费者组与分区" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>这是 Kafka 用来实现一个 Topic 消息的广播（发给所有的 Consumer）和单播（发给某一个 Consumer）的手段。一个 Topic 可以对应多个 Consumer Group。如果需要实现广播，只要每个 Consumer 有一个独立的 Group 就可以了。要实现单播只要所有的 Consumer 在同一个 Group 里。用 Consumer Group 还可以将 Consumer 进行自由的分组而不需要多次发送消息到不同的 Topic。&lt;/p>
-&lt;h1 id="队列与订阅">队列与订阅&lt;/h1>
-&lt;p>Kafka 的消息队列一般分为两种模式：点对点队列模式和发布订阅模式。如果一个生产者生产的消息由一个消费者进行消费的话，那么这种模式就是点对点模式：&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6076e6038322e6675ce7f67a.jpg" alt="点对点模式的消息队列" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>如果一个生产者或者多个生产者产生的消息能够被多个消费者同时消费的情况，这样的消息队列成为发布订阅模式的消息队列：&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6076e6628322e6675ce8ca89.jpg" alt="发布-订阅模式的消息队列" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;h2 id="队列模式">队列模式&lt;/h2>
-&lt;p>队列模式，指每条消息只会有一个 Consumer 消费到。Kafka 保证同一 Consumer Group 中只有一个 Consumer 会消费某条消息。&lt;/p>
-&lt;ul>
-&lt;li>在 Consumer Group 稳定状态下，每一个 Consumer 实例只会消费某一个或多个特定 partition 的数据，而某个 partition 的数据只会被某一个特定的 Consumer 实例所消费，也就是说 Kafka 对消息的分配是以 partition 为单位分配的，而非以每一条消息作为分配单元；&lt;/li>
-&lt;li>同一 Consumer Group 中，如果 Consumer 实例数量少于 partition 数量，则至少有一个 Consumer 会消费多个 partition 的数据；如果 Consumer 的数量与 partition 数量相同，则正好一个 Consumer 消费一个 partition 的数据；而如果 Consumer 的数量多于 partition 的数量时，会有部分 Consumer 无法消费该 Topic 下任何一条消息；&lt;/li>
-&lt;/ul>
-&lt;p>Kafka 消费者从属于消费者群组。一个群组中的消费者订阅的都是相同的主题，每个消费者接收主题一部分分区的消息。下面是一个 Kafka 分区消费示意图：&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6076fd108322e6675c1b6ec0.jpg" alt="1 个消费者消费 4 个分区消息" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>上图中的主题 T1 有四个分区，分别是分区 0、分区 1、分区 2、分区 3，我们创建一个消费者群组 1，消费者群组中只有一个消费者，它订阅主题 T1，接收到 T1 中的全部消息。由于一个消费者处理四个生产者发送到分区的消息，压力有些大，需要帮手来帮忙分担任务，于是就演变为下图：&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6076fd3b8322e6675c1bcd6a.jpg" alt="2 个消费者消费 4 个分区消息" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>这样一来，消费者的消费能力就大大提高了，但是在某些环境下比如用户产生消息特别多的时候，生产者产生的消息仍旧让消费者吃不消，那就继续增加消费者。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6076fd558322e6675c1c070e.jpg" alt="4 个消费者消费 4 个分区消息" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>如上图所示，每个分区所产生的消息能够被每个消费者群组中的消费者消费，如果向消费者群组中增加更多的消费者，那么多余的消费者将会闲置，如下图所示&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6076fd7a8322e6675c1c57cc.jpg" alt="5 个消费者消费 4 个分区消息" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>向群组中增加消费者是横向伸缩消费能力的主要方式。总而言之，我们可以通过增加消费组的消费者来进行水平扩展提升消费能力。这也是为什么建议创建主题时使用比较多的分区数，这样可以在消费负载高的情况下增加消费者来提升性能。另外，消费者的数量不应该比分区数多，因为多出来的消费者是空闲的，没有任何帮助。&lt;/p>
-&lt;h2 id="发布订阅模式">发布订阅模式&lt;/h2>
-&lt;p>发布订阅模式，又指广播模式，Kafka 保证 topic 的每条消息会被所有 Consumer Group 消费到，而对于同一个 Consumer Group，还是保证只有一个 Consumer 实例消费到这条消息。Kafka 一个很重要的特性就是，只需写入一次消息，可以支持任意多的应用读取这个消息。换句话说，每个应用都可以读到全量的消息。为了使得每个应用都能读到全量消息，应用需要有不同的消费组。对于上面的例子，假如我们新增了一个新的消费组 G2，而这个消费组有两个消费者，那么就演变为下图这样:&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6076fdb58322e6675c1cdade.jpg" alt="两个消费者群组消费一个主题的消息" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>在这个场景中，消费组 G1 和消费组 G2 都能收到 T1 主题的全量消息，在逻辑意义上来说它们属于不同的应用。总结起来就是如果应用需要读取全量消息，那么请为该应用设置一个消费组；如果该应用消费能力不足，那么可以考虑在这个消费组里增加消费者。&lt;/p>
-&lt;h1 id="分区重平衡">分区重平衡&lt;/h1>
-&lt;p>我们从上面的消费者演变图中可以知道这么一个过程：最初是一个消费者订阅一个主题并消费其全部分区的消息，后来有一个消费者加入群组，随后又有更多的消费者加入群组，而新加入的消费者实例分摊了最初消费者的部分消息，这种把分区的所有权通过一个消费者转到其他消费者的行为称为重平衡，英文名也叫做 Rebalance。如下图所示：&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6076fe3f8322e6675c1e2560.jpg" alt="Kafka 分区重平衡" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>重平衡非常重要，它为消费者群组带来了高可用性和伸缩性，我们可以放心的添加消费者或移除消费者，不过在正常情况下我们并不希望发生这样的行为。在重平衡期间，消费者无法读取消息，造成整个消费者组在重平衡的期间都不可用。另外，当分区被重新分配给另一个消费者时，消息当前的读取状态会丢失，它有可能还需要去刷新缓存，在它重新恢复状态之前会拖慢应用程序。&lt;/p>
-&lt;p>重平衡也是一把双刃剑，它为消费者群组带来高可用性和伸缩性的同时，还有有一些明显的缺点(bug)，而这些 bug 到现在社区还无法修改。重平衡的过程对消费者组有极大的影响。因为每次重平衡过程中都会导致万物静止，参考 JVM 中的垃圾回收机制，也就是 Stop The World .也就是说，在重平衡期间，消费者组中的消费者实例都会停止消费，等待重平衡的完成。而且重平衡这个过程很慢。&lt;/p>
-&lt;h2 id="重平衡算法">重平衡算法&lt;/h2>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6077ef3e8322e6675c9f8a21.jpg" alt="重平衡算法" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;h2 id="重平衡流程">重平衡流程&lt;/h2>
-&lt;p>消费者通过向组织协调者（Kafka Broker）发送心跳来维护自己是消费者组的一员并确认其拥有的分区。对于不同不的消费群体来说，其组织协调者可以是不同的。只要消费者定期发送心跳，就会认为消费者是存活的并处理其分区中的消息。当消费者检索记录或者提交它所消费的记录时就会发送心跳。如果过了一段时间 Kafka 停止发送心跳了，会话（Session）就会过期，组织协调者就会认为这个 Consumer 已经死亡，就会触发一次重平衡。如果消费者宕机并且停止发送消息，组织协调者会等待几秒钟，确认它死亡了才会触发重平衡。在这段时间里，死亡的消费者将不处理任何消息。在清理消费者时，消费者将通知协调者它要离开群组，组织协调者会触发一次重平衡，尽量降低处理停顿。&lt;/p>
-&lt;ul>
-&lt;li>对于每个 Consumer Group，选举出一个 Broker 作为 Coordinator（0.9 版本以上），由它 Watch Zookeeper，从而监控判断是否有 partition 或者 Consumer 的增减，然后生成 Rebalance 命令，按照以上算法重新分配。&lt;/li>
-&lt;li>当 Consumer Group 第一次被初始化时，Consumer 通常会读取每个 partition 的最早或最近的 offset（Zookeeper 记录），然后顺序地读取每个 partition log 的消息，在 Consumer 读取过程中，它会提交已经成功处理的消息的 offsets（由 Zookeeper 记录）。&lt;/li>
-&lt;li>当一个 partition 被重新分配给 Consumer Group 中的其他 Consumer，新的 Consumer 消费的初始位置会设置为(原来 Consumer)最近提交的 offset。&lt;/li>
-&lt;/ul>
-&lt;h1 id="创建消费者">创建消费者&lt;/h1>
-&lt;p>在读取消息之前，需要先创建一个 KafkaConsumer 对象。创建 KafkaConsumer 对象与创建 KafkaProducer 对象十分相似 &amp;mdash; 把需要传递给消费者的属性放在 properties 对象中，后面我们会着重讨论 Kafka 的一些配置，这里我们先简单的创建一下，使用 3 个属性就足矣，分别是 bootstrap.server，key.deserializer，value.deserializer 。&lt;/p>
-&lt;p>还有一个属性是 group.id 这个属性不是必须的，它指定了 KafkaConsumer 是属于哪个消费者群组。创建不属于任何一个群组的消费者也是可以的:&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">Properties&lt;/span> &lt;span class="n">properties&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">Properties&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">properties&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">put&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;bootstrap.server&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;192.168.1.9:9092&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">properties&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">put&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;key.serializer&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;org.apache.kafka.common.serialization.StringSerializer&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">properties&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">put&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;value.serializer&amp;#34;&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="s">&amp;#34;org.apache.kafka.common.serialization.StringSerializer&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">KafkaConsumer&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">consumer&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">KafkaConsumer&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="o">&amp;gt;&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">properties&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="主题订阅">主题订阅&lt;/h2>
-&lt;p>创建好消费者之后，下一步就开始订阅主题了。subscribe() 方法接受一个主题列表作为参数，使用起来比较简单：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">consumer&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">subscribe&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">Collections&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">singletonList&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;customerTopic&amp;#34;&lt;/span>&lt;span class="o">));&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>为了简单我们只订阅了一个主题 customerTopic，参数传入的是一个正则表达式，正则表达式可以匹配多个主题，如果有人创建了新的主题，并且主题的名字与正则表达式相匹配，那么会立即触发一次重平衡，消费者就可以读取新的主题。&lt;/p>
-&lt;p>要订阅所有与 test 相关的主题，可以这样做：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">consumer&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">subscribe&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;test.*&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="轮询">轮询&lt;/h2>
-&lt;p>我们知道，Kafka 是支持订阅/发布模式的，生产者发送数据给 Kafka Broker，那么消费者是如何知道生产者发送了数据呢？其实生产者产生的数据消费者是不知道的，KafkaConsumer 采用轮询的方式定期去 Kafka Broker 中进行数据的检索，如果有数据就用来消费，如果没有就再继续轮询等待，下面是轮询等待的具体实现：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="k">try&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">while&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">ConsumerRecords&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">records&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">consumer&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">poll&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">Duration&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">ofSeconds&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">100&lt;/span>&lt;span class="o">));&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">ConsumerRecord&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">String&lt;/span> &lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">record&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="n">records&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="n">updateCount&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">map&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">containsKey&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">record&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">value&lt;/span>&lt;span class="o">()))&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">updateCount&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="kt">int&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="n">map&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">get&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">record&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">value&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">map&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">put&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">record&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">value&lt;/span>&lt;span class="o">(),&lt;/span> &lt;span class="n">updateCount&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span> &lt;span class="k">finally&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">consumer&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">close&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;ul>
-&lt;li>这是一个无限循环。消费者实际上是一个长期运行的应用程序，它通过轮询的方式向 Kafka 请求数据。&lt;/li>
-&lt;li>第三行代码非常重要，Kafka 必须定期循环请求数据，否则就会认为该 Consumer 已经挂了，会触发重平衡，它的分区会移交给群组中的其它消费者。传给 &lt;code>poll()&lt;/code> 方法的是一个超市时间，用 &lt;code>java.time.Duration&lt;/code> 类来表示，如果该参数被设置为 0 ，poll() 方法会立刻返回，否则就会在指定的毫秒数内一直等待 broker 返回数据。&lt;/li>
-&lt;li>poll() 方法会返回一个记录列表。每条记录都包含了记录所属主题的信息，记录所在分区的信息、记录在分区中的偏移量，以及记录的键值对。我们一般会遍历这个列表，逐条处理每条记录。&lt;/li>
-&lt;li>在退出应用程序之前使用 &lt;code>close()&lt;/code> 方法关闭消费者。网络连接和 socket 也会随之关闭，并立即触发一次重平衡，而不是等待群组协调器发现它不再发送心跳并认定它已经死亡。&lt;/li>
-&lt;/ul>
-&lt;h1 id="提交和偏移量的概念">提交和偏移量的概念&lt;/h1>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6077eedb8322e6675c9e4be9.jpg" alt="The Consumer&amp;amp;rsquo;s Position in the Log" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>如图，Last Commited Offset 指 Consumer 最近一次提交的消费记录 offset，Current Position 是当前消费的位置，High Watermark 是成功拷贝到 log 的所有副本节点（partition 的所有 ISR 节点，下文介绍）的最近消息的 offset，Log End Offset 是写入 log 中最后一条消息的 offset+1。&lt;/p>
-&lt;p>从 Consumer 的角度来看，最多只能读取到 High watermark 的位置，后面的消息对消费者不可见，因为未完全复制的数据还没可靠存储，有丢失可能。&lt;/p>
-&lt;h2 id="特殊偏移">特殊偏移&lt;/h2>
-&lt;p>我们上面提到，消费者在每次调用 poll() 方法进行定时轮询的时候，会返回由生产者写入 Kafka 但是还没有被消费者消费的记录，因此我们可以追踪到哪些记录是被群组里的哪个消费者读取的。消费者可以使用 Kafka 来追踪消息在分区中的位置（偏移量）&lt;/p>
-&lt;p>消费者会向一个叫做 &lt;code>_consumer_offset&lt;/code> 的特殊主题中发送消息，这个主题会保存每次所发送消息中的分区偏移量，这个主题的主要作用就是消费者触发重平衡后记录偏移使用的，消费者每次向这个主题发送消息，正常情况下不触发重平衡，这个主题是不起作用的，当触发重平衡后，消费者停止工作，每个消费者可能会分到对应的分区，这个主题就是让消费者能够继续处理消息所设置的。&lt;/p>
-&lt;p>如果提交的偏移量小于客户端最后一次处理的偏移量，那么位于两个偏移量之间的消息就会被重复处理：&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6076fffa8322e6675c21f594.jpg" alt="重平衡后，消息被重复消费" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>如果提交的偏移量大于最后一次消费时的偏移量，那么处于两个偏移量中间的消息将会丢失，既然&lt;code>_consumer_offset&lt;/code> 如此重要，那么它的提交方式是怎样的呢？下面我们就来说一下提交方式，KafkaConsumer API 提供了多种方式来提交偏移量。&lt;/p>
-&lt;h3 id="自动提交">自动提交&lt;/h3>
-&lt;p>最简单的方式就是让消费者自动提交偏移量。如果 enable.auto.commit 被设置为 true，那么每过 5s，消费者会自动把从 poll() 方法轮询到的最大偏移量提交上去。提交时间间隔由 auto.commit.interval.ms 控制，默认是 5s。与消费者里的其他东西一样，自动提交也是在轮询中进行的。消费者在每次轮询中会检查是否提交该偏移量了，如果是，那么就会提交从上一次轮询中返回的偏移量。&lt;/p>
-&lt;h3 id="提交当前偏移量">提交当前偏移量&lt;/h3>
-&lt;p>把 auto.commit.offset 设置为 false，可以让应用程序决定何时提交偏移量。使用 commitSync() 提交偏移量。这个 API 会提交由 poll() 方法返回的最新偏移量，提交成功后马上返回，如果提交失败就抛出异常。&lt;/p>
-&lt;p>commitSync() 将会提交由 poll() 返回的最新偏移量，如果处理完所有记录后要确保调用了 commitSync()，否则还是会有丢失消息的风险，如果发生了在均衡，从最近一批消息到发生在均衡之间的所有消息都将被重复处理。&lt;/p>
-&lt;h3 id="异步提交">异步提交&lt;/h3>
-&lt;p>异步提交 commitAsync() 与同步提交 commitSync() 最大的区别在于异步提交不会进行重试，同步提交会一致进行重试。&lt;/p>
-&lt;h3 id="同步和异步组合提交">同步和异步组合提交&lt;/h3>
-&lt;p>一般情况下，针对偶尔出现的提交失败，不进行重试不会有太大的问题，因为如果提交失败是因为临时问题导致的，那么后续的提交总会有成功的。但是如果在关闭消费者或再均衡前的最后一次提交，就要确保提交成功。&lt;/p>
-&lt;p>因此，在消费者关闭之前一般会组合使用 commitAsync 和 commitSync 提交偏移量。&lt;/p>
-&lt;h3 id="提交特定的偏移量">提交特定的偏移量&lt;/h3>
-&lt;p>消费者 API 允许调用 commitSync() 和 commitAsync() 方法时传入希望提交的 partition 和 offset 的 map，即提交特定的偏移量。&lt;/p></description></item></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>消息生产与消费 | Next-gen Tech Edu</title>
+    <link>https://ng-tech.icu/books/messagequeue-notes/03.kafka/%E6%B6%88%E6%81%AF%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9/</link>
+      <atom:link href="https://ng-tech.icu/books/messagequeue-notes/03.kafka/%E6%B6%88%E6%81%AF%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9/index.xml" rel="self" type="application/rss+xml" />
+    <description>消息生产与消费</description>
+    <generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language>
+    <image>
+      <url>https://ng-tech.icu/media/sharing.png</url>
+      <title>消息生产与消费</title>
+      <link>https://ng-tech.icu/books/messagequeue-notes/03.kafka/%E6%B6%88%E6%81%AF%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9/</link>
+    </image>
+    
+    <item>
+      <title>生产者</title>
+      <link>https://ng-tech.icu/books/messagequeue-notes/03.kafka/%E6%B6%88%E6%81%AF%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9/%E7%94%9F%E4%BA%A7%E8%80%85/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/messagequeue-notes/03.kafka/%E6%B6%88%E6%81%AF%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9/%E7%94%9F%E4%BA%A7%E8%80%85/</guid>
+      <description>&lt;h1 id=&#34;kafka-producer&#34;&gt;Kafka Producer&lt;/h1&gt;
+&lt;p&gt;在 Kafka 中，我们把产生消息的那一方称为生产者，比如登录电商网站的时候，你的登陆信息，登陆次数都会作为消息传输到 Kafka 后台，当你浏览购物的时候，你的浏览信息，你的搜索指数，你的购物爱好都会作为一个个消息传递给 Kafka 后台，然后系统会根据你的爱好做智能推荐。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6077eb408322e6675c92ad73.jpg&#34; alt=&#34;生产者设计&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;Kafka 中的生产者设计主要考虑了以下方面：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;负载均衡：由于消息 topic 由多个 partition 组成，且 partition 会均衡分布到不同 broker 上，因此，为了有效利用 broker 集群的性能，提高消息的吞吐量，producer 可以通过随机或者 hash 等方式，将消息平均发送到多个 partition 上，以实现负载均衡。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;批量发送：是提高消息吞吐量重要的方式，Producer 端可以在内存中合并多条消息后，以一次请求的方式发送了批量的消息给 broker，从而大大减少 broker 存储消息的 IO 操作次数。但也一定程度上影响了消息的实时性，相当于以时延代价，换取更好的吞吐量。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;创建-kafka-生产者&#34;&gt;创建 Kafka 生产者&lt;/h1&gt;
+&lt;p&gt;要向 Kafka 写入消息，首先需要创建一个生产者对象，并设置一些属性。Kafka 生产者有 3 个必选的属性：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;bootstrap.servers：该属性指定 broker 的地址清单，地址的格式为 host:port。清单里不需要包含所有的 broker 地址，生产者会从给定的 broker 里查找到其他的 broker 信息。不过建议至少要提供两个 broker 信息，一旦其中一个宕机，生产者仍然能够连接到集群上。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;key.serializer：broker 需要接收到序列化之后的 key/value 值，所以生产者发送的消息需要经过序列化之后才传递给 Kafka Broker。生产者需要知道采用何种方式把 Java 对象转换为字节数组。key.serializer 必须被设置为一个实现了 org.apache.kafka.common.serialization.Serializer 接口的类，生产者会使用这个类把键对象序列化为字节数组。这里拓展一下 Serializer 类，Serializer 是一个接口，它表示类将会采用何种方式序列化，它的作用是把对象转换为字节，实现了 Serializer 接口的类主要有 ByteArraySerializer、StringSerializer、IntegerSerializer ，其中 ByteArraySerialize 是 Kafka 默认使用的序列化器，其他的序列化器还有很多，你可以通过 这里 查看其他序列化器。要注意的一点：key.serializer 是必须要设置的，即使你打算只发送值的内容。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;value.serializer：与 key.serializer 一样，value.serializer 指定的类会将值序列化。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;下面代码演示了如何创建一个 Kafka 生产者，这里只指定了必要的属性，其他使用默认的配置&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;private&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Properties&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;properties&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Properties&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;properties&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;put&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;bootstrap.servers&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;broker1:9092,broker2:9092&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;properties&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;put&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;key.serializer&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;org.apache.kafka.common.serialization.StringSerializer&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;properties&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;put&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;value.serializer&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;org.apache.kafka.common.serialization.StringSerializer&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;properties&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;KafkaProducer&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;properties&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;kafka-消息发送&#34;&gt;Kafka 消息发送&lt;/h1&gt;
+&lt;p&gt;实例化生产者对象后，接下来就可以开始发送消息了，我们从创建一个 ProducerRecord 对象开始，ProducerRecord 是 Kafka 中的一个核心类，它代表了一组 Kafka 需要发送的 key/value 键值对，它由记录要发送到的主题名称（Topic Name），可选的分区号（Partition Number）以及可选的键值对构成。在发送 ProducerRecord 时，我们需要将键值对对象由序列化器转换为字节数组，这样它们才能够在网络上传输。然后消息到达了分区器。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6076ebe28322e6675cf42160.jpg&#34; alt=&#34;Producer 发送流程&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;如果发送过程中指定了有效的分区号，那么在发送记录时将使用该分区。如果发送过程中未指定分区，则将使用 key 的 hash 函数映射指定一个分区。如果发送的过程中既没有分区号也没有，则将以循环的方式分配一个分区。选好分区后，生产者就知道向哪个主题和分区发送数据了。ProducerRecord 还有关联的时间戳，如果用户没有提供时间戳，那么生产者将会在记录中使用当前的时间作为时间戳。Kafka 最终使用的时间戳取决于 topic 主题配置的时间戳类型。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果将主题配置为使用 CreateTime，则生产者记录中的时间戳将由 broker 使用。&lt;/li&gt;
+&lt;li&gt;如果将主题配置为使用 LogAppendTime，则生产者记录中的时间戳在将消息添加到其日志中时，将由 broker 重写。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;然后，这条消息被存放在一个记录批次里，这个批次里的所有消息会被发送到相同的主题和分区上。由一个独立的线程负责把它们发到 Kafka Broker 上。Kafka Broker 在收到消息时会返回一个响应，如果写入成功，会返回一个 RecordMetaData 对象，它包含了主题和分区信息，以及记录在分区里的偏移量，上面两种的时间戳类型也会返回给用户。如果写入失败，会返回一个错误。生产者在收到错误之后会尝试重新发送消息，几次之后如果还是失败的话，就返回错误消息。&lt;/p&gt;
+&lt;h2 id=&#34;简单消息发送&#34;&gt;简单消息发送&lt;/h2&gt;
+&lt;p&gt;Kafka 最简单的消息发送如下：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;ProducerRecord&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;record&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;ProducerRecord&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;CustomerCountry&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;West&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;France&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;producer&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;send&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;record&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;代码中生产者(producer)的 send() 方法需要把 ProducerRecord 的对象作为参数进行发送，ProducerRecord 有很多构造函数，这个我们下面讨论，这里调用的是：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;ProducerRecord&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;topic&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;K&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;key&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;V&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;value&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;这个构造函数，需要传递的是 topic 主题，key 和 value。把对应的参数传递完成后，生产者调用 send() 方法发送消息（ProducerRecord 对象）。我们可以从生产者的架构图中看出，消息是先被写入分区中的缓冲区中，然后分批次发送给 Kafka Broker。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6076f9438322e6675c12a5d0.jpg&#34; alt=&#34;不同的主题与批次&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;发送成功后，send() 方法会返回一个 Future(java.util.concurrent) 对象，Future 对象的类型是 RecordMetadata 类型，我们上面这段代码没有考虑返回值，所以没有生成对应的 Future 对象，所以没有办法知道消息是否发送成功。如果不是很重要的信息或者对结果不会产生影响的信息，可以使用这种方式进行发送。我们可以忽略发送消息时可能发生的错误或者在服务器端可能发生的错误，但在消息发送之前，生产者还可能发生其他的异常。这些异常有可能是 SerializationException(序列化失败)，BufferedExhaustedException 或 TimeoutException(说明缓冲区已满)，又或是 InterruptedException(说明发送线程被中断)。&lt;/p&gt;
+&lt;h2 id=&#34;同步发送消息&#34;&gt;同步发送消息&lt;/h2&gt;
+&lt;p&gt;第二种消息发送机制如下所示：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;ProducerRecord&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;record&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;ProducerRecord&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;CustomerCountry&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;West&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;France&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;try&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;RecordMetadata&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;recordMetadata&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;producer&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;send&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;record&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;get&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;catch&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Exception&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;e&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;){&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;e&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;printStackTrace&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;()&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;；&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;这种发送消息的方式较上面的发送方式有了改进，首先调用 send() 方法，然后再调用 get() 方法等待 Kafka 响应。如果服务器返回错误，get() 方法会抛出异常，如果没有发生错误，我们会得到 RecordMetadata 对象，可以用它来查看消息记录。&lt;/p&gt;
+&lt;p&gt;生产者（KafkaProducer）在发送的过程中会出现两类错误：其中一类是重试错误，这类错误可以通过重发消息来解决。比如连接的错误，可以通过再次建立连接来解决；无主错误则可以通过重新为分区选举首领来解决。KafkaProducer 被配置为自动重试，如果多次重试后仍无法解决问题，则会抛出重试异常。另一类错误是无法通过重试来解决的，比如消息过大对于这类错误，KafkaProducer 不会进行重试，直接抛出异常。&lt;/p&gt;
+&lt;h2 id=&#34;异步发送消息&#34;&gt;异步发送消息&lt;/h2&gt;
+&lt;p&gt;同步发送消息都有个问题，那就是同一时间只能有一个消息在发送，这会造成许多消息无法直接发送，造成消息滞后，无法发挥效益最大化。比如消息在应用程序和 Kafka 集群之间一个来回需要 10ms。如果发送完每个消息后都等待响应的话，那么发送 100 个消息需要 1 秒，但是如果是异步方式的话，发送 100 条消息所需要的时间就会少很多很多。大多数时候，虽然 Kafka 会返回 RecordMetadata 消息，但是我们并不需要等待响应。&lt;/p&gt;
+&lt;p&gt;为了在异步发送消息的同时能够对异常情况进行处理，生产者提供了回掉支持。下面是回调的一个例子：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;ProducerRecord&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;producerRecord&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;ProducerRecord&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;CustomerCountry&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s&#34;&gt;&amp;#34;Huston&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s&#34;&gt;&amp;#34;America&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;producer&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;send&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;producerRecord&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;DemoProducerCallBack&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;());&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;class&lt;/span&gt; &lt;span class=&#34;nc&#34;&gt;DemoProducerCallBack&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;implements&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Callback&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;void&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;onCompletion&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;RecordMetadata&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;metadata&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Exception&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;exception&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;exception&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;!=&lt;/span&gt; &lt;span class=&#34;kc&#34;&gt;null&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;n&#34;&gt;exception&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;printStackTrace&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;首先实现回调需要定义一个实现了 org.apache.kafka.clients.producer.Callback 的类，这个接口只有一个 onCompletion 方法。如果 kafka 返回一个错误，onCompletion 方法会抛出一个非空(non null)异常，这里我们只是简单的把它打印出来，如果是生产环境需要更详细的处理，然后在 send() 方法发送的时候传递一个 Callback 回调的对象。&lt;/p&gt;
+&lt;h1 id=&#34;生产者分区机制&#34;&gt;生产者分区机制&lt;/h1&gt;
+&lt;p&gt;Kafka 对于数据的读写是以分区为粒度的，分区可以分布在多个主机（Broker）中，这样每个节点能够实现独立的数据写入和读取，并且能够通过增加新的节点来增加 Kafka 集群的吞吐量，通过分区部署在多个 Broker 来实现负载均衡的效果。上面我们介绍了生产者的发送方式有三种：不管结果如何直接发送、发送并返回结果、发送并回调。由于消息是存在主题（topic）的分区（partition）中的，所以当 Producer 生产者发送产生一条消息发给 topic 的时候，你如何判断这条消息会存在哪个分区中呢？&lt;/p&gt;
+&lt;p&gt;这其实就设计到 Kafka 的分区机制了。&lt;/p&gt;
+&lt;h2 id=&#34;分区策略&#34;&gt;分区策略&lt;/h2&gt;
+&lt;p&gt;Kafka 的分区策略指的就是将生产者发送到哪个分区的算法。Kafka 为我们提供了默认的分区策略，同时它也支持你自定义分区策略。如果要自定义分区策略的话，你需要显示配置生产者端的参数 Partitioner.class，我们可以看一下这个类它位于 org.apache.kafka.clients.producer 包下：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;interface&lt;/span&gt; &lt;span class=&#34;nc&#34;&gt;Partitioner&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;extends&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Configurable&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Closeable&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;int&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;partition&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;topic&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Object&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;key&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;byte&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[]&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;keyBytes&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Object&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;value&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;byte&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[]&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;valueBytes&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Cluster&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;cluster&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;void&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;close&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;default&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;void&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;onNewBatch&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;topic&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Cluster&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;cluster&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;int&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;prevPartition&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Partitioner 类有三个方法，分别来解释一下&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;partition(): 这个类有几个参数: topic，表示需要传递的主题；key 表示消息中的键值；keyBytes 表示分区中序列化过后的 key，byte 数组的形式传递；value 表示消息的 value 值；valueBytes 表示分区中序列化后的值数组；cluster 表示当前集群的原数据。Kafka 给你这么多信息，就是希望让你能够充分地利用这些信息对消息进行分区，计算出它要被发送到哪个分区中。&lt;/li&gt;
+&lt;li&gt;close() : 继承了 Closeable 接口能够实现 close() 方法，在分区关闭时调用。&lt;/li&gt;
+&lt;li&gt;onNewBatch(): 表示通知分区程序用来创建新的批次&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;其中与分区策略息息相关的就是 partition() 方法了。&lt;/p&gt;
+&lt;h2 id=&#34;顺序轮询&#34;&gt;顺序轮询&lt;/h2&gt;
+&lt;p&gt;顺序分配，消息是均匀的分配给每个 partition，即每个分区存储一次消息。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6076faa18322e6675c15d490.jpg&#34; alt=&#34;分区顺序分配&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;上图表示的就是轮询策略，轮训策略是 Kafka Producer 提供的默认策略，如果你不使用指定的轮训策略的话，Kafka 默认会使用顺序轮训策略的方式。&lt;/p&gt;
+&lt;h2 id=&#34;随机轮询&#34;&gt;随机轮询&lt;/h2&gt;
+&lt;p&gt;随机轮询简而言之就是随机的向 partition 中保存消息，如下图所示。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6076fafc8322e6675c169361.jpg&#34; alt=&#34;随机分配示意图&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;实现随机分配的代码只需要两行，如下：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;List&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;PartitionInfo&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;partitions&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;cluster&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;partitionsForTopic&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;topic&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;ThreadLocalRandom&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;current&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;().&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;nextInt&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;partitions&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;size&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;());&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;先计算出该主题总的分区数，然后随机地返回一个小于它的正整数。本质上看随机策略也是力求将数据均匀地打散到各个分区，但从实际表现来看，它要逊于轮询策略，所以如果追求数据的均匀分布，还是使用轮询策略比较好。事实上，随机策略是老版本生产者使用的分区策略，在新版本中已经改为轮询了。&lt;/p&gt;
+&lt;h2 id=&#34;按照-key-进行消息保存&#34;&gt;按照 key 进行消息保存&lt;/h2&gt;
+&lt;p&gt;这个策略也叫做 key-ordering 策略，Kafka 中每条消息都会有自己的 key，一旦消息被定义了 Key，那么你就可以保证同一个 Key 的所有消息都进入到相同的分区里面，由于每个分区下的消息处理都是有顺序的，故这个策略被称为按消息键保序策略，如下图所示。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6076fb448322e6675c17362b.jpg&#34; alt=&#34;key-ordering 分配示意图&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;实现这个策略的 partition 方法同样简单，只需要下面两行代码即可：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;List&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;PartitionInfo&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;partitions&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;cluster&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;partitionsForTopic&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;topic&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Math&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;abs&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;key&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;hashCode&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;())&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;%&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;partitions&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;size&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;上面这几种分区策略都是比较基础的策略，除此之外，你还可以自定义分区策略。&lt;/p&gt;
+&lt;h1 id=&#34;生产者压缩机制&#34;&gt;生产者压缩机制&lt;/h1&gt;
+&lt;p&gt;压缩一词简单来讲就是一种互换思想，它是一种经典的用 CPU 时间去换磁盘空间或者 I/O 传输量的思想，希望以较小的 CPU 开销带来更少的磁盘占用或更少的网络 I/O 传输。Kafka 的消息分为两层：消息集合 和 消息。一个消息集合中包含若干条日志项，而日志项才是真正封装消息的地方。Kafka 底层的消息日志由一系列消息集合日志项组成。Kafka 通常不会直接操作具体的一条条消息，它总是在消息集合这个层面上进行写入操作。&lt;/p&gt;
+&lt;p&gt;在 Kafka 中，压缩会发生在两个地方：Kafka Producer 和 Kafka Consumer，为什么启用压缩？说白了就是消息太大，需要变小一点 来使消息发的更快一些。Kafka Producer 中使用 compression.type 来开启压缩&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;private&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Properties&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;properties&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Properties&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;properties&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;put&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;bootstrap.servers&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s&#34;&gt;&amp;#34;192.168.1.9:9092&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;properties&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;put&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;key.serializer&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s&#34;&gt;&amp;#34;org.apache.kafka.common.serialization.StringSerializer&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;properties&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;put&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;value.serializer&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s&#34;&gt;&amp;#34;org.apache.kafka.common.serialization.StringSerializer&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;properties&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;put&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;compression.type&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s&#34;&gt;&amp;#34;gzip&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;Producer&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;producer&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;KafkaProducer&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;properties&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;ProducerRecord&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;record&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;ProducerRecord&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;CustomerCountry&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s&#34;&gt;&amp;#34;Precision Products&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s&#34;&gt;&amp;#34;France&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;上面代码表明该 Producer 的压缩算法使用的是 GZIP&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>事务消息</title>
+      <link>https://ng-tech.icu/books/messagequeue-notes/03.kafka/%E6%B6%88%E6%81%AF%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9/%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/messagequeue-notes/03.kafka/%E6%B6%88%E6%81%AF%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9/%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF/</guid>
+      <description>&lt;h1 id=&#34;高可用及幂等&#34;&gt;高可用及幂等&lt;/h1&gt;
+&lt;p&gt;在分布式系统中一般有三种处理语义:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;at-least-once：至少一次，有可能会有多次。如果 producer 收到来自 ack 的确认，则表示该消息已经写入到 Kafka 了，此时刚好是一次，也就是我们后面的 exactly-once。但是如果 producer 超时或收到错误，并且 request.required.acks 配置的不是-1，则会重试发送消息，客户端会认为该消息未写入 Kafka。如果 broker 在发送 Ack 之前失败，但在消息成功写入 Kafka 之后，这一次重试将会导致我们的消息会被写入两次，所以消息就不止一次地传递给最终 consumer，如果 consumer 处理逻辑没有保证幂等的话就会得到不正确的结果。在这种语义中会出现乱序，也就是当第一次 ack 失败准备重试的时候，但是第二消息已经发送过去了，这个时候会出现单分区中乱序的现象,我们需要设置 Prouducer 的参数 max.in.flight.requests.per.connection，flight.requests 是 Producer 端用来保存发送请求且没有响应的队列，保证 Producer 端未响应的请求个数为 1。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;at-most-once：如果在 ack 超时或返回错误时 producer 不重试，也就是我们讲 request.required.acks=-1，则该消息可能最终没有写入 kafka，所以 consumer 不会接收消息。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;exactly-once：刚好一次，即使 producer 重试发送消息，消息也会保证最多一次地传递给 consumer。该语义是最理想的，也是最难实现的。在 0.10 之前并不能保证 exactly-once，需要使用 consumer 自带的幂等性保证。0.11.0 使用事务保证了。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;如何实现-exactly-once&#34;&gt;如何实现 exactly-once&lt;/h1&gt;
+&lt;p&gt;要实现 exactly-once 在 Kafka 0.11.0 中有两个官方策略。&lt;/p&gt;
+&lt;h2 id=&#34;单-producer-单-topic&#34;&gt;单 Producer 单 Topic&lt;/h2&gt;
+&lt;p&gt;每个 producer 在初始化的时候都会被分配一个唯一的 PID，对于每个唯一的 PID，Producer 向指定的 Topic 中某个特定的 Partition 发送的消息都会携带一个从 0 单调递增的 sequence number。在我们的 Broker 端也会维护一个维度为，每次提交一次消息的时候都会对齐进行校验:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果消息序号比 Broker 维护的序号大一以上，说明中间有数据尚未写入，也即乱序，此时 Broker 拒绝该消息，Producer 抛出 InvalidSequenceNumber。&lt;/li&gt;
+&lt;li&gt;如果消息序号小于等于 Broker 维护的序号，说明该消息已被保存，即为重复消息，Broker 直接丢弃该消息，Producer 抛出 DuplicateSequenceNumber&lt;/li&gt;
+&lt;li&gt;如果消息序号刚好大一，就证明是合法的。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;上面所说的解决了两个问题:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;当 Prouducer 发送了一条消息之后失败，broker 并没有保存，但是第二条消息却发送成功，造成了数据的乱序。&lt;/li&gt;
+&lt;li&gt;当 Producer 发送了一条消息之后，broker 保存成功，ack 回传失败，producer 再次投递重复的消息。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;上面所说的都是在同一个 PID 下面，意味着必须保证在单个 Producer 中的同一个 seesion 内，如果 Producer 挂了，被分配了新的 PID，这样就无法保证了，所以 Kafka 中又有事务机制去保证。&lt;/p&gt;
+&lt;h1 id=&#34;事务&#34;&gt;事务&lt;/h1&gt;
+&lt;p&gt;在 kafka 中事务的作用是：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;实现 exactly-once 语义&lt;/li&gt;
+&lt;li&gt;保证操作的原子性，要么全部成功，要么全部失败。&lt;/li&gt;
+&lt;li&gt;有状态的操作的恢复&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;事务可以保证就算跨多个，在本次事务中的对消费队列的操作都当成原子性，要么全部成功，要么全部失败。并且，有状态的应用也可以保证重启后从断点处继续处理，也即事务恢复。在 kafka 的事务中，应用程序必须提供一个唯一的事务 ID，即 Transaction ID，并且宕机重启之后，也不会发生改变，Transactin ID 与 PID 可能一一对应。区别在于 Transaction ID 由用户提供，而 PID 是内部的实现对用户透明。为了 Producer 重启之后，旧的 Producer 具有相同的 Transaction ID 失效，每次 Producer 通过 Transaction ID 拿到 PID 的同时，还会获取一个单调递增的 epoch。由于旧的 Producer 的 epoch 比新 Producer 的 epoch 小，Kafka 可以很容易识别出该 Producer 是老的 Producer 并拒绝其请求。&lt;/p&gt;
+&lt;p&gt;为了实现这一点，Kafka 0.11.0.0 引入了一个服务器端的模块，名为 Transaction Coordinator，用于管理 Producer 发送的消息的事务性。该 Transaction Coordinator 维护 Transaction Log，该 log 存于一个内部的 Topic 内。由于 Topic 数据具有持久性，因此事务的状态也具有持久性。Producer 并不直接读写 Transaction Log，它与 Transaction Coordinator 通信，然后由 Transaction Coordinator 将该事务的状态插入相应的 Transaction Log。Transaction Log 的设计与 Offset Log 用于保存 Consumer 的 Offset 类似。&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>消费者</title>
+      <link>https://ng-tech.icu/books/messagequeue-notes/03.kafka/%E6%B6%88%E6%81%AF%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9/%E6%B6%88%E8%B4%B9%E8%80%85/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/messagequeue-notes/03.kafka/%E6%B6%88%E6%81%AF%E7%94%9F%E4%BA%A7%E4%B8%8E%E6%B6%88%E8%B4%B9/%E6%B6%88%E8%B4%B9%E8%80%85/</guid>
+      <description>&lt;h1 id=&#34;kafka-消费者&#34;&gt;Kafka 消费者&lt;/h1&gt;
+&lt;p&gt;消息由生产者发送到 kafka 集群后，会被消费者消费。一般来说我们的消费模型有两种:推送模型(push)和拉取模型(pull)基于推送模型的消息系统，由消息代理记录消费状态。消息代理将消息推送到消费者后，标记这条消息为已经被消费，但是这种方式无法很好地保证消费的处理语义。比如当我们把已经把消息发送给消费者之后，由于消费进程挂掉或者由于网络原因没有收到这条消息，如果我们在消费代理将其标记为已消费，这个消息就永久丢失了。如果我们利用生产者收到消息后回复这种方法，消息代理需要记录消费状态，这种不可取。如果采用 push，消息消费的速率就完全由消费代理控制，一旦消费者发生阻塞，就会出现问题。Kafka 采取拉取模型(pull)，由自己控制消费速度，以及消费的进度，消费者可以按照任意的偏移量进行消费。比如消费者可以消费已经消费过的消息进行重新处理，或者消费最近的消息等等。&lt;/p&gt;
+&lt;p&gt;消费者组（Consumer Group）是由一个或多个消费者实例（Consumer Instance）组成的群组，具有可扩展性和可容错性的一种机制。消费者组内的消费者共享一个消费者组 ID，这个 ID 也叫做 Group ID，组内的消费者共同对一个主题进行订阅和消费，同一个组中的消费者只能消费一个分区的消息，多余的消费者会闲置，派不上用场。换言之，同一主题的一条消息只能被同一个消费者组内的一个消费者消费，但多个消费者组可同时消费这一消息。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6077ebd78322e6675c948e1c.jpg&#34; alt=&#34;消费者组与分区&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;这是 Kafka 用来实现一个 Topic 消息的广播（发给所有的 Consumer）和单播（发给某一个 Consumer）的手段。一个 Topic 可以对应多个 Consumer Group。如果需要实现广播，只要每个 Consumer 有一个独立的 Group 就可以了。要实现单播只要所有的 Consumer 在同一个 Group 里。用 Consumer Group 还可以将 Consumer 进行自由的分组而不需要多次发送消息到不同的 Topic。&lt;/p&gt;
+&lt;h1 id=&#34;队列与订阅&#34;&gt;队列与订阅&lt;/h1&gt;
+&lt;p&gt;Kafka 的消息队列一般分为两种模式：点对点队列模式和发布订阅模式。如果一个生产者生产的消息由一个消费者进行消费的话，那么这种模式就是点对点模式：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6076e6038322e6675ce7f67a.jpg&#34; alt=&#34;点对点模式的消息队列&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;如果一个生产者或者多个生产者产生的消息能够被多个消费者同时消费的情况，这样的消息队列成为发布订阅模式的消息队列：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6076e6628322e6675ce8ca89.jpg&#34; alt=&#34;发布-订阅模式的消息队列&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;h2 id=&#34;队列模式&#34;&gt;队列模式&lt;/h2&gt;
+&lt;p&gt;队列模式，指每条消息只会有一个 Consumer 消费到。Kafka 保证同一 Consumer Group 中只有一个 Consumer 会消费某条消息。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;在 Consumer Group 稳定状态下，每一个 Consumer 实例只会消费某一个或多个特定 partition 的数据，而某个 partition 的数据只会被某一个特定的 Consumer 实例所消费，也就是说 Kafka 对消息的分配是以 partition 为单位分配的，而非以每一条消息作为分配单元；&lt;/li&gt;
+&lt;li&gt;同一 Consumer Group 中，如果 Consumer 实例数量少于 partition 数量，则至少有一个 Consumer 会消费多个 partition 的数据；如果 Consumer 的数量与 partition 数量相同，则正好一个 Consumer 消费一个 partition 的数据；而如果 Consumer 的数量多于 partition 的数量时，会有部分 Consumer 无法消费该 Topic 下任何一条消息；&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Kafka 消费者从属于消费者群组。一个群组中的消费者订阅的都是相同的主题，每个消费者接收主题一部分分区的消息。下面是一个 Kafka 分区消费示意图：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6076fd108322e6675c1b6ec0.jpg&#34; alt=&#34;1 个消费者消费 4 个分区消息&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;上图中的主题 T1 有四个分区，分别是分区 0、分区 1、分区 2、分区 3，我们创建一个消费者群组 1，消费者群组中只有一个消费者，它订阅主题 T1，接收到 T1 中的全部消息。由于一个消费者处理四个生产者发送到分区的消息，压力有些大，需要帮手来帮忙分担任务，于是就演变为下图：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6076fd3b8322e6675c1bcd6a.jpg&#34; alt=&#34;2 个消费者消费 4 个分区消息&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;这样一来，消费者的消费能力就大大提高了，但是在某些环境下比如用户产生消息特别多的时候，生产者产生的消息仍旧让消费者吃不消，那就继续增加消费者。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6076fd558322e6675c1c070e.jpg&#34; alt=&#34;4 个消费者消费 4 个分区消息&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;如上图所示，每个分区所产生的消息能够被每个消费者群组中的消费者消费，如果向消费者群组中增加更多的消费者，那么多余的消费者将会闲置，如下图所示&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6076fd7a8322e6675c1c57cc.jpg&#34; alt=&#34;5 个消费者消费 4 个分区消息&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;向群组中增加消费者是横向伸缩消费能力的主要方式。总而言之，我们可以通过增加消费组的消费者来进行水平扩展提升消费能力。这也是为什么建议创建主题时使用比较多的分区数，这样可以在消费负载高的情况下增加消费者来提升性能。另外，消费者的数量不应该比分区数多，因为多出来的消费者是空闲的，没有任何帮助。&lt;/p&gt;
+&lt;h2 id=&#34;发布订阅模式&#34;&gt;发布订阅模式&lt;/h2&gt;
+&lt;p&gt;发布订阅模式，又指广播模式，Kafka 保证 topic 的每条消息会被所有 Consumer Group 消费到，而对于同一个 Consumer Group，还是保证只有一个 Consumer 实例消费到这条消息。Kafka 一个很重要的特性就是，只需写入一次消息，可以支持任意多的应用读取这个消息。换句话说，每个应用都可以读到全量的消息。为了使得每个应用都能读到全量消息，应用需要有不同的消费组。对于上面的例子，假如我们新增了一个新的消费组 G2，而这个消费组有两个消费者，那么就演变为下图这样:&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6076fdb58322e6675c1cdade.jpg&#34; alt=&#34;两个消费者群组消费一个主题的消息&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;在这个场景中，消费组 G1 和消费组 G2 都能收到 T1 主题的全量消息，在逻辑意义上来说它们属于不同的应用。总结起来就是如果应用需要读取全量消息，那么请为该应用设置一个消费组；如果该应用消费能力不足，那么可以考虑在这个消费组里增加消费者。&lt;/p&gt;
+&lt;h1 id=&#34;分区重平衡&#34;&gt;分区重平衡&lt;/h1&gt;
+&lt;p&gt;我们从上面的消费者演变图中可以知道这么一个过程：最初是一个消费者订阅一个主题并消费其全部分区的消息，后来有一个消费者加入群组，随后又有更多的消费者加入群组，而新加入的消费者实例分摊了最初消费者的部分消息，这种把分区的所有权通过一个消费者转到其他消费者的行为称为重平衡，英文名也叫做 Rebalance。如下图所示：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6076fe3f8322e6675c1e2560.jpg&#34; alt=&#34;Kafka 分区重平衡&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;重平衡非常重要，它为消费者群组带来了高可用性和伸缩性，我们可以放心的添加消费者或移除消费者，不过在正常情况下我们并不希望发生这样的行为。在重平衡期间，消费者无法读取消息，造成整个消费者组在重平衡的期间都不可用。另外，当分区被重新分配给另一个消费者时，消息当前的读取状态会丢失，它有可能还需要去刷新缓存，在它重新恢复状态之前会拖慢应用程序。&lt;/p&gt;
+&lt;p&gt;重平衡也是一把双刃剑，它为消费者群组带来高可用性和伸缩性的同时，还有有一些明显的缺点(bug)，而这些 bug 到现在社区还无法修改。重平衡的过程对消费者组有极大的影响。因为每次重平衡过程中都会导致万物静止，参考 JVM 中的垃圾回收机制，也就是 Stop The World .也就是说，在重平衡期间，消费者组中的消费者实例都会停止消费，等待重平衡的完成。而且重平衡这个过程很慢。&lt;/p&gt;
+&lt;h2 id=&#34;重平衡算法&#34;&gt;重平衡算法&lt;/h2&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6077ef3e8322e6675c9f8a21.jpg&#34; alt=&#34;重平衡算法&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;h2 id=&#34;重平衡流程&#34;&gt;重平衡流程&lt;/h2&gt;
+&lt;p&gt;消费者通过向组织协调者（Kafka Broker）发送心跳来维护自己是消费者组的一员并确认其拥有的分区。对于不同不的消费群体来说，其组织协调者可以是不同的。只要消费者定期发送心跳，就会认为消费者是存活的并处理其分区中的消息。当消费者检索记录或者提交它所消费的记录时就会发送心跳。如果过了一段时间 Kafka 停止发送心跳了，会话（Session）就会过期，组织协调者就会认为这个 Consumer 已经死亡，就会触发一次重平衡。如果消费者宕机并且停止发送消息，组织协调者会等待几秒钟，确认它死亡了才会触发重平衡。在这段时间里，死亡的消费者将不处理任何消息。在清理消费者时，消费者将通知协调者它要离开群组，组织协调者会触发一次重平衡，尽量降低处理停顿。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;对于每个 Consumer Group，选举出一个 Broker 作为 Coordinator（0.9 版本以上），由它 Watch Zookeeper，从而监控判断是否有 partition 或者 Consumer 的增减，然后生成 Rebalance 命令，按照以上算法重新分配。&lt;/li&gt;
+&lt;li&gt;当 Consumer Group 第一次被初始化时，Consumer 通常会读取每个 partition 的最早或最近的 offset（Zookeeper 记录），然后顺序地读取每个 partition log 的消息，在 Consumer 读取过程中，它会提交已经成功处理的消息的 offsets（由 Zookeeper 记录）。&lt;/li&gt;
+&lt;li&gt;当一个 partition 被重新分配给 Consumer Group 中的其他 Consumer，新的 Consumer 消费的初始位置会设置为(原来 Consumer)最近提交的 offset。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;创建消费者&#34;&gt;创建消费者&lt;/h1&gt;
+&lt;p&gt;在读取消息之前，需要先创建一个 KafkaConsumer 对象。创建 KafkaConsumer 对象与创建 KafkaProducer 对象十分相似 &amp;mdash; 把需要传递给消费者的属性放在 properties 对象中，后面我们会着重讨论 Kafka 的一些配置，这里我们先简单的创建一下，使用 3 个属性就足矣，分别是 bootstrap.server，key.deserializer，value.deserializer 。&lt;/p&gt;
+&lt;p&gt;还有一个属性是 group.id 这个属性不是必须的，它指定了 KafkaConsumer 是属于哪个消费者群组。创建不属于任何一个群组的消费者也是可以的:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;Properties&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;properties&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Properties&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;properties&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;put&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;bootstrap.server&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s&#34;&gt;&amp;#34;192.168.1.9:9092&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;properties&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;put&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;key.serializer&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s&#34;&gt;&amp;#34;org.apache.kafka.common.serialization.StringSerializer&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;properties&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;put&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;value.serializer&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;s&#34;&gt;&amp;#34;org.apache.kafka.common.serialization.StringSerializer&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;KafkaConsumer&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;consumer&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;KafkaConsumer&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;properties&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;主题订阅&#34;&gt;主题订阅&lt;/h2&gt;
+&lt;p&gt;创建好消费者之后，下一步就开始订阅主题了。subscribe() 方法接受一个主题列表作为参数，使用起来比较简单：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;consumer&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;subscribe&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Collections&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;singletonList&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;customerTopic&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;));&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;为了简单我们只订阅了一个主题 customerTopic，参数传入的是一个正则表达式，正则表达式可以匹配多个主题，如果有人创建了新的主题，并且主题的名字与正则表达式相匹配，那么会立即触发一次重平衡，消费者就可以读取新的主题。&lt;/p&gt;
+&lt;p&gt;要订阅所有与 test 相关的主题，可以这样做：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;consumer&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;subscribe&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;test.*&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;轮询&#34;&gt;轮询&lt;/h2&gt;
+&lt;p&gt;我们知道，Kafka 是支持订阅/发布模式的，生产者发送数据给 Kafka Broker，那么消费者是如何知道生产者发送了数据呢？其实生产者产生的数据消费者是不知道的，KafkaConsumer 采用轮询的方式定期去 Kafka Broker 中进行数据的检索，如果有数据就用来消费，如果没有就再继续轮询等待，下面是轮询等待的具体实现：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;try&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;while&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;kc&#34;&gt;true&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;n&#34;&gt;ConsumerRecords&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;records&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;consumer&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;poll&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Duration&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;ofSeconds&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;100&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;));&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;for&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ConsumerRecord&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;record&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;records&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;kt&#34;&gt;int&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;updateCount&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;map&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;containsKey&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;record&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;value&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;()))&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;                &lt;span class=&#34;n&#34;&gt;updateCount&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;kt&#34;&gt;int&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;map&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;get&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;record&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;value&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;()&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;+&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;n&#34;&gt;map&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;put&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;record&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;value&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(),&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;updateCount&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;finally&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;consumer&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;close&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;这是一个无限循环。消费者实际上是一个长期运行的应用程序，它通过轮询的方式向 Kafka 请求数据。&lt;/li&gt;
+&lt;li&gt;第三行代码非常重要，Kafka 必须定期循环请求数据，否则就会认为该 Consumer 已经挂了，会触发重平衡，它的分区会移交给群组中的其它消费者。传给 &lt;code&gt;poll()&lt;/code&gt; 方法的是一个超市时间，用 &lt;code&gt;java.time.Duration&lt;/code&gt; 类来表示，如果该参数被设置为 0 ，poll() 方法会立刻返回，否则就会在指定的毫秒数内一直等待 broker 返回数据。&lt;/li&gt;
+&lt;li&gt;poll() 方法会返回一个记录列表。每条记录都包含了记录所属主题的信息，记录所在分区的信息、记录在分区中的偏移量，以及记录的键值对。我们一般会遍历这个列表，逐条处理每条记录。&lt;/li&gt;
+&lt;li&gt;在退出应用程序之前使用 &lt;code&gt;close()&lt;/code&gt; 方法关闭消费者。网络连接和 socket 也会随之关闭，并立即触发一次重平衡，而不是等待群组协调器发现它不再发送心跳并认定它已经死亡。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;提交和偏移量的概念&#34;&gt;提交和偏移量的概念&lt;/h1&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6077eedb8322e6675c9e4be9.jpg&#34; alt=&#34;The Consumer&amp;amp;rsquo;s Position in the Log&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;如图，Last Commited Offset 指 Consumer 最近一次提交的消费记录 offset，Current Position 是当前消费的位置，High Watermark 是成功拷贝到 log 的所有副本节点（partition 的所有 ISR 节点，下文介绍）的最近消息的 offset，Log End Offset 是写入 log 中最后一条消息的 offset+1。&lt;/p&gt;
+&lt;p&gt;从 Consumer 的角度来看，最多只能读取到 High watermark 的位置，后面的消息对消费者不可见，因为未完全复制的数据还没可靠存储，有丢失可能。&lt;/p&gt;
+&lt;h2 id=&#34;特殊偏移&#34;&gt;特殊偏移&lt;/h2&gt;
+&lt;p&gt;我们上面提到，消费者在每次调用 poll() 方法进行定时轮询的时候，会返回由生产者写入 Kafka 但是还没有被消费者消费的记录，因此我们可以追踪到哪些记录是被群组里的哪个消费者读取的。消费者可以使用 Kafka 来追踪消息在分区中的位置（偏移量）&lt;/p&gt;
+&lt;p&gt;消费者会向一个叫做 &lt;code&gt;_consumer_offset&lt;/code&gt; 的特殊主题中发送消息，这个主题会保存每次所发送消息中的分区偏移量，这个主题的主要作用就是消费者触发重平衡后记录偏移使用的，消费者每次向这个主题发送消息，正常情况下不触发重平衡，这个主题是不起作用的，当触发重平衡后，消费者停止工作，每个消费者可能会分到对应的分区，这个主题就是让消费者能够继续处理消息所设置的。&lt;/p&gt;
+&lt;p&gt;如果提交的偏移量小于客户端最后一次处理的偏移量，那么位于两个偏移量之间的消息就会被重复处理：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6076fffa8322e6675c21f594.jpg&#34; alt=&#34;重平衡后，消息被重复消费&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;如果提交的偏移量大于最后一次消费时的偏移量，那么处于两个偏移量中间的消息将会丢失，既然&lt;code&gt;_consumer_offset&lt;/code&gt; 如此重要，那么它的提交方式是怎样的呢？下面我们就来说一下提交方式，KafkaConsumer API 提供了多种方式来提交偏移量。&lt;/p&gt;
+&lt;h3 id=&#34;自动提交&#34;&gt;自动提交&lt;/h3&gt;
+&lt;p&gt;最简单的方式就是让消费者自动提交偏移量。如果 enable.auto.commit 被设置为 true，那么每过 5s，消费者会自动把从 poll() 方法轮询到的最大偏移量提交上去。提交时间间隔由 auto.commit.interval.ms 控制，默认是 5s。与消费者里的其他东西一样，自动提交也是在轮询中进行的。消费者在每次轮询中会检查是否提交该偏移量了，如果是，那么就会提交从上一次轮询中返回的偏移量。&lt;/p&gt;
+&lt;h3 id=&#34;提交当前偏移量&#34;&gt;提交当前偏移量&lt;/h3&gt;
+&lt;p&gt;把 auto.commit.offset 设置为 false，可以让应用程序决定何时提交偏移量。使用 commitSync() 提交偏移量。这个 API 会提交由 poll() 方法返回的最新偏移量，提交成功后马上返回，如果提交失败就抛出异常。&lt;/p&gt;
+&lt;p&gt;commitSync() 将会提交由 poll() 返回的最新偏移量，如果处理完所有记录后要确保调用了 commitSync()，否则还是会有丢失消息的风险，如果发生了在均衡，从最近一批消息到发生在均衡之间的所有消息都将被重复处理。&lt;/p&gt;
+&lt;h3 id=&#34;异步提交&#34;&gt;异步提交&lt;/h3&gt;
+&lt;p&gt;异步提交 commitAsync() 与同步提交 commitSync() 最大的区别在于异步提交不会进行重试，同步提交会一致进行重试。&lt;/p&gt;
+&lt;h3 id=&#34;同步和异步组合提交&#34;&gt;同步和异步组合提交&lt;/h3&gt;
+&lt;p&gt;一般情况下，针对偶尔出现的提交失败，不进行重试不会有太大的问题，因为如果提交失败是因为临时问题导致的，那么后续的提交总会有成功的。但是如果在关闭消费者或再均衡前的最后一次提交，就要确保提交成功。&lt;/p&gt;
+&lt;p&gt;因此，在消费者关闭之前一般会组合使用 commitAsync 和 commitSync 提交偏移量。&lt;/p&gt;
+&lt;h3 id=&#34;提交特定的偏移量&#34;&gt;提交特定的偏移量&lt;/h3&gt;
+&lt;p&gt;消费者 API 允许调用 commitSync() 和 commitAsync() 方法时传入希望提交的 partition 和 offset 的 map，即提交特定的偏移量。&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

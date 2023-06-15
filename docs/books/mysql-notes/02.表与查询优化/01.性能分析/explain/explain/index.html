@@ -1,36 +1,1300 @@
-<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="Explain MySQL 提供了一个 EXPLAIN 命令, 它可以对 SELECT 语句进行分析, 并输出 SELECT 执行的详细信息, 以供开发人员针对性优化.EXPLAIN 命令用法十分简单, 在 SELECT 语句前加上 explain 就可以了, 例如: explain SELECT id FROM ORDER_EXPENSE_SUMMARY WHERE STATUS = 'CHECKED' AND EXPENSE_BILL_NO = 'BF_20191112_20191118_PAY_1' ORDER BY GMT_CREATE DESC id：表"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/explain/explain/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.fab3cd1900ae35687457073b2d518207.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/explain/explain/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/explain/explain/"><meta property="og:title" content="explain | Next-gen Tech Edu"><meta property="og:description" content="Explain MySQL 提供了一个 EXPLAIN 命令, 它可以对 SELECT 语句进行分析, 并输出 SELECT 执行的详细信息, 以供开发人员针对性优化.EXPLAIN 命令用法十分简单, 在 SELECT 语句前加上 explain 就可以了, 例如: explain SELECT id FROM ORDER_EXPENSE_SUMMARY WHERE STATUS = 'CHECKED' AND EXPENSE_BILL_NO = 'BF_20191112_20191118_PAY_1' ORDER BY GMT_CREATE DESC id：表"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>explain | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=12d706d5e896c1110cbd0297fb5cf1da><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
-<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
-<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
-<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
-<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
-<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">explain</span>
-<span><i class="fas fa-chevron-down"></i></span></div></button>
-<button class="form-control sidebar-search js-search d-none d-md-flex">
-<i class="fas fa-search pr-2"></i>
-<span class=sidebar-search-text>搜索...</span>
-<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
-Back</a>
-<span>|</span>
-<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
-Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id44df803051052345cfc073ba1bdd364e")' href=#id44df803051052345cfc073ba1bdd364e aria-expanded=false aria-controls=id44df803051052345cfc073ba1bdd364e aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/>01.性能分析</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id44df803051052345cfc073ba1bdd364e aria-expanded=false aria-controls=id44df803051052345cfc073ba1bdd364e><i class="fa-solid fa-angle-down" id=caret-id44df803051052345cfc073ba1bdd364e></i></a></div><ul class="nav docs-sidenav collapse show" id=id44df803051052345cfc073ba1bdd364e><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idfb5dd0a5ae67016ca3fefa8419fc3d46")' href=#idfb5dd0a5ae67016ca3fefa8419fc3d46 aria-expanded=false aria-controls=idfb5dd0a5ae67016ca3fefa8419fc3d46 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/>99.参考资料</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idfb5dd0a5ae67016ca3fefa8419fc3d46 aria-expanded=false aria-controls=idfb5dd0a5ae67016ca3fefa8419fc3d46><i class="fa-solid fa-angle-right" id=caret-idfb5dd0a5ae67016ca3fefa8419fc3d46></i></a></div><ul class="nav docs-sidenav collapse" id=idfb5dd0a5ae67016ca3fefa8419fc3d46><li class="child level"><a href=/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-mysql-%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%89%E4%B8%AA%E5%85%B3%E9%94%AE%E6%80%A7%E8%83%BD%E6%8C%87%E6%A0%87-tps%5Cqps%5Ciops/>2021-MySQL 数据库三个关键性能指标 TPS\QPS\IOPS</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id7a121628069bc0f0fbcfa35775d96a54")' href=#id7a121628069bc0f0fbcfa35775d96a54 aria-expanded=false aria-controls=id7a121628069bc0f0fbcfa35775d96a54 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/explain/>explain</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id7a121628069bc0f0fbcfa35775d96a54 aria-expanded=false aria-controls=id7a121628069bc0f0fbcfa35775d96a54><i class="fa-solid fa-angle-down" id=caret-id7a121628069bc0f0fbcfa35775d96a54></i></a></div><ul class="nav docs-sidenav collapse show" id=id7a121628069bc0f0fbcfa35775d96a54><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-ide9527cad293353c2c4f85deadf17e91d")' href=#ide9527cad293353c2c4f85deadf17e91d aria-expanded=false aria-controls=ide9527cad293353c2c4f85deadf17e91d aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/explain/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/>99.参考资料</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#ide9527cad293353c2c4f85deadf17e91d aria-expanded=false aria-controls=ide9527cad293353c2c4f85deadf17e91d><i class="fa-solid fa-angle-right" id=caret-ide9527cad293353c2c4f85deadf17e91d></i></a></div><ul class="nav docs-sidenav collapse" id=ide9527cad293353c2c4f85deadf17e91d><li class="child level"><a href=/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/explain/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-heibaiying-mysql-explain/>2020-heibaiying-MySQL EXPLAIN</a></li></ul></div><li class="child level active"><a href=/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/explain/explain/>explain</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>explain</h1><div class=article-style><h1 id=explain>Explain</h1><p>MySQL 提供了一个 EXPLAIN 命令, 它可以对 SELECT 语句进行分析, 并输出 SELECT 执行的详细信息, 以供开发人员针对性优化.EXPLAIN 命令用法十分简单, 在 SELECT 语句前加上 explain 就可以了, 例如:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>explain</span><span class=w> </span><span class=k>SELECT</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>ORDER_EXPENSE_SUMMARY</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>STATUS</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;CHECKED&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=n>EXPENSE_BILL_NO</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;BF_20191112_20191118_PAY_1&#39;</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>GMT_CREATE</span><span class=w> </span><span class=k>DESC</span><span class=w>
-</span></span></span></code></pre></div><ul><li><p>id：表示 SQL 执行的顺序的标识,SQL 从大到小的执行。示例中 1 表示执行的第一条 SQL</p></li><li><p>select_type：表示 select 语句的子类型。</p></li><li><p>type：表示访问类型，显示出该查询是通过全表扫描、索引查询等方式查找数据的。</p></li><li><p>possible_keys：显示查询可能使用了哪些索引，表示该索引可以进行高效地查找，但是列出来的索引对于后续 优化过程可能是没有用的。</p></li><li><p>key： 表示 MySQL 实际决定使用的键（索引）。如果没有选择索引，键是 NULL。</p></li><li><p>key_len： 表示 key_len 列显示 MySQL 决定使用的键长度。使用的索引的长度。在不损失精确性的情况下，长度越短越好。</p></li><li><p>ref：表示使用哪个列或查询参数 被用来做索引的查询条件</p></li><li><p>rows：表示 MySQL 认为它执行查询时必须检查的行数。这是一个预估值，值越少说明查询效率越高。</p></li><li><p>Extra：表示 MySQL 查询优化器执行查询的过程中对查询计划的重要补充信息。</p></li></ul><p>其中 type、key、rows、Extra 是需要重点关注的字段。例如 type 为 ALL 表示全表扫描，那考虑是不是需要增加索引。key 为 null 那么是不是索引缺失或者没有命中，Extra 里有 Using filesort，那么说明查询的原始结果会在内存里面做排序，效率比较低。</p><h1 id=索引查询>索引查询</h1><p>联合索引中，索引字段的数据必须是有序的，才能实现这种类型的查找，才能利用到索引。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>--- UNIQUE KEY `unique_product_in_category` (`name`,`category`) USING BTREE,
-</span></span></span><span class=line><span class=cl><span class=c1>--- key 为 unique_name_in_category
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>EXPLAIN</span><span class=w> </span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>product</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;产品一&#39;</span><span class=err>；</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>--- key 为 null
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>EXPLAIN</span><span class=w> </span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>product</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>category</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;类目一&#39;</span><span class=err>；</span><span class=w>
-</span></span></span></code></pre></div><ul><li><p>SYSTEM，CONST 的特例，当表上只有一条元组匹配</p></li><li><p>CONST，WHERE 条件筛选后表上至多有一条元组匹配时，比如 WHERE ID = 2（ID 是主键，值为 2 的要么有一条要么没有）</p></li><li><p>EQ_REF，参与连接运算的表是内表（在代码实现的算法中，两表连接时作为循环中的内循环遍历的对象，这样的表称为内表）。基于索引（连接字段上存在唯一索引或者主键索引，且操作符必须是“=”谓词，索引值不能为 NULL）做扫描，使得对外表的一条元组，内表只有唯一一条元组与之对应。</p></li><li><p>REF：可以用于单表扫描或者连接。参与连接运算的表，是内表。基于索引（连接字段上的索引是非唯一索引，操作符必须是“=”谓词，连接字段值不可为 NULL）做扫描，使得对外表的一条元组，内表可有若干条元组与之对应。</p></li><li><p>REF_OR_NULL：类似 REF，只是搜索条件包括：连接字段的值可以为 NULL 的情况，比如 where col = 2 or col is null</p></li><li><p>RANGE：范围扫描，基于索引做范围扫描，为诸如 BETWEEN，IN，>=，LIKE 类操作提供支持</p></li><li><p>INDEX_SCAN：索引做扫描，是基于索引在索引的叶子节点上找满足条件的数据（不需要访问数据文件）</p></li><li><p>ALL：全表扫描或者范围扫描：不使用索引，顺序扫描，直接读取表上的数据（访问数据文件）</p></li><li><p>UNIQUE_SUBQUERY：在子查询中，基于唯一索引进行扫描，类似于 EQ_REF</p></li><li><p>INDEX_SUBQUERY：在子查询中，基于除唯一索引之外的索引进行扫描</p></li><li><p>INDEX_MERGE：多重范围扫描。两表连接的每个表的连接字段上均有索引存在且索引有序，结果合并在一起。适用于作集合的并、交操作。</p></li><li><p>FT：FULL TEXT，全文检索</p></li></ul></div><div class=article-widget><div class="container-xl row post-nav"></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div><script type=text/javascript id=clstr_globe async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
-<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
-<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
-<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
-<script id=dsq-count-scr src=https://ngte.disqus.com/count.js async></script>
-<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
-<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
-<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
-<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>
+<!DOCTYPE html><html lang="zh" >
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  
+  
+    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+
+  
+  
+  
+    
+      
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    
+  
+
+  
+    <meta name="google-site-verification" content="google69a5cccb61297807" />
+    <meta name="baidu-site-verification" content="cqmZHEleVh" />
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+    
+  
+  <meta name="description" content="Explain MySQL 提供了一个 EXPLAIN 命令, 它可以对 SELECT 语句进行分析, 并输出 SELECT 执行的详细信息, 以供开发人员针对性优化.EXPLAIN 命令用法十分简单, 在 SELECT 语句前加上 explain 就可以了, 例如: explain SELECT id FROM ORDER_EXPENSE_SUMMARY WHERE STATUS = &#39;CHECKED&#39; AND EXPENSE_BILL_NO = &#39;BF_20191112_20191118_PAY_1&#39; ORDER BY GMT_CREATE DESC id：表" />
+
+  
+  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/explain/explain/" />
+
+  
+  
+  
+    <meta name="theme-color" content="#0a55a7" />
+  
+
+  
+  
+
+  
+
+  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
+
+  
+  
+  
+    
+    
+
+    
+    
+    
+    
+      
+      
+    
+    
+    
+
+    
+    
+    
+      
+    
+    
+      
+      
+        
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
+        
+      
+    
+
+    
+    
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
+    
+
+    
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+        
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+  
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/wowchemy.0d97305106da5efa530e28b021b4c580.css" />
+
+  
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', "G-40NYXJ8823");
+</script>
+
+
+  
+
+
+  
+
+
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+  
+  
+  
+
+  
+
+  
+    <link rel="manifest" href="/manifest.webmanifest" />
+  
+
+  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
+  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
+
+  <link rel="canonical" href="https://ng-tech.icu/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/explain/explain/" />
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+
+  
+  
+    
+    
+  
+  <meta property="twitter:card" content="summary_large_image" />
+  
+    <meta property="twitter:site" content="@wx-chevalier" />
+    <meta property="twitter:creator" content="@wx-chevalier" />
+  
+  <meta property="og:site_name" content="Next-gen Tech Edu" />
+  <meta property="og:url" content="https://ng-tech.icu/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/explain/explain/" />
+  <meta property="og:title" content="explain | Next-gen Tech Edu" />
+  <meta property="og:description" content="Explain MySQL 提供了一个 EXPLAIN 命令, 它可以对 SELECT 语句进行分析, 并输出 SELECT 执行的详细信息, 以供开发人员针对性优化.EXPLAIN 命令用法十分简单, 在 SELECT 语句前加上 explain 就可以了, 例如: explain SELECT id FROM ORDER_EXPENSE_SUMMARY WHERE STATUS = &#39;CHECKED&#39; AND EXPENSE_BILL_NO = &#39;BF_20191112_20191118_PAY_1&#39; ORDER BY GMT_CREATE DESC id：表" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
+    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
+  
+    
+    
+  
+
+  
+
+
+
+  
+
+  
+
+  
+
+
+
+
+
+  <title>explain | Next-gen Tech Edu</title>
+</head>
+
+
+<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="12d706d5e896c1110cbd0297fb5cf1da" >
+  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
+
+  
+
+
+<aside class="search-modal" id="search">
+  <div class="container">
+    <section class="search-header">
+
+      <div class="row no-gutters justify-content-between mb-3">
+        <div class="col-6 search-title">
+          <p>搜索</p>
+        </div>
+        <div class="col-6 col-search-close">
+          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+      <div id="search-box">
+        
+        
+        
+      </div>
+
+      
+      
+
+      
+    </section>
+    <section class="section-search-results">
+
+      <div id="search-hits">
+        
+      </div>
+
+      <div id="search-common-queries">
+        
+      </div>
+
+    </section>
+  </div>
+</aside>
+
+
+
+  <div class="page-header">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="header--fixed">
+  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
+    <div class="container-xl">
+
+      
+      <div class="d-none d-lg-inline-flex">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      <button type="button" class="navbar-toggler" data-toggle="collapse"
+              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
+      <span><i class="fas fa-bars"></i></span>
+      </button>
+      
+
+      
+      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      
+      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
+
+        
+        <ul class="navbar-nav d-md-inline-flex">
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
+          </li>
+
+          
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+              
+              
+              
+                
+              
+              
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
+              
+                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
+              
+                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+        
+
+          
+        </ul>
+      </div>
+
+      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
+
+        
+        
+        
+        <li class="nav-item">
+          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        <li class="nav-item">
+            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        
+
+        
+        
+        
+        <div></div>
+        
+        <style>
+        @media only screen and (max-width: 600px) {
+          .jimmysong-template {
+            display: none!important;
+          }
+        }
+        </style>
+        
+        <li class="jimmysong-template" style="color: white;font-size: 12px;">
+          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+</header>
+
+
+  </div>
+
+  <div class="page-body">
+    
+    
+    
+
+    
+
+
+
+
+<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
+<div class="container-xl docs">
+  <div class="row flex-xl-nowrap">
+    <div class="docs-sidebar">
+      <form class="docs-search d-flex align-items-center">
+  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    <div class="d-flex">
+      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
+        
+          explain
+        
+      </span>
+      <span><i class="fas fa-chevron-down"></i></span>
+    </div>
+  </button>
+
+  
+  <button class="form-control sidebar-search js-search d-none d-md-flex">
+    <i class="fas fa-search pr-2"></i>
+    <span class="sidebar-search-text">搜索...</span>
+    <span class="sidebar-search-shortcut">/</span>
+  </button>
+  
+</form>
+
+<nav class="collapse docs-links" id="docs-nav">
+  
+  
+  
+  
+  
+  
+
+  
+  
+    
+
+    
+      
+
+      <ul class="nav docs-sidenav">
+        <li style="display: inline-flex">
+          <a style="cursor: pointer;" onclick="window.history.back()">
+            <i class="fas fa-arrow-left pr-1"></i>
+            Back
+          </a>
+          <span>|</span>
+          <a href="/books/">
+            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
+            Books
+          </a>
+        </li>
+      </ul>
+
+      
+      
+        
+          
+        
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id44df803051052345cfc073ba1bdd364e&#34;)" href="#id44df803051052345cfc073ba1bdd364e" aria-expanded="false" aria-controls="id44df803051052345cfc073ba1bdd364e" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/">01.性能分析</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id44df803051052345cfc073ba1bdd364e" aria-expanded="false" aria-controls="id44df803051052345cfc073ba1bdd364e">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id44df803051052345cfc073ba1bdd364e"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id44df803051052345cfc073ba1bdd364e">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idfb5dd0a5ae67016ca3fefa8419fc3d46&#34;)" href="#idfb5dd0a5ae67016ca3fefa8419fc3d46" aria-expanded="false" aria-controls="idfb5dd0a5ae67016ca3fefa8419fc3d46" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/">99.参考资料</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idfb5dd0a5ae67016ca3fefa8419fc3d46" aria-expanded="false" aria-controls="idfb5dd0a5ae67016ca3fefa8419fc3d46">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idfb5dd0a5ae67016ca3fefa8419fc3d46"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idfb5dd0a5ae67016ca3fefa8419fc3d46">
+      
+
+
+
+  <li class="child level "><a href="/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-mysql-%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%89%E4%B8%AA%E5%85%B3%E9%94%AE%E6%80%A7%E8%83%BD%E6%8C%87%E6%A0%87-tps%5Cqps%5Ciops/">2021-MySQL 数据库三个关键性能指标 TPS\QPS\IOPS</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id7a121628069bc0f0fbcfa35775d96a54&#34;)" href="#id7a121628069bc0f0fbcfa35775d96a54" aria-expanded="false" aria-controls="id7a121628069bc0f0fbcfa35775d96a54" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/explain/">explain</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id7a121628069bc0f0fbcfa35775d96a54" aria-expanded="false" aria-controls="id7a121628069bc0f0fbcfa35775d96a54">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id7a121628069bc0f0fbcfa35775d96a54"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id7a121628069bc0f0fbcfa35775d96a54">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-ide9527cad293353c2c4f85deadf17e91d&#34;)" href="#ide9527cad293353c2c4f85deadf17e91d" aria-expanded="false" aria-controls="ide9527cad293353c2c4f85deadf17e91d" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/explain/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/">99.参考资料</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#ide9527cad293353c2c4f85deadf17e91d" aria-expanded="false" aria-controls="ide9527cad293353c2c4f85deadf17e91d">
+    
+        <i class="fa-solid fa-angle-right" id="caret-ide9527cad293353c2c4f85deadf17e91d"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="ide9527cad293353c2c4f85deadf17e91d">
+      
+
+
+
+  <li class="child level "><a href="/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/explain/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-heibaiying-mysql-explain/">2020-heibaiying-MySQL EXPLAIN</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  <li class="child level active"><a href="/books/mysql-notes/02.%E8%A1%A8%E4%B8%8E%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96/01.%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90/explain/explain/">explain</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+    
+  
+</nav>
+
+    </div>
+
+    
+    
+    <div class="d-none d-xl-block col-xl-2 docs-toc">
+      
+     
+      <ul class="nav toc-top">
+        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
+      </ul>
+     
+
+      <nav id="TableOfContents"></nav>
+
+      
+<div class="subscribe-module col-24 mt-1">
+    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
+</div>
+
+
+
+    </div>
+    
+
+    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
+
+      <article class="article">
+
+          
+
+          <h1>explain</h1>
+
+          <div class="article-style">
+            <h1 id="explain">Explain</h1>
+<p>MySQL 提供了一个 EXPLAIN 命令, 它可以对 SELECT 语句进行分析, 并输出 SELECT 执行的详细信息, 以供开发人员针对性优化.EXPLAIN 命令用法十分简单, 在 SELECT 语句前加上 explain 就可以了, 例如:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">explain</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">ORDER_EXPENSE_SUMMARY</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">WHERE</span><span class="w"> </span><span class="n">STATUS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;CHECKED&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">EXPENSE_BILL_NO</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;BF_20191112_20191118_PAY_1&#39;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">GMT_CREATE</span><span class="w"> </span><span class="k">DESC</span><span class="w">
+</span></span></span></code></pre></div><ul>
+<li>
+<p>id：表示 SQL 执行的顺序的标识,SQL 从大到小的执行。示例中 1 表示执行的第一条 SQL</p>
+</li>
+<li>
+<p>select_type：表示 select 语句的子类型。</p>
+</li>
+<li>
+<p>type：表示访问类型，显示出该查询是通过全表扫描、索引查询等方式查找数据的。</p>
+</li>
+<li>
+<p>possible_keys：显示查询可能使用了哪些索引，表示该索引可以进行高效地查找，但是列出来的索引对于后续 优化过程可能是没有用的。</p>
+</li>
+<li>
+<p>key： 表示 MySQL 实际决定使用的键（索引）。如果没有选择索引，键是 NULL。</p>
+</li>
+<li>
+<p>key_len： 表示 key_len 列显示 MySQL 决定使用的键长度。使用的索引的长度。在不损失精确性的情况下，长度越短越好。</p>
+</li>
+<li>
+<p>ref：表示使用哪个列或查询参数 被用来做索引的查询条件</p>
+</li>
+<li>
+<p>rows：表示 MySQL 认为它执行查询时必须检查的行数。这是一个预估值，值越少说明查询效率越高。</p>
+</li>
+<li>
+<p>Extra：表示 MySQL 查询优化器执行查询的过程中对查询计划的重要补充信息。</p>
+</li>
+</ul>
+<p>其中 type、key、rows、Extra 是需要重点关注的字段。例如 type 为 ALL 表示全表扫描，那考虑是不是需要增加索引。key 为 null 那么是不是索引缺失或者没有命中，Extra 里有 Using filesort，那么说明查询的原始结果会在内存里面做排序，效率比较低。</p>
+<h1 id="索引查询">索引查询</h1>
+<p>联合索引中，索引字段的数据必须是有序的，才能实现这种类型的查找，才能利用到索引。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="c1">--- UNIQUE KEY `unique_product_in_category` (`name`,`category`) USING BTREE,
+</span></span></span><span class="line"><span class="cl"><span class="c1">--- key 为 unique_name_in_category
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">EXPLAIN</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">product</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;产品一&#39;</span><span class="err">；</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">--- key 为 null
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">EXPLAIN</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">product</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">category</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;类目一&#39;</span><span class="err">；</span><span class="w">
+</span></span></span></code></pre></div><ul>
+<li>
+<p>SYSTEM，CONST 的特例，当表上只有一条元组匹配</p>
+</li>
+<li>
+<p>CONST，WHERE 条件筛选后表上至多有一条元组匹配时，比如 WHERE ID = 2（ID 是主键，值为 2 的要么有一条要么没有）</p>
+</li>
+<li>
+<p>EQ_REF，参与连接运算的表是内表（在代码实现的算法中，两表连接时作为循环中的内循环遍历的对象，这样的表称为内表）。基于索引（连接字段上存在唯一索引或者主键索引，且操作符必须是“=”谓词，索引值不能为 NULL）做扫描，使得对外表的一条元组，内表只有唯一一条元组与之对应。</p>
+</li>
+<li>
+<p>REF：可以用于单表扫描或者连接。参与连接运算的表，是内表。基于索引（连接字段上的索引是非唯一索引，操作符必须是“=”谓词，连接字段值不可为 NULL）做扫描，使得对外表的一条元组，内表可有若干条元组与之对应。</p>
+</li>
+<li>
+<p>REF_OR_NULL：类似 REF，只是搜索条件包括：连接字段的值可以为 NULL 的情况，比如 where col = 2 or col is null</p>
+</li>
+<li>
+<p>RANGE：范围扫描，基于索引做范围扫描，为诸如 BETWEEN，IN，&gt;=，LIKE 类操作提供支持</p>
+</li>
+<li>
+<p>INDEX_SCAN：索引做扫描，是基于索引在索引的叶子节点上找满足条件的数据（不需要访问数据文件）</p>
+</li>
+<li>
+<p>ALL：全表扫描或者范围扫描：不使用索引，顺序扫描，直接读取表上的数据（访问数据文件）</p>
+</li>
+<li>
+<p>UNIQUE_SUBQUERY：在子查询中，基于唯一索引进行扫描，类似于 EQ_REF</p>
+</li>
+<li>
+<p>INDEX_SUBQUERY：在子查询中，基于除唯一索引之外的索引进行扫描</p>
+</li>
+<li>
+<p>INDEX_MERGE：多重范围扫描。两表连接的每个表的连接字段上均有索引存在且索引有序，结果合并在一起。适用于作集合的并、交操作。</p>
+</li>
+<li>
+<p>FT：FULL TEXT，全文检索</p>
+</li>
+</ul>
+
+          </div>
+
+          
+
+
+
+          
+          
+          <div class="article-widget">
+            
+<div class="container-xl row post-nav">
+  
+  
+</div>
+
+          </div>
+          
+
+        <div class="body-footer">
+          <p>最近更新于 0001-01-01</p>
+
+          
+
+
+
+          
+
+
+  
+  
+  
+
+  
+
+  
+  <section id="comments" class="mb-3 pt-0">
+    
+<div id="disqus_thread"></div>
+<script>
+  var disqus_config = function () {
+    
+    
+    
+  };
+  (function() {
+    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+      return;
+    }
+    var d = document, s = d.createElement('script'); 
+    s.async = true;
+    s.src = 'https://' + "ngte" + '.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </section>
+  
+
+
+
+          
+
+
+        </div>
+
+      </article>
+
+      <footer class="site-footer">
+
+  
+
+
+
+  
+
+  
+  <div class="copyright py-4 bg-footer">
+      <div class="row justify-content-center">
+        <div class="text-center footer-color">
+          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
+        </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" id="clstr_globe" async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script>
+  
+</footer>
+
+
+    </main>
+  </div>
+</div>
+<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
+<script>
+  const heti = new Heti('.article');
+  heti.autoSpacing();
+</script>
+<script type="text/javascript">
+  window.$crisp = [];
+  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
+  (function () {
+    setTimeout(function() {
+      d = document;
+      s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    }, 2500);
+  })();
+</script>
+  </div>
+
+  <div class="page-footer">
+    
+    
+  </div>
+
+      
+
+    
+    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
+
+    
+    
+    
+      
+
+      
+      
+
+      
+
+      
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
+        
+        
+      
+
+    
+
+    
+    
+    
+
+    
+    
+    
+      
+      <script id="search-hit-algolia-template" type="text/html">
+        <div class="search-hit">
+          <div class="search-hit-content">
+            <div class="search-hit-name">
+              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
+            </div>
+            <div class="article-metadata search-hit-type">{{type}}</div>
+            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
+          </div>
+        </div>
+      </script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
+      
+      
+    
+
+    
+    
+
+    
+    
+    
+    
+      <script id="dsq-count-scr" src="https://ngte.disqus.com/count.js" async></script>
+      
+    
+
+    
+    
+      
+      
+      
+      
+      
+      
+      
+    
+
+    
+    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
+    
+
+    
+    
+    
+    <script id="page-data" type="application/json">{"use_headroom":false}</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
+
+    
+    
+    
+    
+    
+    
+    <script>
+
+var mybutton = document.getElementById("backTopBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+}
+</script>
+
+
+    
+
+    
+    
+    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+    <script>
+      anchors.add();
+    </script>
+    
+
+    
+    <script>
+
+
+
+(function() {
+  'use strict';
+
+  if(!document.queryCommandSupported('copy')) {
+    return;
+  }
+
+  function flashCopyMessage(el, msg) {
+    el.className = "highlight-copy-btn";
+    el.textContent = msg;
+    setTimeout(function() {
+      el.textContent = "";
+      el.className = "highlight-copy-btn fa fa-copy";
+    }, 1000);
+  }
+
+  function selectText(node) {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection;
+  }
+
+  function addCopyButton(containerEl) {
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "highlight-copy-btn fa fa-copy";
+    copyBtn.textContent = "";
+
+    var codeEl = containerEl.firstElementChild;
+    copyBtn.addEventListener('click', function() {
+      try {
+        var selection = selectText(codeEl);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        
+        flashCopyMessage(copyBtn, '已复制')
+        
+      } catch(e) {
+        console && console.log(e);
+        flashCopyMessage(copyBtn, 'Failed :\'(')
+      }
+    });
+
+    containerEl.appendChild(copyBtn);
+  }
+
+  
+  var highlightBlocks = document.getElementsByClassName('highlight');
+  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
+})();
+</script>
+
+    
+
+
+</body>
+</html>

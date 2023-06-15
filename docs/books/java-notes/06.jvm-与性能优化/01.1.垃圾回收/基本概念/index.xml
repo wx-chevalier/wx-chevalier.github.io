@@ -1,299 +1,453 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>基本概念 | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/01.1.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/</link><atom:link href="https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/01.1.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/index.xml" rel="self" type="application/rss+xml"/><description>基本概念</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>基本概念</title><link>https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/01.1.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/</link></image><item><title>对象存活性判断</title><link>https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/01.1.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/%E5%AF%B9%E8%B1%A1%E5%AD%98%E6%B4%BB%E6%80%A7%E5%88%A4%E6%96%AD/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/01.1.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/%E5%AF%B9%E8%B1%A1%E5%AD%98%E6%B4%BB%E6%80%A7%E5%88%A4%E6%96%AD/</guid><description>&lt;h1 id="对象存活性判断">对象存活性判断&lt;/h1>
-&lt;p>GC 从其底层实现方式（即 GC 算法）来看，大体可以分为两大类：基于可达性分析的 GC 和基于引用计数法的 GC。当然，这样的分类也不是绝对的，很多现代 GC 的设计就融合了引用计数和可达性分析两种。&lt;/p>
-&lt;ul>
-&lt;li>
-&lt;p>可达性分析法：基本思路就是通过根集合（GC Root）作为起始点，从这些节点出发，根据引用关系开始搜索，所经过的路径称为引用链，当一个对象没有被任何引用链访问到时，则证明此对象是不活跃的，可以被回收。使用此类算法的有 JVM、.NET、Golang 等。&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>引用计数法：引用计数法没有用到根集概念。其基本原理是：在堆内存中分配对象时，会为对象分配一段额外的空间，这个空间用于维护一个计数器，如果有一个新的引用指向这个对象，则计数器的值加 1；如果指向该对象的引用被置空或指向其它对象，则计数器的值减 1。每次有一个新的引用指向这个对象时，计数器加 1；反之，如果指向该对象的引用被置空或指向其它对象，则计数器减 1；当计数器的值为 0 时，则自动删除这个对象。使用此类算法的有 Python、Objective-C、Perl 等。&lt;/p>
-&lt;/li>
-&lt;/ul>
-&lt;p>基于引用计数法的 GC，天然带有增量特性（incremental），GC 可与应用交替运行，不需要暂停应用；同时，在引用计数法中，每个对象始终都知道自己的被引用数，当计数器为 0 时，对象可以马上回收，而在可达性分析类 GC 中，即使对象变成了垃圾，程序也无法立刻感知，直到 GC 执行前，始终都会有一部分内存空间被垃圾占用。&lt;/p>
-&lt;p>上述两类 GC 各有千秋，真正的工业级实现一般是这两类算法的组合，但是总体来说，基于可达性分析的 GC 还是占据了主流，究其原因，首先，引用计数算法无法解决循环引用无法回收的问题，即两个对象互相引用，所以各对象的计数器的值都是 1，即使这些对象都成了垃圾（无外部引用），GC 也无法将它们回收。当然上面这一点还不是引用计数法最大的弊端，引用计数算法最大的问题在于：计数器值的增减处理非常繁重，譬如对根对象的引用，此外，多个线程之间共享对象时需要对计数器进行原子递增/递减，这本身又带来了一系列新的复杂性和问题，计数器对应用程序的整体运行速度的影响。&lt;/p>
-&lt;h1 id="引用计数reference-counting">引用计数（Reference Counting）&lt;/h1>
-&lt;p>引用计数器在微软的 COM 组件技术中、Adobe 的 ActionScript3 种都有使用。引用计数器的原理很简单，对于一个对象 A，只要有任何一个对象引用了 A，则 A 的引用计数器就加 1，当引用失效时，引用计数器就减 1。只要对象 A 的引用计数器的值为 0，则对象 A 就不可能再被使用。引用计数器的实现也非常简单，只需要为每个对象配置一个整形的计数器即可。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://s1.ax1x.com/2020/11/07/B5FViD.md.png" alt="GC 引用计数示意图" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>但是引用计数器有一个严重的问题，即无法处理循环引用的情况。因此，在 Java 的垃圾回收器中没有使用这种算法。一个简单的循环引用问题描述如下：有对象 A 和对象 B，对象 A 中含有对象 B 的引用，对象 B 中含有对象 A 的引用。此时，对象 A 和对象 B 的引用计数器都不为 0。但是在系统中却不存在任何第 3 个对象引用了 A 或 B。也就是说，A 和 B 是应该被回收的垃圾对象，但由于垃圾对象间相互引用，从而使垃圾回收器无法识别，引起内存泄漏。&lt;/p>
-&lt;h1 id="引用树遍历">引用树遍历&lt;/h1>
-&lt;p>所谓的引用树本质上是有根的图结构，它沿着对象的根句柄向下查找到活着的节点，并标记下来；其余没有被标记的节点就是死掉的节点，这些对象就是可以被回收的，或者说活着的节点就是可以被拷贝走的，具体要看所在 HeapSize 中 的区域以及算法，它的大致示意图如下图所示(注意这里是指针是单向的)：&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://s1.ax1x.com/2020/11/07/B5F1df.png" alt="GC Root Set" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>首先，所有回收器都会通过一个标记过程来对存活对象进行统计。JVM 中用到的所有现代 GC 算法在回收前都会先找出所有仍存活的对象。下图中所展示的 JVM 中的内存布局可以用来很好地阐释这一概念：&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://s1.ax1x.com/2020/11/07/B5FYWQ.png" alt="GC 不可达对象" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>而所谓的 GC 根对象包括：当前执行方法中的所有本地变量及入参、活跃线程、已加载类中的静态变量、JNI 引用。接下来，垃圾回收器会对内存中的整个对象图进行遍历，它先从 GC 根对象开始，然后是根对象引用的其它对象，比如实例变量。回收器将访问到的所有对象都标记为存活。存活对象在上图中被标记为蓝色。当标记阶段完成了之后，所有的存活对象都已经被标记完了。其它的那些(上图中灰色的那些)也就是 GC 根对象不可达的对象，也就是说你的应用不会再用到它们了。这些就是垃圾对象，回收器将会在接下来的阶段中清除它们。&lt;/p>
-&lt;p>不过那些发现不能到达 GC Roots 的对象并不会立即回收，在真正回收之前，对象至少要被标记两次。当第一次被发现不可达时，该对象会被标记一次，同时调用此对象的 &lt;code>finalize()&lt;/code>方法(如果有)；在第二次被发现不可达后，对象被回收。利用 &lt;code>finalisze()&lt;/code> 方法，对象可以逃离一次被回收的命运，但是只有一次。逃命方法如下，需要在 &lt;code>finalize()&lt;/code> 方法中给自己加一个 GCRoots 中的 hook：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nf">EscapeFromGC&lt;/span>&lt;span class="o">(){&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="n">EscapeFromGC&lt;/span> &lt;span class="n">hook&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nd">@Override&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">protected&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">finalize&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="kd">throws&lt;/span> &lt;span class="n">Throwable&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">super&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">finalize&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;finalize mehtod executed!&amp;#34;&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">EscapeFromGC&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">hook&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">this&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item><item><title>分类与对比</title><link>https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/01.1.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/%E5%88%86%E7%B1%BB%E4%B8%8E%E5%AF%B9%E6%AF%94/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/01.1.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/%E5%88%86%E7%B1%BB%E4%B8%8E%E5%AF%B9%E6%AF%94/</guid><description>&lt;h1 id="垃圾回收器分类">垃圾回收器分类&lt;/h1>
-&lt;p>当我们在讨论垃圾回收器时，往往也会涉及到很多的概念；譬如并行（Parallel）与并发（Concurrent）、Minor GC 与 Major/Full GC。&lt;/p>
-&lt;ul>
-&lt;li>
-&lt;p>并行指多条垃圾收集线程并行工作，但此时用户线程仍然处于等待状态；并发指用户线程与垃圾收集线程同时执行(但不一定是并行的，可能会交替执行)，用户程序在继续运行，而垃圾收集程序运行于另一个 CPU 上。&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>Minor GC 指发生在新生代的垃圾收集动作，因为 Java 对象大多都具备朝生夕灭的特性，所以 Minor GC 非常频繁，一般回收速度也比较快；Major GC 指发生在老年代的 GC，出现了 Major GC，经常会伴随至少一次的 Minor GC(但非绝对的，在 Parallel Scavenge 收集器的收集策略里就有直接进行 Major GC 的策略选择过程)，Major GC 的速度一般会比 Minor GC 慢 10 倍以上。&lt;/p>
-&lt;/li>
-&lt;/ul>
-&lt;p>从不同角度分析垃圾回收器，可以将其分为不同的类型：&lt;/p>
-&lt;ul>
-&lt;li>
-&lt;p>线程数：分为串行垃圾回收器和并行垃圾回收器。&lt;/p>
-&lt;ul>
-&lt;li>串行垃圾回收器一次只使用一个线程进行垃圾回收；&lt;/li>
-&lt;li>并行垃圾回收器一次将开启多个线程同时进行垃圾回收。在并行能力较强的 CPU 上，使用并行垃圾回收器可以缩短 GC 的停顿时间；&lt;/li>
-&lt;/ul>
-&lt;/li>
-&lt;li>
-&lt;p>工作模式：分为并发式垃圾回收器和独占式垃圾回收器。&lt;/p>
-&lt;ul>
-&lt;li>并发式垃圾回收器与应用程序线程交替工作，以尽可能减少应用程序的停顿时间；&lt;/li>
-&lt;li>独占式垃圾回收器 (Stop the world) 一旦运行，就停止应用程序中的其他所有线程，直到垃圾回收过程完全结束；&lt;/li>
-&lt;/ul>
-&lt;/li>
-&lt;li>
-&lt;p>碎片处理方式：分为压缩式垃圾回收器和非压缩式垃圾回收器。&lt;/p>
-&lt;ul>
-&lt;li>压缩式垃圾回收器会在回收完成后，对存活对象进行压缩整理，消除回收后的碎片；&lt;/li>
-&lt;li>非压缩式的垃圾回收器不进行这步操作；&lt;/li>
-&lt;/ul>
-&lt;/li>
-&lt;li>
-&lt;p>工作的内存区间：新生代垃圾回收器和老年代垃圾回收器。&lt;/p>
-&lt;/li>
-&lt;/ul>
-&lt;h2 id="垃圾回收器的衡量指标">垃圾回收器的衡量指标&lt;/h2>
-&lt;p>我们最常用的评价垃圾回收器的指标就是吞吐量与停顿时间：&lt;/p>
-&lt;ul>
-&lt;li>
-&lt;p>停顿时间越短就越适合需要与用户交互的程序，良好的响应速度能提升用户的体验；&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>高吞吐量则可以最高效率地利用 CPU 时间，尽快地完成程序的运算任务，主要适合在后台运算而不需要太多交互的任务；&lt;/p>
-&lt;/li>
-&lt;/ul>
-&lt;p>具体的指标列举如下：&lt;/p>
-&lt;ul>
-&lt;li>
-&lt;p>吞吐量：指在应用程序的生命周期内，应用程序所花费的时间和系统总运行时间的比值。系统总运行时间=应用程序耗时+GC 耗时。如果系统运行了 100min，GC 耗时 1min，那么系统的吞吐量就是 (100-1)/100=99%；&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>垃圾回收器负载：和吞吐量相反，垃圾回收器负载指来记回收器耗时与系统运行总时间的比值；&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>停顿时间：指垃圾回收器正在运行时，应用程序的暂停时间。对于独占回收器而言，停顿时间可能会比较长。使用并发的回收器时，由于垃圾回收器和应用程序交替运行，程序的停顿时间会变短，但是，由于其效率很可能不如独占垃圾回收器，故系统的吞吐量可能会较低；&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>垃圾回收频率：指垃圾回收器多长时间会运行一次。一般来说，对于固定的应用而言，垃圾回收器的频率应该是越低越好。通常增大堆空间可以有效降低垃圾回收发生的频率，但是可能会增加回收产生的停顿时间；&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>反应时间：指当一个对象被称为垃圾后多长时间内，它所占据的内存空间会被释放；&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>堆分配：不同的垃圾回收器对堆内存的分配方式可能是不同的。一个良好的垃圾回收器应该有一个合理的堆内存区间划分；&lt;/p>
-&lt;/li>
-&lt;/ul>
-&lt;p>在对象查找算法的帮助下我们可以找到内存可以被使用的，或者说那些内存是可以回收，更多的时候我们肯定愿意做更少的事情达到同样的目的。&lt;/p>
-&lt;h1 id="jvm-垃圾回收器对比">JVM 垃圾回收器对比&lt;/h1>
-&lt;p>1999 年随 JDK1.3.1 一起来的是串行方式的 Serial GC，它是第一款垃圾回收器；此后，JDK1.4 和 J2SE1.3 相继发布。2002 年 2 月 26 日，J2SE1.4 发布；Parallel GC 和 Concurrent Mark Sweep (CMS)GC 跟随 JDK1.4.2 一起发布，并且 Parallel GC 在 JDK6 之后成为 HotSpot 默认 GC。这三个垃圾回收器也是各有千秋，Serial GC 适合最小化地使用内存和并行开销的场景、Parallel GC 适合最大化应用程序吞吐量的场景、CMS GC 适合最小化中断或停顿时间的场景。上图即展示了多种垃圾回收器之间的关系；不过随着应用程序所应对的业务越来越庞大、复杂，用户越来越多，没有合适的回收器就不能保证应用程序正常进行，而经常造成 STW 停顿的回收器又跟不上实际的需求，所以才会不断地尝试对搜集器进行优化。Garbage First(G1)GC 正是面向这种业务需求所生，它是一个并行回收器，把堆内存分割为很多不相关的区间(Region)；每个区间可以属于老年代或者年轻代，并且每个年龄代区间可以是物理上不连续的。&lt;/p>
-&lt;table>
-&lt;thead>
-&lt;tr>
-&lt;th>名称&lt;/th>
-&lt;th>作用域&lt;/th>
-&lt;th>算法&lt;/th>
-&lt;th>特性&lt;/th>
-&lt;th>设置&lt;/th>
-&lt;/tr>
-&lt;/thead>
-&lt;tbody>
-&lt;tr>
-&lt;td>Serial&lt;/td>
-&lt;td>Serial GC 作用于新生代，Serial Old GC 作用于老年代垃圾收集&lt;/td>
-&lt;td>二者皆采用了串行回收与 &amp;ldquo;Stop-the-World&amp;rdquo;，Serial 使用的是复制算法，而 Serial Old 使用的是电俄式-标记压缩算法&lt;/td>
-&lt;td>基于串行回收的垃圾回收器适用于大多数对于暂停时间要求不高的 Client 模式下的 JVM&lt;/td>
-&lt;td>使用 &lt;code>-XX:+UserSerialGC&lt;/code> 手动指定使用 Serial 回收器执行内存回收任务&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>Throughput/Parallel&lt;/td>
-&lt;td>Parallel 作用于新生代，Parallel Old 作用于老年代&lt;/td>
-&lt;td>并行回收和 &amp;ldquo;Stop-the-World&amp;rdquo;，Parallel 使用的是复制算法，Parallel Old 使用的是标记-压缩算法&lt;/td>
-&lt;td>程序吞吐量优先的应用场景中，在 Server 模式下内存回收的性能较为不错&lt;/td>
-&lt;td>使用 &lt;code>-XX:+UseParallelGC&lt;/code> 手动指定使用 Parallel 回收器执行内存回收任务&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>CMS,Concurrent-Mark-Sweep&lt;/td>
-&lt;td>老年代垃圾回收器，又称作 &lt;code>Mostly-Concurrent&lt;/code> 回收器&lt;/td>
-&lt;td>使用了标记清除算法，分为初始标记( Initial-Mark，Stop-the-World )、并发标记( Concurrent-Mark )、再次标记( Remark，Stop-the-World )、并发清除( Concurrent-Sweep )&lt;/td>
-&lt;td>并发低延迟，吞吐量较低。经过 CMS 收集的堆会产生空间碎片，会带来堆内存的浪费&lt;/td>
-&lt;td>使用 &lt;code>-XX:+UseConcMarkSweepGC&lt;/code> 来手动指定使用 CMS 回收器执行内存回收任务&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>G1,Garbage First&lt;/td>
-&lt;td>没有采用传统物理隔离的新生代和老年代的布局方式，仅仅以逻辑上划分为新生代和老年代，选择的将 Java 堆区划分为 2048 个大小相同的独立 Region 块&lt;/td>
-&lt;td>使用了标记压缩算法&lt;/td>
-&lt;td>基于并行和并发、低延迟以及暂停时间更加可控的区域化分代式服务器类型的垃圾回收器&lt;/td>
-&lt;td>使用 &lt;code>-XX:UseG1GC&lt;/code> 来手动指定使用 G1 回收器执行内存回收任务&lt;/td>
-&lt;/tr>
-&lt;/tbody>
-&lt;/table>
-&lt;p>关于标记阶段有几个关键点是值得注意的：&lt;/p>
-&lt;ul>
-&lt;li>开始进行标记前，需要先暂停应用线程，否则如果对象图一直在变化的话是无法真正去遍历它的。暂停应用线程以便 JVM 可以尽情地收拾家务的这种情况又被称之为安全点(Safe Point)，这会触发一次 Stop The World(STW)暂停。触发安全点的原因有许多，但最常见的应该就是垃圾回收了。&lt;/li>
-&lt;li>暂停时间的长短并不取决于堆内对象的多少也不是堆的大小，而是存活对象的多少。因此，调高堆的大小并不会影响到标记阶段的时间长短。&lt;/li>
-&lt;/ul>
-&lt;p>当标记阶段完成后，GC 开始进入下一阶段，删除不可达对象。&lt;/p>
-&lt;h1 id="serial-gc">Serial GC&lt;/h1>
-&lt;p>串行回收器主要有两个特点：第一，它仅仅使用单线程进行垃圾回收；第二，它独占式的垃圾回收。在串行回收器进行垃圾回收时，Java 应用程序中的线程都需要暂停，等待垃圾回收的完成，这样给用户体验造成较差效果。虽然如此，串行回收器却是一个成熟、经过长时间生产环境考验的极为高效的 回收器。新生代串行处理器使用复制算法，实现相对简单，逻辑处理特别高效，且没有线程切换的开销。在诸如单 CPU 处理器或者较小的应用内存等硬件平台不是特别优越的场合，它的性能表现可以超过并行回收器和并发回收器。在 HotSpot 虚拟机中，使用 -XX：+UseSerialGC 参数可以指定使用新生代串行回收器和老年代串行回收器。当 JVM 在 Client 模式下运行时，它是默认的垃圾回收器。老年代串行回收器使用的是标记-压缩算法。和新生代串行回收器一样，它也是一个串行的、独占式的垃圾回收器。由于老年代垃圾回收通常会使用比新生代垃圾回 收更长的时间，因此，在堆空间较大的应用程序中，一旦老年代串行回收器启动，应用程序很可能会因此停顿几秒甚至更长时间。虽然如此，老年代串行回收器可以 和多种新生代回收器配合使用，同时它也可以作为 CMS 回收器的备用回收器。若要启用老年代串行回收器，可以尝试使用以下参数：-XX:+UseSerialGC: 新生代、老年代都使用串行回收器。&lt;/p>
-&lt;p>Serial GC 的工作步骤如下所示：&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://s1.ax1x.com/2020/11/10/BOQ8sJ.md.png" alt="Serial GC 工作步骤" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;h2 id="parallel-gc">Parallel GC&lt;/h2>
-&lt;p>Parallel Scavenge 收集器的特点是它的关注点与其他收集器不同，CMS 等收集器的关注点尽可能地缩短垃圾收集时用户线程的停顿时间，而 Parallel Scavenge 收集器的目标则是达到一个可控制的吞吐量(Throughput)。Parallel Old 是 Parallel Scavenge 收集器的老年代版本，使用多线程和“标记－整理”算法。这个收集器是在 JDK 1.6 中才开始提供的。使用 &lt;code>-XX:+UseParallelOldGC&lt;/code> 可以在新生代和老生代都使用并行回收回收器，这是一对非常关注吞吐量的垃圾回收器组合，在对吞吐量敏感的系统中，可以考虑使用。参数 &lt;code>-XX:ParallelGCThreads&lt;/code> 也可以用于设置垃圾回收时的线程数量。&lt;/p>
-&lt;p>Parallel GC 的工作步骤如下所示：&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://s1.ax1x.com/2020/11/11/BXkw5Q.png" alt="Parallel GC 工作步骤" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;h2 id="cms-gc">CMS GC&lt;/h2>
-&lt;p>CMS（Concurrent Mark-Sweep）是以牺牲吞吐量为代价来获得最短回收停顿时间的垃圾回收器，适用于对停顿比较敏感，并且有相对较多存活时间较长的对象(老年代较大)的应用程序；不过 CMS 虽然减少了回收的停顿时间，但是降低了堆空间的利用率。CMS GC 采用了 Mark-Sweep 算法，因此经过 CMS 收集的堆会产生空间碎片；为了解决堆空间浪费问题，CMS 回收器不再采用简单的指针指向一块可用堆空间来为下次对象分配使用。而是把一些未分配的空间汇总成一个列表，当 JVM 分配对象空间的时候，会搜索这个列表找到足够大的空间来存放住这个对象。另一方面，由于 CMS 线程和应用程序线程并发执行，CMS GC 需要更多的 CPU 资源。同时，因为 CMS 标记阶段应用程序的线程还是在执行的，那么就会有堆空间继续分配的情况，为了保证在 CMS 回收完堆之前还有空间分配给正在运行的应用程序，必须预留一部分空间。也就是说，CMS 不会在老年代满的时候才开始收集。相反，它会尝试更早的开始收集，已避免上面提到的情况：在回收完成之前，堆没有足够空间分配！默认当老年代使用 68%的时候，CMS 就开始行动了。– XX:CMSInitiatingOccupancyFraction =n 来设置这个阀值。&lt;/p>
-&lt;p>CMS GC 工作步骤如下所示：&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://s1.ax1x.com/2020/11/11/BXkr2n.md.png" alt="CMS GC 工作步骤" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;ul>
-&lt;li>初始标记(STW initial mark)：在这个阶段，需要虚拟机停顿正在执行的任务，官方的叫法 STW(Stop The Word)。这个过程从垃圾回收的&amp;quot;根对象&amp;quot;开始，只扫描到能够和&amp;quot;根对象&amp;quot;直接关联的对象，并作标记。所以这个过程虽然暂停了整个 JVM，但是很快就完成了。&lt;/li>
-&lt;li>并发标记(Concurrent marking)：这个阶段紧随初始标记阶段，在初始标记的基础上继续向下追溯标记。并发标记阶段，应用程序的线程和并发标记的线程并发执行，所以用户不会感受到停顿。&lt;/li>
-&lt;li>并发预清理(Concurrent precleaning)：并发预清理阶段仍然是并发的。在这个阶段，虚拟机查找在执行并发标记阶段新进入老年代的对象(可能会有一些对象从新生代晋升到老年代，或者有一些对象被分配到老年代)。通过重新扫描，减少下一个阶段&amp;quot;重新标记&amp;quot;的工作，因为下一个阶段会 Stop The World。&lt;/li>
-&lt;li>重新标记(STW remark)：这个阶段会暂停虚拟机，回收器线程扫描在 CMS 堆中剩余的对象。扫描从&amp;quot;跟对象&amp;quot;开始向下追溯，并处理对象关联。&lt;/li>
-&lt;li>并发清理(Concurrent sweeping)：清理垃圾对象，这个阶段回收器线程和应用程序线程并发执行。&lt;/li>
-&lt;li>并发重置(Concurrent reset)：这个阶段，重置 CMS 回收器的数据结构，等待下一次垃圾回收。&lt;/li>
-&lt;/ul>
-&lt;h2 id="g1-gc">G1 GC&lt;/h2>
-&lt;p>G1 GC 是 JDK 1.7 中正式投入使用的用于取代 CMS 的压缩回收器，它虽然没有在物理上隔断新生代与老生代，但是仍然属于分代垃圾回收器；G1 GC 仍然会区分年轻代与老年代，年轻代依然分有 Eden 区与 Survivor 区。G1 GC 首先将堆分为大小相等的 Region，避免全区域的垃圾收集，然后追踪每个 Region 垃圾堆积的价值大小，在后台维护一个优先列表，根据允许的收集时间优先回收价值最大的 Region；同时 G1 GC 采用 Remembered Set 来存放 Region 之间的对象引用以及其他回收器中的新生代与老年代之间的对象引用，从而避免全堆扫描。G1 GC 的分区示例如下图所示：&lt;/p>
-&lt;p>随着 G1 GC 的出现，Java 垃圾回收器通过引入 Region 的概念，从传统的连续堆内存布局设计，逐步走向了物理上不连续但是逻辑上依旧连续的内存块；这样我们能够将某个 Region 动态地分配给 Eden、Survivor、老年代、大对象空间、空闲区间等任意一个。每个 Region 都有一个关联的 Remembered Set(简称 RS)，RS 的数据结构是 Hash 表，里面的数据是 Card Table (堆中每 512byte 映射在 card table 1byte)。简单的说 RS 里面存在的是 Region 中存活对象的指针。当 Region 中数据发生变化时，首先反映到 Card Table 中的一个或多个 Card 上，RS 通过扫描内部的 Card Table 得知 Region 中内存使用情况和存活对象。在使用 Region 过程中，如果 Region 被填满了，分配内存的线程会重新选择一个新的 Region，空闲 Region 被组织到一个基于链表的数据结构(LinkedList)里面，这样可以快速找到新的 Region。&lt;/p>
-&lt;p>总结而言，G1 GC 的特性如下：&lt;/p>
-&lt;ul>
-&lt;li>并行性：G1 在回收期间，可以有多个 GC 线程同时工作，有效利用多核计算能力；&lt;/li>
-&lt;li>并发性：G1 拥有与应用程序交替执行的能力，部分工作可以和应用程序同时执行，因此，一般来说，不会在整个回收阶段发生完全阻塞应用程序的情况；&lt;/li>
-&lt;li>分代 GC：G1 依然是一个分代回收器，但是和之前的各类回收器不同，它同时兼顾年轻代和老年代。对比其他回收器，或者工作在年轻代，或者工作在老年代；&lt;/li>
-&lt;li>空间整理：G1 在回收过程中，会进行适当的对象移动，不像 CMS 只是简单地标记清理对象。在若干次 GC 后，CMS 必须进行一次碎片整理。而 G1 不同，它每次回收都会有效地复制对象，减少空间碎片，进而提升内部循环速度。&lt;/li>
-&lt;li>可预见性：为了缩短停顿时间，G1 建立可预存停顿的模型，这样在用户设置的停顿时间范围内，G1 会选择适当的区域进行收集，确保停顿时间不超过用户指定时间。&lt;/li>
-&lt;/ul>
-&lt;p>G1 GC 的工作步骤如下所示：&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://s1.ax1x.com/2020/11/10/BOQKiV.png" alt="G1 GC 工作步骤" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;ul>
-&lt;li>初始标记(标记一下 GC Roots 能直接关联的对象并修改 TAMS 值，需要 STW 但耗时很短)&lt;/li>
-&lt;li>并发标记(从 GC Root 从堆中对象进行可达性分析找存活的对象，耗时较长但可以与用户线程并发执行)&lt;/li>
-&lt;li>最终标记(为了修正并发标记期间产生变动的那一部分标记记录，这一期间的变化记录在 Remembered Set Log 里，然后合并到 Remembered Set 里，该阶段需要 STW 但是可并行执行)&lt;/li>
-&lt;li>筛选回收(对各个 Region 回收价值排序，根据用户期望的 GC 停顿时间制定回收计划来回收)；&lt;/li>
-&lt;/ul>
-&lt;h2 id="zgc">ZGC&lt;/h2>
-&lt;p>与标记对象的传统算法相比，ZGC 在指针上做标记，在访问指针时加入 Load Barrier（读屏障），比如当对象正被 GC 移动，指针上的颜色就会不对，这个屏障就会先把指针更新为有效地址再返回，也就是，永远只有单个对象读取时有概率被减速，而不存在为了保持应用与 GC 一致而粗暴整体的 Stop The World。&lt;/p></description></item><item><title>引用类型</title><link>https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/01.1.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/01.1.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/</guid><description>&lt;h1 id="jvm-引用类型">JVM 引用类型&lt;/h1>
-&lt;p>在 JDK 1.2 以前的版本中，若一个对象不被任何变量引用，那么程序就无法再使用这个对象。也就是说，只有对象处于可触及(reachable)状态，程序才能使用它。从 JDK 1.2 版本开始，把对象的引用分为 4 种级别，从而使程序能更加灵活地控制对象的生命周期。这 4 种级别由高到低依次为：强引用、软引用、弱引用和虚引用。&lt;/p>
-&lt;h1 id="强引用strong-reference">强引用（Strong Reference）&lt;/h1>
-&lt;p>强引用是使用最普遍的引用。如果一个对象具有强引用，那垃圾回收器绝不会回收它。当内存空间不足，Java 虚拟机宁愿抛出 OutOfMemoryError 错误，使程序异常终止，也不会靠随意回收具有强引用的对象来解决内存不足的问题。&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="n">Object&lt;/span> &lt;span class="n">object&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">Object&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">String&lt;/span> &lt;span class="n">str&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s">&amp;#34;hello&amp;#34;&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>只要某个对象有强引用与之关联，JVM 必定不会回收这个对象，即使在内存不足的情况下，JVM 宁愿抛出 OutOfMemory 错误也不会回收这种对象。比如下面这段代码：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">Main&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">new&lt;/span> &lt;span class="n">Main&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">fun1&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">fun1&lt;/span>&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Object&lt;/span> &lt;span class="n">object&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">Object&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Object&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">objArr&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">Object&lt;/span>&lt;span class="o">[&lt;/span>&lt;span class="mi">1000&lt;/span>&lt;span class="o">];&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>当运行至 Object[] objArr = new Object[1000];这句时，如果内存不足，JVM 会抛出 OOM 错误也不会回收 object 指向的对象。不过要注意的是，当 fun1 运行完之后，object 和 objArr 都已经不存在了，所以它们指向的对象都会被 JVM 回收。&lt;/p>
-&lt;p>如果想中断强引用和某个对象之间的关联，可以显示地将引用赋值为 null，这样一来的话，JVM 在合适的时间就会回收该对象。比如 Vector 类的 clear 方法中就是通过将引用赋值为 null 来实现清理工作的：&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">synchronized&lt;/span> &lt;span class="n">E&lt;/span> &lt;span class="nf">remove&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">index&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">modCount&lt;/span>&lt;span class="o">++;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">index&lt;/span> &lt;span class="o">&amp;gt;=&lt;/span> &lt;span class="n">elementCount&lt;/span>&lt;span class="o">)&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">throw&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">ArrayIndexOutOfBoundsException&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">index&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Object&lt;/span> &lt;span class="n">oldValue&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">elementData&lt;/span>&lt;span class="o">[&lt;/span>&lt;span class="n">index&lt;/span>&lt;span class="o">];&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="n">numMoved&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">elementCount&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="n">index&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">numMoved&lt;/span> &lt;span class="o">&amp;gt;&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="o">)&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">arraycopy&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">elementData&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">index&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">elementData&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">index&lt;/span>&lt;span class="o">,&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">numMoved&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">elementData&lt;/span>&lt;span class="o">[--&lt;/span>&lt;span class="n">elementCount&lt;/span>&lt;span class="o">]&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="kc">null&lt;/span>&lt;span class="o">;&lt;/span> &lt;span class="c1">// Let gc do its work
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">E&lt;/span>&lt;span class="o">)&lt;/span>&lt;span class="n">oldValue&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="软引用softreference">软引用(SoftReference)&lt;/h1>
-&lt;p>软引用是用来描述一些有用但并不是必需的对象，在 Java 中用 java.lang.ref.SoftReference 类来表示。对于软引用关联着的对象，只有在内存不足的时候 JVM 才会回收该对象。因此，这一点可以很好地用来解决 OOM 的问题，并且这个特性很适合用来实现缓存：比如网页缓存、图片缓存等。&lt;/p>
-&lt;p>软引用可以和一个引用队列(ReferenceQueue)联合使用，如果软引用所引用的对象被 JVM 回收，这个软引用就会被加入到与之关联的引用队列中。下面是一个使用示例：&lt;/p>
-&lt;pre tabindex="0">&lt;code>import java.lang.ref.SoftReference;
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>基本概念 | Next-gen Tech Edu</title>
+    <link>https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/01.1.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/</link>
+      <atom:link href="https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/01.1.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/index.xml" rel="self" type="application/rss+xml" />
+    <description>基本概念</description>
+    <generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language>
+    <image>
+      <url>https://ng-tech.icu/media/sharing.png</url>
+      <title>基本概念</title>
+      <link>https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/01.1.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/</link>
+    </image>
+    
+    <item>
+      <title>对象存活性判断</title>
+      <link>https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/01.1.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/%E5%AF%B9%E8%B1%A1%E5%AD%98%E6%B4%BB%E6%80%A7%E5%88%A4%E6%96%AD/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/01.1.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/%E5%AF%B9%E8%B1%A1%E5%AD%98%E6%B4%BB%E6%80%A7%E5%88%A4%E6%96%AD/</guid>
+      <description>&lt;h1 id=&#34;对象存活性判断&#34;&gt;对象存活性判断&lt;/h1&gt;
+&lt;p&gt;GC 从其底层实现方式（即 GC 算法）来看，大体可以分为两大类：基于可达性分析的 GC 和基于引用计数法的 GC。当然，这样的分类也不是绝对的，很多现代 GC 的设计就融合了引用计数和可达性分析两种。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;可达性分析法：基本思路就是通过根集合（GC Root）作为起始点，从这些节点出发，根据引用关系开始搜索，所经过的路径称为引用链，当一个对象没有被任何引用链访问到时，则证明此对象是不活跃的，可以被回收。使用此类算法的有 JVM、.NET、Golang 等。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;引用计数法：引用计数法没有用到根集概念。其基本原理是：在堆内存中分配对象时，会为对象分配一段额外的空间，这个空间用于维护一个计数器，如果有一个新的引用指向这个对象，则计数器的值加 1；如果指向该对象的引用被置空或指向其它对象，则计数器的值减 1。每次有一个新的引用指向这个对象时，计数器加 1；反之，如果指向该对象的引用被置空或指向其它对象，则计数器减 1；当计数器的值为 0 时，则自动删除这个对象。使用此类算法的有 Python、Objective-C、Perl 等。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;基于引用计数法的 GC，天然带有增量特性（incremental），GC 可与应用交替运行，不需要暂停应用；同时，在引用计数法中，每个对象始终都知道自己的被引用数，当计数器为 0 时，对象可以马上回收，而在可达性分析类 GC 中，即使对象变成了垃圾，程序也无法立刻感知，直到 GC 执行前，始终都会有一部分内存空间被垃圾占用。&lt;/p&gt;
+&lt;p&gt;上述两类 GC 各有千秋，真正的工业级实现一般是这两类算法的组合，但是总体来说，基于可达性分析的 GC 还是占据了主流，究其原因，首先，引用计数算法无法解决循环引用无法回收的问题，即两个对象互相引用，所以各对象的计数器的值都是 1，即使这些对象都成了垃圾（无外部引用），GC 也无法将它们回收。当然上面这一点还不是引用计数法最大的弊端，引用计数算法最大的问题在于：计数器值的增减处理非常繁重，譬如对根对象的引用，此外，多个线程之间共享对象时需要对计数器进行原子递增/递减，这本身又带来了一系列新的复杂性和问题，计数器对应用程序的整体运行速度的影响。&lt;/p&gt;
+&lt;h1 id=&#34;引用计数reference-counting&#34;&gt;引用计数（Reference Counting）&lt;/h1&gt;
+&lt;p&gt;引用计数器在微软的 COM 组件技术中、Adobe 的 ActionScript3 种都有使用。引用计数器的原理很简单，对于一个对象 A，只要有任何一个对象引用了 A，则 A 的引用计数器就加 1，当引用失效时，引用计数器就减 1。只要对象 A 的引用计数器的值为 0，则对象 A 就不可能再被使用。引用计数器的实现也非常简单，只需要为每个对象配置一个整形的计数器即可。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://s1.ax1x.com/2020/11/07/B5FViD.md.png&#34; alt=&#34;GC 引用计数示意图&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;但是引用计数器有一个严重的问题，即无法处理循环引用的情况。因此，在 Java 的垃圾回收器中没有使用这种算法。一个简单的循环引用问题描述如下：有对象 A 和对象 B，对象 A 中含有对象 B 的引用，对象 B 中含有对象 A 的引用。此时，对象 A 和对象 B 的引用计数器都不为 0。但是在系统中却不存在任何第 3 个对象引用了 A 或 B。也就是说，A 和 B 是应该被回收的垃圾对象，但由于垃圾对象间相互引用，从而使垃圾回收器无法识别，引起内存泄漏。&lt;/p&gt;
+&lt;h1 id=&#34;引用树遍历&#34;&gt;引用树遍历&lt;/h1&gt;
+&lt;p&gt;所谓的引用树本质上是有根的图结构，它沿着对象的根句柄向下查找到活着的节点，并标记下来；其余没有被标记的节点就是死掉的节点，这些对象就是可以被回收的，或者说活着的节点就是可以被拷贝走的，具体要看所在 HeapSize 中 的区域以及算法，它的大致示意图如下图所示(注意这里是指针是单向的)：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://s1.ax1x.com/2020/11/07/B5F1df.png&#34; alt=&#34;GC Root Set&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;首先，所有回收器都会通过一个标记过程来对存活对象进行统计。JVM 中用到的所有现代 GC 算法在回收前都会先找出所有仍存活的对象。下图中所展示的 JVM 中的内存布局可以用来很好地阐释这一概念：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://s1.ax1x.com/2020/11/07/B5FYWQ.png&#34; alt=&#34;GC 不可达对象&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;而所谓的 GC 根对象包括：当前执行方法中的所有本地变量及入参、活跃线程、已加载类中的静态变量、JNI 引用。接下来，垃圾回收器会对内存中的整个对象图进行遍历，它先从 GC 根对象开始，然后是根对象引用的其它对象，比如实例变量。回收器将访问到的所有对象都标记为存活。存活对象在上图中被标记为蓝色。当标记阶段完成了之后，所有的存活对象都已经被标记完了。其它的那些(上图中灰色的那些)也就是 GC 根对象不可达的对象，也就是说你的应用不会再用到它们了。这些就是垃圾对象，回收器将会在接下来的阶段中清除它们。&lt;/p&gt;
+&lt;p&gt;不过那些发现不能到达 GC Roots 的对象并不会立即回收，在真正回收之前，对象至少要被标记两次。当第一次被发现不可达时，该对象会被标记一次，同时调用此对象的 &lt;code&gt;finalize()&lt;/code&gt;方法(如果有)；在第二次被发现不可达后，对象被回收。利用 &lt;code&gt;finalisze()&lt;/code&gt; 方法，对象可以逃离一次被回收的命运，但是只有一次。逃命方法如下，需要在 &lt;code&gt;finalize()&lt;/code&gt; 方法中给自己加一个 GCRoots 中的 hook：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;class&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;EscapeFromGC&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(){&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   &lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;static&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;EscapeFromGC&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;hook&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   &lt;span class=&#34;nd&#34;&gt;@Override&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   &lt;span class=&#34;kd&#34;&gt;protected&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;void&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;finalize&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;()&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;throws&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Throwable&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;kd&#34;&gt;super&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;finalize&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;n&#34;&gt;System&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;out&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;println&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;finalize mehtod executed!&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;n&#34;&gt;EscapeFromGC&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;hook&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;this&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</description>
+    </item>
+    
+    <item>
+      <title>分类与对比</title>
+      <link>https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/01.1.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/%E5%88%86%E7%B1%BB%E4%B8%8E%E5%AF%B9%E6%AF%94/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/01.1.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/%E5%88%86%E7%B1%BB%E4%B8%8E%E5%AF%B9%E6%AF%94/</guid>
+      <description>&lt;h1 id=&#34;垃圾回收器分类&#34;&gt;垃圾回收器分类&lt;/h1&gt;
+&lt;p&gt;当我们在讨论垃圾回收器时，往往也会涉及到很多的概念；譬如并行（Parallel）与并发（Concurrent）、Minor GC 与 Major/Full GC。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;并行指多条垃圾收集线程并行工作，但此时用户线程仍然处于等待状态；并发指用户线程与垃圾收集线程同时执行(但不一定是并行的，可能会交替执行)，用户程序在继续运行，而垃圾收集程序运行于另一个 CPU 上。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Minor GC 指发生在新生代的垃圾收集动作，因为 Java 对象大多都具备朝生夕灭的特性，所以 Minor GC 非常频繁，一般回收速度也比较快；Major GC 指发生在老年代的 GC，出现了 Major GC，经常会伴随至少一次的 Minor GC(但非绝对的，在 Parallel Scavenge 收集器的收集策略里就有直接进行 Major GC 的策略选择过程)，Major GC 的速度一般会比 Minor GC 慢 10 倍以上。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;从不同角度分析垃圾回收器，可以将其分为不同的类型：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;线程数：分为串行垃圾回收器和并行垃圾回收器。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;串行垃圾回收器一次只使用一个线程进行垃圾回收；&lt;/li&gt;
+&lt;li&gt;并行垃圾回收器一次将开启多个线程同时进行垃圾回收。在并行能力较强的 CPU 上，使用并行垃圾回收器可以缩短 GC 的停顿时间；&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;工作模式：分为并发式垃圾回收器和独占式垃圾回收器。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;并发式垃圾回收器与应用程序线程交替工作，以尽可能减少应用程序的停顿时间；&lt;/li&gt;
+&lt;li&gt;独占式垃圾回收器 (Stop the world) 一旦运行，就停止应用程序中的其他所有线程，直到垃圾回收过程完全结束；&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;碎片处理方式：分为压缩式垃圾回收器和非压缩式垃圾回收器。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;压缩式垃圾回收器会在回收完成后，对存活对象进行压缩整理，消除回收后的碎片；&lt;/li&gt;
+&lt;li&gt;非压缩式的垃圾回收器不进行这步操作；&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;工作的内存区间：新生代垃圾回收器和老年代垃圾回收器。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;垃圾回收器的衡量指标&#34;&gt;垃圾回收器的衡量指标&lt;/h2&gt;
+&lt;p&gt;我们最常用的评价垃圾回收器的指标就是吞吐量与停顿时间：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;停顿时间越短就越适合需要与用户交互的程序，良好的响应速度能提升用户的体验；&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;高吞吐量则可以最高效率地利用 CPU 时间，尽快地完成程序的运算任务，主要适合在后台运算而不需要太多交互的任务；&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;具体的指标列举如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;吞吐量：指在应用程序的生命周期内，应用程序所花费的时间和系统总运行时间的比值。系统总运行时间=应用程序耗时+GC 耗时。如果系统运行了 100min，GC 耗时 1min，那么系统的吞吐量就是 (100-1)/100=99%；&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;垃圾回收器负载：和吞吐量相反，垃圾回收器负载指来记回收器耗时与系统运行总时间的比值；&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;停顿时间：指垃圾回收器正在运行时，应用程序的暂停时间。对于独占回收器而言，停顿时间可能会比较长。使用并发的回收器时，由于垃圾回收器和应用程序交替运行，程序的停顿时间会变短，但是，由于其效率很可能不如独占垃圾回收器，故系统的吞吐量可能会较低；&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;垃圾回收频率：指垃圾回收器多长时间会运行一次。一般来说，对于固定的应用而言，垃圾回收器的频率应该是越低越好。通常增大堆空间可以有效降低垃圾回收发生的频率，但是可能会增加回收产生的停顿时间；&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;反应时间：指当一个对象被称为垃圾后多长时间内，它所占据的内存空间会被释放；&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;堆分配：不同的垃圾回收器对堆内存的分配方式可能是不同的。一个良好的垃圾回收器应该有一个合理的堆内存区间划分；&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;在对象查找算法的帮助下我们可以找到内存可以被使用的，或者说那些内存是可以回收，更多的时候我们肯定愿意做更少的事情达到同样的目的。&lt;/p&gt;
+&lt;h1 id=&#34;jvm-垃圾回收器对比&#34;&gt;JVM 垃圾回收器对比&lt;/h1&gt;
+&lt;p&gt;1999 年随 JDK1.3.1 一起来的是串行方式的 Serial GC，它是第一款垃圾回收器；此后，JDK1.4 和 J2SE1.3 相继发布。2002 年 2 月 26 日，J2SE1.4 发布；Parallel GC 和 Concurrent Mark Sweep (CMS)GC 跟随 JDK1.4.2 一起发布，并且 Parallel GC 在 JDK6 之后成为 HotSpot 默认 GC。这三个垃圾回收器也是各有千秋，Serial GC 适合最小化地使用内存和并行开销的场景、Parallel GC 适合最大化应用程序吞吐量的场景、CMS GC 适合最小化中断或停顿时间的场景。上图即展示了多种垃圾回收器之间的关系；不过随着应用程序所应对的业务越来越庞大、复杂，用户越来越多，没有合适的回收器就不能保证应用程序正常进行，而经常造成 STW 停顿的回收器又跟不上实际的需求，所以才会不断地尝试对搜集器进行优化。Garbage First(G1)GC 正是面向这种业务需求所生，它是一个并行回收器，把堆内存分割为很多不相关的区间(Region)；每个区间可以属于老年代或者年轻代，并且每个年龄代区间可以是物理上不连续的。&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;名称&lt;/th&gt;
+&lt;th&gt;作用域&lt;/th&gt;
+&lt;th&gt;算法&lt;/th&gt;
+&lt;th&gt;特性&lt;/th&gt;
+&lt;th&gt;设置&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;Serial&lt;/td&gt;
+&lt;td&gt;Serial GC 作用于新生代，Serial Old GC 作用于老年代垃圾收集&lt;/td&gt;
+&lt;td&gt;二者皆采用了串行回收与 &amp;ldquo;Stop-the-World&amp;rdquo;，Serial 使用的是复制算法，而 Serial Old 使用的是电俄式-标记压缩算法&lt;/td&gt;
+&lt;td&gt;基于串行回收的垃圾回收器适用于大多数对于暂停时间要求不高的 Client 模式下的 JVM&lt;/td&gt;
+&lt;td&gt;使用 &lt;code&gt;-XX:+UserSerialGC&lt;/code&gt; 手动指定使用 Serial 回收器执行内存回收任务&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Throughput/Parallel&lt;/td&gt;
+&lt;td&gt;Parallel 作用于新生代，Parallel Old 作用于老年代&lt;/td&gt;
+&lt;td&gt;并行回收和 &amp;ldquo;Stop-the-World&amp;rdquo;，Parallel 使用的是复制算法，Parallel Old 使用的是标记-压缩算法&lt;/td&gt;
+&lt;td&gt;程序吞吐量优先的应用场景中，在 Server 模式下内存回收的性能较为不错&lt;/td&gt;
+&lt;td&gt;使用 &lt;code&gt;-XX:+UseParallelGC&lt;/code&gt; 手动指定使用 Parallel 回收器执行内存回收任务&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;CMS,Concurrent-Mark-Sweep&lt;/td&gt;
+&lt;td&gt;老年代垃圾回收器，又称作 &lt;code&gt;Mostly-Concurrent&lt;/code&gt; 回收器&lt;/td&gt;
+&lt;td&gt;使用了标记清除算法，分为初始标记( Initial-Mark，Stop-the-World )、并发标记( Concurrent-Mark )、再次标记( Remark，Stop-the-World )、并发清除( Concurrent-Sweep )&lt;/td&gt;
+&lt;td&gt;并发低延迟，吞吐量较低。经过 CMS 收集的堆会产生空间碎片，会带来堆内存的浪费&lt;/td&gt;
+&lt;td&gt;使用 &lt;code&gt;-XX:+UseConcMarkSweepGC&lt;/code&gt; 来手动指定使用 CMS 回收器执行内存回收任务&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;G1,Garbage First&lt;/td&gt;
+&lt;td&gt;没有采用传统物理隔离的新生代和老年代的布局方式，仅仅以逻辑上划分为新生代和老年代，选择的将 Java 堆区划分为 2048 个大小相同的独立 Region 块&lt;/td&gt;
+&lt;td&gt;使用了标记压缩算法&lt;/td&gt;
+&lt;td&gt;基于并行和并发、低延迟以及暂停时间更加可控的区域化分代式服务器类型的垃圾回收器&lt;/td&gt;
+&lt;td&gt;使用 &lt;code&gt;-XX:UseG1GC&lt;/code&gt; 来手动指定使用 G1 回收器执行内存回收任务&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;关于标记阶段有几个关键点是值得注意的：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;开始进行标记前，需要先暂停应用线程，否则如果对象图一直在变化的话是无法真正去遍历它的。暂停应用线程以便 JVM 可以尽情地收拾家务的这种情况又被称之为安全点(Safe Point)，这会触发一次 Stop The World(STW)暂停。触发安全点的原因有许多，但最常见的应该就是垃圾回收了。&lt;/li&gt;
+&lt;li&gt;暂停时间的长短并不取决于堆内对象的多少也不是堆的大小，而是存活对象的多少。因此，调高堆的大小并不会影响到标记阶段的时间长短。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;当标记阶段完成后，GC 开始进入下一阶段，删除不可达对象。&lt;/p&gt;
+&lt;h1 id=&#34;serial-gc&#34;&gt;Serial GC&lt;/h1&gt;
+&lt;p&gt;串行回收器主要有两个特点：第一，它仅仅使用单线程进行垃圾回收；第二，它独占式的垃圾回收。在串行回收器进行垃圾回收时，Java 应用程序中的线程都需要暂停，等待垃圾回收的完成，这样给用户体验造成较差效果。虽然如此，串行回收器却是一个成熟、经过长时间生产环境考验的极为高效的 回收器。新生代串行处理器使用复制算法，实现相对简单，逻辑处理特别高效，且没有线程切换的开销。在诸如单 CPU 处理器或者较小的应用内存等硬件平台不是特别优越的场合，它的性能表现可以超过并行回收器和并发回收器。在 HotSpot 虚拟机中，使用 -XX：+UseSerialGC 参数可以指定使用新生代串行回收器和老年代串行回收器。当 JVM 在 Client 模式下运行时，它是默认的垃圾回收器。老年代串行回收器使用的是标记-压缩算法。和新生代串行回收器一样，它也是一个串行的、独占式的垃圾回收器。由于老年代垃圾回收通常会使用比新生代垃圾回 收更长的时间，因此，在堆空间较大的应用程序中，一旦老年代串行回收器启动，应用程序很可能会因此停顿几秒甚至更长时间。虽然如此，老年代串行回收器可以 和多种新生代回收器配合使用，同时它也可以作为 CMS 回收器的备用回收器。若要启用老年代串行回收器，可以尝试使用以下参数：-XX:+UseSerialGC: 新生代、老年代都使用串行回收器。&lt;/p&gt;
+&lt;p&gt;Serial GC 的工作步骤如下所示：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://s1.ax1x.com/2020/11/10/BOQ8sJ.md.png&#34; alt=&#34;Serial GC 工作步骤&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;h2 id=&#34;parallel-gc&#34;&gt;Parallel GC&lt;/h2&gt;
+&lt;p&gt;Parallel Scavenge 收集器的特点是它的关注点与其他收集器不同，CMS 等收集器的关注点尽可能地缩短垃圾收集时用户线程的停顿时间，而 Parallel Scavenge 收集器的目标则是达到一个可控制的吞吐量(Throughput)。Parallel Old 是 Parallel Scavenge 收集器的老年代版本，使用多线程和“标记－整理”算法。这个收集器是在 JDK 1.6 中才开始提供的。使用 &lt;code&gt;-XX:+UseParallelOldGC&lt;/code&gt; 可以在新生代和老生代都使用并行回收回收器，这是一对非常关注吞吐量的垃圾回收器组合，在对吞吐量敏感的系统中，可以考虑使用。参数 &lt;code&gt;-XX:ParallelGCThreads&lt;/code&gt; 也可以用于设置垃圾回收时的线程数量。&lt;/p&gt;
+&lt;p&gt;Parallel GC 的工作步骤如下所示：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://s1.ax1x.com/2020/11/11/BXkw5Q.png&#34; alt=&#34;Parallel GC 工作步骤&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;h2 id=&#34;cms-gc&#34;&gt;CMS GC&lt;/h2&gt;
+&lt;p&gt;CMS（Concurrent Mark-Sweep）是以牺牲吞吐量为代价来获得最短回收停顿时间的垃圾回收器，适用于对停顿比较敏感，并且有相对较多存活时间较长的对象(老年代较大)的应用程序；不过 CMS 虽然减少了回收的停顿时间，但是降低了堆空间的利用率。CMS GC 采用了 Mark-Sweep 算法，因此经过 CMS 收集的堆会产生空间碎片；为了解决堆空间浪费问题，CMS 回收器不再采用简单的指针指向一块可用堆空间来为下次对象分配使用。而是把一些未分配的空间汇总成一个列表，当 JVM 分配对象空间的时候，会搜索这个列表找到足够大的空间来存放住这个对象。另一方面，由于 CMS 线程和应用程序线程并发执行，CMS GC 需要更多的 CPU 资源。同时，因为 CMS 标记阶段应用程序的线程还是在执行的，那么就会有堆空间继续分配的情况，为了保证在 CMS 回收完堆之前还有空间分配给正在运行的应用程序，必须预留一部分空间。也就是说，CMS 不会在老年代满的时候才开始收集。相反，它会尝试更早的开始收集，已避免上面提到的情况：在回收完成之前，堆没有足够空间分配！默认当老年代使用 68%的时候，CMS 就开始行动了。– XX:CMSInitiatingOccupancyFraction =n 来设置这个阀值。&lt;/p&gt;
+&lt;p&gt;CMS GC 工作步骤如下所示：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://s1.ax1x.com/2020/11/11/BXkr2n.md.png&#34; alt=&#34;CMS GC 工作步骤&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;初始标记(STW initial mark)：在这个阶段，需要虚拟机停顿正在执行的任务，官方的叫法 STW(Stop The Word)。这个过程从垃圾回收的&amp;quot;根对象&amp;quot;开始，只扫描到能够和&amp;quot;根对象&amp;quot;直接关联的对象，并作标记。所以这个过程虽然暂停了整个 JVM，但是很快就完成了。&lt;/li&gt;
+&lt;li&gt;并发标记(Concurrent marking)：这个阶段紧随初始标记阶段，在初始标记的基础上继续向下追溯标记。并发标记阶段，应用程序的线程和并发标记的线程并发执行，所以用户不会感受到停顿。&lt;/li&gt;
+&lt;li&gt;并发预清理(Concurrent precleaning)：并发预清理阶段仍然是并发的。在这个阶段，虚拟机查找在执行并发标记阶段新进入老年代的对象(可能会有一些对象从新生代晋升到老年代，或者有一些对象被分配到老年代)。通过重新扫描，减少下一个阶段&amp;quot;重新标记&amp;quot;的工作，因为下一个阶段会 Stop The World。&lt;/li&gt;
+&lt;li&gt;重新标记(STW remark)：这个阶段会暂停虚拟机，回收器线程扫描在 CMS 堆中剩余的对象。扫描从&amp;quot;跟对象&amp;quot;开始向下追溯，并处理对象关联。&lt;/li&gt;
+&lt;li&gt;并发清理(Concurrent sweeping)：清理垃圾对象，这个阶段回收器线程和应用程序线程并发执行。&lt;/li&gt;
+&lt;li&gt;并发重置(Concurrent reset)：这个阶段，重置 CMS 回收器的数据结构，等待下一次垃圾回收。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;g1-gc&#34;&gt;G1 GC&lt;/h2&gt;
+&lt;p&gt;G1 GC 是 JDK 1.7 中正式投入使用的用于取代 CMS 的压缩回收器，它虽然没有在物理上隔断新生代与老生代，但是仍然属于分代垃圾回收器；G1 GC 仍然会区分年轻代与老年代，年轻代依然分有 Eden 区与 Survivor 区。G1 GC 首先将堆分为大小相等的 Region，避免全区域的垃圾收集，然后追踪每个 Region 垃圾堆积的价值大小，在后台维护一个优先列表，根据允许的收集时间优先回收价值最大的 Region；同时 G1 GC 采用 Remembered Set 来存放 Region 之间的对象引用以及其他回收器中的新生代与老年代之间的对象引用，从而避免全堆扫描。G1 GC 的分区示例如下图所示：&lt;/p&gt;
+&lt;p&gt;随着 G1 GC 的出现，Java 垃圾回收器通过引入 Region 的概念，从传统的连续堆内存布局设计，逐步走向了物理上不连续但是逻辑上依旧连续的内存块；这样我们能够将某个 Region 动态地分配给 Eden、Survivor、老年代、大对象空间、空闲区间等任意一个。每个 Region 都有一个关联的 Remembered Set(简称 RS)，RS 的数据结构是 Hash 表，里面的数据是 Card Table (堆中每 512byte 映射在 card table 1byte)。简单的说 RS 里面存在的是 Region 中存活对象的指针。当 Region 中数据发生变化时，首先反映到 Card Table 中的一个或多个 Card 上，RS 通过扫描内部的 Card Table 得知 Region 中内存使用情况和存活对象。在使用 Region 过程中，如果 Region 被填满了，分配内存的线程会重新选择一个新的 Region，空闲 Region 被组织到一个基于链表的数据结构(LinkedList)里面，这样可以快速找到新的 Region。&lt;/p&gt;
+&lt;p&gt;总结而言，G1 GC 的特性如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;并行性：G1 在回收期间，可以有多个 GC 线程同时工作，有效利用多核计算能力；&lt;/li&gt;
+&lt;li&gt;并发性：G1 拥有与应用程序交替执行的能力，部分工作可以和应用程序同时执行，因此，一般来说，不会在整个回收阶段发生完全阻塞应用程序的情况；&lt;/li&gt;
+&lt;li&gt;分代 GC：G1 依然是一个分代回收器，但是和之前的各类回收器不同，它同时兼顾年轻代和老年代。对比其他回收器，或者工作在年轻代，或者工作在老年代；&lt;/li&gt;
+&lt;li&gt;空间整理：G1 在回收过程中，会进行适当的对象移动，不像 CMS 只是简单地标记清理对象。在若干次 GC 后，CMS 必须进行一次碎片整理。而 G1 不同，它每次回收都会有效地复制对象，减少空间碎片，进而提升内部循环速度。&lt;/li&gt;
+&lt;li&gt;可预见性：为了缩短停顿时间，G1 建立可预存停顿的模型，这样在用户设置的停顿时间范围内，G1 会选择适当的区域进行收集，确保停顿时间不超过用户指定时间。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;G1 GC 的工作步骤如下所示：&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://s1.ax1x.com/2020/11/10/BOQKiV.png&#34; alt=&#34;G1 GC 工作步骤&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;初始标记(标记一下 GC Roots 能直接关联的对象并修改 TAMS 值，需要 STW 但耗时很短)&lt;/li&gt;
+&lt;li&gt;并发标记(从 GC Root 从堆中对象进行可达性分析找存活的对象，耗时较长但可以与用户线程并发执行)&lt;/li&gt;
+&lt;li&gt;最终标记(为了修正并发标记期间产生变动的那一部分标记记录，这一期间的变化记录在 Remembered Set Log 里，然后合并到 Remembered Set 里，该阶段需要 STW 但是可并行执行)&lt;/li&gt;
+&lt;li&gt;筛选回收(对各个 Region 回收价值排序，根据用户期望的 GC 停顿时间制定回收计划来回收)；&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;zgc&#34;&gt;ZGC&lt;/h2&gt;
+&lt;p&gt;与标记对象的传统算法相比，ZGC 在指针上做标记，在访问指针时加入 Load Barrier（读屏障），比如当对象正被 GC 移动，指针上的颜色就会不对，这个屏障就会先把指针更新为有效地址再返回，也就是，永远只有单个对象读取时有概率被减速，而不存在为了保持应用与 GC 一致而粗暴整体的 Stop The World。&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>引用类型</title>
+      <link>https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/01.1.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/java-notes/06.jvm-%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/01.1.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/</guid>
+      <description>&lt;h1 id=&#34;jvm-引用类型&#34;&gt;JVM 引用类型&lt;/h1&gt;
+&lt;p&gt;在 JDK 1.2 以前的版本中，若一个对象不被任何变量引用，那么程序就无法再使用这个对象。也就是说，只有对象处于可触及(reachable)状态，程序才能使用它。从 JDK 1.2 版本开始，把对象的引用分为 4 种级别，从而使程序能更加灵活地控制对象的生命周期。这 4 种级别由高到低依次为：强引用、软引用、弱引用和虚引用。&lt;/p&gt;
+&lt;h1 id=&#34;强引用strong-reference&#34;&gt;强引用（Strong Reference）&lt;/h1&gt;
+&lt;p&gt;强引用是使用最普遍的引用。如果一个对象具有强引用，那垃圾回收器绝不会回收它。当内存空间不足，Java 虚拟机宁愿抛出 OutOfMemoryError 错误，使程序异常终止，也不会靠随意回收具有强引用的对象来解决内存不足的问题。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;Object&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;object&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Object&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;str&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;s&#34;&gt;&amp;#34;hello&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;只要某个对象有强引用与之关联，JVM 必定不会回收这个对象，即使在内存不足的情况下，JVM 宁愿抛出 OutOfMemory 错误也不会回收这种对象。比如下面这段代码：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;class&lt;/span&gt; &lt;span class=&#34;nc&#34;&gt;Main&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;static&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;void&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;main&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[]&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;args&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Main&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;().&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;fun1&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;void&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;fun1&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;()&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;Object&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;object&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Object&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;Object&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[]&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;objArr&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Object&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1000&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;当运行至 Object[] objArr = new Object[1000];这句时，如果内存不足，JVM 会抛出 OOM 错误也不会回收 object 指向的对象。不过要注意的是，当 fun1 运行完之后，object 和 objArr 都已经不存在了，所以它们指向的对象都会被 JVM 回收。&lt;/p&gt;
+&lt;p&gt;如果想中断强引用和某个对象之间的关联，可以显示地将引用赋值为 null，这样一来的话，JVM 在合适的时间就会回收该对象。比如 Vector 类的 clear 方法中就是通过将引用赋值为 null 来实现清理工作的：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;synchronized&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;E&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;remove&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;kt&#34;&gt;int&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;index&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;modCount&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;++;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;index&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;elementCount&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;throw&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;ArrayIndexOutOfBoundsException&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;index&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;Object&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;oldValue&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;elementData&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;index&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kt&#34;&gt;int&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;numMoved&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;elementCount&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;-&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;index&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;-&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;numMoved&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;n&#34;&gt;System&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;arraycopy&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;elementData&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;index&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;elementData&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;index&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;                 &lt;span class=&#34;n&#34;&gt;numMoved&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;elementData&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[--&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;elementCount&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;]&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;kc&#34;&gt;null&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt; &lt;span class=&#34;c1&#34;&gt;// Let gc do its work
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;E&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;oldValue&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;软引用softreference&#34;&gt;软引用(SoftReference)&lt;/h1&gt;
+&lt;p&gt;软引用是用来描述一些有用但并不是必需的对象，在 Java 中用 java.lang.ref.SoftReference 类来表示。对于软引用关联着的对象，只有在内存不足的时候 JVM 才会回收该对象。因此，这一点可以很好地用来解决 OOM 的问题，并且这个特性很适合用来实现缓存：比如网页缓存、图片缓存等。&lt;/p&gt;
+&lt;p&gt;软引用可以和一个引用队列(ReferenceQueue)联合使用，如果软引用所引用的对象被 JVM 回收，这个软引用就会被加入到与之关联的引用队列中。下面是一个使用示例：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;import java.lang.ref.SoftReference;
+
 public class Main {
-public static void main(String[] args) {
-SoftReference&amp;lt;String&amp;gt; sr = new SoftReference&amp;lt;String&amp;gt;(new String(&amp;#34;hello&amp;#34;));
-System.out.println(sr.get());
+    public static void main(String[] args) {
+
+        SoftReference&amp;lt;String&amp;gt; sr = new SoftReference&amp;lt;String&amp;gt;(new String(&amp;#34;hello&amp;#34;));
+        System.out.println(sr.get());
+    }
 }
-}
-&lt;/code>&lt;/pre>&lt;h1 id="弱引用weakreference">弱引用(WeakReference)&lt;/h1>
-&lt;p>弱引用与软引用的区别在于：只具有弱引用的对象拥有更短暂的生命周期。在垃圾回收器线程扫描它所管辖的内存区域的过程中，一旦发现了只具有弱引用的对象，不管当前内存空间足够与否，都会回收它的内存。不过，由于垃圾回收器是一个优先级很低的线程，因此不一定会很快发现那些只具有弱引用的对象。&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kn">import&lt;/span> &lt;span class="nn">java.lang.ref.WeakReference&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">Main&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">WeakReference&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">sr&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">WeakReference&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">&amp;gt;(&lt;/span>&lt;span class="k">new&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;hello&amp;#34;&lt;/span>&lt;span class="o">));&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">sr&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">get&lt;/span>&lt;span class="o">());&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">gc&lt;/span>&lt;span class="o">();&lt;/span> &lt;span class="c1">//通知JVM的gc进行垃圾回收
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">sr&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">get&lt;/span>&lt;span class="o">());&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>输出结果为：&lt;/p>
-&lt;pre tabindex="0">&lt;code>hello
+&lt;/code&gt;&lt;/pre&gt;&lt;h1 id=&#34;弱引用weakreference&#34;&gt;弱引用(WeakReference)&lt;/h1&gt;
+&lt;p&gt;弱引用与软引用的区别在于：只具有弱引用的对象拥有更短暂的生命周期。在垃圾回收器线程扫描它所管辖的内存区域的过程中，一旦发现了只具有弱引用的对象，不管当前内存空间足够与否，都会回收它的内存。不过，由于垃圾回收器是一个优先级很低的线程，因此不一定会很快发现那些只具有弱引用的对象。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt; &lt;span class=&#34;nn&#34;&gt;java.lang.ref.WeakReference&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;class&lt;/span&gt; &lt;span class=&#34;nc&#34;&gt;Main&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;static&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;void&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;main&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[]&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;args&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;WeakReference&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;sr&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;WeakReference&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;(&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;hello&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;));&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;System&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;out&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;println&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sr&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;get&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;());&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;System&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;gc&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt; &lt;span class=&#34;c1&#34;&gt;//通知JVM的gc进行垃圾回收
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;    &lt;span class=&#34;n&#34;&gt;System&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;out&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;println&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sr&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;get&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;());&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;输出结果为：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;hello
 null
-&lt;/code>&lt;/pre>&lt;p>第二个输出结果是 null，这说明只要 JVM 进行垃圾回收，被弱引用关联的对象必定会被回收掉。不过要注意的是，这里所说的被弱引用关联的对象是指只有弱引用与之关联，如果存在强引用同时与之关联，则进行垃圾回收时也不会回收该对象(软引用也是如此)。&lt;/p>
-&lt;p>弱引用可以和一个引用队列(ReferenceQueue)联合使用，如果弱引用所引用的对象被垃圾回收，Java 虚拟机就会把这个弱引用加入到与之关联的引用队列中。&lt;/p>
-&lt;h1 id="虚引用phantomreference">虚引用(PhantomReference)&lt;/h1>
-&lt;p>“虚引用”顾名思义，就是形同虚设，与其他几种引用都不同，虚引用并不会决定对象的生命周期。如果一个对象仅持有虚引用，那么它就和没有任何引用一样，在任何时候都可能被垃圾回收器回收。&lt;/p>
-&lt;p>虚引用和前面的软引用、弱引用不同，它并不影响对象的生命周期。在 java 中用 java.lang.ref.PhantomReference 类表示。如果一个对象与虚引用关联，则跟没有引用与之关联一样，在任何时候都可能被垃圾回收器回收。&lt;/p>
-&lt;p>要注意的是，虚引用必须和引用队列关联使用，当垃圾回收器准备回收一个对象时，如果发现它还有虚引用，就会把这个虚引用加入到与之 关联的引用队列中。程序可以通过判断引用队列中是否已经加入了虚引用，来了解被引用的对象是否将要被垃圾回收。如果程序发现某个虚引用已经被加入到引用队列，那么就可以在所引用的对象的内存被回收之前采取必要的行动。&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kn">import&lt;/span> &lt;span class="nn">java.lang.ref.PhantomReference&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kn">import&lt;/span> &lt;span class="nn">java.lang.ref.ReferenceQueue&lt;/span>&lt;span class="o">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">class&lt;/span> &lt;span class="nc">Main&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">ReferenceQueue&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">queue&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">ReferenceQueue&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">&amp;gt;();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">PhantomReference&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">pr&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">PhantomReference&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">&amp;gt;(&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">new&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="s">&amp;#34;hello&amp;#34;&lt;/span>&lt;span class="o">),&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">queue&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">System&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">pr&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">get&lt;/span>&lt;span class="o">());&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div></description></item></channel></rss>
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;第二个输出结果是 null，这说明只要 JVM 进行垃圾回收，被弱引用关联的对象必定会被回收掉。不过要注意的是，这里所说的被弱引用关联的对象是指只有弱引用与之关联，如果存在强引用同时与之关联，则进行垃圾回收时也不会回收该对象(软引用也是如此)。&lt;/p&gt;
+&lt;p&gt;弱引用可以和一个引用队列(ReferenceQueue)联合使用，如果弱引用所引用的对象被垃圾回收，Java 虚拟机就会把这个弱引用加入到与之关联的引用队列中。&lt;/p&gt;
+&lt;h1 id=&#34;虚引用phantomreference&#34;&gt;虚引用(PhantomReference)&lt;/h1&gt;
+&lt;p&gt;“虚引用”顾名思义，就是形同虚设，与其他几种引用都不同，虚引用并不会决定对象的生命周期。如果一个对象仅持有虚引用，那么它就和没有任何引用一样，在任何时候都可能被垃圾回收器回收。&lt;/p&gt;
+&lt;p&gt;虚引用和前面的软引用、弱引用不同，它并不影响对象的生命周期。在 java 中用 java.lang.ref.PhantomReference 类表示。如果一个对象与虚引用关联，则跟没有引用与之关联一样，在任何时候都可能被垃圾回收器回收。&lt;/p&gt;
+&lt;p&gt;要注意的是，虚引用必须和引用队列关联使用，当垃圾回收器准备回收一个对象时，如果发现它还有虚引用，就会把这个虚引用加入到与之 关联的引用队列中。程序可以通过判断引用队列中是否已经加入了虚引用，来了解被引用的对象是否将要被垃圾回收。如果程序发现某个虚引用已经被加入到引用队列，那么就可以在所引用的对象的内存被回收之前采取必要的行动。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt; &lt;span class=&#34;nn&#34;&gt;java.lang.ref.PhantomReference&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt; &lt;span class=&#34;nn&#34;&gt;java.lang.ref.ReferenceQueue&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;class&lt;/span&gt; &lt;span class=&#34;nc&#34;&gt;Main&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;static&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;void&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;main&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[]&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;args&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;ReferenceQueue&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;queue&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;ReferenceQueue&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;PhantomReference&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;pr&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;PhantomReference&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;(&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;hello&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;),&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;n&#34;&gt;queue&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;System&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;out&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;println&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;pr&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;get&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;());&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</description>
+    </item>
+    
+  </channel>
+</rss>

@@ -1,26 +1,1341 @@
-<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="原文地址 用事件风暴分解单体设计微服务 - capital 作为软件工程师和架构师，我们经常面临为遗留系统创建目标微服务架构的挑战。这些系统通常是已经存在多年的大型单体应用程序，通常具有很多依赖性，并且通常在您的公司中没"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/architecture-notes/03.%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1/02.%E9%A2%86%E5%9F%9F%E5%88%92%E5%88%86/%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/21-%E7%94%A8%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4%E5%88%86%E8%A7%A3%E5%8D%95%E4%BD%93%E8%AE%BE%E8%AE%A1%E5%BE%AE%E6%9C%8D%E5%8A%A1-capital/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.fab3cd1900ae35687457073b2d518207.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/architecture-notes/03.%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1/02.%E9%A2%86%E5%9F%9F%E5%88%92%E5%88%86/%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/21-%E7%94%A8%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4%E5%88%86%E8%A7%A3%E5%8D%95%E4%BD%93%E8%AE%BE%E8%AE%A1%E5%BE%AE%E6%9C%8D%E5%8A%A1-capital/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/architecture-notes/03.%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1/02.%E9%A2%86%E5%9F%9F%E5%88%92%E5%88%86/%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/21-%E7%94%A8%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4%E5%88%86%E8%A7%A3%E5%8D%95%E4%BD%93%E8%AE%BE%E8%AE%A1%E5%BE%AE%E6%9C%8D%E5%8A%A1-capital/"><meta property="og:title" content="21-用事件风暴分解单体设计微服务 - capital | Next-gen Tech Edu"><meta property="og:description" content="原文地址 用事件风暴分解单体设计微服务 - capital 作为软件工程师和架构师，我们经常面临为遗留系统创建目标微服务架构的挑战。这些系统通常是已经存在多年的大型单体应用程序，通常具有很多依赖性，并且通常在您的公司中没"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>21-用事件风暴分解单体设计微服务 - capital | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=6d165d8befa9c67d24d9f4f96af3ed7d><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
-<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
-<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
-<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
-<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
-<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">99.参考资料</span>
-<span><i class="fas fa-chevron-down"></i></span></div></button>
-<button class="form-control sidebar-search js-search d-none d-md-flex">
-<i class="fas fa-search pr-2"></i>
-<span class=sidebar-search-text>搜索...</span>
-<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
-Back</a>
-<span>|</span>
-<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
-Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idc06472491757bdabb16b126846795753")' href=#idc06472491757bdabb16b126846795753 aria-expanded=false aria-controls=idc06472491757bdabb16b126846795753 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/architecture-notes/03.%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1/02.%E9%A2%86%E5%9F%9F%E5%88%92%E5%88%86/%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4/>事件风暴</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idc06472491757bdabb16b126846795753 aria-expanded=false aria-controls=idc06472491757bdabb16b126846795753><i class="fa-solid fa-angle-down" id=caret-idc06472491757bdabb16b126846795753></i></a></div><ul class="nav docs-sidenav collapse show" id=idc06472491757bdabb16b126846795753><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id2817e74133ecf2b6553fafb6e84c6df5")' href=#id2817e74133ecf2b6553fafb6e84c6df5 aria-expanded=false aria-controls=id2817e74133ecf2b6553fafb6e84c6df5 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/architecture-notes/03.%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1/02.%E9%A2%86%E5%9F%9F%E5%88%92%E5%88%86/%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/>99.参考资料</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id2817e74133ecf2b6553fafb6e84c6df5 aria-expanded=false aria-controls=id2817e74133ecf2b6553fafb6e84c6df5><i class="fa-solid fa-angle-down" id=caret-id2817e74133ecf2b6553fafb6e84c6df5></i></a></div><ul class="nav docs-sidenav collapse show" id=id2817e74133ecf2b6553fafb6e84c6df5><li class="child level active"><a href=/books/architecture-notes/03.%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1/02.%E9%A2%86%E5%9F%9F%E5%88%92%E5%88%86/%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/21-%E7%94%A8%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4%E5%88%86%E8%A7%A3%E5%8D%95%E4%BD%93%E8%AE%BE%E8%AE%A1%E5%BE%AE%E6%9C%8D%E5%8A%A1-capital/>21-用事件风暴分解单体设计微服务 - capital</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>21-用事件风暴分解单体设计微服务 - capital</h1><div class=article-style><blockquote><p><a href=https://www.jdon.com/56731.html target=_blank rel=noopener>原文地址</a></p></blockquote><h1 id=用事件风暴分解单体设计微服务---capital>用事件风暴分解单体设计微服务 - capital</h1><p>作为软件工程师和架构师，我们经常面临为遗留系统创建目标微服务架构的挑战。这些系统通常是已经存在多年的大型单体应用程序，通常具有很多依赖性，并且通常在您的公司中没有一个人了解这一切。在这些情况下，一群领域专家是理解围绕业务上下文和所需功能的“原因”的关键，上下文对于创建成功的架构至关重要。</p><p>通常，您首先创建一个业务能力模型或分类法来绘制业务能力并将它们在特定级别分组下对齐。模型/分类法表示应用程序所需的一组功能集合。虽然这是有帮助的，但它有一些差距。分类法本身并没有提供更广泛的用例上下文，也没有提供有关如何将功能分解为微服务的洞察力。这就是事件风暴可以提供帮助的地方。事件风暴由 Alberto Brandolini 创建，事件风暴是一种交互式方式进行领域驱动设计(DDD)，它将业务和技术部门的领域专家聚集在一起。在本文中，我将提供事件风暴的深入迭代示例、使用它的一些经验教训，以及如何将其应用于您的架构工作。</p><p>首先想澄清一些关于事件风暴的常见误解：</p><ul><li><p>误解 #1 — 与 DDD 相同：虽然事件风暴基于许多 DDD 概念——包括有界上下文和聚合——但正式的 DDD 往往很复杂，需要大量的培训。事件风暴侧重于让所有领域专家参与的交互式协作白板练习。它更简单，不需要像正式 DDD 那样进行大量培训。</p></li><li><p>误解#2——它与设计思维相同：事件风暴和设计思维都利用了交互式业务流程映射练习和白板。它们的不同之处在于，事件风暴侧重于定义微服务架构的分解和分类。它还关注业务流程中当前正在发生的事情，称为事件。设计思维涉及一个分阶段的过程，包括问题定义、需求发现和基准测试、构思、原型设计和测试。它还更多地关注同理心和痛点。</p></li></ul><p>现在让我们深入了解事件风暴的细节。首先要了解的事情之一是捕获的有关域的不同类型的详细信息。这些不同类型的细节通常由不同颜色的便签表示。让我们详细介绍其中的每一个。</p><ul><li>事件（橙色）：这些是事件风暴中最重要和最广泛使用的组件，代表<a href=https://www.jdon.com/tag-20395/ target=_blank rel=noopener><strong>领域事件</strong></a>和与领域专家相关的任何事情。它们是用过去时写成的，并提供了用于后面分类步骤的基本细节。</li><li>命令（蓝色）：这些是做某事的请求。它们可以源自用户或系统，也可以源自其他事件。</li><li>系统（粉红色）：这些代表域中涉及的系统。它们可以发出命令或接收命令以及触发事件。</li><li>用户（黄色）：这些是参与流程的人类用户。他们可能是一个人，也可能是一个部门/团队。黄色便签有助于显示业务流程的工作流程有多复杂，具体取决于所涉及的部门数量和来回的数量。</li><li>聚合（棕褐色）：这是第一级分类，可以被认为是一组事件操作的“事物”。通常，它们是一个名词，可以在一组相互依赖的事件中识别出来。</li><li>读取模型（绿色）：这表示可能对用户或系统做出决策至关重要的数据。我没有看到经常使用这个，但是当需要强调用户看到的数据时它会很有帮助。</li><li>Policy 政策（灰色）：这些代表可能需要执行的标准或规则，例如合规性政策的规则。</li></ul><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/20230409214851.png alt=事件风暴流程 loading=lazy data-zoomable></div></div></figure></p><p>现在我们了解了我们想要在域中发现的不同类型的事物，让我们通过一个示例来介绍事件风暴的每个迭代步骤。对于我们的示例，我们将对通用电子商务站点的域进行建模。</p><h1 id=步骤-1--事件发现>步骤 #1 — 事件发现</h1><p>事件风暴的第一阶段是事件发现阶段。基本上，房间里的每个人都在写事件并将它们贴在墙上。将此阶段视为集思广益，因此请避免在此阶段应用任何分析或过滤，因为它只会减慢速度。别担心，该过程中的后续步骤会清理干净。此步骤通常需要最长的时间，并且留出足够的时间来捕获事件的基础非常重要。以电子商务网站为例，一些可能的事件可能是订单提交、付款处理或库存更新等。此阶段的输出示例如下所示：</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/20230409215824.png alt=事件风暴第一步 loading=lazy data-zoomable></div></div></figure></p><h1 id=步骤-2--按顺序放置事件>步骤 #2 — 按顺序放置事件</h1><p>接下来的一系列步骤通过按顺序（通常从左到右）放置事件来帮助识别任何丢失的事件。建立顺序后，您可以倒退以帮助识别其他事件。在我们的电子商务示例中，首先输入订单信息，然后检查库存。在将它们按顺序排列时，我们发现我们为正在执行的输入检查遗漏了一个事件。提示 - 当多个事件同时发生时，您可以将它们垂直堆叠，如下所示：</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/20230409220051.png alt=按顺序放置事件 loading=lazy data-zoomable></div></div></figure></p><h1 id=第-3-步--对更广泛的生态系统进行建模>第 3 步 — 对更广泛的生态系统进行建模</h1><p>把事件序列后，下一步就是模拟出更广泛的生态系统通过提问，如，围绕事件“触发什么事件？它是一个系统吗？一个用户？另一个事件？涉及哪些命令？” 这个额外的上下文对于理解域的当前状态非常有价值。在我们的示例中，用户触发订单信息输入事件，他们通过网页（系统）进行操作。</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/20230409220248.png alt=更广泛的生态建模 loading=lazy data-zoomable></div></div></figure></p><h1 id=步骤-4--简单的事件分类>步骤 #4 — 简单的事件分类</h1><p>此时，所有详细事件及其相关部分都应建模，并在您准备进入分类时。第一种分类称为聚合。这些是名词或事物，事件发生作用。DDD 也有一个实体的概念，您可以将其视为聚合的下一个级别。根据我的经验，将聚合和实体视为相同有助于简化事情，使人们更容易理解。在我们的示例中，库存、订单、报价都是聚合的示例。它们是事件运行的对象。</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/20230409220343.png alt=简单的事件分类 loading=lazy data-zoomable></div></div></figure></p><h1 id=步骤-5--事件的有界上下文分类>步骤 #5 — 事件的有界上下文分类</h1><p>现在我们已准备好进行分类的有界上下文级别。所有相关事件都将落入一个单一的有界上下文中。例如，所有与购物车相关的事件都属于购物车有界上下文。这里要记住的一个重要的微服务概念是，如果它一起变化，它应该一起变化。我们希望尽可能消除有界上下文之间的依赖关系。如果语言在事件之间发生变化，则表明您已进入不同的有界上下文。</p><p>例如，从查看促销优惠到结帐时，语言正在发生变化。这最好在白板上完成，您可以简单地围绕相关事件绘制轮廓并适当标记有界上下文。</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/20230409220537.png alt=限界上下文 loading=lazy data-zoomable></div></div></figure></p><h1 id=步骤-6--将它们放在一起>步骤 #6 — 将它们放在一起</h1><p>现在我们已经完成了事件风暴的步骤！您现在可以使用有界上下文和聚合来了解所需的微服务。通常，有界上下文中的聚合代表一个或多个微服务。在我们的示例中，订单捕获有界上下文将具有与订单和库存相关的微服务。您会注意到 Order 也存在于 Shopping Cart bounded context 和 Order Fulfillment bounded context 中。这没关系，因为这表明它们是不同的微服务，因为它们处于不同的有界上下文中。他们可能都在做与订单相关的事情，但他们做的事情是不同的。在单体应用程序中，这些将被捆绑在一起创建耦合，但在微服务架构中，我们将它们分开以实现独立性。</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/20230409220608.png alt=聚合根 loading=lazy data-zoomable></div></div></figure></p><h1 id=附加步骤-7创建能力>附加步骤 #7：创建能力</h1><p>现在您拥有大量信息来帮助您启动目标架构。根据我的经验，我发现添加一个从事件创建功能的步骤很有帮助。通常，能力是现在时形式的事件。然后可以将能力映射到各种目标能力架构视图中的有界上下文和聚合。这些不同的视图为建筑师和工程师提供了一个经过深思熟虑的蓝图来构建他们的目标状态。</p><p><figure><div class="d-flex justify-content-center"><div class=w-100><img src=https://assets.ng-tech.icu/item/20230409224718.png alt=创建能力 loading=lazy data-zoomable></div></div></figure></p></div><div class=article-widget><div class="container-xl row post-nav"></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div><script type=text/javascript id=clstr_globe async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
-<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
-<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
-<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
-<script id=dsq-count-scr src=https://ngte.disqus.com/count.js async></script>
-<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
-<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
-<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
-<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>
+<!DOCTYPE html><html lang="zh" >
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  
+  
+    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+
+  
+  
+  
+    
+      
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    
+  
+
+  
+    <meta name="google-site-verification" content="google69a5cccb61297807" />
+    <meta name="baidu-site-verification" content="cqmZHEleVh" />
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+    
+  
+  <meta name="description" content="原文地址 用事件风暴分解单体设计微服务 - capital 作为软件工程师和架构师，我们经常面临为遗留系统创建目标微服务架构的挑战。这些系统通常是已经存在多年的大型单体应用程序，通常具有很多依赖性，并且通常在您的公司中没" />
+
+  
+  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/architecture-notes/03.%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1/02.%E9%A2%86%E5%9F%9F%E5%88%92%E5%88%86/%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/21-%E7%94%A8%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4%E5%88%86%E8%A7%A3%E5%8D%95%E4%BD%93%E8%AE%BE%E8%AE%A1%E5%BE%AE%E6%9C%8D%E5%8A%A1-capital/" />
+
+  
+  
+  
+    <meta name="theme-color" content="#0a55a7" />
+  
+
+  
+  
+
+  
+
+  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
+
+  
+  
+  
+    
+    
+
+    
+    
+    
+    
+      
+      
+    
+    
+    
+
+    
+    
+    
+      
+    
+    
+      
+      
+        
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
+        
+      
+    
+
+    
+    
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
+    
+
+    
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+        
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+  
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/wowchemy.0d97305106da5efa530e28b021b4c580.css" />
+
+  
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', "G-40NYXJ8823");
+</script>
+
+
+  
+
+
+  
+
+
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+  
+  
+  
+
+  
+
+  
+    <link rel="manifest" href="/manifest.webmanifest" />
+  
+
+  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
+  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
+
+  <link rel="canonical" href="https://ng-tech.icu/books/architecture-notes/03.%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1/02.%E9%A2%86%E5%9F%9F%E5%88%92%E5%88%86/%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/21-%E7%94%A8%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4%E5%88%86%E8%A7%A3%E5%8D%95%E4%BD%93%E8%AE%BE%E8%AE%A1%E5%BE%AE%E6%9C%8D%E5%8A%A1-capital/" />
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+
+  
+  
+    
+    
+  
+  <meta property="twitter:card" content="summary_large_image" />
+  
+    <meta property="twitter:site" content="@wx-chevalier" />
+    <meta property="twitter:creator" content="@wx-chevalier" />
+  
+  <meta property="og:site_name" content="Next-gen Tech Edu" />
+  <meta property="og:url" content="https://ng-tech.icu/books/architecture-notes/03.%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1/02.%E9%A2%86%E5%9F%9F%E5%88%92%E5%88%86/%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/21-%E7%94%A8%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4%E5%88%86%E8%A7%A3%E5%8D%95%E4%BD%93%E8%AE%BE%E8%AE%A1%E5%BE%AE%E6%9C%8D%E5%8A%A1-capital/" />
+  <meta property="og:title" content="21-用事件风暴分解单体设计微服务 - capital | Next-gen Tech Edu" />
+  <meta property="og:description" content="原文地址 用事件风暴分解单体设计微服务 - capital 作为软件工程师和架构师，我们经常面临为遗留系统创建目标微服务架构的挑战。这些系统通常是已经存在多年的大型单体应用程序，通常具有很多依赖性，并且通常在您的公司中没" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
+    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
+  
+    
+    
+  
+
+  
+
+
+
+  
+
+  
+
+  
+
+
+
+
+
+  <title>21-用事件风暴分解单体设计微服务 - capital | Next-gen Tech Edu</title>
+</head>
+
+
+<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="6d165d8befa9c67d24d9f4f96af3ed7d" >
+  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
+
+  
+
+
+<aside class="search-modal" id="search">
+  <div class="container">
+    <section class="search-header">
+
+      <div class="row no-gutters justify-content-between mb-3">
+        <div class="col-6 search-title">
+          <p>搜索</p>
+        </div>
+        <div class="col-6 col-search-close">
+          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+      <div id="search-box">
+        
+        
+        
+      </div>
+
+      
+      
+
+      
+    </section>
+    <section class="section-search-results">
+
+      <div id="search-hits">
+        
+      </div>
+
+      <div id="search-common-queries">
+        
+      </div>
+
+    </section>
+  </div>
+</aside>
+
+
+
+  <div class="page-header">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="header--fixed">
+  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
+    <div class="container-xl">
+
+      
+      <div class="d-none d-lg-inline-flex">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      <button type="button" class="navbar-toggler" data-toggle="collapse"
+              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
+      <span><i class="fas fa-bars"></i></span>
+      </button>
+      
+
+      
+      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      
+      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
+
+        
+        <ul class="navbar-nav d-md-inline-flex">
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
+          </li>
+
+          
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+              
+              
+              
+                
+              
+              
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
+              
+                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
+              
+                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+        
+
+          
+        </ul>
+      </div>
+
+      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
+
+        
+        
+        
+        <li class="nav-item">
+          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        <li class="nav-item">
+            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        
+
+        
+        
+        
+        <div></div>
+        
+        <style>
+        @media only screen and (max-width: 600px) {
+          .jimmysong-template {
+            display: none!important;
+          }
+        }
+        </style>
+        
+        <li class="jimmysong-template" style="color: white;font-size: 12px;">
+          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+</header>
+
+
+  </div>
+
+  <div class="page-body">
+    
+    
+    
+
+    
+
+
+
+
+<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
+<div class="container-xl docs">
+  <div class="row flex-xl-nowrap">
+    <div class="docs-sidebar">
+      <form class="docs-search d-flex align-items-center">
+  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    <div class="d-flex">
+      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
+        
+          99.参考资料
+        
+      </span>
+      <span><i class="fas fa-chevron-down"></i></span>
+    </div>
+  </button>
+
+  
+  <button class="form-control sidebar-search js-search d-none d-md-flex">
+    <i class="fas fa-search pr-2"></i>
+    <span class="sidebar-search-text">搜索...</span>
+    <span class="sidebar-search-shortcut">/</span>
+  </button>
+  
+</form>
+
+<nav class="collapse docs-links" id="docs-nav">
+  
+  
+  
+  
+  
+  
+
+  
+  
+    
+
+    
+      
+
+      <ul class="nav docs-sidenav">
+        <li style="display: inline-flex">
+          <a style="cursor: pointer;" onclick="window.history.back()">
+            <i class="fas fa-arrow-left pr-1"></i>
+            Back
+          </a>
+          <span>|</span>
+          <a href="/books/">
+            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
+            Books
+          </a>
+        </li>
+      </ul>
+
+      
+      
+        
+          
+        
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idc06472491757bdabb16b126846795753&#34;)" href="#idc06472491757bdabb16b126846795753" aria-expanded="false" aria-controls="idc06472491757bdabb16b126846795753" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/architecture-notes/03.%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1/02.%E9%A2%86%E5%9F%9F%E5%88%92%E5%88%86/%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4/">事件风暴</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idc06472491757bdabb16b126846795753" aria-expanded="false" aria-controls="idc06472491757bdabb16b126846795753">
+    
+    <i class="fa-solid fa-angle-down" id="caret-idc06472491757bdabb16b126846795753"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="idc06472491757bdabb16b126846795753">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id2817e74133ecf2b6553fafb6e84c6df5&#34;)" href="#id2817e74133ecf2b6553fafb6e84c6df5" aria-expanded="false" aria-controls="id2817e74133ecf2b6553fafb6e84c6df5" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/architecture-notes/03.%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1/02.%E9%A2%86%E5%9F%9F%E5%88%92%E5%88%86/%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/">99.参考资料</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id2817e74133ecf2b6553fafb6e84c6df5" aria-expanded="false" aria-controls="id2817e74133ecf2b6553fafb6e84c6df5">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id2817e74133ecf2b6553fafb6e84c6df5"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id2817e74133ecf2b6553fafb6e84c6df5">
+      
+
+
+
+  <li class="child level active"><a href="/books/architecture-notes/03.%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1/02.%E9%A2%86%E5%9F%9F%E5%88%92%E5%88%86/%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/21-%E7%94%A8%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4%E5%88%86%E8%A7%A3%E5%8D%95%E4%BD%93%E8%AE%BE%E8%AE%A1%E5%BE%AE%E6%9C%8D%E5%8A%A1-capital/">21-用事件风暴分解单体设计微服务 - capital</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+    
+  
+</nav>
+
+    </div>
+
+    
+    
+    <div class="d-none d-xl-block col-xl-2 docs-toc">
+      
+     
+      <ul class="nav toc-top">
+        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
+      </ul>
+     
+
+      <nav id="TableOfContents"></nav>
+
+      
+<div class="subscribe-module col-24 mt-1">
+    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
+</div>
+
+
+
+    </div>
+    
+
+    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
+
+      <article class="article">
+
+          
+
+          <h1>21-用事件风暴分解单体设计微服务 - capital</h1>
+
+          <div class="article-style">
+            <blockquote>
+<p><a href="https://www.jdon.com/56731.html" target="_blank" rel="noopener">原文地址</a></p>
+</blockquote>
+<h1 id="用事件风暴分解单体设计微服务---capital">用事件风暴分解单体设计微服务 - capital</h1>
+<p>作为软件工程师和架构师，我们经常面临为遗留系统创建目标微服务架构的挑战。这些系统通常是已经存在多年的大型单体应用程序，通常具有很多依赖性，并且通常在您的公司中没有一个人了解这一切。在这些情况下，一群领域专家是理解围绕业务上下文和所需功能的“原因”的关键，上下文对于创建成功的架构至关重要。</p>
+<p>通常，您首先创建一个业务能力模型或分类法来绘制业务能力并将它们在特定级别分组下对齐。模型/分类法表示应用程序所需的一组功能集合。虽然这是有帮助的，但它有一些差距。分类法本身并没有提供更广泛的用例上下文，也没有提供有关如何将功能分解为微服务的洞察力。这就是事件风暴可以提供帮助的地方。事件风暴由 Alberto Brandolini 创建，事件风暴是一种交互式方式进行领域驱动设计(DDD)，它将业务和技术部门的领域专家聚集在一起。在本文中，我将提供事件风暴的深入迭代示例、使用它的一些经验教训，以及如何将其应用于您的架构工作。</p>
+<p>首先想澄清一些关于事件风暴的常见误解：</p>
+<ul>
+<li>
+<p>误解 #1 — 与 DDD 相同：虽然事件风暴基于许多 DDD 概念——包括有界上下文和聚合——但正式的 DDD 往往很复杂，需要大量的培训。事件风暴侧重于让所有领域专家参与的交互式协作白板练习。它更简单，不需要像正式 DDD 那样进行大量培训。</p>
+</li>
+<li>
+<p>误解#2——它与设计思维相同：事件风暴和设计思维都利用了交互式业务流程映射练习和白板。它们的不同之处在于，事件风暴侧重于定义微服务架构的分解和分类。它还关注业务流程中当前正在发生的事情，称为事件。设计思维涉及一个分阶段的过程，包括问题定义、需求发现和基准测试、构思、原型设计和测试。它还更多地关注同理心和痛点。</p>
+</li>
+</ul>
+<p>现在让我们深入了解事件风暴的细节。首先要了解的事情之一是捕获的有关域的不同类型的详细信息。这些不同类型的细节通常由不同颜色的便签表示。让我们详细介绍其中的每一个。</p>
+<ul>
+<li>事件（橙色）：这些是事件风暴中最重要和最广泛使用的组件，代表<a href="https://www.jdon.com/tag-20395/" target="_blank" rel="noopener"><strong>领域事件</strong></a>和与领域专家相关的任何事情。它们是用过去时写成的，并提供了用于后面分类步骤的基本细节。</li>
+<li>命令（蓝色）：这些是做某事的请求。它们可以源自用户或系统，也可以源自其他事件。</li>
+<li>系统（粉红色）：这些代表域中涉及的系统。它们可以发出命令或接收命令以及触发事件。</li>
+<li>用户（黄色）：这些是参与流程的人类用户。他们可能是一个人，也可能是一个部门/团队。黄色便签有助于显示业务流程的工作流程有多复杂，具体取决于所涉及的部门数量和来回的数量。</li>
+<li>聚合（棕褐色）：这是第一级分类，可以被认为是一组事件操作的“事物”。通常，它们是一个名词，可以在一组相互依赖的事件中识别出来。</li>
+<li>读取模型（绿色）：这表示可能对用户或系统做出决策至关重要的数据。我没有看到经常使用这个，但是当需要强调用户看到的数据时它会很有帮助。</li>
+<li>Policy 政策（灰色）：这些代表可能需要执行的标准或规则，例如合规性政策的规则。</li>
+</ul>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/20230409214851.png" alt="事件风暴流程" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>现在我们了解了我们想要在域中发现的不同类型的事物，让我们通过一个示例来介绍事件风暴的每个迭代步骤。对于我们的示例，我们将对通用电子商务站点的域进行建模。</p>
+<h1 id="步骤-1--事件发现">步骤 #1 — 事件发现</h1>
+<p>事件风暴的第一阶段是事件发现阶段。基本上，房间里的每个人都在写事件并将它们贴在墙上。将此阶段视为集思广益，因此请避免在此阶段应用任何分析或过滤，因为它只会减慢速度。别担心，该过程中的后续步骤会清理干净。此步骤通常需要最长的时间，并且留出足够的时间来捕获事件的基础非常重要。以电子商务网站为例，一些可能的事件可能是订单提交、付款处理或库存更新等。此阶段的输出示例如下所示：</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/20230409215824.png" alt="事件风暴第一步" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<h1 id="步骤-2--按顺序放置事件">步骤 #2 — 按顺序放置事件</h1>
+<p>接下来的一系列步骤通过按顺序（通常从左到右）放置事件来帮助识别任何丢失的事件。建立顺序后，您可以倒退以帮助识别其他事件。在我们的电子商务示例中，首先输入订单信息，然后检查库存。在将它们按顺序排列时，我们发现我们为正在执行的输入检查遗漏了一个事件。提示 - 当多个事件同时发生时，您可以将它们垂直堆叠，如下所示：</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/20230409220051.png" alt="按顺序放置事件" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<h1 id="第-3-步--对更广泛的生态系统进行建模">第 3 步 — 对更广泛的生态系统进行建模</h1>
+<p>把事件序列后，下一步就是模拟出更广泛的生态系统通过提问，如，围绕事件“触发什么事件？它是一个系统吗？一个用户？另一个事件？涉及哪些命令？” 这个额外的上下文对于理解域的当前状态非常有价值。在我们的示例中，用户触发订单信息输入事件，他们通过网页（系统）进行操作。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/20230409220248.png" alt="更广泛的生态建模" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<h1 id="步骤-4--简单的事件分类">步骤 #4 — 简单的事件分类</h1>
+<p>此时，所有详细事件及其相关部分都应建模，并在您准备进入分类时。第一种分类称为聚合。这些是名词或事物，事件发生作用。DDD 也有一个实体的概念，您可以将其视为聚合的下一个级别。根据我的经验，将聚合和实体视为相同有助于简化事情，使人们更容易理解。在我们的示例中，库存、订单、报价都是聚合的示例。它们是事件运行的对象。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/20230409220343.png" alt="简单的事件分类" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<h1 id="步骤-5--事件的有界上下文分类">步骤 #5 — 事件的有界上下文分类</h1>
+<p>现在我们已准备好进行分类的有界上下文级别。所有相关事件都将落入一个单一的有界上下文中。例如，所有与购物车相关的事件都属于购物车有界上下文。这里要记住的一个重要的微服务概念是，如果它一起变化，它应该一起变化。我们希望尽可能消除有界上下文之间的依赖关系。如果语言在事件之间发生变化，则表明您已进入不同的有界上下文。</p>
+<p>例如，从查看促销优惠到结帐时，语言正在发生变化。这最好在白板上完成，您可以简单地围绕相关事件绘制轮廓并适当标记有界上下文。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/20230409220537.png" alt="限界上下文" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<h1 id="步骤-6--将它们放在一起">步骤 #6 — 将它们放在一起</h1>
+<p>现在我们已经完成了事件风暴的步骤！您现在可以使用有界上下文和聚合来了解所需的微服务。通常，有界上下文中的聚合代表一个或多个微服务。在我们的示例中，订单捕获有界上下文将具有与订单和库存相关的微服务。您会注意到 Order 也存在于 Shopping Cart bounded context 和 Order Fulfillment bounded context 中。这没关系，因为这表明它们是不同的微服务，因为它们处于不同的有界上下文中。他们可能都在做与订单相关的事情，但他们做的事情是不同的。在单体应用程序中，这些将被捆绑在一起创建耦合，但在微服务架构中，我们将它们分开以实现独立性。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/20230409220608.png" alt="聚合根" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<h1 id="附加步骤-7创建能力">附加步骤 #7：创建能力</h1>
+<p>现在您拥有大量信息来帮助您启动目标架构。根据我的经验，我发现添加一个从事件创建功能的步骤很有帮助。通常，能力是现在时形式的事件。然后可以将能力映射到各种目标能力架构视图中的有界上下文和聚合。这些不同的视图为建筑师和工程师提供了一个经过深思熟虑的蓝图来构建他们的目标状态。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://assets.ng-tech.icu/item/20230409224718.png" alt="创建能力" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+
+          </div>
+
+          
+
+
+
+          
+          
+          <div class="article-widget">
+            
+<div class="container-xl row post-nav">
+  
+  
+</div>
+
+          </div>
+          
+
+        <div class="body-footer">
+          <p>最近更新于 0001-01-01</p>
+
+          
+
+
+
+          
+
+
+  
+  
+  
+
+  
+
+  
+  <section id="comments" class="mb-3 pt-0">
+    
+<div id="disqus_thread"></div>
+<script>
+  var disqus_config = function () {
+    
+    
+    
+  };
+  (function() {
+    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+      return;
+    }
+    var d = document, s = d.createElement('script'); 
+    s.async = true;
+    s.src = 'https://' + "ngte" + '.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </section>
+  
+
+
+
+          
+
+
+        </div>
+
+      </article>
+
+      <footer class="site-footer">
+
+  
+
+
+
+  
+
+  
+  <div class="copyright py-4 bg-footer">
+      <div class="row justify-content-center">
+        <div class="text-center footer-color">
+          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
+        </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" id="clstr_globe" async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script>
+  
+</footer>
+
+
+    </main>
+  </div>
+</div>
+<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
+<script>
+  const heti = new Heti('.article');
+  heti.autoSpacing();
+</script>
+<script type="text/javascript">
+  window.$crisp = [];
+  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
+  (function () {
+    setTimeout(function() {
+      d = document;
+      s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    }, 2500);
+  })();
+</script>
+  </div>
+
+  <div class="page-footer">
+    
+    
+  </div>
+
+      
+
+    
+    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
+
+    
+    
+    
+      
+
+      
+      
+
+      
+
+      
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
+        
+        
+      
+
+    
+
+    
+    
+    
+
+    
+    
+    
+      
+      <script id="search-hit-algolia-template" type="text/html">
+        <div class="search-hit">
+          <div class="search-hit-content">
+            <div class="search-hit-name">
+              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
+            </div>
+            <div class="article-metadata search-hit-type">{{type}}</div>
+            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
+          </div>
+        </div>
+      </script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
+      
+      
+    
+
+    
+    
+
+    
+    
+    
+    
+      <script id="dsq-count-scr" src="https://ngte.disqus.com/count.js" async></script>
+      
+    
+
+    
+    
+      
+      
+      
+      
+      
+      
+      
+    
+
+    
+    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
+    
+
+    
+    
+    
+    <script id="page-data" type="application/json">{"use_headroom":false}</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
+
+    
+    
+    
+    
+    
+    
+    <script>
+
+var mybutton = document.getElementById("backTopBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+}
+</script>
+
+
+    
+
+    
+    
+    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+    <script>
+      anchors.add();
+    </script>
+    
+
+    
+    <script>
+
+
+
+(function() {
+  'use strict';
+
+  if(!document.queryCommandSupported('copy')) {
+    return;
+  }
+
+  function flashCopyMessage(el, msg) {
+    el.className = "highlight-copy-btn";
+    el.textContent = msg;
+    setTimeout(function() {
+      el.textContent = "";
+      el.className = "highlight-copy-btn fa fa-copy";
+    }, 1000);
+  }
+
+  function selectText(node) {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection;
+  }
+
+  function addCopyButton(containerEl) {
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "highlight-copy-btn fa fa-copy";
+    copyBtn.textContent = "";
+
+    var codeEl = containerEl.firstElementChild;
+    copyBtn.addEventListener('click', function() {
+      try {
+        var selection = selectText(codeEl);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        
+        flashCopyMessage(copyBtn, '已复制')
+        
+      } catch(e) {
+        console && console.log(e);
+        flashCopyMessage(copyBtn, 'Failed :\'(')
+      }
+    });
+
+    containerEl.appendChild(copyBtn);
+  }
+
+  
+  var highlightBlocks = document.getElementsByClassName('highlight');
+  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
+})();
+</script>
+
+    
+
+
+</body>
+</html>

@@ -1,52 +1,1563 @@
-<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="信号量（Semaphore） 线程的信号和进程的信号量类似，使用线程的信号量可以高效地完成基于线程的资源计数。信号量实际上是一个非负的整数计数器，用来实现对公共资源的控制。在公共资源增加的时候，信号量就"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%90%8C%E6%AD%A5%E5%99%A8/semaphore/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.fab3cd1900ae35687457073b2d518207.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%90%8C%E6%AD%A5%E5%99%A8/semaphore/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%90%8C%E6%AD%A5%E5%99%A8/semaphore/"><meta property="og:title" content="Semaphore | Next-gen Tech Edu"><meta property="og:description" content="信号量（Semaphore） 线程的信号和进程的信号量类似，使用线程的信号量可以高效地完成基于线程的资源计数。信号量实际上是一个非负的整数计数器，用来实现对公共资源的控制。在公共资源增加的时候，信号量就"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>Semaphore | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=05e354b0a60cadfd5b4d83c979f34cdf><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
-<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
-<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
-<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
-<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
-<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">同步器</span>
-<span><i class="fas fa-chevron-down"></i></span></div></button>
-<button class="form-control sidebar-search js-search d-none d-md-flex">
-<i class="fas fa-search pr-2"></i>
-<span class=sidebar-search-text>搜索...</span>
-<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
-Back</a>
-<span>|</span>
-<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
-Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id750cddf5218997b403346b2f661b5b48")' href=#id750cddf5218997b403346b2f661b5b48 aria-expanded=false aria-controls=id750cddf5218997b403346b2f661b5b48 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/>线程安全</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id750cddf5218997b403346b2f661b5b48 aria-expanded=false aria-controls=id750cddf5218997b403346b2f661b5b48><i class="fa-solid fa-angle-down" id=caret-id750cddf5218997b403346b2f661b5b48></i></a></div><ul class="nav docs-sidenav collapse show" id=id750cddf5218997b403346b2f661b5b48><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-ide3e494cdb7389c821e6f65e2b60c2bb2")' href=#ide3e494cdb7389c821e6f65e2b60c2bb2 aria-expanded=false aria-controls=ide3e494cdb7389c821e6f65e2b60c2bb2 aria-hidden=false data-toggle=collapse></div></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id439d7ad4206f47a1d95e6975fe147769")' href=#id439d7ad4206f47a1d95e6975fe147769 aria-expanded=false aria-controls=id439d7ad4206f47a1d95e6975fe147769 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%B9%B6%E5%8F%91%E4%BC%98%E5%8C%96/>并发优化</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id439d7ad4206f47a1d95e6975fe147769 aria-expanded=false aria-controls=id439d7ad4206f47a1d95e6975fe147769><i class="fa-solid fa-angle-right" id=caret-id439d7ad4206f47a1d95e6975fe147769></i></a></div><ul class="nav docs-sidenav collapse" id=id439d7ad4206f47a1d95e6975fe147769><li class="child level"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%B9%B6%E5%8F%91%E4%BC%98%E5%8C%96/%E5%B9%B6%E5%8F%91%E7%9A%84%E4%BC%98%E5%8C%96/>并发的优化</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id76c20db6adb675c155be353d9e251fe4")' href=#id76c20db6adb675c155be353d9e251fe4 aria-expanded=false aria-controls=id76c20db6adb675c155be353d9e251fe4 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/>锁</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id76c20db6adb675c155be353d9e251fe4 aria-expanded=false aria-controls=id76c20db6adb675c155be353d9e251fe4><i class="fa-solid fa-angle-right" id=caret-id76c20db6adb675c155be353d9e251fe4></i></a></div><ul class="nav docs-sidenav collapse" id=id76c20db6adb675c155be353d9e251fe4><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idd576e4a40031a59e8365597d5ff9366a")' href=#idd576e4a40031a59e8365597d5ff9366a aria-expanded=false aria-controls=idd576e4a40031a59e8365597d5ff9366a aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/>99.参考资料</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idd576e4a40031a59e8365597d5ff9366a aria-expanded=false aria-controls=idd576e4a40031a59e8365597d5ff9366a><i class="fa-solid fa-angle-right" id=caret-idd576e4a40031a59e8365597d5ff9366a></i></a></div><ul class="nav docs-sidenav collapse" id=idd576e4a40031a59e8365597d5ff9366a><li class="child level"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-an-introduction-to-lockless-algorithms/>2021-An introduction to lockless algorithms</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-ida380e6bb70ede64c41d7407a972641ba")' href=#ida380e6bb70ede64c41d7407a972641ba aria-expanded=false aria-controls=ida380e6bb70ede64c41d7407a972641ba aria-hidden=false data-toggle=collapse></div></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-ida8df9beb197d6c8cb1c21390dae03b3d")' href=#ida8df9beb197d6c8cb1c21390dae03b3d aria-expanded=false aria-controls=ida8df9beb197d6c8cb1c21390dae03b3d aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/>互斥锁</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#ida8df9beb197d6c8cb1c21390dae03b3d aria-expanded=false aria-controls=ida8df9beb197d6c8cb1c21390dae03b3d><i class="fa-solid fa-angle-right" id=caret-ida8df9beb197d6c8cb1c21390dae03b3d></i></a></div><ul class="nav docs-sidenav collapse" id=ida8df9beb197d6c8cb1c21390dae03b3d><li class="child level"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/%E8%AF%BB%E5%86%99%E9%94%81/>读写锁</a></li><li class="child level"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/>互斥锁</a></li><li class="child level"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/%E9%94%81%E4%BC%98%E5%8C%96/>锁优化</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id9591f39accb676042eff439bddc57c6c")' href=#id9591f39accb676042eff439bddc57c6c aria-expanded=false aria-controls=id9591f39accb676042eff439bddc57c6c aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E6%AD%BB%E9%94%81%E6%B4%BB%E9%94%81%E4%B8%8E%E9%A5%A5%E9%A5%BF/>死锁，活锁与饥饿</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id9591f39accb676042eff439bddc57c6c aria-expanded=false aria-controls=id9591f39accb676042eff439bddc57c6c><i class="fa-solid fa-angle-right" id=caret-id9591f39accb676042eff439bddc57c6c></i></a></div><ul class="nav docs-sidenav collapse" id=id9591f39accb676042eff439bddc57c6c><li class="child level"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E6%AD%BB%E9%94%81%E6%B4%BB%E9%94%81%E4%B8%8E%E9%A5%A5%E9%A5%BF/%E6%B4%BB%E9%94%81/>活锁</a></li><li class="child level"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E6%AD%BB%E9%94%81%E6%B4%BB%E9%94%81%E4%B8%8E%E9%A5%A5%E9%A5%BF/%E9%A5%A5%E9%A5%BF/>饥饿</a></li><li class="child level"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E6%AD%BB%E9%94%81%E6%B4%BB%E9%94%81%E4%B8%8E%E9%A5%A5%E9%A5%BF/%E6%AD%BB%E9%94%81/>死锁</a></li></ul></div></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-ideb608728fe8eb65811d3f18e004f44a0")' href=#ideb608728fe8eb65811d3f18e004f44a0 aria-expanded=false aria-controls=ideb608728fe8eb65811d3f18e004f44a0 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%90%8C%E6%AD%A5%E5%99%A8/>同步器</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#ideb608728fe8eb65811d3f18e004f44a0 aria-expanded=false aria-controls=ideb608728fe8eb65811d3f18e004f44a0><i class="fa-solid fa-angle-down" id=caret-ideb608728fe8eb65811d3f18e004f44a0></i></a></div><ul class="nav docs-sidenav collapse show" id=ideb608728fe8eb65811d3f18e004f44a0><li class="child level active"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%90%8C%E6%AD%A5%E5%99%A8/semaphore/>Semaphore</a></li><li class="child level"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%90%8C%E6%AD%A5%E5%99%A8/tencentos-%E4%B8%AD%E4%BF%A1%E5%8F%B7%E9%87%8F%E7%9A%84%E5%AE%9E%E7%8E%B0/>TencentOS 中信号量的实现</a></li><li class="child level"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%90%8C%E6%AD%A5%E5%99%A8/%E8%BF%9B%E7%A8%8B%E9%97%B4%E9%80%9A%E4%BF%A1/>进程间通信</a></li><li class="child level"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%90%8C%E6%AD%A5%E5%99%A8/%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5/>线程同步</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>Semaphore</h1><div class=article-style><h1 id=信号量semaphore>信号量（Semaphore）</h1><p>线程的信号和进程的信号量类似，使用线程的信号量可以高效地完成基于线程的资源计数。信号量实际上是一个非负的整数计数器，用来实现对公共资源的控制。在公共资源增加的时候，信号量就增加；公共资源减少的时候，信号量就减少；只有当信号量的值大于 0 的时候，才能访问信号量所代表的公共资源。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=n>sem_t</span> <span class=n>sem_event</span><span class=p>;</span>
-</span></span><span class=line><span class=cl><span class=kt>int</span> <span class=nf>sem_init</span><span class=p>(</span><span class=n>sem_t</span> <span class=o>*</span><span class=n>sem</span><span class=p>,</span> <span class=kt>int</span> <span class=n>pshared</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>int</span> <span class=n>value</span><span class=p>);</span><span class=c1>//初始化一个信号量
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>int</span> <span class=nf>sem_destroy</span><span class=p>(</span><span class=n>sem_t</span> <span class=o>*</span> <span class=n>sem</span><span class=p>);</span><span class=c1>//销毁信号量
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>int</span> <span class=nf>sem_post</span><span class=p>(</span><span class=n>sem_t</span> <span class=o>*</span> <span class=n>sem</span><span class=p>);</span><span class=c1>//信号量增加1
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>int</span> <span class=nf>sem_wait</span><span class=p>(</span><span class=n>sem_t</span> <span class=o>*</span> <span class=n>sem</span><span class=p>);</span><span class=c1>//信号量减少1
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>int</span> <span class=nf>sem_getvalue</span><span class=p>(</span><span class=n>sem_t</span> <span class=o>*</span> <span class=n>sem</span><span class=p>,</span> <span class=kt>int</span> <span class=o>*</span> <span class=n>sval</span><span class=p>);</span><span class=c1>//获取当前信号量的值
-</span></span></span></code></pre></div><p>信号量又称为信号灯，它是用来协调不同进程间的数据对象的，而最主要的应用是协调共享内存方式的进程间通信。本质上，信号量是一个计数器，它用来记录对某个资源(如共享内存)的存取状况。一般说来，为了获得共享资源，进程需要执行下列操作:</p><ul><li><p>测试控制该资源的信号量。</p></li><li><p>若此信号量的值为正，则允许进行使用该资源。进程将信号量减 1。</p></li><li><p>若此信号量为 0，则该资源目前不可用，进程进入睡眠状态，直至信号量值大于 0，进程被唤醒，转入步骤(1)。</p></li><li><p>当进程不再使用一个信号量控制的资源时，信号量值加 1。如果此时有进程正在睡眠等待此信号量，则唤醒此进程。</p></li></ul><p>信号量与普通整型变量的区别：</p><ul><li><p>信号量(semaphore)是非负整型变量，除了初始化之外，它只能通过两个标准原子操作：wait(semap), signal(semap) ; 来进行访问；</p></li><li><p>操作也被成为 PV 原语(P 来源于 Dutch proberen"测试"，V 来源于 Dutch verhogen"增加")，而普通整型变量则可以在任何语句块中被访问；</p></li></ul><p>信号量与互斥锁之间的区别主要在于互斥量用于线程的互斥，信号量用于线程的同步；这是互斥量和信号量的根本区别，也就是互斥和同步之间的区别。</p><h1 id=semaphore-实现>Semaphore 实现</h1><p>Semaphore 对象里包含一个 count 值和一个队列对象，另外有两个对外 public 的方法，wait()和 signal()，需要特别注意的事，count 值代表的资源数量是不能为负的。为了理解这些属性和方法，我们可以类比一个现实生活中的例子。大家去餐厅吃饭，假设这个餐厅有 10 个座位，有 20 个吃货随机出发去这个餐厅吃饭，那么对应关系是这样的：</p><ul><li>count = 10，10 个座位。</li><li>queue，餐厅位置有限，为了避免混乱，餐厅肯定会吃货们排队。</li><li>wait()，吃货到了餐厅找服务员要位置点餐，这个行为就是 wait。</li><li>signal()，吃货吃完了买单离开位置，这个行为就是 signal。</li></ul><p>这其实是一个信号量应用的典型场景，这里关键在于正确理解 wait 和 signal 发生时都有哪些细节步骤。</p><ul><li><p>wait()：具体到餐厅到例子，20 个人随机出发去餐厅吃饭，有 10 个人先到，然后挨个执行 wait。前 10 个人执行 wait 的时候是有位置的，所以 <code>count>0</code>，这 10 个人每人都消耗掉一个座位开始吃饭。到第 11 个人到了都时候，<code>count＝＝0</code>，没有位置了，所以被 suspend，开始加入排队都队列等待。后续所有人都慢慢的到来，但和第 11 个人一样，都只能排队。</p></li><li><p>signal()：过了一段时间之后，有个人吃好结账离开了餐厅。这时候如果没有人在排队，位置数量 <code>count＋＋</code>，没有其它事情发生。但如果有人在排队，比如上面的情况，有 10 个人在等待位置，餐厅会把排在第一个的人安排到刚才空出来的位置，count 值没有变化，但队列的人少了一个。</p></li></ul><p>对于 wait 和 signal 还有两点需要特别注意。也是平时我们使用 Semaphore 时比较容易产生错误的地方。</p><ul><li><p>wait 和 signal 都是原子操作。可以简单理解为上面代码里 wait(), signal()两个函数都是加锁的。这个特性其实让 semaphore 的行为变得更简单清晰。大家想象，如果到餐厅的 10 个人是同时到达的，但不是依次询问餐厅是否有位置，而是 10 张嘴同时说话，同时找餐厅要位置，显然情况会变得复杂不好处理。</p></li><li><p>wait 或者 signal 调用的顺序是不确定的。上面的例子中每个人都是随机时间出发，到达餐厅的顺序也是随机的，并不一定先出发的就先到。同理每个人吃饭的时间长短也不一定，有人快有人慢，所以吃好离开餐厅的时间点也是随机的。这里每个人都代表一个线程，因为操作系统线程调度策略导致到底哪个线程先执行也是不确定的。</p></li></ul><p>它允许多个线程在同一时刻访问同一资源，但是需要限制在同一时刻访问此资源的最大线程数目。信号量对象对线程的同步方式与前面几种方法不同，信号允许多个线程同时使用共享资源，这与操作系统中的 PV 操作相同。它指出了同时访问共享资源的线程最大数目。它允许多个线程在同一时刻访问同一资源，但是需要限制在同一时刻访问此资源的最大线程数目。</p><p>通过互斥量可以指定资源被独占的方式使用，但如果有下面一种情况通过互斥量就无法处理，比如现在一位用户购买了一份三个并发访问许可的数据库系统，可以根据用户购买的访问许可数量来决定有多少个线程/进程能同时进行数据库操作，这时候如果利用互斥量就没有办法完成这个要求，信号量对象可以说是一种资源计数器。所有 信号量 相关的 API 都在名为 include/linux/semaphore.h 的头文件中</p><p>我们看到 信号量 机制是有以下的结构体表示的：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=k>struct</span> <span class=nc>semaphore</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>	<span class=n>raw_spinlock_t</span>		<span class=n>lock</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>	<span class=kt>unsigned</span> <span class=kt>int</span>		<span class=n>count</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>	<span class=k>struct</span> <span class=nc>list_head</span>	<span class=n>wait_list</span><span class=p>;</span>
-</span></span><span class=line><span class=cl><span class=p>};</span>
-</span></span></code></pre></div><p>自旋锁 的设计理念是它仅会被持有非常短的时间。但持有自旋锁的时候我们不可以进入睡眠模式因为其他的进程在等待我们。为了防止 死锁 上下文交换 也是不允许的。</p><p>当需要长时间持有一个锁的时候 信号量 就是一个很好的解决方案。从另一个方面看，这个机制对于需要短期持有锁的应用并不是最优。为了理解这个问题，我们需要知道什么是 信号量。</p><p>就像一般的同步原语，信号量 是基于变量的。这个变量可以变大或者减少，并且这个变量的状态代表了获取锁的能力。注意这个变量的值并不限于 0 和 1。有两种类型的 信号量：二值信号量与普通信号量。</p><p>第一种 信号量 的值可以为 1 或者 0。第二种 信号量 的值可以为任何非负数。如果 信号量 的值大于 1 那么它被叫做 计数信号量，并且它允许多于 1 个进程获取它。这种机制允许我们记录现有的资源，而 自旋锁 只允许我们为一个任务上锁。除了所有这些之外，另外一个重要的点是 信号量 允许进入睡眠状态。另外当某进程在等待一个被其他进程获取的锁时，调度器 也许会切换别的进程。</p><h1 id=semaphore信号量>Semaphore:信号量</h1><p>信号量(Semaphore)，有时被称为信号灯，是在多线程环境下使用的一种设施, 它负责协调各个线程, 以保证它们能够正确、合理的使用公共资源。</p><p>信号量可以分为几类:
-² 二进制信号量(binary semaphore)：只允许信号量取 0 或 1 值，其同时只能被一个线程获取。</p><p>² 整型信号量(integer semaphore)：信号量取值是整数，它可以被多个线程同时获得，直到信号量的值变为 0。</p><p>² 记录型信号量(record semaphore)：每个信号量 s 除一个整数值 value(计数)外，还有一个等待队列 List，其中是阻塞在该信号量的各个线程的标识。当信号量被释放一个，值被加一后，系统自动从等待队列中唤醒一个等待中的线程，让其获得信号量，同时信号量再减一。</p><p>信号量通过一个计数器控制对共享资源的访问，信号量的值是一个非负整数，所有通过它的线程都会将该整数减一。如果计数器大于 0，则访问被允许，计数器减 1；如果为 0，则访问被禁止，所有试图通过它的线程都将处于等待状态。</p><p>计数器计算的结果是允许访问共享资源的通行证。因此，为了访问共享资源，线程必须从信号量得到通行证，如果该信号量的计数大于 0，则此线程获得一个通行证，这将导致信号量的计数递减，否则，此线程将阻塞直到获得一个通行证为止。当此线程不再需要访问共享资源时，它释放该通行证，这导致信号量的计数递增，如果另一个线程等待通行证，则那个线程将在那时获得通行证。</p><p>信 号灯与互斥锁和条件变量的主要不同在于”灯”的概念，灯亮则意味着资源可用，灯灭则意味着不可用。如果说后两中同步方式侧重于”等待”操作，即资源不可用 的话，信号灯机制则侧重于点灯，即告知资源可用；没有等待线程的解锁或激发条件都是没有意义的，而没有等待灯亮的线程的点灯操作则有效，且能保持灯亮状 态。当然，这样的操作原语也意味着更多的开销。</p><p>信号灯的应用除了灯亮/灯灭这种二元灯以外，也可以采用大于 1 的灯数，以表示资源数大于 1，这时可以称之为多元灯。</p><p>1． 创建和 注销</p><p>POSIX 信号灯标准定义了有名信号灯和无名信号灯两种，但 LinuxThreads 的实现仅有无名灯，同时有名灯除了总是可用于多进程之间以外，在使用上与无名灯并没有很大的区别，因此下面仅就无名灯进行讨论。</p><p>int sem_init(sem_t *sem, int pshared, unsigned int value)
-这 是创建信号灯的 API，其中 value 为信号灯的初值，pshared 表示是否为多进程共享而不仅仅是用于一个进程。LinuxThreads 没有实现多 进程共享信号灯，因此所有非 0 值的 pshared 输入都将使 sem_init()返回-1，且置 errno 为 ENOSYS。初始化好的信号灯由 sem 变量 表征，用于以下点灯、灭灯操作。</p><p>int sem_destroy(sem_t * sem)
-被注销的信号灯 sem 要求已没有线程在等待该信号灯，否则返回-1，且置 errno 为 EBUSY。除此之外，LinuxThreads 的信号灯 注销函数不做其他动作。</p><p>2． 点灯和灭灯</p><p>int sem_post(sem_t * sem)</p><p>点灯操作将信号灯值原子地加 1，表示增加一个可访问的资源。</p><p>int sem<em>wait(sem_t * sem)
-int sem</em>trywait(sem_t * sem)</p><p>sem_wait()为等待灯亮操作，等待灯亮(信号灯值大于 0)，然后将信号灯原子地减 1，并返回。sem_trywait()为 sem_wait()的非阻塞版，如果信号灯计数大于 0，则原子地减 1 并返回 0，否则立即返回-1，errno 置为 EAGAIN。</p><p>3． 获取灯值</p><p>int sem*getvalue(sem_t * sem, int _ sval)</p><p>读取 sem 中的灯计数，存于*sval 中，并返回 0。</p><p>4． 其他</p><p>sem_wait()被实现为取消点，而且在支持原子”比较且交换”指令的体系结构上，sem_post()是唯一能用于异步信号处理函数的 POSIX 异步信号 安全的 API。</p><p>Semaphore 可以被抽象为五个操作:</p><ul><li><p>创建 Create</p></li><li><p>等待 Wait:</p></li></ul><p>线程等待信号量，如果值大于 0，则获得，值减一；如果只等于 0，则一直线程进入睡眠状态，知道信号量值大于 0 或者超时。</p><p>-释放 Post</p><p>执行释放信号量，则值加一；如果此时有正在等待的线程，则唤醒该线程。</p><p>-试图等待 TryWait</p><p>如果调用 TryWait，线程并不真正的去获得信号量，还是检查信号量是否能够被获得，如果信号量值大于 0，则 TryWait 返回成功；否则返回失败。</p><p>-销毁 Destroy</p><p>信号量，是可以用来保护两个或多个关键代码段，这些关键代码段不能并发调用。在进入一个关键代码段之前，线程必须获取一个信号量。如果关键代码段中没有任何线程，那么线程会立即进入该框图中的那个部分。一旦该关键代码段完成了，那么该线程必须释放信号量。其它想进入该关键代码段的线程必须等待直到第一个线程释放信号量。为了完成这个过程，需要创建一个信号量，然后将 Acquire Semaphore VI 以及 Release Semaphore VI 分别放置在每个关键代码段的首末端。确认这些信号量 VI 引用的是初始创建的信号量。</p><p>信号量对象对线程的同步方式与前面几种方法不同，信号允许多个线程同时使用共享资源，这与操作系统中的 PV 操作相同。它指出了同时访问共享资源的线程最大 数目。它允许多个线程在同一时刻访问同一资源，但是需要限制在同一时刻访问此资源的最大线程数目。在用 CreateSemaphore()创建信号量时即 要同时指出允许的最大资源计数和当前可用资源计数。一般是将当前可用资源计数设置为最大资源计数，每增加一个线程对共享资源的访问，当前可用资源计数就会 减 1，只要当前可用资源计数是大于 0 的，就可以发出信号量信号。但是当前可用计数减小到 0 时则说明当前占用资源的线程数已经达到了所允许的最大数目，不能 在允许其他线程的进入，此时的信号量信号将无法发出。线程在处理完共享资源后，应在离开的同时通过 ReleaseSemaphore()函数将当前可用资 源计数加 1。在任何时候当前可用资源计数决不可能大于最大资源计数。信号量是通过计数来对线程访问资源进行控制的，而实际上信号量确实也被称作 Dijkstra 计数器。</p><p>PV 操作及信号量的概念都是由荷兰科学家 E.W.Dijkstra 提出的。信号量 S 是一个整数，S 大于等于零时代表可供并发进程使用的资源实体数，但 S 小于零时则表示正在等待使用共享资源的进程数。</p><p>P 操作申请资源：
+<!DOCTYPE html><html lang="zh" >
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  
+  
+    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+
+  
+  
+  
+    
+      
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    
+  
+
+  
+    <meta name="google-site-verification" content="google69a5cccb61297807" />
+    <meta name="baidu-site-verification" content="cqmZHEleVh" />
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+    
+  
+  <meta name="description" content="信号量（Semaphore） 线程的信号和进程的信号量类似，使用线程的信号量可以高效地完成基于线程的资源计数。信号量实际上是一个非负的整数计数器，用来实现对公共资源的控制。在公共资源增加的时候，信号量就" />
+
+  
+  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%90%8C%E6%AD%A5%E5%99%A8/semaphore/" />
+
+  
+  
+  
+    <meta name="theme-color" content="#0a55a7" />
+  
+
+  
+  
+
+  
+
+  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
+
+  
+  
+  
+    
+    
+
+    
+    
+    
+    
+      
+      
+    
+    
+    
+
+    
+    
+    
+      
+    
+    
+      
+      
+        
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
+        
+      
+    
+
+    
+    
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
+    
+
+    
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+        
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+  
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/wowchemy.0d97305106da5efa530e28b021b4c580.css" />
+
+  
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', "G-40NYXJ8823");
+</script>
+
+
+  
+
+
+  
+
+
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+  
+  
+  
+
+  
+
+  
+    <link rel="manifest" href="/manifest.webmanifest" />
+  
+
+  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
+  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
+
+  <link rel="canonical" href="https://ng-tech.icu/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%90%8C%E6%AD%A5%E5%99%A8/semaphore/" />
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+
+  
+  
+    
+    
+  
+  <meta property="twitter:card" content="summary_large_image" />
+  
+    <meta property="twitter:site" content="@wx-chevalier" />
+    <meta property="twitter:creator" content="@wx-chevalier" />
+  
+  <meta property="og:site_name" content="Next-gen Tech Edu" />
+  <meta property="og:url" content="https://ng-tech.icu/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%90%8C%E6%AD%A5%E5%99%A8/semaphore/" />
+  <meta property="og:title" content="Semaphore | Next-gen Tech Edu" />
+  <meta property="og:description" content="信号量（Semaphore） 线程的信号和进程的信号量类似，使用线程的信号量可以高效地完成基于线程的资源计数。信号量实际上是一个非负的整数计数器，用来实现对公共资源的控制。在公共资源增加的时候，信号量就" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
+    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
+  
+    
+    
+  
+
+  
+
+
+
+  
+
+  
+
+  
+
+
+
+
+
+  <title>Semaphore | Next-gen Tech Edu</title>
+</head>
+
+
+<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="05e354b0a60cadfd5b4d83c979f34cdf" >
+  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
+
+  
+
+
+<aside class="search-modal" id="search">
+  <div class="container">
+    <section class="search-header">
+
+      <div class="row no-gutters justify-content-between mb-3">
+        <div class="col-6 search-title">
+          <p>搜索</p>
+        </div>
+        <div class="col-6 col-search-close">
+          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+      <div id="search-box">
+        
+        
+        
+      </div>
+
+      
+      
+
+      
+    </section>
+    <section class="section-search-results">
+
+      <div id="search-hits">
+        
+      </div>
+
+      <div id="search-common-queries">
+        
+      </div>
+
+    </section>
+  </div>
+</aside>
+
+
+
+  <div class="page-header">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="header--fixed">
+  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
+    <div class="container-xl">
+
+      
+      <div class="d-none d-lg-inline-flex">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      <button type="button" class="navbar-toggler" data-toggle="collapse"
+              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
+      <span><i class="fas fa-bars"></i></span>
+      </button>
+      
+
+      
+      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      
+      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
+
+        
+        <ul class="navbar-nav d-md-inline-flex">
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
+          </li>
+
+          
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+              
+              
+              
+                
+              
+              
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
+              
+                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
+              
+                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+        
+
+          
+        </ul>
+      </div>
+
+      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
+
+        
+        
+        
+        <li class="nav-item">
+          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        <li class="nav-item">
+            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        
+
+        
+        
+        
+        <div></div>
+        
+        <style>
+        @media only screen and (max-width: 600px) {
+          .jimmysong-template {
+            display: none!important;
+          }
+        }
+        </style>
+        
+        <li class="jimmysong-template" style="color: white;font-size: 12px;">
+          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+</header>
+
+
+  </div>
+
+  <div class="page-body">
+    
+    
+    
+
+    
+
+
+
+
+<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
+<div class="container-xl docs">
+  <div class="row flex-xl-nowrap">
+    <div class="docs-sidebar">
+      <form class="docs-search d-flex align-items-center">
+  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    <div class="d-flex">
+      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
+        
+          同步器
+        
+      </span>
+      <span><i class="fas fa-chevron-down"></i></span>
+    </div>
+  </button>
+
+  
+  <button class="form-control sidebar-search js-search d-none d-md-flex">
+    <i class="fas fa-search pr-2"></i>
+    <span class="sidebar-search-text">搜索...</span>
+    <span class="sidebar-search-shortcut">/</span>
+  </button>
+  
+</form>
+
+<nav class="collapse docs-links" id="docs-nav">
+  
+  
+  
+  
+  
+  
+
+  
+  
+    
+
+    
+      
+
+      <ul class="nav docs-sidenav">
+        <li style="display: inline-flex">
+          <a style="cursor: pointer;" onclick="window.history.back()">
+            <i class="fas fa-arrow-left pr-1"></i>
+            Back
+          </a>
+          <span>|</span>
+          <a href="/books/">
+            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
+            Books
+          </a>
+        </li>
+      </ul>
+
+      
+      
+        
+          
+        
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id750cddf5218997b403346b2f661b5b48&#34;)" href="#id750cddf5218997b403346b2f661b5b48" aria-expanded="false" aria-controls="id750cddf5218997b403346b2f661b5b48" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/">线程安全</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id750cddf5218997b403346b2f661b5b48" aria-expanded="false" aria-controls="id750cddf5218997b403346b2f661b5b48">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id750cddf5218997b403346b2f661b5b48"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id750cddf5218997b403346b2f661b5b48">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-ide3e494cdb7389c821e6f65e2b60c2bb2&#34;)" href="#ide3e494cdb7389c821e6f65e2b60c2bb2" aria-expanded="false" aria-controls="ide3e494cdb7389c821e6f65e2b60c2bb2" aria-hidden="false" data-toggle="collapse">
+    
+    </div>
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id439d7ad4206f47a1d95e6975fe147769&#34;)" href="#id439d7ad4206f47a1d95e6975fe147769" aria-expanded="false" aria-controls="id439d7ad4206f47a1d95e6975fe147769" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%B9%B6%E5%8F%91%E4%BC%98%E5%8C%96/">并发优化</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id439d7ad4206f47a1d95e6975fe147769" aria-expanded="false" aria-controls="id439d7ad4206f47a1d95e6975fe147769">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id439d7ad4206f47a1d95e6975fe147769"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id439d7ad4206f47a1d95e6975fe147769">
+      
+
+
+
+  <li class="child level "><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%B9%B6%E5%8F%91%E4%BC%98%E5%8C%96/%E5%B9%B6%E5%8F%91%E7%9A%84%E4%BC%98%E5%8C%96/">并发的优化</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id76c20db6adb675c155be353d9e251fe4&#34;)" href="#id76c20db6adb675c155be353d9e251fe4" aria-expanded="false" aria-controls="id76c20db6adb675c155be353d9e251fe4" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/">锁</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id76c20db6adb675c155be353d9e251fe4" aria-expanded="false" aria-controls="id76c20db6adb675c155be353d9e251fe4">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id76c20db6adb675c155be353d9e251fe4"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id76c20db6adb675c155be353d9e251fe4">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idd576e4a40031a59e8365597d5ff9366a&#34;)" href="#idd576e4a40031a59e8365597d5ff9366a" aria-expanded="false" aria-controls="idd576e4a40031a59e8365597d5ff9366a" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/">99.参考资料</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idd576e4a40031a59e8365597d5ff9366a" aria-expanded="false" aria-controls="idd576e4a40031a59e8365597d5ff9366a">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idd576e4a40031a59e8365597d5ff9366a"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idd576e4a40031a59e8365597d5ff9366a">
+      
+
+
+
+  <li class="child level "><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-an-introduction-to-lockless-algorithms/">2021-An introduction to lockless algorithms</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-ida380e6bb70ede64c41d7407a972641ba&#34;)" href="#ida380e6bb70ede64c41d7407a972641ba" aria-expanded="false" aria-controls="ida380e6bb70ede64c41d7407a972641ba" aria-hidden="false" data-toggle="collapse">
+    
+    </div>
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-ida8df9beb197d6c8cb1c21390dae03b3d&#34;)" href="#ida8df9beb197d6c8cb1c21390dae03b3d" aria-expanded="false" aria-controls="ida8df9beb197d6c8cb1c21390dae03b3d" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/">互斥锁</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#ida8df9beb197d6c8cb1c21390dae03b3d" aria-expanded="false" aria-controls="ida8df9beb197d6c8cb1c21390dae03b3d">
+    
+        <i class="fa-solid fa-angle-right" id="caret-ida8df9beb197d6c8cb1c21390dae03b3d"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="ida8df9beb197d6c8cb1c21390dae03b3d">
+      
+
+
+
+  <li class="child level "><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/%E8%AF%BB%E5%86%99%E9%94%81/">读写锁</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/">互斥锁</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/%E9%94%81%E4%BC%98%E5%8C%96/">锁优化</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id9591f39accb676042eff439bddc57c6c&#34;)" href="#id9591f39accb676042eff439bddc57c6c" aria-expanded="false" aria-controls="id9591f39accb676042eff439bddc57c6c" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E6%AD%BB%E9%94%81%E6%B4%BB%E9%94%81%E4%B8%8E%E9%A5%A5%E9%A5%BF/">死锁，活锁与饥饿</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id9591f39accb676042eff439bddc57c6c" aria-expanded="false" aria-controls="id9591f39accb676042eff439bddc57c6c">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id9591f39accb676042eff439bddc57c6c"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id9591f39accb676042eff439bddc57c6c">
+      
+
+
+
+  <li class="child level "><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E6%AD%BB%E9%94%81%E6%B4%BB%E9%94%81%E4%B8%8E%E9%A5%A5%E9%A5%BF/%E6%B4%BB%E9%94%81/">活锁</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E6%AD%BB%E9%94%81%E6%B4%BB%E9%94%81%E4%B8%8E%E9%A5%A5%E9%A5%BF/%E9%A5%A5%E9%A5%BF/">饥饿</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E6%AD%BB%E9%94%81%E6%B4%BB%E9%94%81%E4%B8%8E%E9%A5%A5%E9%A5%BF/%E6%AD%BB%E9%94%81/">死锁</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-ideb608728fe8eb65811d3f18e004f44a0&#34;)" href="#ideb608728fe8eb65811d3f18e004f44a0" aria-expanded="false" aria-controls="ideb608728fe8eb65811d3f18e004f44a0" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%90%8C%E6%AD%A5%E5%99%A8/">同步器</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#ideb608728fe8eb65811d3f18e004f44a0" aria-expanded="false" aria-controls="ideb608728fe8eb65811d3f18e004f44a0">
+    
+    <i class="fa-solid fa-angle-down" id="caret-ideb608728fe8eb65811d3f18e004f44a0"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="ideb608728fe8eb65811d3f18e004f44a0">
+      
+
+
+
+  <li class="child level active"><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%90%8C%E6%AD%A5%E5%99%A8/semaphore/">Semaphore</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%90%8C%E6%AD%A5%E5%99%A8/tencentos-%E4%B8%AD%E4%BF%A1%E5%8F%B7%E9%87%8F%E7%9A%84%E5%AE%9E%E7%8E%B0/">TencentOS 中信号量的实现</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%90%8C%E6%AD%A5%E5%99%A8/%E8%BF%9B%E7%A8%8B%E9%97%B4%E9%80%9A%E4%BF%A1/">进程间通信</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%90%8C%E6%AD%A5%E5%99%A8/%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5/">线程同步</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+    
+  
+</nav>
+
+    </div>
+
+    
+    
+    <div class="d-none d-xl-block col-xl-2 docs-toc">
+      
+     
+      <ul class="nav toc-top">
+        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
+      </ul>
+     
+
+      <nav id="TableOfContents"></nav>
+
+      
+<div class="subscribe-module col-24 mt-1">
+    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
+</div>
+
+
+
+    </div>
+    
+
+    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
+
+      <article class="article">
+
+          
+
+          <h1>Semaphore</h1>
+
+          <div class="article-style">
+            <h1 id="信号量semaphore">信号量（Semaphore）</h1>
+<p>线程的信号和进程的信号量类似，使用线程的信号量可以高效地完成基于线程的资源计数。信号量实际上是一个非负的整数计数器，用来实现对公共资源的控制。在公共资源增加的时候，信号量就增加；公共资源减少的时候，信号量就减少；只有当信号量的值大于 0 的时候，才能访问信号量所代表的公共资源。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="n">sem_t</span> <span class="n">sem_event</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">sem_init</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span><span class="n">sem</span><span class="p">,</span> <span class="kt">int</span> <span class="n">pshared</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">value</span><span class="p">);</span><span class="c1">//初始化一个信号量
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">sem_destroy</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span> <span class="n">sem</span><span class="p">);</span><span class="c1">//销毁信号量
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">sem_post</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span> <span class="n">sem</span><span class="p">);</span><span class="c1">//信号量增加1
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">sem_wait</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span> <span class="n">sem</span><span class="p">);</span><span class="c1">//信号量减少1
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">sem_getvalue</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span> <span class="n">sem</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span> <span class="n">sval</span><span class="p">);</span><span class="c1">//获取当前信号量的值
+</span></span></span></code></pre></div><p>信号量又称为信号灯，它是用来协调不同进程间的数据对象的，而最主要的应用是协调共享内存方式的进程间通信。本质上，信号量是一个计数器，它用来记录对某个资源(如共享内存)的存取状况。一般说来，为了获得共享资源，进程需要执行下列操作:</p>
+<ul>
+<li>
+<p>测试控制该资源的信号量。</p>
+</li>
+<li>
+<p>若此信号量的值为正，则允许进行使用该资源。进程将信号量减 1。</p>
+</li>
+<li>
+<p>若此信号量为 0，则该资源目前不可用，进程进入睡眠状态，直至信号量值大于 0，进程被唤醒，转入步骤(1)。</p>
+</li>
+<li>
+<p>当进程不再使用一个信号量控制的资源时，信号量值加 1。如果此时有进程正在睡眠等待此信号量，则唤醒此进程。</p>
+</li>
+</ul>
+<p>信号量与普通整型变量的区别：</p>
+<ul>
+<li>
+<p>信号量(semaphore)是非负整型变量，除了初始化之外，它只能通过两个标准原子操作：wait(semap), signal(semap) ; 来进行访问；</p>
+</li>
+<li>
+<p>操作也被成为 PV 原语(P 来源于 Dutch proberen&quot;测试&quot;，V 来源于 Dutch verhogen&quot;增加&quot;)，而普通整型变量则可以在任何语句块中被访问；</p>
+</li>
+</ul>
+<p>信号量与互斥锁之间的区别主要在于互斥量用于线程的互斥，信号量用于线程的同步；这是互斥量和信号量的根本区别，也就是互斥和同步之间的区别。</p>
+<h1 id="semaphore-实现">Semaphore 实现</h1>
+<p>Semaphore 对象里包含一个 count 值和一个队列对象，另外有两个对外 public 的方法，wait()和 signal()，需要特别注意的事，count 值代表的资源数量是不能为负的。为了理解这些属性和方法，我们可以类比一个现实生活中的例子。大家去餐厅吃饭，假设这个餐厅有 10 个座位，有 20 个吃货随机出发去这个餐厅吃饭，那么对应关系是这样的：</p>
+<ul>
+<li>count = 10，10 个座位。</li>
+<li>queue，餐厅位置有限，为了避免混乱，餐厅肯定会吃货们排队。</li>
+<li>wait()，吃货到了餐厅找服务员要位置点餐，这个行为就是 wait。</li>
+<li>signal()，吃货吃完了买单离开位置，这个行为就是 signal。</li>
+</ul>
+<p>这其实是一个信号量应用的典型场景，这里关键在于正确理解 wait 和 signal 发生时都有哪些细节步骤。</p>
+<ul>
+<li>
+<p>wait()：具体到餐厅到例子，20 个人随机出发去餐厅吃饭，有 10 个人先到，然后挨个执行 wait。前 10 个人执行 wait 的时候是有位置的，所以 <code>count&gt;0</code>，这 10 个人每人都消耗掉一个座位开始吃饭。到第 11 个人到了都时候，<code>count＝＝0</code>，没有位置了，所以被 suspend，开始加入排队都队列等待。后续所有人都慢慢的到来，但和第 11 个人一样，都只能排队。</p>
+</li>
+<li>
+<p>signal()：过了一段时间之后，有个人吃好结账离开了餐厅。这时候如果没有人在排队，位置数量 <code>count＋＋</code>，没有其它事情发生。但如果有人在排队，比如上面的情况，有 10 个人在等待位置，餐厅会把排在第一个的人安排到刚才空出来的位置，count 值没有变化，但队列的人少了一个。</p>
+</li>
+</ul>
+<p>对于 wait 和 signal 还有两点需要特别注意。也是平时我们使用 Semaphore 时比较容易产生错误的地方。</p>
+<ul>
+<li>
+<p>wait 和 signal 都是原子操作。可以简单理解为上面代码里 wait(), signal()两个函数都是加锁的。这个特性其实让 semaphore 的行为变得更简单清晰。大家想象，如果到餐厅的 10 个人是同时到达的，但不是依次询问餐厅是否有位置，而是 10 张嘴同时说话，同时找餐厅要位置，显然情况会变得复杂不好处理。</p>
+</li>
+<li>
+<p>wait 或者 signal 调用的顺序是不确定的。上面的例子中每个人都是随机时间出发，到达餐厅的顺序也是随机的，并不一定先出发的就先到。同理每个人吃饭的时间长短也不一定，有人快有人慢，所以吃好离开餐厅的时间点也是随机的。这里每个人都代表一个线程，因为操作系统线程调度策略导致到底哪个线程先执行也是不确定的。</p>
+</li>
+</ul>
+<p>它允许多个线程在同一时刻访问同一资源，但是需要限制在同一时刻访问此资源的最大线程数目。信号量对象对线程的同步方式与前面几种方法不同，信号允许多个线程同时使用共享资源，这与操作系统中的 PV 操作相同。它指出了同时访问共享资源的线程最大数目。它允许多个线程在同一时刻访问同一资源，但是需要限制在同一时刻访问此资源的最大线程数目。</p>
+<p>通过互斥量可以指定资源被独占的方式使用，但如果有下面一种情况通过互斥量就无法处理，比如现在一位用户购买了一份三个并发访问许可的数据库系统，可以根据用户购买的访问许可数量来决定有多少个线程/进程能同时进行数据库操作，这时候如果利用互斥量就没有办法完成这个要求，信号量对象可以说是一种资源计数器。所有 信号量 相关的 API 都在名为 include/linux/semaphore.h 的头文件中</p>
+<p>我们看到 信号量 机制是有以下的结构体表示的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">semaphore</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">raw_spinlock_t</span>		<span class="n">lock</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kt">unsigned</span> <span class="kt">int</span>		<span class="n">count</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="k">struct</span> <span class="nc">list_head</span>	<span class="n">wait_list</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>自旋锁 的设计理念是它仅会被持有非常短的时间。但持有自旋锁的时候我们不可以进入睡眠模式因为其他的进程在等待我们。为了防止 死锁 上下文交换 也是不允许的。</p>
+<p>当需要长时间持有一个锁的时候 信号量 就是一个很好的解决方案。从另一个方面看，这个机制对于需要短期持有锁的应用并不是最优。为了理解这个问题，我们需要知道什么是 信号量。</p>
+<p>就像一般的同步原语，信号量 是基于变量的。这个变量可以变大或者减少，并且这个变量的状态代表了获取锁的能力。注意这个变量的值并不限于 0 和 1。有两种类型的 信号量：二值信号量与普通信号量。</p>
+<p>第一种 信号量 的值可以为 1 或者 0。第二种 信号量 的值可以为任何非负数。如果 信号量 的值大于 1 那么它被叫做 计数信号量，并且它允许多于 1 个进程获取它。这种机制允许我们记录现有的资源，而 自旋锁 只允许我们为一个任务上锁。除了所有这些之外，另外一个重要的点是 信号量 允许进入睡眠状态。另外当某进程在等待一个被其他进程获取的锁时，调度器 也许会切换别的进程。</p>
+<h1 id="semaphore信号量">Semaphore:信号量</h1>
+<p>信号量(Semaphore)，有时被称为信号灯，是在多线程环境下使用的一种设施, 它负责协调各个线程, 以保证它们能够正确、合理的使用公共资源。</p>
+<p>信号量可以分为几类:
+² 二进制信号量(binary semaphore)：只允许信号量取 0 或 1 值，其同时只能被一个线程获取。</p>
+<p>² 整型信号量(integer semaphore)：信号量取值是整数，它可以被多个线程同时获得，直到信号量的值变为 0。</p>
+<p>² 记录型信号量(record semaphore)：每个信号量 s 除一个整数值 value(计数)外，还有一个等待队列 List，其中是阻塞在该信号量的各个线程的标识。当信号量被释放一个，值被加一后，系统自动从等待队列中唤醒一个等待中的线程，让其获得信号量，同时信号量再减一。</p>
+<p>信号量通过一个计数器控制对共享资源的访问，信号量的值是一个非负整数，所有通过它的线程都会将该整数减一。如果计数器大于 0，则访问被允许，计数器减 1；如果为 0，则访问被禁止，所有试图通过它的线程都将处于等待状态。</p>
+<p>计数器计算的结果是允许访问共享资源的通行证。因此，为了访问共享资源，线程必须从信号量得到通行证，如果该信号量的计数大于 0，则此线程获得一个通行证，这将导致信号量的计数递减，否则，此线程将阻塞直到获得一个通行证为止。当此线程不再需要访问共享资源时，它释放该通行证，这导致信号量的计数递增，如果另一个线程等待通行证，则那个线程将在那时获得通行证。</p>
+<p>信 号灯与互斥锁和条件变量的主要不同在于”灯”的概念，灯亮则意味着资源可用，灯灭则意味着不可用。如果说后两中同步方式侧重于”等待”操作，即资源不可用 的话，信号灯机制则侧重于点灯，即告知资源可用；没有等待线程的解锁或激发条件都是没有意义的，而没有等待灯亮的线程的点灯操作则有效，且能保持灯亮状 态。当然，这样的操作原语也意味着更多的开销。</p>
+<p>信号灯的应用除了灯亮/灯灭这种二元灯以外，也可以采用大于 1 的灯数，以表示资源数大于 1，这时可以称之为多元灯。</p>
+<p>1． 创建和 注销</p>
+<p>POSIX 信号灯标准定义了有名信号灯和无名信号灯两种，但 LinuxThreads 的实现仅有无名灯，同时有名灯除了总是可用于多进程之间以外，在使用上与无名灯并没有很大的区别，因此下面仅就无名灯进行讨论。</p>
+<p>int sem_init(sem_t *sem, int pshared, unsigned int value)
+这 是创建信号灯的 API，其中 value 为信号灯的初值，pshared 表示是否为多进程共享而不仅仅是用于一个进程。LinuxThreads 没有实现多 进程共享信号灯，因此所有非 0 值的 pshared 输入都将使 sem_init()返回-1，且置 errno 为 ENOSYS。初始化好的信号灯由 sem 变量 表征，用于以下点灯、灭灯操作。</p>
+<p>int sem_destroy(sem_t * sem)
+被注销的信号灯 sem 要求已没有线程在等待该信号灯，否则返回-1，且置 errno 为 EBUSY。除此之外，LinuxThreads 的信号灯 注销函数不做其他动作。</p>
+<p>2． 点灯和灭灯</p>
+<p>int sem_post(sem_t * sem)</p>
+<p>点灯操作将信号灯值原子地加 1，表示增加一个可访问的资源。</p>
+<p>int sem<em>wait(sem_t * sem)
+int sem</em>trywait(sem_t * sem)</p>
+<p>sem_wait()为等待灯亮操作，等待灯亮(信号灯值大于 0)，然后将信号灯原子地减 1，并返回。sem_trywait()为 sem_wait()的非阻塞版，如果信号灯计数大于 0，则原子地减 1 并返回 0，否则立即返回-1，errno 置为 EAGAIN。</p>
+<p>3． 获取灯值</p>
+<p>int sem*getvalue(sem_t * sem, int _ sval)</p>
+<p>读取 sem 中的灯计数，存于*sval 中，并返回 0。</p>
+<p>4． 其他</p>
+<p>sem_wait()被实现为取消点，而且在支持原子”比较且交换”指令的体系结构上，sem_post()是唯一能用于异步信号处理函数的 POSIX 异步信号 安全的 API。</p>
+<p>Semaphore 可以被抽象为五个操作:</p>
+<ul>
+<li>
+<p>创建 Create</p>
+</li>
+<li>
+<p>等待 Wait:</p>
+</li>
+</ul>
+<p>线程等待信号量，如果值大于 0，则获得，值减一；如果只等于 0，则一直线程进入睡眠状态，知道信号量值大于 0 或者超时。</p>
+<p>-释放 Post</p>
+<p>执行释放信号量，则值加一；如果此时有正在等待的线程，则唤醒该线程。</p>
+<p>-试图等待 TryWait</p>
+<p>如果调用 TryWait，线程并不真正的去获得信号量，还是检查信号量是否能够被获得，如果信号量值大于 0，则 TryWait 返回成功；否则返回失败。</p>
+<p>-销毁 Destroy</p>
+<p>信号量，是可以用来保护两个或多个关键代码段，这些关键代码段不能并发调用。在进入一个关键代码段之前，线程必须获取一个信号量。如果关键代码段中没有任何线程，那么线程会立即进入该框图中的那个部分。一旦该关键代码段完成了，那么该线程必须释放信号量。其它想进入该关键代码段的线程必须等待直到第一个线程释放信号量。为了完成这个过程，需要创建一个信号量，然后将 Acquire Semaphore VI 以及 Release Semaphore VI 分别放置在每个关键代码段的首末端。确认这些信号量 VI 引用的是初始创建的信号量。</p>
+<p>信号量对象对线程的同步方式与前面几种方法不同，信号允许多个线程同时使用共享资源，这与操作系统中的 PV 操作相同。它指出了同时访问共享资源的线程最大 数目。它允许多个线程在同一时刻访问同一资源，但是需要限制在同一时刻访问此资源的最大线程数目。在用 CreateSemaphore()创建信号量时即 要同时指出允许的最大资源计数和当前可用资源计数。一般是将当前可用资源计数设置为最大资源计数，每增加一个线程对共享资源的访问，当前可用资源计数就会 减 1，只要当前可用资源计数是大于 0 的，就可以发出信号量信号。但是当前可用计数减小到 0 时则说明当前占用资源的线程数已经达到了所允许的最大数目，不能 在允许其他线程的进入，此时的信号量信号将无法发出。线程在处理完共享资源后，应在离开的同时通过 ReleaseSemaphore()函数将当前可用资 源计数加 1。在任何时候当前可用资源计数决不可能大于最大资源计数。信号量是通过计数来对线程访问资源进行控制的，而实际上信号量确实也被称作 Dijkstra 计数器。</p>
+<p>PV 操作及信号量的概念都是由荷兰科学家 E.W.Dijkstra 提出的。信号量 S 是一个整数，S 大于等于零时代表可供并发进程使用的资源实体数，但 S 小于零时则表示正在等待使用共享资源的进程数。</p>
+<p>P 操作申请资源：
 (1)S 减 1；
 (2)若 S 减 1 后仍大于等于零，则进程继续执行；
-(3)若 S 减 1 后小于零，则该进程被阻塞后进入与该信号相对应的队列中，然后转入进程调度。</p><p>V 操作 释放资源：
+(3)若 S 减 1 后小于零，则该进程被阻塞后进入与该信号相对应的队列中，然后转入进程调度。</p>
+<p>V 操作 释放资源：
 (1)S 加 1；
 (2)若相加结果大于零，则进程继续执行；
-(3)若相加结果小于等于零，则从该信号的等待队列中唤醒一个等待进程，然后再返回原进程继续执行或转入进程调度。</p><p>信号量的使用特点使其更适用于对 Socket(套接字)程序中线程的同步。例如，网络上的 HTTP 服务器要对同一时间内访问同一页面的用户数加以限 制，这时可以为没一个用户对服务器的页面请求设置一个线程，而页面则是待保护的共享资源，通过使用信号量对线程的同步作用可以确保在任一时刻无论有多少用 户对某一页面进行访问，只有不大于设定的最大用户数目的线程能够进行访问，而其他的访问企图则被挂起，只有在有用户退出对此页面的访问后才有可能进入。</p></div><div class=article-widget><div class="container-xl row post-nav"><div class="col-6 post-nav-item"><div class=meta-nav>下一页</div><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%90%8C%E6%AD%A5%E5%99%A8/tencentos-%E4%B8%AD%E4%BF%A1%E5%8F%B7%E9%87%8F%E7%9A%84%E5%AE%9E%E7%8E%B0/ rel=prev>TencentOS 中信号量的实现</a></div></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div><script type=text/javascript id=clstr_globe async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
-<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
-<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
-<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
-<script id=dsq-count-scr src=https://ngte.disqus.com/count.js async></script>
-<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
-<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
-<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
-<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>
+(3)若相加结果小于等于零，则从该信号的等待队列中唤醒一个等待进程，然后再返回原进程继续执行或转入进程调度。</p>
+<p>信号量的使用特点使其更适用于对 Socket(套接字)程序中线程的同步。例如，网络上的 HTTP 服务器要对同一时间内访问同一页面的用户数加以限 制，这时可以为没一个用户对服务器的页面请求设置一个线程，而页面则是待保护的共享资源，通过使用信号量对线程的同步作用可以确保在任一时刻无论有多少用 户对某一页面进行访问，只有不大于设定的最大用户数目的线程能够进行访问，而其他的访问企图则被挂起，只有在有用户退出对此页面的访问后才有可能进入。</p>
+
+          </div>
+
+          
+
+
+
+          
+          
+          <div class="article-widget">
+            
+<div class="container-xl row post-nav">
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">下一页</div>
+    <a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E5%90%8C%E6%AD%A5%E5%99%A8/tencentos-%E4%B8%AD%E4%BF%A1%E5%8F%B7%E9%87%8F%E7%9A%84%E5%AE%9E%E7%8E%B0/" rel="prev">TencentOS 中信号量的实现</a>
+  </div>
+  
+</div>
+
+          </div>
+          
+
+        <div class="body-footer">
+          <p>最近更新于 0001-01-01</p>
+
+          
+
+
+
+          
+
+
+  
+  
+  
+
+  
+
+  
+  <section id="comments" class="mb-3 pt-0">
+    
+<div id="disqus_thread"></div>
+<script>
+  var disqus_config = function () {
+    
+    
+    
+  };
+  (function() {
+    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+      return;
+    }
+    var d = document, s = d.createElement('script'); 
+    s.async = true;
+    s.src = 'https://' + "ngte" + '.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </section>
+  
+
+
+
+          
+
+
+        </div>
+
+      </article>
+
+      <footer class="site-footer">
+
+  
+
+
+
+  
+
+  
+  <div class="copyright py-4 bg-footer">
+      <div class="row justify-content-center">
+        <div class="text-center footer-color">
+          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
+        </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" id="clstr_globe" async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script>
+  
+</footer>
+
+
+    </main>
+  </div>
+</div>
+<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
+<script>
+  const heti = new Heti('.article');
+  heti.autoSpacing();
+</script>
+<script type="text/javascript">
+  window.$crisp = [];
+  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
+  (function () {
+    setTimeout(function() {
+      d = document;
+      s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    }, 2500);
+  })();
+</script>
+  </div>
+
+  <div class="page-footer">
+    
+    
+  </div>
+
+      
+
+    
+    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
+
+    
+    
+    
+      
+
+      
+      
+
+      
+
+      
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
+        
+        
+      
+
+    
+
+    
+    
+    
+
+    
+    
+    
+      
+      <script id="search-hit-algolia-template" type="text/html">
+        <div class="search-hit">
+          <div class="search-hit-content">
+            <div class="search-hit-name">
+              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
+            </div>
+            <div class="article-metadata search-hit-type">{{type}}</div>
+            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
+          </div>
+        </div>
+      </script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
+      
+      
+    
+
+    
+    
+
+    
+    
+    
+    
+      <script id="dsq-count-scr" src="https://ngte.disqus.com/count.js" async></script>
+      
+    
+
+    
+    
+      
+      
+      
+      
+      
+      
+      
+    
+
+    
+    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
+    
+
+    
+    
+    
+    <script id="page-data" type="application/json">{"use_headroom":false}</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
+
+    
+    
+    
+    
+    
+    
+    <script>
+
+var mybutton = document.getElementById("backTopBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+}
+</script>
+
+
+    
+
+    
+    
+    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+    <script>
+      anchors.add();
+    </script>
+    
+
+    
+    <script>
+
+
+
+(function() {
+  'use strict';
+
+  if(!document.queryCommandSupported('copy')) {
+    return;
+  }
+
+  function flashCopyMessage(el, msg) {
+    el.className = "highlight-copy-btn";
+    el.textContent = msg;
+    setTimeout(function() {
+      el.textContent = "";
+      el.className = "highlight-copy-btn fa fa-copy";
+    }, 1000);
+  }
+
+  function selectText(node) {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection;
+  }
+
+  function addCopyButton(containerEl) {
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "highlight-copy-btn fa fa-copy";
+    copyBtn.textContent = "";
+
+    var codeEl = containerEl.firstElementChild;
+    copyBtn.addEventListener('click', function() {
+      try {
+        var selection = selectText(codeEl);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        
+        flashCopyMessage(copyBtn, '已复制')
+        
+      } catch(e) {
+        console && console.log(e);
+        flashCopyMessage(copyBtn, 'Failed :\'(')
+      }
+    });
+
+    containerEl.appendChild(copyBtn);
+  }
+
+  
+  var highlightBlocks = document.getElementsByClassName('highlight');
+  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
+})();
+</script>
+
+    
+
+
+</body>
+</html>

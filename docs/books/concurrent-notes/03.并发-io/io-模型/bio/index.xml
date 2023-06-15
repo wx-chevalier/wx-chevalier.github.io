@@ -1,66 +1,154 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>BIO | Next-gen Tech Edu</title><link>https://ng-tech.icu/books/concurrent-notes/03.%E5%B9%B6%E5%8F%91-io/io-%E6%A8%A1%E5%9E%8B/bio/</link><atom:link href="https://ng-tech.icu/books/concurrent-notes/03.%E5%B9%B6%E5%8F%91-io/io-%E6%A8%A1%E5%9E%8B/bio/index.xml" rel="self" type="application/rss+xml"/><description>BIO</description><generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language><image><url>https://ng-tech.icu/media/sharing.png</url><title>BIO</title><link>https://ng-tech.icu/books/concurrent-notes/03.%E5%B9%B6%E5%8F%91-io/io-%E6%A8%A1%E5%9E%8B/bio/</link></image><item><title>BIO</title><link>https://ng-tech.icu/books/concurrent-notes/03.%E5%B9%B6%E5%8F%91-io/io-%E6%A8%A1%E5%9E%8B/bio/bio/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ng-tech.icu/books/concurrent-notes/03.%E5%B9%B6%E5%8F%91-io/io-%E6%A8%A1%E5%9E%8B/bio/bio/</guid><description>&lt;h1 id="bio">BIO&lt;/h1>
-&lt;p>BIO 即同步阻塞式 IO，是面向流的，阻塞式的，串行的一个过程。对每一个客户端的 socket 连接，都需要一个线程来处理，而且在此期间这个线程一直被占用，直到 socket 关闭。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://s1.ax1x.com/2020/03/23/8o8kDS.md.png" alt="BIO 结构" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>采用 BIO 通信模型的服务端，通常由一个独立的 Acceptor 线程负责监听客户端的连接，接收到客户端连接之后为客户端连接创建一个新的线程处理请求消息，处理完成之后，返回应答消息给客户端，线程销毁，这就是典型的一请求一应答模型。该架构最大的问题就是不具备弹性伸缩能力，当并发访问量增加后，服务端的线程个数和并发访问数成线性正比，由于线程是 Java 虚拟机非常宝贵的系统资源，当线程数膨胀之后，系统的性能急剧下降，随着并发量的继续增加，可能会发生句柄溢出、线程堆栈溢出等问题，并导致服务器最终宕机。&lt;/p>
-&lt;p>还有一些并不是由于并发数增加而导致的系统负载增加：连接服务器的一些客户端，由于网络或者自身性能处理的问题，接收端从 socket 读取数据的速度跟不上发送端写入数据的速度。而在 TCP/IP 网络编程过程中，已经发送出去的数据依然需要暂存在 send buffer，只有收到对方的 ack，kernel 才从 buffer 中清除这一部分数据，为后续发送数据腾出空间。接收端将收到的数据暂存在 receive buffer 中，自动进行确认。但如果 socket 所在的进程不及时将数据从 receive buffer 中取出，最终导致 receive buffer 填满，由于 TCP 的滑动窗口和拥塞控制，接收端会阻止发送端向其发送数据。作为发送端，服务器由于迟迟不能释放被占用的线程，导致内存占用率不断升高，堆回收的效率越来越低，导致 Full GC，最终导致服务宕机。&lt;/p>
-&lt;h1 id="多进程多线程模式">多进程/多线程模式&lt;/h1>
-&lt;p>BIO 的一个缺陷在于某个 Socket 在其连接到断上期间会独占线程，那么解决这个问题的一个朴素想法就是利用多进程多线程的办法，即是创建一个新的线程来处理新的连接，这样就保证了并发 IO 的实现。最早的服务器端程序都是通过多进程、多线程来解决并发 IO 的问题。进程模型出现的最早，从 Unix 系统诞生就开始有了进程的概念。最早的服务器端程序一般都是 Accept 一个客户端连接就创建一个进程，然后子进程进入循环同步阻塞地与客户端连接进行交互，收发处理数据。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6077b28c8322e6675c1c5f6d.png" alt="单个进程处理全部的示意" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>多线程模式出现要晚一些，线程与进程相比更轻量，而且线程之间是共享内存堆栈的，所以不同的线程之间交互非常容易实现。比如聊天室这样的程序，客户端连接之间可以交互，比聊天室中的玩家可以任意的其他人发消息。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://s1.ax1x.com/2020/03/23/8o8BDO.md.png" alt="多线程下的 BIO 模型" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>用多线程模式实现非常简单，线程中可以直接读写某一个客户端连接。而多进程模式就要用到管道、消息队列、共享内存实现数据交互，统称进程间通信(IPC)复杂的技术才能实现。&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">public&lt;/span> &lt;span class="kd">static&lt;/span> &lt;span class="kt">void&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">args&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">try&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">ServerSocket&lt;/span> &lt;span class="n">serverSocket&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">ServerSocket&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="mi">9696&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">Socket&lt;/span> &lt;span class="n">socket&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">serverSocket&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">accept&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">new&lt;/span> &lt;span class="n">Thread&lt;/span>&lt;span class="o">(()&lt;/span> &lt;span class="o">-&amp;gt;&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">try&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">byte&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">byteRead&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="kt">byte&lt;/span>&lt;span class="o">[&lt;/span>&lt;span class="mi">1024&lt;/span>&lt;span class="o">];&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">socket&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getInputStream&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">read&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">byteRead&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">String&lt;/span> &lt;span class="n">req&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="n">String&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">byteRead&lt;/span>&lt;span class="o">,&lt;/span> &lt;span class="n">StandardCharsets&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">UTF_8&lt;/span>&lt;span class="o">);&lt;/span>&lt;span class="c1">//encode
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// do something
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">byte&lt;/span>&lt;span class="o">[]&lt;/span> &lt;span class="n">byteWrite&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s">&amp;#34;Hello&amp;#34;&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getBytes&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">StandardCharsets&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">UTF_8&lt;/span>&lt;span class="o">);&lt;/span>&lt;span class="c1">//decode
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="n">socket&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">getOutputStream&lt;/span>&lt;span class="o">().&lt;/span>&lt;span class="na">write&lt;/span>&lt;span class="o">(&lt;/span>&lt;span class="n">byteWrite&lt;/span>&lt;span class="o">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span> &lt;span class="k">catch&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">IOException&lt;/span> &lt;span class="n">e&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">e&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">printStackTrace&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}).&lt;/span>&lt;span class="na">start&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span> &lt;span class="k">catch&lt;/span> &lt;span class="o">(&lt;/span>&lt;span class="n">IOException&lt;/span> &lt;span class="n">e&lt;/span>&lt;span class="o">)&lt;/span> &lt;span class="o">{&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">e&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="na">printStackTrace&lt;/span>&lt;span class="o">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>多进程/线程模型的流程如下：&lt;/p>
-&lt;ol>
-&lt;li>创建一个 socket，绑定服务器端口(bind)，监听端口(listen)，在 PHP 中用 stream_socket_server 一个函数就能完成上面 3 个步骤，当然也可以使用 php sockets 扩展分别实现。&lt;/li>
-&lt;li>进入 while 循环，阻塞在 accept 操作上，等待客户端连接进入。此时程序会进入随眠状态，直到有新的客户端发起 connect 到服务器，操作系统会唤醒此进程。accept 函数返回客户端连接的 socket&lt;/li>
-&lt;li>主进程在多进程模型下通过 fork(php: pcntl_fork)创建子进程，多线程模型下使用 pthread_create(php: new Thread)创建子线程。下文如无特殊声明将使用进程同时表示进程/线程。&lt;/li>
-&lt;li>子进程创建成功后进入 while 循环，阻塞在 recv(php: fread)调用上，等待客户端向服务器发送数据。收到数据后服务器程序进行处理然后使用 send(php: fwrite)向客户端发送响应。长连接的服务会持续与客户端交互，而短连接服务一般收到响应就会 close。&lt;/li>
-&lt;li>当客户端连接关闭时，子进程退出并销毁所有资源。主进程会回收掉此子进程。&lt;/li>
-&lt;/ol>
-&lt;h1 id="leader-follow-模型">Leader-Follow 模型&lt;/h1>
-&lt;p>上文描述的多进程/多线程模型最大的问题是，进程/线程创建和销毁的开销很大。所以上面的模式没办法应用于非常繁忙的服务器程序。对应的改进版解决了此问题，这就是经典的 &lt;strong>Leader-Follower&lt;/strong> 模型。&lt;/p>
-&lt;p>
-&lt;figure >
-&lt;div class="d-flex justify-content-center">
-&lt;div class="w-100" >&lt;img src="https://pic.imgdb.cn/item/6077b2108322e6675c1b648e.jpg" alt="php Leader-Follow 模型" loading="lazy" data-zoomable />&lt;/div>
-&lt;/div>&lt;/figure>&lt;/p>
-&lt;p>它的特点是程序启动后就会创建 N 个进程。每个子进程进入 Accept，等待新的连接进入。当客户端连接到服务器时，其中一个子进程会被唤醒，开始处理客户端请求，并且不再接受新的 TCP 连接。当此连接关闭时，子进程会释放，重新进入 Accept，参与处理新的连接。这个模型的优势是完全可以复用进程，没有额外消耗，性能非常好。很多常见的服务器程序都是基于此模型的，比如 Apache、PHP-FPM。多进程模型也有一些缺点。&lt;/p>
-&lt;ul>
-&lt;li>这种模型严重依赖进程的数量解决并发问题，一个客户端连接就需要占用一个进程，工作进程的数量有多少，并发处理能力就有多少。操作系统可以创建的进程数量是有限的。&lt;/li>
-&lt;li>启动大量进程会带来额外的进程调度消耗。数百个进程时可能进程上下文切换调度消耗占 CPU 不到 1%可以忽略不接，如果启动数千甚至数万个进程，消耗就会直线上升。调度消耗可能占到 CPU 的百分之几十甚至 100%。&lt;/li>
-&lt;/ul>
-&lt;p>另外有一些场景多进程模型无法解决，比如即时聊天程序(IM)，一台服务器要同时维持上万甚至几十万上百万的连接(经典的 C10K 问题)，多进程模型就力不从心了。还有一种场景也是多进程模型的软肋。通常 Web 服务器启动 100 个进程，如果一个请求消耗 100ms，100 个进程可以提供 1000qps，这样的处理能力还是不错的。但是如果请求内要调用外网 Http 接口，像 QQ、微博登录，耗时会很长，一个请求需要 10s。那一个进程 1 秒只能处理 0.1 个请求，100 个进程只能达到 10qps，这样的处理能力就太差了。&lt;/p></description></item></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>BIO | Next-gen Tech Edu</title>
+    <link>https://ng-tech.icu/books/concurrent-notes/03.%E5%B9%B6%E5%8F%91-io/io-%E6%A8%A1%E5%9E%8B/bio/</link>
+      <atom:link href="https://ng-tech.icu/books/concurrent-notes/03.%E5%B9%B6%E5%8F%91-io/io-%E6%A8%A1%E5%9E%8B/bio/index.xml" rel="self" type="application/rss+xml" />
+    <description>BIO</description>
+    <generator>Wowchemy (https://wowchemy.com)</generator><language>zh</language>
+    <image>
+      <url>https://ng-tech.icu/media/sharing.png</url>
+      <title>BIO</title>
+      <link>https://ng-tech.icu/books/concurrent-notes/03.%E5%B9%B6%E5%8F%91-io/io-%E6%A8%A1%E5%9E%8B/bio/</link>
+    </image>
+    
+    <item>
+      <title>BIO</title>
+      <link>https://ng-tech.icu/books/concurrent-notes/03.%E5%B9%B6%E5%8F%91-io/io-%E6%A8%A1%E5%9E%8B/bio/bio/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://ng-tech.icu/books/concurrent-notes/03.%E5%B9%B6%E5%8F%91-io/io-%E6%A8%A1%E5%9E%8B/bio/bio/</guid>
+      <description>&lt;h1 id=&#34;bio&#34;&gt;BIO&lt;/h1&gt;
+&lt;p&gt;BIO 即同步阻塞式 IO，是面向流的，阻塞式的，串行的一个过程。对每一个客户端的 socket 连接，都需要一个线程来处理，而且在此期间这个线程一直被占用，直到 socket 关闭。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://s1.ax1x.com/2020/03/23/8o8kDS.md.png&#34; alt=&#34;BIO 结构&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;采用 BIO 通信模型的服务端，通常由一个独立的 Acceptor 线程负责监听客户端的连接，接收到客户端连接之后为客户端连接创建一个新的线程处理请求消息，处理完成之后，返回应答消息给客户端，线程销毁，这就是典型的一请求一应答模型。该架构最大的问题就是不具备弹性伸缩能力，当并发访问量增加后，服务端的线程个数和并发访问数成线性正比，由于线程是 Java 虚拟机非常宝贵的系统资源，当线程数膨胀之后，系统的性能急剧下降，随着并发量的继续增加，可能会发生句柄溢出、线程堆栈溢出等问题，并导致服务器最终宕机。&lt;/p&gt;
+&lt;p&gt;还有一些并不是由于并发数增加而导致的系统负载增加：连接服务器的一些客户端，由于网络或者自身性能处理的问题，接收端从 socket 读取数据的速度跟不上发送端写入数据的速度。而在 TCP/IP 网络编程过程中，已经发送出去的数据依然需要暂存在 send buffer，只有收到对方的 ack，kernel 才从 buffer 中清除这一部分数据，为后续发送数据腾出空间。接收端将收到的数据暂存在 receive buffer 中，自动进行确认。但如果 socket 所在的进程不及时将数据从 receive buffer 中取出，最终导致 receive buffer 填满，由于 TCP 的滑动窗口和拥塞控制，接收端会阻止发送端向其发送数据。作为发送端，服务器由于迟迟不能释放被占用的线程，导致内存占用率不断升高，堆回收的效率越来越低，导致 Full GC，最终导致服务宕机。&lt;/p&gt;
+&lt;h1 id=&#34;多进程多线程模式&#34;&gt;多进程/多线程模式&lt;/h1&gt;
+&lt;p&gt;BIO 的一个缺陷在于某个 Socket 在其连接到断上期间会独占线程，那么解决这个问题的一个朴素想法就是利用多进程多线程的办法，即是创建一个新的线程来处理新的连接，这样就保证了并发 IO 的实现。最早的服务器端程序都是通过多进程、多线程来解决并发 IO 的问题。进程模型出现的最早，从 Unix 系统诞生就开始有了进程的概念。最早的服务器端程序一般都是 Accept 一个客户端连接就创建一个进程，然后子进程进入循环同步阻塞地与客户端连接进行交互，收发处理数据。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6077b28c8322e6675c1c5f6d.png&#34; alt=&#34;单个进程处理全部的示意&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;多线程模式出现要晚一些，线程与进程相比更轻量，而且线程之间是共享内存堆栈的，所以不同的线程之间交互非常容易实现。比如聊天室这样的程序，客户端连接之间可以交互，比聊天室中的玩家可以任意的其他人发消息。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://s1.ax1x.com/2020/03/23/8o8BDO.md.png&#34; alt=&#34;多线程下的 BIO 模型&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;用多线程模式实现非常简单，线程中可以直接读写某一个客户端连接。而多进程模式就要用到管道、消息队列、共享内存实现数据交互，统称进程间通信(IPC)复杂的技术才能实现。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;kd&#34;&gt;static&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;void&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;main&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[]&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;args&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;try&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;n&#34;&gt;ServerSocket&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;serverSocket&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;ServerSocket&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;9696&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;n&#34;&gt;Socket&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;socket&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;serverSocket&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;accept&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Thread&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(()&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;k&#34;&gt;try&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;                &lt;span class=&#34;kt&#34;&gt;byte&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[]&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;byteRead&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;byte&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1024&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;                &lt;span class=&#34;n&#34;&gt;socket&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;getInputStream&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;().&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;read&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;byteRead&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;                &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;req&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;new&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;byteRead&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;StandardCharsets&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;UTF_8&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;&lt;span class=&#34;c1&#34;&gt;//encode
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;                &lt;span class=&#34;c1&#34;&gt;// do something
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;                &lt;span class=&#34;kt&#34;&gt;byte&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;[]&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;byteWrite&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;s&#34;&gt;&amp;#34;Hello&amp;#34;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;getBytes&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;StandardCharsets&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;UTF_8&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;&lt;span class=&#34;c1&#34;&gt;//decode
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;                &lt;span class=&#34;n&#34;&gt;socket&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;getOutputStream&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;().&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;write&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;byteWrite&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;catch&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;IOException&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;e&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;                &lt;span class=&#34;n&#34;&gt;e&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;printStackTrace&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;o&#34;&gt;}).&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;start&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;catch&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;IOException&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;e&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;n&#34;&gt;e&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;printStackTrace&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;多进程/线程模型的流程如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;创建一个 socket，绑定服务器端口(bind)，监听端口(listen)，在 PHP 中用 stream_socket_server 一个函数就能完成上面 3 个步骤，当然也可以使用 php sockets 扩展分别实现。&lt;/li&gt;
+&lt;li&gt;进入 while 循环，阻塞在 accept 操作上，等待客户端连接进入。此时程序会进入随眠状态，直到有新的客户端发起 connect 到服务器，操作系统会唤醒此进程。accept 函数返回客户端连接的 socket&lt;/li&gt;
+&lt;li&gt;主进程在多进程模型下通过 fork(php: pcntl_fork)创建子进程，多线程模型下使用 pthread_create(php: new Thread)创建子线程。下文如无特殊声明将使用进程同时表示进程/线程。&lt;/li&gt;
+&lt;li&gt;子进程创建成功后进入 while 循环，阻塞在 recv(php: fread)调用上，等待客户端向服务器发送数据。收到数据后服务器程序进行处理然后使用 send(php: fwrite)向客户端发送响应。长连接的服务会持续与客户端交互，而短连接服务一般收到响应就会 close。&lt;/li&gt;
+&lt;li&gt;当客户端连接关闭时，子进程退出并销毁所有资源。主进程会回收掉此子进程。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h1 id=&#34;leader-follow-模型&#34;&gt;Leader-Follow 模型&lt;/h1&gt;
+&lt;p&gt;上文描述的多进程/多线程模型最大的问题是，进程/线程创建和销毁的开销很大。所以上面的模式没办法应用于非常繁忙的服务器程序。对应的改进版解决了此问题，这就是经典的 &lt;strong&gt;Leader-Follower&lt;/strong&gt; 模型。&lt;/p&gt;
+&lt;p&gt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  &lt;figure  &gt;
+    &lt;div class=&#34;d-flex justify-content-center&#34;&gt;
+      &lt;div class=&#34;w-100&#34; &gt;&lt;img src=&#34;https://pic.imgdb.cn/item/6077b2108322e6675c1b648e.jpg&#34; alt=&#34;php Leader-Follow 模型&#34; loading=&#34;lazy&#34; data-zoomable /&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;它的特点是程序启动后就会创建 N 个进程。每个子进程进入 Accept，等待新的连接进入。当客户端连接到服务器时，其中一个子进程会被唤醒，开始处理客户端请求，并且不再接受新的 TCP 连接。当此连接关闭时，子进程会释放，重新进入 Accept，参与处理新的连接。这个模型的优势是完全可以复用进程，没有额外消耗，性能非常好。很多常见的服务器程序都是基于此模型的，比如 Apache、PHP-FPM。多进程模型也有一些缺点。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;这种模型严重依赖进程的数量解决并发问题，一个客户端连接就需要占用一个进程，工作进程的数量有多少，并发处理能力就有多少。操作系统可以创建的进程数量是有限的。&lt;/li&gt;
+&lt;li&gt;启动大量进程会带来额外的进程调度消耗。数百个进程时可能进程上下文切换调度消耗占 CPU 不到 1%可以忽略不接，如果启动数千甚至数万个进程，消耗就会直线上升。调度消耗可能占到 CPU 的百分之几十甚至 100%。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;另外有一些场景多进程模型无法解决，比如即时聊天程序(IM)，一台服务器要同时维持上万甚至几十万上百万的连接(经典的 C10K 问题)，多进程模型就力不从心了。还有一种场景也是多进程模型的软肋。通常 Web 服务器启动 100 个进程，如果一个请求消耗 100ms，100 个进程可以提供 1000qps，这样的处理能力还是不错的。但是如果请求内要调用外网 Http 接口，像 QQ、微博登录，耗时会很长，一个请求需要 10s。那一个进程 1 秒只能处理 0.1 个请求，100 个进程只能达到 10qps，这样的处理能力就太差了。&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

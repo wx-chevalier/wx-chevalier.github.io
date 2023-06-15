@@ -1,73 +1,1367 @@
-<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="原文地址 An introduction to lockless algorithms Linux kernel 里面有些场景无法使用普通的 locking primitives（互斥锁接口），或者担心这些互斥锁带来的性能影响，这种时候就可以考虑 lockless algorithm 了，也就是无锁算法。因此 lockless 会时不时地出现在 LWN 上。最后一次被"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-an-introduction-to-lockless-algorithms/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.fab3cd1900ae35687457073b2d518207.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-an-introduction-to-lockless-algorithms/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-an-introduction-to-lockless-algorithms/"><meta property="og:title" content="2021-An introduction to lockless algorithms | Next-gen Tech Edu"><meta property="og:description" content="原文地址 An introduction to lockless algorithms Linux kernel 里面有些场景无法使用普通的 locking primitives（互斥锁接口），或者担心这些互斥锁带来的性能影响，这种时候就可以考虑 lockless algorithm 了，也就是无锁算法。因此 lockless 会时不时地出现在 LWN 上。最后一次被"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>2021-An introduction to lockless algorithms | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=818c9dfc99eea6ab97d5176212fa866e><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
-<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
-<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
-<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
-<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
-<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">99.参考资料</span>
-<span><i class="fas fa-chevron-down"></i></span></div></button>
-<button class="form-control sidebar-search js-search d-none d-md-flex">
-<i class="fas fa-search pr-2"></i>
-<span class=sidebar-search-text>搜索...</span>
-<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
-Back</a>
-<span>|</span>
-<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
-Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id76c20db6adb675c155be353d9e251fe4")' href=#id76c20db6adb675c155be353d9e251fe4 aria-expanded=false aria-controls=id76c20db6adb675c155be353d9e251fe4 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/>锁</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id76c20db6adb675c155be353d9e251fe4 aria-expanded=false aria-controls=id76c20db6adb675c155be353d9e251fe4><i class="fa-solid fa-angle-down" id=caret-id76c20db6adb675c155be353d9e251fe4></i></a></div><ul class="nav docs-sidenav collapse show" id=id76c20db6adb675c155be353d9e251fe4><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idd576e4a40031a59e8365597d5ff9366a")' href=#idd576e4a40031a59e8365597d5ff9366a aria-expanded=false aria-controls=idd576e4a40031a59e8365597d5ff9366a aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/>99.参考资料</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idd576e4a40031a59e8365597d5ff9366a aria-expanded=false aria-controls=idd576e4a40031a59e8365597d5ff9366a><i class="fa-solid fa-angle-down" id=caret-idd576e4a40031a59e8365597d5ff9366a></i></a></div><ul class="nav docs-sidenav collapse show" id=idd576e4a40031a59e8365597d5ff9366a><li class="child level active"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-an-introduction-to-lockless-algorithms/>2021-An introduction to lockless algorithms</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-ida380e6bb70ede64c41d7407a972641ba")' href=#ida380e6bb70ede64c41d7407a972641ba aria-expanded=false aria-controls=ida380e6bb70ede64c41d7407a972641ba aria-hidden=false data-toggle=collapse></div></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-ida8df9beb197d6c8cb1c21390dae03b3d")' href=#ida8df9beb197d6c8cb1c21390dae03b3d aria-expanded=false aria-controls=ida8df9beb197d6c8cb1c21390dae03b3d aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/>互斥锁</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#ida8df9beb197d6c8cb1c21390dae03b3d aria-expanded=false aria-controls=ida8df9beb197d6c8cb1c21390dae03b3d><i class="fa-solid fa-angle-right" id=caret-ida8df9beb197d6c8cb1c21390dae03b3d></i></a></div><ul class="nav docs-sidenav collapse" id=ida8df9beb197d6c8cb1c21390dae03b3d><li class="child level"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/%E8%AF%BB%E5%86%99%E9%94%81/>读写锁</a></li><li class="child level"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/>互斥锁</a></li><li class="child level"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/%E9%94%81%E4%BC%98%E5%8C%96/>锁优化</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id9591f39accb676042eff439bddc57c6c")' href=#id9591f39accb676042eff439bddc57c6c aria-expanded=false aria-controls=id9591f39accb676042eff439bddc57c6c aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E6%AD%BB%E9%94%81%E6%B4%BB%E9%94%81%E4%B8%8E%E9%A5%A5%E9%A5%BF/>死锁，活锁与饥饿</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id9591f39accb676042eff439bddc57c6c aria-expanded=false aria-controls=id9591f39accb676042eff439bddc57c6c><i class="fa-solid fa-angle-right" id=caret-id9591f39accb676042eff439bddc57c6c></i></a></div><ul class="nav docs-sidenav collapse" id=id9591f39accb676042eff439bddc57c6c><li class="child level"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E6%AD%BB%E9%94%81%E6%B4%BB%E9%94%81%E4%B8%8E%E9%A5%A5%E9%A5%BF/%E6%B4%BB%E9%94%81/>活锁</a></li><li class="child level"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E6%AD%BB%E9%94%81%E6%B4%BB%E9%94%81%E4%B8%8E%E9%A5%A5%E9%A5%BF/%E9%A5%A5%E9%A5%BF/>饥饿</a></li><li class="child level"><a href=/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E6%AD%BB%E9%94%81%E6%B4%BB%E9%94%81%E4%B8%8E%E9%A5%A5%E9%A5%BF/%E6%AD%BB%E9%94%81/>死锁</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>2021-An introduction to lockless algorithms</h1><div class=article-style><blockquote><p><a href=https://lwn.net/Articles/844224/ target=_blank rel=noopener>原文地址</a></p></blockquote><h1 id=an-introduction-to-lockless-algorithms>An introduction to lockless algorithms</h1><p>Linux kernel 里面有些场景无法使用普通的 locking primitives（互斥锁接口），或者担心这些互斥锁带来的性能影响，这种时候就可以考虑 lockless algorithm 了，也就是无锁算法。因此 lockless 会时不时地出现在 LWN 上。最后一次被提及是在去年 7 月，也因此促使我撰写了这一系列文章。而更加频繁被提到的话题则是 read-copy-update（也就是 RCU，2007 年就有好多 LWN 文章介绍了）、引用计数（reference counting）、以及各种将 lockess primitives 包装成更高级别更容易理解的 API 的方法。这些文章会深入探讨 lockless 算法背后的概念，以及如何在内核中使用。</p><p>关于 memory model 的底层知识是大家公认的进阶内容了，即使是最老练的内核开发者也会感到发憷。编者在 7 月份的文章中写到，&ldquo;需要一种特殊的大脑才能真正理解 memory model&rdquo;。有人说，Linux 内核的内存模型（尤其是 Documentation/memory-barriers.txt）可以用来吓唬小孩子，光是 &ldquo;acquire&rdquo;（获取）和 &ldquo;release&rdquo;（释放）这两个词就让人很头痛了。</p><p>同时，像 RCU 和 seqlocks 这样的机制在内核中被广泛使用，几乎每个开发者迟早都会遇到基本的 lockless 编程接口。出于这个原因，大家最好至少让自己对 lockless 的基本函数有个简单的了解。在本系列中，我将解释 acquire 和 release 的真正含义，并介绍五种相对简单的模式，它们可以涵盖 lockless 接口在大多数场景下的应用。</p><h1 id=acquire-release-and-happens-before>Acquire, release, and &ldquo;happens before&rdquo;</h1><p>为了从相对来说简单易懂的同步接口（synchronization primitives）转向 lockless 编程方式，我们首先要了解为什么加锁会是有必要的。通常，谈到锁的价值的时候，一般都是在讲互斥的情况（mutual exclusive）：加锁可以防止多个同时执行的线程对同一个数据进行并发地读或写操作。但 &ldquo;concurrently（并发）&ldquo;到底是什么意思呢？当线程 T 处理完某个数据之后，线程 U 开始使用该数据，这有什么问题吗？</p><p>为了回答这些问题，Leslie Lamport 在 1978 年的论文 &ldquo;时间、时钟和分布式系统中的事件排序（Time, Clocks and the Ordering of Events in a Distributed System&rdquo; 中建立的一个理论框架就有用武之地了。根据该论文，分布式系统中的事件(event) 的顺序可以根据一个事件 P 是否发生在另一个事件 Q 之前定义：</p><ul><li>同一个线程内的事件都是按顺序发生的，也称之为"total ordering(完全顺序)"。通俗地讲，对于同一线程的任意两个事件，你总能说出哪个先发生，哪个后发生。</li><li>如果两个时间不是在同一个线程内的，那么如果事件 P 是在做 message send，而事件 Q 是与之相对应的 message receive，那么事件 P 就一定发生在事件 Q 之前。</li><li>这种关系是具有传递性的。因此，如果事件 P 发生在事件 Q 之前，而事件 Q 发生在事件 R 之前，那么事件 P 也会发生在 R 之前。</li></ul><p>&ldquo;在其之前发生&rdquo; （happen before）的这种关系是 partial ordering（不完全顺序），也就是说有可能有两个事件 P 和 Q，我们无法判断这两个事件是谁先谁后的。当这种情况发生时，就意味着这两个事件是 concurrent 的(并发的)。还记得加锁是如何预防对同一数据结构的并发访问吗？这是因为，当你用锁保护一个数据结构时，所有对该数据结构的访问都会形成一个 total ordering（完全顺序关系），就像它们都是来自同一个线程的操作一样。Lamport 的论文还提供了一个基本概念，即当锁被从一个线程交给另一个线程时会发生什么：会有一些 &ldquo;message passing&rdquo; 机制来确保线程 T 的 unlock 操作是发生在线程 U 的 lock 操作之前的。</p><p>事实证明，这种说法并不仅仅是一个理论而已：CPU 为了确保它们的 cache 一致性，会需要通过总线（如 Intel 的 QPI 或 AMD 的 HyperTransport）来传递 message。然而，本文中我们不需要深入到这些细节中。所以，我们这里将 &ldquo;happen before&rdquo; 的定义推广为所有同步原语（synchronization primitive）的一个公共定义。</p><p>Lamport 的基本观点是，当两个线程对同一数据结构进行对称操作时，就需要 synchronization。在我们推广之后的说明中，我们会列举出那些使一个线程与另一个线程 synchronize(同步)的配对操作（例如通过同一个队列来发送和接收消息）。此外，我们将把每一对操作中都分为 release（释放）或 acquire（获取）两个操作。也就是说我们后面只会用"释放了"或者"获取了"这种语义来说明。</p><p>在每一对操作内，具有释放语义的操作与相应的获取语义操作是同步操作。&ldquo;同步(synchronizing) &ldquo;意味着每当一个线程内执行释放操作、另一个线程执行相应的获取操作时，就表示这个进行释放的线程是发生在获取线程之前的。&ldquo;happen before&rdquo; 一般来说仍然是一个不完全顺序关系（partial order），但现在它可以跨越两个线程了，甚至是更多线程，这要归功于传递性。更正式的说法是：</p><ul><li>在单个线程中，各个操作都是完全顺序的（total ordering）</li><li>如果一个进行释放动作的操作 P 与一个进行获取动作的操作 Q 是同步的（synchronized），就意味着操作 P 发生在操作 Q 之前，哪怕这两个操作是发生在不同的线程中的。</li><li>像之前一样，这个关系是具有传递性的，也具有 partial ordering 的特性</li></ul><p>按照旧的定义，message send 是属于释放操作，而 message receive 属于获取操作。message send 和 message receive 就使得发送消息的线程与接收消息的线程（或多个接收线程）实现了同步。我们也可以根据新定义来重新解释我们之前的观点：为了让锁有效果，unlock 操作就是释放操作，并且必须与 lock 操作进行同步，加锁操作就是获取操作。无论是否有人竞争这把锁，最终结果都保证了一个 thread 和另一个 thread 中的操作有了"happen before"的关系。</p><p>获取操作和释放操作似乎是一个抽象的概念，但它们确实为许多常见的多线程编程实例进行了简单的解释。例如，如果有两个用户空间线程都需要访问一个全局变量 s：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>    thread <span class=m>1</span>                              thread <span class=m>2</span>
-</span></span><span class=line><span class=cl>    --------------------------------      ------------------------
-</span></span><span class=line><span class=cl>    <span class=nv>s</span> <span class=o>=</span> <span class=s2>&#34;hello&#34;</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    pthread_create<span class=o>(</span><span class=p>&amp;</span>t, NULL, t2, NULL<span class=o>)</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>                                          puts<span class=o>(</span>s<span class=o>)</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>                                          <span class=nv>s</span> <span class=o>=</span> <span class=s2>&#34;world&#34;</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    pthread_join<span class=o>(</span>t, NULL<span class=o>)</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    puts<span class=o>(</span>s<span class=o>)</span><span class=p>;</span>
-</span></span></code></pre></div><p>那么这里对变量的访问是否安全？是否能确定 thread 2 从 s 中读出的内容是 &ldquo;hello&rdquo;，并且 thread 1 在 pthread_join()后输出的 s 的值一定为 &ldquo;world&rdquo;？答案是可以确定，下面我们用获取和释放的语义来解释原因：</p><ul><li>pthread_create() 具有释放的语义，并与 thread 2（具有获取语义）的 start（即线程开始执行）有同步关系。因此，在线程创建之前所写的任何数据都可以安全地从线程中访问到。</li><li>thread 2 的 exit 操作具有释放语义，并与 pthread_join() （其具有获取语义）有同步关系。因此，线程在退出之前写的任何东西都可以在 pthread_join()之后安全地访问到。</li></ul><p>请注意，这里成功地在不用 lock 的情况下将数据从一个线程可靠地传递到了另一个线程。恭喜，你已经完成了 lockless 编程的第一个例子。总结一下：</p><ul><li><p>如果程序作者想让 thread 2 &ldquo;看到 " thread 1 到目前为止发生的所有事情的效果，那么两个线程需要相互同步，也就是需要在 thread 1 中进行释放操作，在 thread 2 中进行获取操作。</p></li><li><p>只要知道哪些 API 提供了 acquire/release 语义，就可以利用这些 API 来写出确保 order 的代码。</p></li></ul><p>在了解了释放和获取语义对这种 high-level synchronization primitive （高层次的同步原语）是如何起作用之后，我们现在可以再看一下对同一个内存数据访问中可以如何利用它们了。</p><h1 id=the-message-passing-pattern>The message-passing pattern</h1><p>在前一段中，我们已经看到了 pthread_create()和 pthread_join()的获取和释放语义是如何让线程的创建者与该线程进行信息交换的，以及如何反向传递信息。现在，我们将看到在线程运行过程中如何采用 lockless 方式进行同步。如果传递的 message 只是一个简单的标量值，例如就是一个布尔值，那么可以通过对这个内存地址进行读写就访问到了。然而，如果消息是一个指针会怎样呢？</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>    thread <span class=m>1</span>                            thread <span class=m>2</span>
-</span></span><span class=line><span class=cl>    --------------------------------    ------------------------
-</span></span><span class=line><span class=cl>    a.x <span class=o>=</span> 1<span class=p>;</span>
-</span></span><span class=line><span class=cl>    <span class=nv>message</span> <span class=o>=</span> <span class=p>&amp;</span>a<span class=p>;</span>                       <span class=nv>datum</span> <span class=o>=</span> message<span class=p>;</span>
-</span></span><span class=line><span class=cl>                                        <span class=k>if</span> <span class=o>(</span>datum !<span class=o>=</span> NULL<span class=o>)</span>
-</span></span><span class=line><span class=cl>                                          printk<span class=o>(</span><span class=s2>&#34;%d\n&#34;</span>, datum-&gt;x<span class=o>)</span><span class=p>;</span>
-</span></span></code></pre></div><p>最初这个 message 是 NULL 的话，那么我们不清楚 thread 2 打印出来的是 NULL 还是 &a。问题是，哪怕这里 “datum = message” 操作读到的是 &a，这个赋值操作其实与 thread 1 中的赋值操作“message = &a ”并无同步关系。因此，这两个线程并没有一个"happens before"的关系。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>    a.x <span class=o>=</span> 1<span class=p>;</span>                            <span class=nv>datum</span> <span class=o>=</span> message<span class=p>;</span>
-</span></span><span class=line><span class=cl>       <span class=p>|</span>                                    <span class=p>|</span>
-</span></span><span class=line><span class=cl>       <span class=p>|</span>   happens before                   <span class=p>|</span>
-</span></span><span class=line><span class=cl>       v                                    v
-</span></span><span class=line><span class=cl>    <span class=nv>message</span> <span class=o>=</span> <span class=p>&amp;</span>a<span class=p>;</span>                       datum-&gt;x
-</span></span></code></pre></div><p>因为这两个线程的执行并没有同步关系，所以不能保证 datum->x 读出来的值肯定是 1，毕竟我们不知道对 a.x 的赋值是否发生在读取 datum->x 之前。要确保 datum-> 读出来的值必定是 1 的话，就需要让 store 和 load 操作拥有释放和获取的语义。</p><p>为此，我们定义了 &ldquo;store-release&rdquo; 和 &ldquo;load-acquire&rdquo; 这两种操作。store-release 操作 （取名为操作 P）除了会向内存位置写入数据之外，也能确保与采用 load-acquire 方式读取这个内存数据的操作（名为操作 Q）是互相同步的。因此我们可以使用 Linux 的 smp_store_release()和 smp_load_acquire()来修复上述代码：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>    thread <span class=m>1</span>                                  thread <span class=m>2</span>
-</span></span><span class=line><span class=cl>    --------------------------------          ------------------------
-</span></span><span class=line><span class=cl>    a.x <span class=o>=</span> 1<span class=p>;</span>
-</span></span><span class=line><span class=cl>    smp_store_release<span class=o>(</span><span class=p>&amp;</span>message, <span class=p>&amp;</span>a<span class=o>)</span><span class=p>;</span>          <span class=nv>datum</span> <span class=o>=</span> smp_load_acquire<span class=o>(</span><span class=p>&amp;</span>message<span class=o>)</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>                                              <span class=k>if</span> <span class=o>(</span>datum !<span class=o>=</span> NULL<span class=o>)</span>
-</span></span><span class=line><span class=cl>                                                printk<span class=o>(</span><span class=s2>&#34;%x\n&#34;</span>, datum-&gt;x<span class=o>)</span><span class=p>;</span>
-</span></span></code></pre></div><p>这样改动之后，如果 datum 是 &a，就一定可以确认 store 发生在 load 之前。(为了简单起见，我假设只有一个线程可以将 &a 写入 message。我们所说的 &ldquo;thread 2 读取 thread 1 所写的值 &ldquo;并不是指具体的那个数据进入了内存，它的真正意思是 thread 1 的 store 操作是可以影响到 thread 2 的所有操作中的最后一个），这样一来就形成了下面的顺序关系：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>    a.x <span class=o>=</span> 1<span class=p>;</span>
-</span></span><span class=line><span class=cl>       <span class=p>|</span>
-</span></span><span class=line><span class=cl>       v
-</span></span><span class=line><span class=cl>    smp_store_release<span class=o>(</span><span class=p>&amp;</span>message, <span class=p>&amp;</span>a<span class=o>)</span><span class=p>;</span>  -----&gt;  <span class=nv>datum</span> <span class=o>=</span> smp_load_acquire<span class=o>(</span><span class=p>&amp;</span>message<span class=o>)</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>                                                  <span class=p>|</span>
-</span></span><span class=line><span class=cl>                                                  v
-</span></span><span class=line><span class=cl>                                              datum-&gt;x
-</span></span></code></pre></div><p>这样一来就一切可控了。由于可传递性的效果，每当 thread 2 读取 thread 1 写入的值时，thread 1 在 store-release 之前所做的一切操作在 load-acquire 操作之后对 thread 2 也全部都是可见的。需要注意的是，与 pthread_join()的情况不同，这里说的"synchronize with&rdquo; 的说法并不意味着 thread 2 在 &ldquo;等待&rdquo; thread 1 完成写入操作。上面这幅顺序图中的情况其实只是 thread 2 恰好读到了 thread 1 写入值的情况。</p><p>在 Linux 内核中，上述代码的编写方式一般会有点不一样：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>    thread <span class=m>1</span>                              thread <span class=m>2</span>
-</span></span><span class=line><span class=cl>    --------------------------------      ------------------------
-</span></span><span class=line><span class=cl>    a.x <span class=o>=</span> 1<span class=p>;</span>
-</span></span><span class=line><span class=cl>    smp_wmb<span class=o>()</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    WRITE_ONCE<span class=o>(</span>message, <span class=p>&amp;</span>a<span class=o>)</span><span class=p>;</span>              <span class=nv>datum</span> <span class=o>=</span> READ_ONCE<span class=o>(</span>message<span class=o>)</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>                                          smp_rmb<span class=o>()</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>                                          <span class=k>if</span> <span class=o>(</span>datum !<span class=o>=</span> NULL<span class=o>)</span>
-</span></span><span class=line><span class=cl>                                            printk<span class=o>(</span><span class=s2>&#34;%x\n&#34;</span>, datum-&gt;x<span class=o>)</span><span class=p>;</span>
-</span></span></code></pre></div><p>在这种写法下，释放和获取语义是由两个 memory barrier 操作 smp_wmb()和 smp_rmb() 所提供的。memory barrier 也有获取和释放的语义，但它们比简单的 load 和 store 操作更复杂一些。等我们今后介绍 seqlocks 时会再讲讲它们。</p><p>不管是 load-acquire/store-release 还是 smp_rmb()/smp_wmb()，都是非常常见的写法，大家需要确保理解。如下这些地方都用到了这些方式：</p><ul><li>各种 ring buffer 方案。ring buffer 中每一项往往都指向其他的数据，一般来说还会有一些 head/tail 的信息都是指向 ring buffer 中某个位置的索引。给 ring buffer 填数据的一方（producer）会使用 store-release 操作，这样就能与 consumer（读取 ring buffer 中的数据的一方）确保同步。</li><li>RCU。在 compiler 看来，我们熟悉的 rcu_dereference() 和 rcu_assign_pointer() API 跟 load-acquire 和 store-release 操作是一个效果。得益于除了 Alpha 以外的其他处理器中都具有的一些特性，rcu_dereference() 就可以被直接编译成普通的 load 操作，此时 rcu_assign_pointer() 仍然跟 rcu_dereference()操作是确保同步的，就好像它还是一个 load-acquire 操作一样。</li><li>将指针写入数组时。在下面的 KVM 代码中（当然是简写过的），如果 kvm_get_vcpu()可能看到 kvm->online_vcpus 增长过了，那么数组中与之关联的哪一项就一定是有效的。</li></ul><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>    kvm_vm_ioctl_create_vcpu<span class=o>()</span>                     kvm_get_vcpu<span class=o>()</span>
-</span></span><span class=line><span class=cl>    -----------------------------------------      -----------------------------------------------
-</span></span><span class=line><span class=cl>    kvm-&gt;vcpus<span class=o>[</span>kvm-&gt;online_vcpus<span class=o>]</span> <span class=o>=</span> vcpu<span class=p>;</span>          <span class=k>if</span> <span class=o>(</span>idx &lt; smp_load_acquire<span class=o>(</span><span class=p>&amp;</span>kvm-&gt;online_vcpus<span class=o>))</span>
-</span></span><span class=line><span class=cl>    smp_store_release<span class=o>(</span><span class=p>&amp;</span>kvm-&gt;online_vcpus,            <span class=k>return</span> kvm-&gt;vcpus<span class=o>[</span>idx<span class=o>]</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>                      kvm-&gt;online_vcpus + 1<span class=o>)</span><span class=p>;</span>      <span class=k>return</span> NULL<span class=p>;</span>
-</span></span></code></pre></div><p>除了 load-acquire/store-release 操作机制外，message-passing 模式中还有一点值得注意：它是一种只有单个 producer（生产者）的算法。如果有多个 writer 的话，就必须通过其他手段（比如用 mutex）来进行互斥保护。lockless 算法并不是一个无法跟其他工具配合的东西，它们是并发编程工具(concurrent programming toolbox) 的一部分，当它们与其他传统工具结合时效果最好。</p></div><div class=article-widget><div class="container-xl row post-nav"></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div><script type=text/javascript id=clstr_globe async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
-<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
-<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
-<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
-<script id=dsq-count-scr src=https://ngte.disqus.com/count.js async></script>
-<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
-<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
-<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
-<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>
+<!DOCTYPE html><html lang="zh" >
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  
+  
+    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+
+  
+  
+  
+    
+      
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    
+  
+
+  
+    <meta name="google-site-verification" content="google69a5cccb61297807" />
+    <meta name="baidu-site-verification" content="cqmZHEleVh" />
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+    
+  
+  <meta name="description" content="原文地址 An introduction to lockless algorithms Linux kernel 里面有些场景无法使用普通的 locking primitives（互斥锁接口），或者担心这些互斥锁带来的性能影响，这种时候就可以考虑 lockless algorithm 了，也就是无锁算法。因此 lockless 会时不时地出现在 LWN 上。最后一次被" />
+
+  
+  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-an-introduction-to-lockless-algorithms/" />
+
+  
+  
+  
+    <meta name="theme-color" content="#0a55a7" />
+  
+
+  
+  
+
+  
+
+  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
+
+  
+  
+  
+    
+    
+
+    
+    
+    
+    
+      
+      
+    
+    
+    
+
+    
+    
+    
+      
+    
+    
+      
+      
+        
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
+        
+      
+    
+
+    
+    
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
+    
+
+    
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+        
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+  
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/wowchemy.0d97305106da5efa530e28b021b4c580.css" />
+
+  
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', "G-40NYXJ8823");
+</script>
+
+
+  
+
+
+  
+
+
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+  
+  
+  
+
+  
+
+  
+    <link rel="manifest" href="/manifest.webmanifest" />
+  
+
+  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
+  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
+
+  <link rel="canonical" href="https://ng-tech.icu/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-an-introduction-to-lockless-algorithms/" />
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+
+  
+  
+    
+    
+  
+  <meta property="twitter:card" content="summary_large_image" />
+  
+    <meta property="twitter:site" content="@wx-chevalier" />
+    <meta property="twitter:creator" content="@wx-chevalier" />
+  
+  <meta property="og:site_name" content="Next-gen Tech Edu" />
+  <meta property="og:url" content="https://ng-tech.icu/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-an-introduction-to-lockless-algorithms/" />
+  <meta property="og:title" content="2021-An introduction to lockless algorithms | Next-gen Tech Edu" />
+  <meta property="og:description" content="原文地址 An introduction to lockless algorithms Linux kernel 里面有些场景无法使用普通的 locking primitives（互斥锁接口），或者担心这些互斥锁带来的性能影响，这种时候就可以考虑 lockless algorithm 了，也就是无锁算法。因此 lockless 会时不时地出现在 LWN 上。最后一次被" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
+    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
+  
+    
+    
+  
+
+  
+
+
+
+  
+
+  
+
+  
+
+
+
+
+
+  <title>2021-An introduction to lockless algorithms | Next-gen Tech Edu</title>
+</head>
+
+
+<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="818c9dfc99eea6ab97d5176212fa866e" >
+  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
+
+  
+
+
+<aside class="search-modal" id="search">
+  <div class="container">
+    <section class="search-header">
+
+      <div class="row no-gutters justify-content-between mb-3">
+        <div class="col-6 search-title">
+          <p>搜索</p>
+        </div>
+        <div class="col-6 col-search-close">
+          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+      <div id="search-box">
+        
+        
+        
+      </div>
+
+      
+      
+
+      
+    </section>
+    <section class="section-search-results">
+
+      <div id="search-hits">
+        
+      </div>
+
+      <div id="search-common-queries">
+        
+      </div>
+
+    </section>
+  </div>
+</aside>
+
+
+
+  <div class="page-header">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="header--fixed">
+  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
+    <div class="container-xl">
+
+      
+      <div class="d-none d-lg-inline-flex">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      <button type="button" class="navbar-toggler" data-toggle="collapse"
+              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
+      <span><i class="fas fa-bars"></i></span>
+      </button>
+      
+
+      
+      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      
+      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
+
+        
+        <ul class="navbar-nav d-md-inline-flex">
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
+          </li>
+
+          
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+              
+              
+              
+                
+              
+              
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
+              
+                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
+              
+                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+        
+
+          
+        </ul>
+      </div>
+
+      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
+
+        
+        
+        
+        <li class="nav-item">
+          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        <li class="nav-item">
+            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        
+
+        
+        
+        
+        <div></div>
+        
+        <style>
+        @media only screen and (max-width: 600px) {
+          .jimmysong-template {
+            display: none!important;
+          }
+        }
+        </style>
+        
+        <li class="jimmysong-template" style="color: white;font-size: 12px;">
+          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+</header>
+
+
+  </div>
+
+  <div class="page-body">
+    
+    
+    
+
+    
+
+
+
+
+<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
+<div class="container-xl docs">
+  <div class="row flex-xl-nowrap">
+    <div class="docs-sidebar">
+      <form class="docs-search d-flex align-items-center">
+  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    <div class="d-flex">
+      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
+        
+          99.参考资料
+        
+      </span>
+      <span><i class="fas fa-chevron-down"></i></span>
+    </div>
+  </button>
+
+  
+  <button class="form-control sidebar-search js-search d-none d-md-flex">
+    <i class="fas fa-search pr-2"></i>
+    <span class="sidebar-search-text">搜索...</span>
+    <span class="sidebar-search-shortcut">/</span>
+  </button>
+  
+</form>
+
+<nav class="collapse docs-links" id="docs-nav">
+  
+  
+  
+  
+  
+  
+
+  
+  
+    
+
+    
+      
+
+      <ul class="nav docs-sidenav">
+        <li style="display: inline-flex">
+          <a style="cursor: pointer;" onclick="window.history.back()">
+            <i class="fas fa-arrow-left pr-1"></i>
+            Back
+          </a>
+          <span>|</span>
+          <a href="/books/">
+            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
+            Books
+          </a>
+        </li>
+      </ul>
+
+      
+      
+        
+          
+        
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id76c20db6adb675c155be353d9e251fe4&#34;)" href="#id76c20db6adb675c155be353d9e251fe4" aria-expanded="false" aria-controls="id76c20db6adb675c155be353d9e251fe4" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/">锁</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id76c20db6adb675c155be353d9e251fe4" aria-expanded="false" aria-controls="id76c20db6adb675c155be353d9e251fe4">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id76c20db6adb675c155be353d9e251fe4"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id76c20db6adb675c155be353d9e251fe4">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idd576e4a40031a59e8365597d5ff9366a&#34;)" href="#idd576e4a40031a59e8365597d5ff9366a" aria-expanded="false" aria-controls="idd576e4a40031a59e8365597d5ff9366a" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/">99.参考资料</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idd576e4a40031a59e8365597d5ff9366a" aria-expanded="false" aria-controls="idd576e4a40031a59e8365597d5ff9366a">
+    
+    <i class="fa-solid fa-angle-down" id="caret-idd576e4a40031a59e8365597d5ff9366a"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="idd576e4a40031a59e8365597d5ff9366a">
+      
+
+
+
+  <li class="child level active"><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2021-an-introduction-to-lockless-algorithms/">2021-An introduction to lockless algorithms</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-ida380e6bb70ede64c41d7407a972641ba&#34;)" href="#ida380e6bb70ede64c41d7407a972641ba" aria-expanded="false" aria-controls="ida380e6bb70ede64c41d7407a972641ba" aria-hidden="false" data-toggle="collapse">
+    
+    </div>
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-ida8df9beb197d6c8cb1c21390dae03b3d&#34;)" href="#ida8df9beb197d6c8cb1c21390dae03b3d" aria-expanded="false" aria-controls="ida8df9beb197d6c8cb1c21390dae03b3d" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/">互斥锁</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#ida8df9beb197d6c8cb1c21390dae03b3d" aria-expanded="false" aria-controls="ida8df9beb197d6c8cb1c21390dae03b3d">
+    
+        <i class="fa-solid fa-angle-right" id="caret-ida8df9beb197d6c8cb1c21390dae03b3d"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="ida8df9beb197d6c8cb1c21390dae03b3d">
+      
+
+
+
+  <li class="child level "><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/%E8%AF%BB%E5%86%99%E9%94%81/">读写锁</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/">互斥锁</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E4%BA%92%E6%96%A5%E9%94%81/%E9%94%81%E4%BC%98%E5%8C%96/">锁优化</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id9591f39accb676042eff439bddc57c6c&#34;)" href="#id9591f39accb676042eff439bddc57c6c" aria-expanded="false" aria-controls="id9591f39accb676042eff439bddc57c6c" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E6%AD%BB%E9%94%81%E6%B4%BB%E9%94%81%E4%B8%8E%E9%A5%A5%E9%A5%BF/">死锁，活锁与饥饿</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id9591f39accb676042eff439bddc57c6c" aria-expanded="false" aria-controls="id9591f39accb676042eff439bddc57c6c">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id9591f39accb676042eff439bddc57c6c"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id9591f39accb676042eff439bddc57c6c">
+      
+
+
+
+  <li class="child level "><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E6%AD%BB%E9%94%81%E6%B4%BB%E9%94%81%E4%B8%8E%E9%A5%A5%E9%A5%BF/%E6%B4%BB%E9%94%81/">活锁</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E6%AD%BB%E9%94%81%E6%B4%BB%E9%94%81%E4%B8%8E%E9%A5%A5%E9%A5%BF/%E9%A5%A5%E9%A5%BF/">饥饿</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/concurrent-notes/01.%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/%E9%94%81/%E6%AD%BB%E9%94%81%E6%B4%BB%E9%94%81%E4%B8%8E%E9%A5%A5%E9%A5%BF/%E6%AD%BB%E9%94%81/">死锁</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+    
+  
+</nav>
+
+    </div>
+
+    
+    
+    <div class="d-none d-xl-block col-xl-2 docs-toc">
+      
+     
+      <ul class="nav toc-top">
+        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
+      </ul>
+     
+
+      <nav id="TableOfContents"></nav>
+
+      
+<div class="subscribe-module col-24 mt-1">
+    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
+</div>
+
+
+
+    </div>
+    
+
+    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
+
+      <article class="article">
+
+          
+
+          <h1>2021-An introduction to lockless algorithms</h1>
+
+          <div class="article-style">
+            <blockquote>
+<p><a href="https://lwn.net/Articles/844224/" target="_blank" rel="noopener">原文地址</a></p>
+</blockquote>
+<h1 id="an-introduction-to-lockless-algorithms">An introduction to lockless algorithms</h1>
+<p>Linux kernel 里面有些场景无法使用普通的 locking primitives（互斥锁接口），或者担心这些互斥锁带来的性能影响，这种时候就可以考虑 lockless algorithm 了，也就是无锁算法。因此 lockless 会时不时地出现在 LWN 上。最后一次被提及是在去年 7 月，也因此促使我撰写了这一系列文章。而更加频繁被提到的话题则是 read-copy-update（也就是 RCU，2007 年就有好多 LWN 文章介绍了）、引用计数（reference counting）、以及各种将 lockess primitives 包装成更高级别更容易理解的 API 的方法。这些文章会深入探讨 lockless 算法背后的概念，以及如何在内核中使用。</p>
+<p>关于 memory model 的底层知识是大家公认的进阶内容了，即使是最老练的内核开发者也会感到发憷。编者在 7 月份的文章中写到，&ldquo;需要一种特殊的大脑才能真正理解 memory model&rdquo;。有人说，Linux 内核的内存模型（尤其是 Documentation/memory-barriers.txt）可以用来吓唬小孩子，光是 &ldquo;acquire&rdquo;（获取）和 &ldquo;release&rdquo;（释放）这两个词就让人很头痛了。</p>
+<p>同时，像 RCU 和 seqlocks 这样的机制在内核中被广泛使用，几乎每个开发者迟早都会遇到基本的 lockless 编程接口。出于这个原因，大家最好至少让自己对 lockless 的基本函数有个简单的了解。在本系列中，我将解释 acquire 和 release 的真正含义，并介绍五种相对简单的模式，它们可以涵盖 lockless 接口在大多数场景下的应用。</p>
+<h1 id="acquire-release-and-happens-before">Acquire, release, and &ldquo;happens before&rdquo;</h1>
+<p>为了从相对来说简单易懂的同步接口（synchronization primitives）转向 lockless 编程方式，我们首先要了解为什么加锁会是有必要的。通常，谈到锁的价值的时候，一般都是在讲互斥的情况（mutual exclusive）：加锁可以防止多个同时执行的线程对同一个数据进行并发地读或写操作。但 &ldquo;concurrently（并发）&ldquo;到底是什么意思呢？当线程 T 处理完某个数据之后，线程 U 开始使用该数据，这有什么问题吗？</p>
+<p>为了回答这些问题，Leslie Lamport 在 1978 年的论文 &ldquo;时间、时钟和分布式系统中的事件排序（Time, Clocks and the Ordering of Events in a Distributed System&rdquo; 中建立的一个理论框架就有用武之地了。根据该论文，分布式系统中的事件(event) 的顺序可以根据一个事件 P 是否发生在另一个事件 Q 之前定义：</p>
+<ul>
+<li>同一个线程内的事件都是按顺序发生的，也称之为&quot;total ordering(完全顺序)&quot;。通俗地讲，对于同一线程的任意两个事件，你总能说出哪个先发生，哪个后发生。</li>
+<li>如果两个时间不是在同一个线程内的，那么如果事件 P 是在做 message send，而事件 Q 是与之相对应的 message receive，那么事件 P 就一定发生在事件 Q 之前。</li>
+<li>这种关系是具有传递性的。因此，如果事件 P 发生在事件 Q 之前，而事件 Q 发生在事件 R 之前，那么事件 P 也会发生在 R 之前。</li>
+</ul>
+<p>&ldquo;在其之前发生&rdquo; （happen before）的这种关系是 partial ordering（不完全顺序），也就是说有可能有两个事件 P 和 Q，我们无法判断这两个事件是谁先谁后的。当这种情况发生时，就意味着这两个事件是 concurrent 的(并发的)。还记得加锁是如何预防对同一数据结构的并发访问吗？这是因为，当你用锁保护一个数据结构时，所有对该数据结构的访问都会形成一个 total ordering（完全顺序关系），就像它们都是来自同一个线程的操作一样。Lamport 的论文还提供了一个基本概念，即当锁被从一个线程交给另一个线程时会发生什么：会有一些 &ldquo;message passing&rdquo; 机制来确保线程 T 的 unlock 操作是发生在线程 U 的 lock 操作之前的。</p>
+<p>事实证明，这种说法并不仅仅是一个理论而已：CPU 为了确保它们的 cache 一致性，会需要通过总线（如 Intel 的 QPI 或 AMD 的 HyperTransport）来传递 message。然而，本文中我们不需要深入到这些细节中。所以，我们这里将 &ldquo;happen before&rdquo; 的定义推广为所有同步原语（synchronization primitive）的一个公共定义。</p>
+<p>Lamport 的基本观点是，当两个线程对同一数据结构进行对称操作时，就需要 synchronization。在我们推广之后的说明中，我们会列举出那些使一个线程与另一个线程 synchronize(同步)的配对操作（例如通过同一个队列来发送和接收消息）。此外，我们将把每一对操作中都分为 release（释放）或 acquire（获取）两个操作。也就是说我们后面只会用&quot;释放了&quot;或者&quot;获取了&quot;这种语义来说明。</p>
+<p>在每一对操作内，具有释放语义的操作与相应的获取语义操作是同步操作。&ldquo;同步(synchronizing) &ldquo;意味着每当一个线程内执行释放操作、另一个线程执行相应的获取操作时，就表示这个进行释放的线程是发生在获取线程之前的。&ldquo;happen before&rdquo; 一般来说仍然是一个不完全顺序关系（partial order），但现在它可以跨越两个线程了，甚至是更多线程，这要归功于传递性。更正式的说法是：</p>
+<ul>
+<li>在单个线程中，各个操作都是完全顺序的（total ordering）</li>
+<li>如果一个进行释放动作的操作 P 与一个进行获取动作的操作 Q 是同步的（synchronized），就意味着操作 P 发生在操作 Q 之前，哪怕这两个操作是发生在不同的线程中的。</li>
+<li>像之前一样，这个关系是具有传递性的，也具有 partial ordering 的特性</li>
+</ul>
+<p>按照旧的定义，message send 是属于释放操作，而 message receive 属于获取操作。message send 和 message receive 就使得发送消息的线程与接收消息的线程（或多个接收线程）实现了同步。我们也可以根据新定义来重新解释我们之前的观点：为了让锁有效果，unlock 操作就是释放操作，并且必须与 lock 操作进行同步，加锁操作就是获取操作。无论是否有人竞争这把锁，最终结果都保证了一个 thread 和另一个 thread 中的操作有了&quot;happen before&quot;的关系。</p>
+<p>获取操作和释放操作似乎是一个抽象的概念，但它们确实为许多常见的多线程编程实例进行了简单的解释。例如，如果有两个用户空间线程都需要访问一个全局变量 s：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">    thread <span class="m">1</span>                              thread <span class="m">2</span>
+</span></span><span class="line"><span class="cl">    --------------------------------      ------------------------
+</span></span><span class="line"><span class="cl">    <span class="nv">s</span> <span class="o">=</span> <span class="s2">&#34;hello&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    pthread_create<span class="o">(</span><span class="p">&amp;</span>t, NULL, t2, NULL<span class="o">)</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">                                          puts<span class="o">(</span>s<span class="o">)</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">                                          <span class="nv">s</span> <span class="o">=</span> <span class="s2">&#34;world&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    pthread_join<span class="o">(</span>t, NULL<span class="o">)</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    puts<span class="o">(</span>s<span class="o">)</span><span class="p">;</span>
+</span></span></code></pre></div><p>那么这里对变量的访问是否安全？是否能确定 thread 2 从 s 中读出的内容是 &ldquo;hello&rdquo;，并且 thread 1 在 pthread_join()后输出的 s 的值一定为 &ldquo;world&rdquo;？答案是可以确定，下面我们用获取和释放的语义来解释原因：</p>
+<ul>
+<li>pthread_create() 具有释放的语义，并与 thread 2（具有获取语义）的 start（即线程开始执行）有同步关系。因此，在线程创建之前所写的任何数据都可以安全地从线程中访问到。</li>
+<li>thread 2 的 exit 操作具有释放语义，并与 pthread_join() （其具有获取语义）有同步关系。因此，线程在退出之前写的任何东西都可以在 pthread_join()之后安全地访问到。</li>
+</ul>
+<p>请注意，这里成功地在不用 lock 的情况下将数据从一个线程可靠地传递到了另一个线程。恭喜，你已经完成了 lockless 编程的第一个例子。总结一下：</p>
+<ul>
+<li>
+<p>如果程序作者想让 thread 2 &ldquo;看到 &quot; thread 1 到目前为止发生的所有事情的效果，那么两个线程需要相互同步，也就是需要在 thread 1 中进行释放操作，在 thread 2 中进行获取操作。</p>
+</li>
+<li>
+<p>只要知道哪些 API 提供了 acquire/release 语义，就可以利用这些 API 来写出确保 order 的代码。</p>
+</li>
+</ul>
+<p>在了解了释放和获取语义对这种 high-level synchronization primitive （高层次的同步原语）是如何起作用之后，我们现在可以再看一下对同一个内存数据访问中可以如何利用它们了。</p>
+<h1 id="the-message-passing-pattern">The message-passing pattern</h1>
+<p>在前一段中，我们已经看到了 pthread_create()和 pthread_join()的获取和释放语义是如何让线程的创建者与该线程进行信息交换的，以及如何反向传递信息。现在，我们将看到在线程运行过程中如何采用 lockless 方式进行同步。如果传递的 message 只是一个简单的标量值，例如就是一个布尔值，那么可以通过对这个内存地址进行读写就访问到了。然而，如果消息是一个指针会怎样呢？</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">    thread <span class="m">1</span>                            thread <span class="m">2</span>
+</span></span><span class="line"><span class="cl">    --------------------------------    ------------------------
+</span></span><span class="line"><span class="cl">    a.x <span class="o">=</span> 1<span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">message</span> <span class="o">=</span> <span class="p">&amp;</span>a<span class="p">;</span>                       <span class="nv">datum</span> <span class="o">=</span> message<span class="p">;</span>
+</span></span><span class="line"><span class="cl">                                        <span class="k">if</span> <span class="o">(</span>datum !<span class="o">=</span> NULL<span class="o">)</span>
+</span></span><span class="line"><span class="cl">                                          printk<span class="o">(</span><span class="s2">&#34;%d\n&#34;</span>, datum-&gt;x<span class="o">)</span><span class="p">;</span>
+</span></span></code></pre></div><p>最初这个 message 是 NULL 的话，那么我们不清楚 thread 2 打印出来的是 NULL 还是 &amp;a。问题是，哪怕这里 “datum = message” 操作读到的是 &amp;a，这个赋值操作其实与 thread 1 中的赋值操作“message = &amp;a ”并无同步关系。因此，这两个线程并没有一个&quot;happens before&quot;的关系。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">    a.x <span class="o">=</span> 1<span class="p">;</span>                            <span class="nv">datum</span> <span class="o">=</span> message<span class="p">;</span>
+</span></span><span class="line"><span class="cl">       <span class="p">|</span>                                    <span class="p">|</span>
+</span></span><span class="line"><span class="cl">       <span class="p">|</span>   happens before                   <span class="p">|</span>
+</span></span><span class="line"><span class="cl">       v                                    v
+</span></span><span class="line"><span class="cl">    <span class="nv">message</span> <span class="o">=</span> <span class="p">&amp;</span>a<span class="p">;</span>                       datum-&gt;x
+</span></span></code></pre></div><p>因为这两个线程的执行并没有同步关系，所以不能保证 datum-&gt;x 读出来的值肯定是 1，毕竟我们不知道对 a.x 的赋值是否发生在读取 datum-&gt;x 之前。要确保 datum-&gt; 读出来的值必定是 1 的话，就需要让 store 和 load 操作拥有释放和获取的语义。</p>
+<p>为此，我们定义了 &ldquo;store-release&rdquo; 和 &ldquo;load-acquire&rdquo; 这两种操作。store-release 操作 （取名为操作 P）除了会向内存位置写入数据之外，也能确保与采用 load-acquire 方式读取这个内存数据的操作（名为操作 Q）是互相同步的。因此我们可以使用 Linux 的 smp_store_release()和 smp_load_acquire()来修复上述代码：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">    thread <span class="m">1</span>                                  thread <span class="m">2</span>
+</span></span><span class="line"><span class="cl">    --------------------------------          ------------------------
+</span></span><span class="line"><span class="cl">    a.x <span class="o">=</span> 1<span class="p">;</span>
+</span></span><span class="line"><span class="cl">    smp_store_release<span class="o">(</span><span class="p">&amp;</span>message, <span class="p">&amp;</span>a<span class="o">)</span><span class="p">;</span>          <span class="nv">datum</span> <span class="o">=</span> smp_load_acquire<span class="o">(</span><span class="p">&amp;</span>message<span class="o">)</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">                                              <span class="k">if</span> <span class="o">(</span>datum !<span class="o">=</span> NULL<span class="o">)</span>
+</span></span><span class="line"><span class="cl">                                                printk<span class="o">(</span><span class="s2">&#34;%x\n&#34;</span>, datum-&gt;x<span class="o">)</span><span class="p">;</span>
+</span></span></code></pre></div><p>这样改动之后，如果 datum 是 &amp;a，就一定可以确认 store 发生在 load 之前。(为了简单起见，我假设只有一个线程可以将 &amp;a 写入 message。我们所说的 &ldquo;thread 2 读取 thread 1 所写的值 &ldquo;并不是指具体的那个数据进入了内存，它的真正意思是 thread 1 的 store 操作是可以影响到 thread 2 的所有操作中的最后一个），这样一来就形成了下面的顺序关系：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">    a.x <span class="o">=</span> 1<span class="p">;</span>
+</span></span><span class="line"><span class="cl">       <span class="p">|</span>
+</span></span><span class="line"><span class="cl">       v
+</span></span><span class="line"><span class="cl">    smp_store_release<span class="o">(</span><span class="p">&amp;</span>message, <span class="p">&amp;</span>a<span class="o">)</span><span class="p">;</span>  -----&gt;  <span class="nv">datum</span> <span class="o">=</span> smp_load_acquire<span class="o">(</span><span class="p">&amp;</span>message<span class="o">)</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">                                                  <span class="p">|</span>
+</span></span><span class="line"><span class="cl">                                                  v
+</span></span><span class="line"><span class="cl">                                              datum-&gt;x
+</span></span></code></pre></div><p>这样一来就一切可控了。由于可传递性的效果，每当 thread 2 读取 thread 1 写入的值时，thread 1 在 store-release 之前所做的一切操作在 load-acquire 操作之后对 thread 2 也全部都是可见的。需要注意的是，与 pthread_join()的情况不同，这里说的&quot;synchronize with&rdquo; 的说法并不意味着 thread 2 在 &ldquo;等待&rdquo; thread 1 完成写入操作。上面这幅顺序图中的情况其实只是 thread 2 恰好读到了 thread 1 写入值的情况。</p>
+<p>在 Linux 内核中，上述代码的编写方式一般会有点不一样：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">    thread <span class="m">1</span>                              thread <span class="m">2</span>
+</span></span><span class="line"><span class="cl">    --------------------------------      ------------------------
+</span></span><span class="line"><span class="cl">    a.x <span class="o">=</span> 1<span class="p">;</span>
+</span></span><span class="line"><span class="cl">    smp_wmb<span class="o">()</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    WRITE_ONCE<span class="o">(</span>message, <span class="p">&amp;</span>a<span class="o">)</span><span class="p">;</span>              <span class="nv">datum</span> <span class="o">=</span> READ_ONCE<span class="o">(</span>message<span class="o">)</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">                                          smp_rmb<span class="o">()</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">                                          <span class="k">if</span> <span class="o">(</span>datum !<span class="o">=</span> NULL<span class="o">)</span>
+</span></span><span class="line"><span class="cl">                                            printk<span class="o">(</span><span class="s2">&#34;%x\n&#34;</span>, datum-&gt;x<span class="o">)</span><span class="p">;</span>
+</span></span></code></pre></div><p>在这种写法下，释放和获取语义是由两个 memory barrier 操作 smp_wmb()和 smp_rmb() 所提供的。memory barrier 也有获取和释放的语义，但它们比简单的 load 和 store 操作更复杂一些。等我们今后介绍 seqlocks 时会再讲讲它们。</p>
+<p>不管是 load-acquire/store-release 还是 smp_rmb()/smp_wmb()，都是非常常见的写法，大家需要确保理解。如下这些地方都用到了这些方式：</p>
+<ul>
+<li>各种 ring buffer 方案。ring buffer 中每一项往往都指向其他的数据，一般来说还会有一些 head/tail 的信息都是指向 ring buffer 中某个位置的索引。给 ring buffer 填数据的一方（producer）会使用 store-release 操作，这样就能与 consumer（读取 ring buffer 中的数据的一方）确保同步。</li>
+<li>RCU。在 compiler 看来，我们熟悉的 rcu_dereference() 和 rcu_assign_pointer() API 跟 load-acquire 和 store-release 操作是一个效果。得益于除了 Alpha 以外的其他处理器中都具有的一些特性，rcu_dereference() 就可以被直接编译成普通的 load 操作，此时 rcu_assign_pointer() 仍然跟 rcu_dereference()操作是确保同步的，就好像它还是一个 load-acquire 操作一样。</li>
+<li>将指针写入数组时。在下面的 KVM 代码中（当然是简写过的），如果 kvm_get_vcpu()可能看到 kvm-&gt;online_vcpus 增长过了，那么数组中与之关联的哪一项就一定是有效的。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">    kvm_vm_ioctl_create_vcpu<span class="o">()</span>                     kvm_get_vcpu<span class="o">()</span>
+</span></span><span class="line"><span class="cl">    -----------------------------------------      -----------------------------------------------
+</span></span><span class="line"><span class="cl">    kvm-&gt;vcpus<span class="o">[</span>kvm-&gt;online_vcpus<span class="o">]</span> <span class="o">=</span> vcpu<span class="p">;</span>          <span class="k">if</span> <span class="o">(</span>idx &lt; smp_load_acquire<span class="o">(</span><span class="p">&amp;</span>kvm-&gt;online_vcpus<span class="o">))</span>
+</span></span><span class="line"><span class="cl">    smp_store_release<span class="o">(</span><span class="p">&amp;</span>kvm-&gt;online_vcpus,            <span class="k">return</span> kvm-&gt;vcpus<span class="o">[</span>idx<span class="o">]</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">                      kvm-&gt;online_vcpus + 1<span class="o">)</span><span class="p">;</span>      <span class="k">return</span> NULL<span class="p">;</span>
+</span></span></code></pre></div><p>除了 load-acquire/store-release 操作机制外，message-passing 模式中还有一点值得注意：它是一种只有单个 producer（生产者）的算法。如果有多个 writer 的话，就必须通过其他手段（比如用 mutex）来进行互斥保护。lockless 算法并不是一个无法跟其他工具配合的东西，它们是并发编程工具(concurrent programming toolbox) 的一部分，当它们与其他传统工具结合时效果最好。</p>
+
+          </div>
+
+          
+
+
+
+          
+          
+          <div class="article-widget">
+            
+<div class="container-xl row post-nav">
+  
+  
+</div>
+
+          </div>
+          
+
+        <div class="body-footer">
+          <p>最近更新于 0001-01-01</p>
+
+          
+
+
+
+          
+
+
+  
+  
+  
+
+  
+
+  
+  <section id="comments" class="mb-3 pt-0">
+    
+<div id="disqus_thread"></div>
+<script>
+  var disqus_config = function () {
+    
+    
+    
+  };
+  (function() {
+    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+      return;
+    }
+    var d = document, s = d.createElement('script'); 
+    s.async = true;
+    s.src = 'https://' + "ngte" + '.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </section>
+  
+
+
+
+          
+
+
+        </div>
+
+      </article>
+
+      <footer class="site-footer">
+
+  
+
+
+
+  
+
+  
+  <div class="copyright py-4 bg-footer">
+      <div class="row justify-content-center">
+        <div class="text-center footer-color">
+          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
+        </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" id="clstr_globe" async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script>
+  
+</footer>
+
+
+    </main>
+  </div>
+</div>
+<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
+<script>
+  const heti = new Heti('.article');
+  heti.autoSpacing();
+</script>
+<script type="text/javascript">
+  window.$crisp = [];
+  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
+  (function () {
+    setTimeout(function() {
+      d = document;
+      s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    }, 2500);
+  })();
+</script>
+  </div>
+
+  <div class="page-footer">
+    
+    
+  </div>
+
+      
+
+    
+    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
+
+    
+    
+    
+      
+
+      
+      
+
+      
+
+      
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
+        
+        
+      
+
+    
+
+    
+    
+    
+
+    
+    
+    
+      
+      <script id="search-hit-algolia-template" type="text/html">
+        <div class="search-hit">
+          <div class="search-hit-content">
+            <div class="search-hit-name">
+              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
+            </div>
+            <div class="article-metadata search-hit-type">{{type}}</div>
+            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
+          </div>
+        </div>
+      </script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
+      
+      
+    
+
+    
+    
+
+    
+    
+    
+    
+      <script id="dsq-count-scr" src="https://ngte.disqus.com/count.js" async></script>
+      
+    
+
+    
+    
+      
+      
+      
+      
+      
+      
+      
+    
+
+    
+    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
+    
+
+    
+    
+    
+    <script id="page-data" type="application/json">{"use_headroom":false}</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
+
+    
+    
+    
+    
+    
+    
+    <script>
+
+var mybutton = document.getElementById("backTopBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+}
+</script>
+
+
+    
+
+    
+    
+    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+    <script>
+      anchors.add();
+    </script>
+    
+
+    
+    <script>
+
+
+
+(function() {
+  'use strict';
+
+  if(!document.queryCommandSupported('copy')) {
+    return;
+  }
+
+  function flashCopyMessage(el, msg) {
+    el.className = "highlight-copy-btn";
+    el.textContent = msg;
+    setTimeout(function() {
+      el.textContent = "";
+      el.className = "highlight-copy-btn fa fa-copy";
+    }, 1000);
+  }
+
+  function selectText(node) {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection;
+  }
+
+  function addCopyButton(containerEl) {
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "highlight-copy-btn fa fa-copy";
+    copyBtn.textContent = "";
+
+    var codeEl = containerEl.firstElementChild;
+    copyBtn.addEventListener('click', function() {
+      try {
+        var selection = selectText(codeEl);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        
+        flashCopyMessage(copyBtn, '已复制')
+        
+      } catch(e) {
+        console && console.log(e);
+        flashCopyMessage(copyBtn, 'Failed :\'(')
+      }
+    });
+
+    containerEl.appendChild(copyBtn);
+  }
+
+  
+  var highlightBlocks = document.getElementsByClassName('highlight');
+  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
+})();
+</script>
+
+    
+
+
+</body>
+</html>

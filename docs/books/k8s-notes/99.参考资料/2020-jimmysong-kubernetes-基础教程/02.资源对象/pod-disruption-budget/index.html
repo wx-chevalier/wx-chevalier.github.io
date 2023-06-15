@@ -1,49 +1,2535 @@
-<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="weight: 20 title: Pod 中断与 PDB（Pod 中断预算） date: &ldquo;2022-05-21T00:00:00+08:00&rdquo; type: book 这篇文档适用于要构建高可用应用程序的所有者，因此他们需要了解 Pod 可能发生什么类型的中断。也适用于要执行自动集群操作的集群管理员，如升级和集群自动扩容。 自愿中"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-disruption-budget/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.fab3cd1900ae35687457073b2d518207.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-disruption-budget/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-disruption-budget/"><meta property="og:title" content="pod-disruption-budget | Next-gen Tech Edu"><meta property="og:description" content="weight: 20 title: Pod 中断与 PDB（Pod 中断预算） date: &ldquo;2022-05-21T00:00:00+08:00&rdquo; type: book 这篇文档适用于要构建高可用应用程序的所有者，因此他们需要了解 Pod 可能发生什么类型的中断。也适用于要执行自动集群操作的集群管理员，如升级和集群自动扩容。 自愿中"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>pod-disruption-budget | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=f16339f007089d562ac28f4099f787c4><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
-<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
-<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
-<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
-<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
-<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">_index</span>
-<span><i class="fas fa-chevron-down"></i></span></div></button>
-<button class="form-control sidebar-search js-search d-none d-md-flex">
-<i class="fas fa-search pr-2"></i>
-<span class=sidebar-search-text>搜索...</span>
-<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
-Back</a>
-<span>|</span>
-<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
-Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idfeb2a47527259ef304df22cf4fd82382")' href=#idfeb2a47527259ef304df22cf4fd82382 aria-expanded=false aria-controls=idfeb2a47527259ef304df22cf4fd82382 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/>_index</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idfeb2a47527259ef304df22cf4fd82382 aria-expanded=false aria-controls=idfeb2a47527259ef304df22cf4fd82382><i class="fa-solid fa-angle-down" id=caret-idfeb2a47527259ef304df22cf4fd82382></i></a></div><ul class="nav docs-sidenav collapse show" id=idfeb2a47527259ef304df22cf4fd82382><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id74d39329e37c239b9d6d4b2c4a260a33")' href=#id74d39329e37c239b9d6d4b2c4a260a33 aria-expanded=false aria-controls=id74d39329e37c239b9d6d4b2c4a260a33 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/>_index</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id74d39329e37c239b9d6d4b2c4a260a33 aria-expanded=false aria-controls=id74d39329e37c239b9d6d4b2c4a260a33><i class="fa-solid fa-angle-down" id=caret-id74d39329e37c239b9d6d4b2c4a260a33></i></a></div><ul class="nav docs-sidenav collapse show" id=id74d39329e37c239b9d6d4b2c4a260a33><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/14.init-%E5%AE%B9%E5%99%A8/>14.Init 容器</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pause-container/>pause-container</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod/>pod</a></li><li class="child level active"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-disruption-budget/>pod-disruption-budget</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-hook/>pod-hook</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-lifecycle/>pod-lifecycle</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-overview/>pod-overview</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-preset/>pod-preset</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-security-policy/>pod-security-policy</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id00d0eb1f5206fd2532bbc45c4bdd8926")' href=#id00d0eb1f5206fd2532bbc45c4bdd8926 aria-expanded=false aria-controls=id00d0eb1f5206fd2532bbc45c4bdd8926 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/05.%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E8%B7%AF%E7%94%B1/>_index</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id00d0eb1f5206fd2532bbc45c4bdd8926 aria-expanded=false aria-controls=id00d0eb1f5206fd2532bbc45c4bdd8926><i class="fa-solid fa-angle-right" id=caret-id00d0eb1f5206fd2532bbc45c4bdd8926></i></a></div><ul class="nav docs-sidenav collapse" id=id00d0eb1f5206fd2532bbc45c4bdd8926><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/05.%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E8%B7%AF%E7%94%B1/39.service/>39.Service</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/05.%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E8%B7%AF%E7%94%B1/40.%E6%8B%93%E6%89%91%E6%84%9F%E7%9F%A5%E8%B7%AF%E7%94%B1/>40.拓扑感知路由</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/05.%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E8%B7%AF%E7%94%B1/41.ingress/>41.Ingress</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/05.%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E8%B7%AF%E7%94%B1/42.gateway-api/>42.Gateway API</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id32c88b3f1c86b390a9c6f65823b94d5e")' href=#id32c88b3f1c86b390a9c6f65823b94d5e aria-expanded=false aria-controls=id32c88b3f1c86b390a9c6f65823b94d5e aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/07.%E7%BD%91%E7%BB%9C/>_index</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id32c88b3f1c86b390a9c6f65823b94d5e aria-expanded=false aria-controls=id32c88b3f1c86b390a9c6f65823b94d5e><i class="fa-solid fa-angle-right" id=caret-id32c88b3f1c86b390a9c6f65823b94d5e></i></a></div><ul class="nav docs-sidenav collapse" id=id32c88b3f1c86b390a9c6f65823b94d5e><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/07.%E7%BD%91%E7%BB%9C/calico/>calico</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/07.%E7%BD%91%E7%BB%9C/cilium/>cilium</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/07.%E7%BD%91%E7%BB%9C/flannel/>flannel</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id1288ced20a7fea2f35c56e0b90712237")' href=#id1288ced20a7fea2f35c56e0b90712237 aria-expanded=false aria-controls=id1288ced20a7fea2f35c56e0b90712237 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/09.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/>_index</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id1288ced20a7fea2f35c56e0b90712237 aria-expanded=false aria-controls=id1288ced20a7fea2f35c56e0b90712237><i class="fa-solid fa-angle-right" id=caret-id1288ced20a7fea2f35c56e0b90712237></i></a></div><ul class="nav docs-sidenav collapse" id=id1288ced20a7fea2f35c56e0b90712237><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/09.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/aggregated-api-server/>aggregated-api-server</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/09.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/apiservice/>apiservice</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/09.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/crd/>crd</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/09.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/custom-resource/>custom-resource</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/09.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/service-catalog/>service-catalog</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idd7760aeea62bb053c481ba072639774f")' href=#idd7760aeea62bb053c481ba072639774f aria-expanded=false aria-controls=idd7760aeea62bb053c481ba072639774f aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/10.%E5%A4%9A%E9%9B%86%E7%BE%A4%E7%AE%A1%E7%90%86/>_index</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idd7760aeea62bb053c481ba072639774f aria-expanded=false aria-controls=idd7760aeea62bb053c481ba072639774f><i class="fa-solid fa-angle-right" id=caret-idd7760aeea62bb053c481ba072639774f></i></a></div><ul class="nav docs-sidenav collapse" id=idd7760aeea62bb053c481ba072639774f><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/10.%E5%A4%9A%E9%9B%86%E7%BE%A4%E7%AE%A1%E7%90%86/federation/>federation</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/10.%E5%A4%9A%E9%9B%86%E7%BE%A4%E7%AE%A1%E7%90%86/multi-cluster-services-api/>multi-cluster-services-api</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id8fea313385df6cf9c2a4a8befa22b099")' href=#id8fea313385df6cf9c2a4a8befa22b099 aria-expanded=false aria-controls=id8fea313385df6cf9c2a4a8befa22b099 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/11.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1%E9%85%8D%E7%BD%AE/>_index</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id8fea313385df6cf9c2a4a8befa22b099 aria-expanded=false aria-controls=id8fea313385df6cf9c2a4a8befa22b099><i class="fa-solid fa-angle-right" id=caret-id8fea313385df6cf9c2a4a8befa22b099></i></a></div><ul class="nav docs-sidenav collapse" id=id8fea313385df6cf9c2a4a8befa22b099><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/11.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1%E9%85%8D%E7%BD%AE/74.%E9%85%8D%E7%BD%AE-pod-%E7%9A%84-liveness-%E5%92%8C-readiness-%E6%8E%A2%E9%92%88/>74.配置 Pod 的 liveness 和 readiness 探针</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/11.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1%E9%85%8D%E7%BD%AE/quota/>quota</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/11.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1%E9%85%8D%E7%BD%AE/secret/>secret</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/11.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1%E9%85%8D%E7%BD%AE/service-account/>service-account</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id168c4a45c67989cc65f77496e86d8aa8")' href=#id168c4a45c67989cc65f77496e86d8aa8 aria-expanded=false aria-controls=id168c4a45c67989cc65f77496e86d8aa8 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/>_index</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id168c4a45c67989cc65f77496e86d8aa8 aria-expanded=false aria-controls=id168c4a45c67989cc65f77496e86d8aa8><i class="fa-solid fa-angle-right" id=caret-id168c4a45c67989cc65f77496e86d8aa8></i></a></div><ul class="nav docs-sidenav collapse" id=id168c4a45c67989cc65f77496e86d8aa8><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/docker-cli-to-kubectl/>docker-cli-to-kubectl</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/etcdctl/>etcdctl</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/kubectl-cheatsheet/>kubectl-cheatsheet</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/using-kubectl/>using-kubectl</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id01a01dcaf73a226d20a86d2a0e6589cf")' href=#id01a01dcaf73a226d20a86d2a0e6589cf aria-expanded=false aria-controls=id01a01dcaf73a226d20a86d2a0e6589cf aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/13.%E9%9B%86%E7%BE%A4%E5%AE%89%E5%85%A8%E6%80%A7%E7%AE%A1%E7%90%86/>_index</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id01a01dcaf73a226d20a86d2a0e6589cf aria-expanded=false aria-controls=id01a01dcaf73a226d20a86d2a0e6589cf><i class="fa-solid fa-angle-right" id=caret-id01a01dcaf73a226d20a86d2a0e6589cf></i></a></div><ul class="nav docs-sidenav collapse" id=id01a01dcaf73a226d20a86d2a0e6589cf><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/13.%E9%9B%86%E7%BE%A4%E5%AE%89%E5%85%A8%E6%80%A7%E7%AE%A1%E7%90%86/auth-with-kubeconfig-or-token/>auth-with-kubeconfig-or-token</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/13.%E9%9B%86%E7%BE%A4%E5%AE%89%E5%85%A8%E6%80%A7%E7%AE%A1%E7%90%86/authentication/>authentication</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/13.%E9%9B%86%E7%BE%A4%E5%AE%89%E5%85%A8%E6%80%A7%E7%AE%A1%E7%90%86/ip-masq-agent/>ip-masq-agent</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/13.%E9%9B%86%E7%BE%A4%E5%AE%89%E5%85%A8%E6%80%A7%E7%AE%A1%E7%90%86/kubectl-user-authentication-authorization/>kubectl-user-authentication-authorization</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/13.%E9%9B%86%E7%BE%A4%E5%AE%89%E5%85%A8%E6%80%A7%E7%AE%A1%E7%90%86/kubelet-authentication-authorization/>kubelet-authentication-authorization</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/13.%E9%9B%86%E7%BE%A4%E5%AE%89%E5%85%A8%E6%80%A7%E7%AE%A1%E7%90%86/kubernetes-security-best-practice/>kubernetes-security-best-practice</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/13.%E9%9B%86%E7%BE%A4%E5%AE%89%E5%85%A8%E6%80%A7%E7%AE%A1%E7%90%86/managing-tls-in-a-cluster/>managing-tls-in-a-cluster</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/13.%E9%9B%86%E7%BE%A4%E5%AE%89%E5%85%A8%E6%80%A7%E7%AE%A1%E7%90%86/tls-bootstrapping/>tls-bootstrapping</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id39fdbb30c1067eb27eb3da47e08b99b4")' href=#id39fdbb30c1067eb27eb3da47e08b99b4 aria-expanded=false aria-controls=id39fdbb30c1067eb27eb3da47e08b99b4 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/>_index</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id39fdbb30c1067eb27eb3da47e08b99b4 aria-expanded=false aria-controls=id39fdbb30c1067eb27eb3da47e08b99b4><i class="fa-solid fa-angle-right" id=caret-id39fdbb30c1067eb27eb3da47e08b99b4></i></a></div><ul class="nav docs-sidenav collapse" id=id39fdbb30c1067eb27eb3da47e08b99b4><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/accessing-kubernetes-pods-from-outside-of-the-cluster/>accessing-kubernetes-pods-from-outside-of-the-cluster</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/authenticate-across-clusters-kubeconfig/>authenticate-across-clusters-kubeconfig</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/connecting-to-applications-port-forward/>connecting-to-applications-port-forward</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/kubernator-kubernetes-ui/>kubernator-kubernetes-ui</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/lens/>lens</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/methods/>methods</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/service-access-application-cluster/>service-access-application-cluster</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idf4cf6ce46a88a0c077dfca9b9e734c24")' href=#idf4cf6ce46a88a0c077dfca9b9e734c24 aria-expanded=false aria-controls=idf4cf6ce46a88a0c077dfca9b9e734c24 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/15.%E9%83%A8%E7%BD%B2%E5%BA%94%E7%94%A8/>_index</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idf4cf6ce46a88a0c077dfca9b9e734c24 aria-expanded=false aria-controls=idf4cf6ce46a88a0c077dfca9b9e734c24><i class="fa-solid fa-angle-right" id=caret-idf4cf6ce46a88a0c077dfca9b9e734c24></i></a></div><ul class="nav docs-sidenav collapse" id=idf4cf6ce46a88a0c077dfca9b9e734c24><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/15.%E9%83%A8%E7%BD%B2%E5%BA%94%E7%94%A8/deploy-applications-in-kubernetes/>deploy-applications-in-kubernetes</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/15.%E9%83%A8%E7%BD%B2%E5%BA%94%E7%94%A8/migrating-hadoop-yarn-to-kubernetes/>migrating-hadoop-yarn-to-kubernetes</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/15.%E9%83%A8%E7%BD%B2%E5%BA%94%E7%94%A8/using-statefulset/>using-statefulset</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-iddc4a814b092bd6f1cf42d650fe7e06ef")' href=#iddc4a814b092bd6f1cf42d650fe7e06ef aria-expanded=false aria-controls=iddc4a814b092bd6f1cf42d650fe7e06ef aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/>_index</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#iddc4a814b092bd6f1cf42d650fe7e06ef aria-expanded=false aria-controls=iddc4a814b092bd6f1cf42d650fe7e06ef><i class="fa-solid fa-angle-right" id=caret-iddc4a814b092bd6f1cf42d650fe7e06ef></i></a></div><ul class="nav docs-sidenav collapse" id=iddc4a814b092bd6f1cf42d650fe7e06ef><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/advance-developer/>advance-developer</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/client-go-sample/>client-go-sample</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/contribute/>contribute</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/developing-environment/>developing-environment</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/kubebuilder/>kubebuilder</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/minikube/>minikube</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/operator/>operator</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/operator-sdk/>operator-sdk</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/sigs-and-working-group/>sigs-and-working-group</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/testing/>testing</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idc379548d194af53b89f5e96849eabfca")' href=#idc379548d194af53b89f5e96849eabfca aria-expanded=false aria-controls=idc379548d194af53b89f5e96849eabfca aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/01.kubernetes-%E6%9E%B6%E6%9E%84/>01.Kubernetes 架构</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idc379548d194af53b89f5e96849eabfca aria-expanded=false aria-controls=idc379548d194af53b89f5e96849eabfca><i class="fa-solid fa-angle-right" id=caret-idc379548d194af53b89f5e96849eabfca></i></a></div><ul class="nav docs-sidenav collapse" id=idc379548d194af53b89f5e96849eabfca><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/01.kubernetes-%E6%9E%B6%E6%9E%84/11.pod-%E7%8A%B6%E6%80%81%E4%B8%8E%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E7%AE%A1%E7%90%86/>11.Pod 状态与生命周期管理</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/01.kubernetes-%E6%9E%B6%E6%9E%84/4.kubernetes-%E7%9A%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5/>4.Kubernetes 的设计理念</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/01.kubernetes-%E6%9E%B6%E6%9E%84/5.etcd-%E8%A7%A3%E6%9E%90/>5.Etcd 解析</a></li><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id368e72318dd32dbcd50de93ab64365e7")' href=#id368e72318dd32dbcd50de93ab64365e7 aria-expanded=false aria-controls=id368e72318dd32dbcd50de93ab64365e7 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/01.kubernetes-%E6%9E%B6%E6%9E%84/6.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/>6.开放接口</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id368e72318dd32dbcd50de93ab64365e7 aria-expanded=false aria-controls=id368e72318dd32dbcd50de93ab64365e7><i class="fa-solid fa-angle-right" id=caret-id368e72318dd32dbcd50de93ab64365e7></i></a></div><ul class="nav docs-sidenav collapse" id=id368e72318dd32dbcd50de93ab64365e7><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/01.kubernetes-%E6%9E%B6%E6%9E%84/6.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/7.%E5%AE%B9%E5%99%A8%E8%BF%90%E8%A1%8C%E6%97%B6%E6%8E%A5%E5%8F%A3cri/>7.容器运行时接口（CRI）</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/01.kubernetes-%E6%9E%B6%E6%9E%84/6.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/8.%E5%AE%B9%E5%99%A8%E7%BD%91%E7%BB%9C%E6%8E%A5%E5%8F%A3cni/>8.容器网络接口（CNI）</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/01.kubernetes-%E6%9E%B6%E6%9E%84/6.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/9.%E5%AE%B9%E5%99%A8%E5%AD%98%E5%82%A8%E6%8E%A5%E5%8F%A3csi/>9.容器存储接口（CSI）</a></li></ul></div></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id1d05cd42f9cfbd4840e4fd53bae4dd56")' href=#id1d05cd42f9cfbd4840e4fd53bae4dd56 aria-expanded=false aria-controls=id1d05cd42f9cfbd4840e4fd53bae4dd56 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/03.%E9%9B%86%E7%BE%A4%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/>03.集群资源管理</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id1d05cd42f9cfbd4840e4fd53bae4dd56 aria-expanded=false aria-controls=id1d05cd42f9cfbd4840e4fd53bae4dd56><i class="fa-solid fa-angle-right" id=caret-id1d05cd42f9cfbd4840e4fd53bae4dd56></i></a></div><ul class="nav docs-sidenav collapse" id=id1d05cd42f9cfbd4840e4fd53bae4dd56><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/03.%E9%9B%86%E7%BE%A4%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/22.node/>22.Node</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/03.%E9%9B%86%E7%BE%A4%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/23.namespace/>23.Namespace</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/03.%E9%9B%86%E7%BE%A4%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/24.label/>24.Label</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/03.%E9%9B%86%E7%BE%A4%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/25.annotation/>25.Annotation</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/03.%E9%9B%86%E7%BE%A4%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/26.taint-%E5%92%8C-toleration%E6%B1%A1%E7%82%B9%E5%92%8C%E5%AE%B9%E5%BF%8D/>26.Taint 和 Toleration（污点和容忍）</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/03.%E9%9B%86%E7%BE%A4%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/27.%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86/>27.垃圾收集</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/03.%E9%9B%86%E7%BE%A4%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/71.%E8%B5%84%E6%BA%90%E8%B0%83%E5%BA%A6/>71.资源调度</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/03.%E9%9B%86%E7%BE%A4%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/72.%E6%9C%8D%E5%8A%A1%E8%B4%A8%E9%87%8F%E7%AD%89%E7%BA%A7qos/>72.服务质量等级（QoS）</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id73fa50fc0f0e8300fcb24a99c4fe7e56")' href=#id73fa50fc0f0e8300fcb24a99c4fe7e56 aria-expanded=false aria-controls=id73fa50fc0f0e8300fcb24a99c4fe7e56 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/>04.控制器</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id73fa50fc0f0e8300fcb24a99c4fe7e56 aria-expanded=false aria-controls=id73fa50fc0f0e8300fcb24a99c4fe7e56><i class="fa-solid fa-angle-right" id=caret-id73fa50fc0f0e8300fcb24a99c4fe7e56></i></a></div><ul class="nav docs-sidenav collapse" id=id73fa50fc0f0e8300fcb24a99c4fe7e56><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/29.deployment/>29.Deployment</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/30.statefulset/>30.StatefulSet</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/31.daemonset/>31.DaemonSet</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/32.replicationcontroller-%E5%92%8C-replicaset/>32.ReplicationController 和 ReplicaSet</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/33.job/>33.Job</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/34.cronjob/>34.CronJob</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/34.ingress-%E6%8E%A7%E5%88%B6%E5%99%A8/>34.Ingress 控制器</a></li><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id8843184acab98f9c1f592c03cde5d6c8")' href=#id8843184acab98f9c1f592c03cde5d6c8 aria-expanded=false aria-controls=id8843184acab98f9c1f592c03cde5d6c8 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/35.horizontal-pod-autoscaling/>35.Horizontal Pod Autoscaling</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id8843184acab98f9c1f592c03cde5d6c8 aria-expanded=false aria-controls=id8843184acab98f9c1f592c03cde5d6c8><i class="fa-solid fa-angle-right" id=caret-id8843184acab98f9c1f592c03cde5d6c8></i></a></div><ul class="nav docs-sidenav collapse" id=id8843184acab98f9c1f592c03cde5d6c8><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/35.horizontal-pod-autoscaling/36.%E8%87%AA%E5%AE%9A%E4%B9%89%E6%8C%87%E6%A0%87-hpa/>36.自定义指标 HPA</a></li></ul></div><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/37.%E5%87%86%E5%85%A5%E6%8E%A7%E5%88%B6%E5%99%A8admission-controller/>37.准入控制器（Admission Controller）</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id8d90075d981248eb8af28ee2dbf60243")' href=#id8d90075d981248eb8af28ee2dbf60243 aria-expanded=false aria-controls=id8d90075d981248eb8af28ee2dbf60243 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/06.%E8%BA%AB%E4%BB%BD%E4%B8%8E%E6%9D%83%E9%99%90%E8%AE%A4%E8%AF%81/>06.身份与权限认证</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id8d90075d981248eb8af28ee2dbf60243 aria-expanded=false aria-controls=id8d90075d981248eb8af28ee2dbf60243><i class="fa-solid fa-angle-right" id=caret-id8d90075d981248eb8af28ee2dbf60243></i></a></div><ul class="nav docs-sidenav collapse" id=id8d90075d981248eb8af28ee2dbf60243><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/06.%E8%BA%AB%E4%BB%BD%E4%B8%8E%E6%9D%83%E9%99%90%E8%AE%A4%E8%AF%81/network-policy/>network-policy</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/06.%E8%BA%AB%E4%BB%BD%E4%B8%8E%E6%9D%83%E9%99%90%E8%AE%A4%E8%AF%81/rbac/>rbac</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/06.%E8%BA%AB%E4%BB%BD%E4%B8%8E%E6%9D%83%E9%99%90%E8%AE%A4%E8%AF%81/serviceaccount/>serviceaccount</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/06.%E8%BA%AB%E4%BB%BD%E4%B8%8E%E6%9D%83%E9%99%90%E8%AE%A4%E8%AF%81/spiffe/>spiffe</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/06.%E8%BA%AB%E4%BB%BD%E4%B8%8E%E6%9D%83%E9%99%90%E8%AE%A4%E8%AF%81/spire/>spire</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/06.%E8%BA%AB%E4%BB%BD%E4%B8%8E%E6%9D%83%E9%99%90%E8%AE%A4%E8%AF%81/spire-k8s-workload-registar/>spire-k8s-workload-registar</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/06.%E8%BA%AB%E4%BB%BD%E4%B8%8E%E6%9D%83%E9%99%90%E8%AE%A4%E8%AF%81/svid/>svid</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idf759f23d388589b25d9dd92d16f640a5")' href=#idf759f23d388589b25d9dd92d16f640a5 aria-expanded=false aria-controls=idf759f23d388589b25d9dd92d16f640a5 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/08.%E5%AD%98%E5%82%A8/>08.存储</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idf759f23d388589b25d9dd92d16f640a5 aria-expanded=false aria-controls=idf759f23d388589b25d9dd92d16f640a5><i class="fa-solid fa-angle-right" id=caret-idf759f23d388589b25d9dd92d16f640a5></i></a></div><ul class="nav docs-sidenav collapse" id=idf759f23d388589b25d9dd92d16f640a5><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/08.%E5%AD%98%E5%82%A8/55.secret/>55.Secret</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/08.%E5%AD%98%E5%82%A8/56.configmap/>56.ConfigMap</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/08.%E5%AD%98%E5%82%A8/57.configmap-%E7%9A%84%E7%83%AD%E6%9B%B4%E6%96%B0/>57.ConfigMap 的热更新</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/08.%E5%AD%98%E5%82%A8/58.volume/>58.Volume</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/08.%E5%AD%98%E5%82%A8/59.%E6%8C%81%E4%B9%85%E5%8C%96%E5%8D%B7persistent-volume/>59.持久化卷（Persistent Volume）</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/08.%E5%AD%98%E5%82%A8/60.storage-class/>60.Storage Class</a></li><li class="child level"><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/08.%E5%AD%98%E5%82%A8/61.%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8/>61.本地持久化存储</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents><ul><li><a href=#type-book>weight: 20
+<!DOCTYPE html><html lang="zh" >
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  
+  
+    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+
+  
+  
+  
+    
+      
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    
+  
+
+  
+    <meta name="google-site-verification" content="google69a5cccb61297807" />
+    <meta name="baidu-site-verification" content="cqmZHEleVh" />
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+    
+  
+  <meta name="description" content="weight: 20 title: Pod 中断与 PDB（Pod 中断预算） date: &ldquo;2022-05-21T00:00:00&#43;08:00&rdquo; type: book 这篇文档适用于要构建高可用应用程序的所有者，因此他们需要了解 Pod 可能发生什么类型的中断。也适用于要执行自动集群操作的集群管理员，如升级和集群自动扩容。 自愿中" />
+
+  
+  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-disruption-budget/" />
+
+  
+  
+  
+    <meta name="theme-color" content="#0a55a7" />
+  
+
+  
+  
+
+  
+
+  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
+
+  
+  
+  
+    
+    
+
+    
+    
+    
+    
+      
+      
+    
+    
+    
+
+    
+    
+    
+      
+    
+    
+      
+      
+        
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
+        
+      
+    
+
+    
+    
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
+    
+
+    
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+        
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+  
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/wowchemy.0d97305106da5efa530e28b021b4c580.css" />
+
+  
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', "G-40NYXJ8823");
+</script>
+
+
+  
+
+
+  
+
+
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+  
+  
+  
+
+  
+
+  
+    <link rel="manifest" href="/manifest.webmanifest" />
+  
+
+  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
+  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
+
+  <link rel="canonical" href="https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-disruption-budget/" />
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+
+  
+  
+    
+    
+  
+  <meta property="twitter:card" content="summary_large_image" />
+  
+    <meta property="twitter:site" content="@wx-chevalier" />
+    <meta property="twitter:creator" content="@wx-chevalier" />
+  
+  <meta property="og:site_name" content="Next-gen Tech Edu" />
+  <meta property="og:url" content="https://ng-tech.icu/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-disruption-budget/" />
+  <meta property="og:title" content="pod-disruption-budget | Next-gen Tech Edu" />
+  <meta property="og:description" content="weight: 20 title: Pod 中断与 PDB（Pod 中断预算） date: &ldquo;2022-05-21T00:00:00&#43;08:00&rdquo; type: book 这篇文档适用于要构建高可用应用程序的所有者，因此他们需要了解 Pod 可能发生什么类型的中断。也适用于要执行自动集群操作的集群管理员，如升级和集群自动扩容。 自愿中" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
+    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
+  
+    
+    
+  
+
+  
+
+
+
+  
+
+  
+
+  
+
+
+
+
+
+  <title>pod-disruption-budget | Next-gen Tech Edu</title>
+</head>
+
+
+<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="f16339f007089d562ac28f4099f787c4" >
+  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
+
+  
+
+
+<aside class="search-modal" id="search">
+  <div class="container">
+    <section class="search-header">
+
+      <div class="row no-gutters justify-content-between mb-3">
+        <div class="col-6 search-title">
+          <p>搜索</p>
+        </div>
+        <div class="col-6 col-search-close">
+          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+      <div id="search-box">
+        
+        
+        
+      </div>
+
+      
+      
+
+      
+    </section>
+    <section class="section-search-results">
+
+      <div id="search-hits">
+        
+      </div>
+
+      <div id="search-common-queries">
+        
+      </div>
+
+    </section>
+  </div>
+</aside>
+
+
+
+  <div class="page-header">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="header--fixed">
+  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
+    <div class="container-xl">
+
+      
+      <div class="d-none d-lg-inline-flex">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      <button type="button" class="navbar-toggler" data-toggle="collapse"
+              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
+      <span><i class="fas fa-bars"></i></span>
+      </button>
+      
+
+      
+      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      
+      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
+
+        
+        <ul class="navbar-nav d-md-inline-flex">
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
+          </li>
+
+          
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+              
+              
+              
+                
+              
+              
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
+              
+                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
+              
+                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+        
+
+          
+        </ul>
+      </div>
+
+      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
+
+        
+        
+        
+        <li class="nav-item">
+          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        <li class="nav-item">
+            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        
+
+        
+        
+        
+        <div></div>
+        
+        <style>
+        @media only screen and (max-width: 600px) {
+          .jimmysong-template {
+            display: none!important;
+          }
+        }
+        </style>
+        
+        <li class="jimmysong-template" style="color: white;font-size: 12px;">
+          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+</header>
+
+
+  </div>
+
+  <div class="page-body">
+    
+    
+    
+
+    
+
+
+
+
+<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
+<div class="container-xl docs">
+  <div class="row flex-xl-nowrap">
+    <div class="docs-sidebar">
+      <form class="docs-search d-flex align-items-center">
+  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    <div class="d-flex">
+      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
+        
+          _index
+        
+      </span>
+      <span><i class="fas fa-chevron-down"></i></span>
+    </div>
+  </button>
+
+  
+  <button class="form-control sidebar-search js-search d-none d-md-flex">
+    <i class="fas fa-search pr-2"></i>
+    <span class="sidebar-search-text">搜索...</span>
+    <span class="sidebar-search-shortcut">/</span>
+  </button>
+  
+</form>
+
+<nav class="collapse docs-links" id="docs-nav">
+  
+  
+  
+  
+  
+  
+
+  
+  
+    
+
+    
+      
+
+      <ul class="nav docs-sidenav">
+        <li style="display: inline-flex">
+          <a style="cursor: pointer;" onclick="window.history.back()">
+            <i class="fas fa-arrow-left pr-1"></i>
+            Back
+          </a>
+          <span>|</span>
+          <a href="/books/">
+            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
+            Books
+          </a>
+        </li>
+      </ul>
+
+      
+      
+        
+          
+        
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idfeb2a47527259ef304df22cf4fd82382&#34;)" href="#idfeb2a47527259ef304df22cf4fd82382" aria-expanded="false" aria-controls="idfeb2a47527259ef304df22cf4fd82382" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/">_index</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idfeb2a47527259ef304df22cf4fd82382" aria-expanded="false" aria-controls="idfeb2a47527259ef304df22cf4fd82382">
+    
+    <i class="fa-solid fa-angle-down" id="caret-idfeb2a47527259ef304df22cf4fd82382"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="idfeb2a47527259ef304df22cf4fd82382">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id74d39329e37c239b9d6d4b2c4a260a33&#34;)" href="#id74d39329e37c239b9d6d4b2c4a260a33" aria-expanded="false" aria-controls="id74d39329e37c239b9d6d4b2c4a260a33" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/">_index</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id74d39329e37c239b9d6d4b2c4a260a33" aria-expanded="false" aria-controls="id74d39329e37c239b9d6d4b2c4a260a33">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id74d39329e37c239b9d6d4b2c4a260a33"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id74d39329e37c239b9d6d4b2c4a260a33">
+      
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/14.init-%E5%AE%B9%E5%99%A8/">14.Init 容器</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pause-container/">pause-container</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod/">pod</a></li>
+
+
+
+
+  <li class="child level active"><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-disruption-budget/">pod-disruption-budget</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-hook/">pod-hook</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-lifecycle/">pod-lifecycle</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-overview/">pod-overview</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-preset/">pod-preset</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-security-policy/">pod-security-policy</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id00d0eb1f5206fd2532bbc45c4bdd8926&#34;)" href="#id00d0eb1f5206fd2532bbc45c4bdd8926" aria-expanded="false" aria-controls="id00d0eb1f5206fd2532bbc45c4bdd8926" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/05.%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E8%B7%AF%E7%94%B1/">_index</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id00d0eb1f5206fd2532bbc45c4bdd8926" aria-expanded="false" aria-controls="id00d0eb1f5206fd2532bbc45c4bdd8926">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id00d0eb1f5206fd2532bbc45c4bdd8926"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id00d0eb1f5206fd2532bbc45c4bdd8926">
+      
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/05.%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E8%B7%AF%E7%94%B1/39.service/">39.Service</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/05.%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E8%B7%AF%E7%94%B1/40.%E6%8B%93%E6%89%91%E6%84%9F%E7%9F%A5%E8%B7%AF%E7%94%B1/">40.拓扑感知路由</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/05.%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E8%B7%AF%E7%94%B1/41.ingress/">41.Ingress</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/05.%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E4%B8%8E%E8%B7%AF%E7%94%B1/42.gateway-api/">42.Gateway API</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id32c88b3f1c86b390a9c6f65823b94d5e&#34;)" href="#id32c88b3f1c86b390a9c6f65823b94d5e" aria-expanded="false" aria-controls="id32c88b3f1c86b390a9c6f65823b94d5e" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/07.%E7%BD%91%E7%BB%9C/">_index</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id32c88b3f1c86b390a9c6f65823b94d5e" aria-expanded="false" aria-controls="id32c88b3f1c86b390a9c6f65823b94d5e">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id32c88b3f1c86b390a9c6f65823b94d5e"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id32c88b3f1c86b390a9c6f65823b94d5e">
+      
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/07.%E7%BD%91%E7%BB%9C/calico/">calico</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/07.%E7%BD%91%E7%BB%9C/cilium/">cilium</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/07.%E7%BD%91%E7%BB%9C/flannel/">flannel</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id1288ced20a7fea2f35c56e0b90712237&#34;)" href="#id1288ced20a7fea2f35c56e0b90712237" aria-expanded="false" aria-controls="id1288ced20a7fea2f35c56e0b90712237" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/09.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/">_index</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id1288ced20a7fea2f35c56e0b90712237" aria-expanded="false" aria-controls="id1288ced20a7fea2f35c56e0b90712237">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id1288ced20a7fea2f35c56e0b90712237"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id1288ced20a7fea2f35c56e0b90712237">
+      
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/09.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/aggregated-api-server/">aggregated-api-server</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/09.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/apiservice/">apiservice</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/09.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/crd/">crd</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/09.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/custom-resource/">custom-resource</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/09.%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4/service-catalog/">service-catalog</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idd7760aeea62bb053c481ba072639774f&#34;)" href="#idd7760aeea62bb053c481ba072639774f" aria-expanded="false" aria-controls="idd7760aeea62bb053c481ba072639774f" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/10.%E5%A4%9A%E9%9B%86%E7%BE%A4%E7%AE%A1%E7%90%86/">_index</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idd7760aeea62bb053c481ba072639774f" aria-expanded="false" aria-controls="idd7760aeea62bb053c481ba072639774f">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idd7760aeea62bb053c481ba072639774f"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idd7760aeea62bb053c481ba072639774f">
+      
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/10.%E5%A4%9A%E9%9B%86%E7%BE%A4%E7%AE%A1%E7%90%86/federation/">federation</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/10.%E5%A4%9A%E9%9B%86%E7%BE%A4%E7%AE%A1%E7%90%86/multi-cluster-services-api/">multi-cluster-services-api</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id8fea313385df6cf9c2a4a8befa22b099&#34;)" href="#id8fea313385df6cf9c2a4a8befa22b099" aria-expanded="false" aria-controls="id8fea313385df6cf9c2a4a8befa22b099" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/11.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1%E9%85%8D%E7%BD%AE/">_index</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id8fea313385df6cf9c2a4a8befa22b099" aria-expanded="false" aria-controls="id8fea313385df6cf9c2a4a8befa22b099">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id8fea313385df6cf9c2a4a8befa22b099"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id8fea313385df6cf9c2a4a8befa22b099">
+      
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/11.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1%E9%85%8D%E7%BD%AE/74.%E9%85%8D%E7%BD%AE-pod-%E7%9A%84-liveness-%E5%92%8C-readiness-%E6%8E%A2%E9%92%88/">74.配置 Pod 的 liveness 和 readiness 探针</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/11.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1%E9%85%8D%E7%BD%AE/quota/">quota</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/11.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1%E9%85%8D%E7%BD%AE/secret/">secret</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/11.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1%E9%85%8D%E7%BD%AE/service-account/">service-account</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id168c4a45c67989cc65f77496e86d8aa8&#34;)" href="#id168c4a45c67989cc65f77496e86d8aa8" aria-expanded="false" aria-controls="id168c4a45c67989cc65f77496e86d8aa8" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/">_index</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id168c4a45c67989cc65f77496e86d8aa8" aria-expanded="false" aria-controls="id168c4a45c67989cc65f77496e86d8aa8">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id168c4a45c67989cc65f77496e86d8aa8"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id168c4a45c67989cc65f77496e86d8aa8">
+      
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/docker-cli-to-kubectl/">docker-cli-to-kubectl</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/etcdctl/">etcdctl</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/kubectl-cheatsheet/">kubectl-cheatsheet</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/12.%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8/using-kubectl/">using-kubectl</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id01a01dcaf73a226d20a86d2a0e6589cf&#34;)" href="#id01a01dcaf73a226d20a86d2a0e6589cf" aria-expanded="false" aria-controls="id01a01dcaf73a226d20a86d2a0e6589cf" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/13.%E9%9B%86%E7%BE%A4%E5%AE%89%E5%85%A8%E6%80%A7%E7%AE%A1%E7%90%86/">_index</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id01a01dcaf73a226d20a86d2a0e6589cf" aria-expanded="false" aria-controls="id01a01dcaf73a226d20a86d2a0e6589cf">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id01a01dcaf73a226d20a86d2a0e6589cf"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id01a01dcaf73a226d20a86d2a0e6589cf">
+      
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/13.%E9%9B%86%E7%BE%A4%E5%AE%89%E5%85%A8%E6%80%A7%E7%AE%A1%E7%90%86/auth-with-kubeconfig-or-token/">auth-with-kubeconfig-or-token</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/13.%E9%9B%86%E7%BE%A4%E5%AE%89%E5%85%A8%E6%80%A7%E7%AE%A1%E7%90%86/authentication/">authentication</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/13.%E9%9B%86%E7%BE%A4%E5%AE%89%E5%85%A8%E6%80%A7%E7%AE%A1%E7%90%86/ip-masq-agent/">ip-masq-agent</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/13.%E9%9B%86%E7%BE%A4%E5%AE%89%E5%85%A8%E6%80%A7%E7%AE%A1%E7%90%86/kubectl-user-authentication-authorization/">kubectl-user-authentication-authorization</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/13.%E9%9B%86%E7%BE%A4%E5%AE%89%E5%85%A8%E6%80%A7%E7%AE%A1%E7%90%86/kubelet-authentication-authorization/">kubelet-authentication-authorization</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/13.%E9%9B%86%E7%BE%A4%E5%AE%89%E5%85%A8%E6%80%A7%E7%AE%A1%E7%90%86/kubernetes-security-best-practice/">kubernetes-security-best-practice</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/13.%E9%9B%86%E7%BE%A4%E5%AE%89%E5%85%A8%E6%80%A7%E7%AE%A1%E7%90%86/managing-tls-in-a-cluster/">managing-tls-in-a-cluster</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/13.%E9%9B%86%E7%BE%A4%E5%AE%89%E5%85%A8%E6%80%A7%E7%AE%A1%E7%90%86/tls-bootstrapping/">tls-bootstrapping</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id39fdbb30c1067eb27eb3da47e08b99b4&#34;)" href="#id39fdbb30c1067eb27eb3da47e08b99b4" aria-expanded="false" aria-controls="id39fdbb30c1067eb27eb3da47e08b99b4" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/">_index</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id39fdbb30c1067eb27eb3da47e08b99b4" aria-expanded="false" aria-controls="id39fdbb30c1067eb27eb3da47e08b99b4">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id39fdbb30c1067eb27eb3da47e08b99b4"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id39fdbb30c1067eb27eb3da47e08b99b4">
+      
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/accessing-kubernetes-pods-from-outside-of-the-cluster/">accessing-kubernetes-pods-from-outside-of-the-cluster</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/authenticate-across-clusters-kubeconfig/">authenticate-across-clusters-kubeconfig</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/connecting-to-applications-port-forward/">connecting-to-applications-port-forward</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/kubernator-kubernetes-ui/">kubernator-kubernetes-ui</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/lens/">lens</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/methods/">methods</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/14.%E8%AE%BF%E9%97%AE%E9%9B%86%E7%BE%A4/service-access-application-cluster/">service-access-application-cluster</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idf4cf6ce46a88a0c077dfca9b9e734c24&#34;)" href="#idf4cf6ce46a88a0c077dfca9b9e734c24" aria-expanded="false" aria-controls="idf4cf6ce46a88a0c077dfca9b9e734c24" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/15.%E9%83%A8%E7%BD%B2%E5%BA%94%E7%94%A8/">_index</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idf4cf6ce46a88a0c077dfca9b9e734c24" aria-expanded="false" aria-controls="idf4cf6ce46a88a0c077dfca9b9e734c24">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idf4cf6ce46a88a0c077dfca9b9e734c24"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idf4cf6ce46a88a0c077dfca9b9e734c24">
+      
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/15.%E9%83%A8%E7%BD%B2%E5%BA%94%E7%94%A8/deploy-applications-in-kubernetes/">deploy-applications-in-kubernetes</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/15.%E9%83%A8%E7%BD%B2%E5%BA%94%E7%94%A8/migrating-hadoop-yarn-to-kubernetes/">migrating-hadoop-yarn-to-kubernetes</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/15.%E9%83%A8%E7%BD%B2%E5%BA%94%E7%94%A8/using-statefulset/">using-statefulset</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-iddc4a814b092bd6f1cf42d650fe7e06ef&#34;)" href="#iddc4a814b092bd6f1cf42d650fe7e06ef" aria-expanded="false" aria-controls="iddc4a814b092bd6f1cf42d650fe7e06ef" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/">_index</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#iddc4a814b092bd6f1cf42d650fe7e06ef" aria-expanded="false" aria-controls="iddc4a814b092bd6f1cf42d650fe7e06ef">
+    
+        <i class="fa-solid fa-angle-right" id="caret-iddc4a814b092bd6f1cf42d650fe7e06ef"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="iddc4a814b092bd6f1cf42d650fe7e06ef">
+      
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/advance-developer/">advance-developer</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/client-go-sample/">client-go-sample</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/contribute/">contribute</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/developing-environment/">developing-environment</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/kubebuilder/">kubebuilder</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/minikube/">minikube</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/operator/">operator</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/operator-sdk/">operator-sdk</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/sigs-and-working-group/">sigs-and-working-group</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/17.%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/testing/">testing</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idc379548d194af53b89f5e96849eabfca&#34;)" href="#idc379548d194af53b89f5e96849eabfca" aria-expanded="false" aria-controls="idc379548d194af53b89f5e96849eabfca" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/01.kubernetes-%E6%9E%B6%E6%9E%84/">01.Kubernetes 架构</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idc379548d194af53b89f5e96849eabfca" aria-expanded="false" aria-controls="idc379548d194af53b89f5e96849eabfca">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idc379548d194af53b89f5e96849eabfca"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idc379548d194af53b89f5e96849eabfca">
+      
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/01.kubernetes-%E6%9E%B6%E6%9E%84/11.pod-%E7%8A%B6%E6%80%81%E4%B8%8E%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E7%AE%A1%E7%90%86/">11.Pod 状态与生命周期管理</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/01.kubernetes-%E6%9E%B6%E6%9E%84/4.kubernetes-%E7%9A%84%E8%AE%BE%E8%AE%A1%E7%90%86%E5%BF%B5/">4.Kubernetes 的设计理念</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/01.kubernetes-%E6%9E%B6%E6%9E%84/5.etcd-%E8%A7%A3%E6%9E%90/">5.Etcd 解析</a></li>
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id368e72318dd32dbcd50de93ab64365e7&#34;)" href="#id368e72318dd32dbcd50de93ab64365e7" aria-expanded="false" aria-controls="id368e72318dd32dbcd50de93ab64365e7" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/01.kubernetes-%E6%9E%B6%E6%9E%84/6.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/">6.开放接口</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id368e72318dd32dbcd50de93ab64365e7" aria-expanded="false" aria-controls="id368e72318dd32dbcd50de93ab64365e7">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id368e72318dd32dbcd50de93ab64365e7"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id368e72318dd32dbcd50de93ab64365e7">
+      
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/01.kubernetes-%E6%9E%B6%E6%9E%84/6.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/7.%E5%AE%B9%E5%99%A8%E8%BF%90%E8%A1%8C%E6%97%B6%E6%8E%A5%E5%8F%A3cri/">7.容器运行时接口（CRI）</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/01.kubernetes-%E6%9E%B6%E6%9E%84/6.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/8.%E5%AE%B9%E5%99%A8%E7%BD%91%E7%BB%9C%E6%8E%A5%E5%8F%A3cni/">8.容器网络接口（CNI）</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/01.kubernetes-%E6%9E%B6%E6%9E%84/6.%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3/9.%E5%AE%B9%E5%99%A8%E5%AD%98%E5%82%A8%E6%8E%A5%E5%8F%A3csi/">9.容器存储接口（CSI）</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id1d05cd42f9cfbd4840e4fd53bae4dd56&#34;)" href="#id1d05cd42f9cfbd4840e4fd53bae4dd56" aria-expanded="false" aria-controls="id1d05cd42f9cfbd4840e4fd53bae4dd56" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/03.%E9%9B%86%E7%BE%A4%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/">03.集群资源管理</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id1d05cd42f9cfbd4840e4fd53bae4dd56" aria-expanded="false" aria-controls="id1d05cd42f9cfbd4840e4fd53bae4dd56">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id1d05cd42f9cfbd4840e4fd53bae4dd56"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id1d05cd42f9cfbd4840e4fd53bae4dd56">
+      
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/03.%E9%9B%86%E7%BE%A4%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/22.node/">22.Node</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/03.%E9%9B%86%E7%BE%A4%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/23.namespace/">23.Namespace</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/03.%E9%9B%86%E7%BE%A4%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/24.label/">24.Label</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/03.%E9%9B%86%E7%BE%A4%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/25.annotation/">25.Annotation</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/03.%E9%9B%86%E7%BE%A4%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/26.taint-%E5%92%8C-toleration%E6%B1%A1%E7%82%B9%E5%92%8C%E5%AE%B9%E5%BF%8D/">26.Taint 和 Toleration（污点和容忍）</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/03.%E9%9B%86%E7%BE%A4%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/27.%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86/">27.垃圾收集</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/03.%E9%9B%86%E7%BE%A4%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/71.%E8%B5%84%E6%BA%90%E8%B0%83%E5%BA%A6/">71.资源调度</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/03.%E9%9B%86%E7%BE%A4%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/72.%E6%9C%8D%E5%8A%A1%E8%B4%A8%E9%87%8F%E7%AD%89%E7%BA%A7qos/">72.服务质量等级（QoS）</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id73fa50fc0f0e8300fcb24a99c4fe7e56&#34;)" href="#id73fa50fc0f0e8300fcb24a99c4fe7e56" aria-expanded="false" aria-controls="id73fa50fc0f0e8300fcb24a99c4fe7e56" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/">04.控制器</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id73fa50fc0f0e8300fcb24a99c4fe7e56" aria-expanded="false" aria-controls="id73fa50fc0f0e8300fcb24a99c4fe7e56">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id73fa50fc0f0e8300fcb24a99c4fe7e56"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id73fa50fc0f0e8300fcb24a99c4fe7e56">
+      
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/29.deployment/">29.Deployment</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/30.statefulset/">30.StatefulSet</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/31.daemonset/">31.DaemonSet</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/32.replicationcontroller-%E5%92%8C-replicaset/">32.ReplicationController 和 ReplicaSet</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/33.job/">33.Job</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/34.cronjob/">34.CronJob</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/34.ingress-%E6%8E%A7%E5%88%B6%E5%99%A8/">34.Ingress 控制器</a></li>
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id8843184acab98f9c1f592c03cde5d6c8&#34;)" href="#id8843184acab98f9c1f592c03cde5d6c8" aria-expanded="false" aria-controls="id8843184acab98f9c1f592c03cde5d6c8" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/35.horizontal-pod-autoscaling/">35.Horizontal Pod Autoscaling</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id8843184acab98f9c1f592c03cde5d6c8" aria-expanded="false" aria-controls="id8843184acab98f9c1f592c03cde5d6c8">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id8843184acab98f9c1f592c03cde5d6c8"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id8843184acab98f9c1f592c03cde5d6c8">
+      
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/35.horizontal-pod-autoscaling/36.%E8%87%AA%E5%AE%9A%E4%B9%89%E6%8C%87%E6%A0%87-hpa/">36.自定义指标 HPA</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/04.%E6%8E%A7%E5%88%B6%E5%99%A8/37.%E5%87%86%E5%85%A5%E6%8E%A7%E5%88%B6%E5%99%A8admission-controller/">37.准入控制器（Admission Controller）</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id8d90075d981248eb8af28ee2dbf60243&#34;)" href="#id8d90075d981248eb8af28ee2dbf60243" aria-expanded="false" aria-controls="id8d90075d981248eb8af28ee2dbf60243" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/06.%E8%BA%AB%E4%BB%BD%E4%B8%8E%E6%9D%83%E9%99%90%E8%AE%A4%E8%AF%81/">06.身份与权限认证</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id8d90075d981248eb8af28ee2dbf60243" aria-expanded="false" aria-controls="id8d90075d981248eb8af28ee2dbf60243">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id8d90075d981248eb8af28ee2dbf60243"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id8d90075d981248eb8af28ee2dbf60243">
+      
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/06.%E8%BA%AB%E4%BB%BD%E4%B8%8E%E6%9D%83%E9%99%90%E8%AE%A4%E8%AF%81/45-%E5%9F%BA%E4%BA%8E%E8%A7%92%E8%89%B2%E7%9A%84%E8%AE%BF%E9%97%AE%E6%8E%A7%E5%88%B6rbac/">45-基于角色的访问控制（RBAC）</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/06.%E8%BA%AB%E4%BB%BD%E4%B8%8E%E6%9D%83%E9%99%90%E8%AE%A4%E8%AF%81/46-network-policy/">46-Network Policy</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/06.%E8%BA%AB%E4%BB%BD%E4%B8%8E%E6%9D%83%E9%99%90%E8%AE%A4%E8%AF%81/serviceaccount/">serviceaccount</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/06.%E8%BA%AB%E4%BB%BD%E4%B8%8E%E6%9D%83%E9%99%90%E8%AE%A4%E8%AF%81/spiffe/">spiffe</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/06.%E8%BA%AB%E4%BB%BD%E4%B8%8E%E6%9D%83%E9%99%90%E8%AE%A4%E8%AF%81/spire/">spire</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/06.%E8%BA%AB%E4%BB%BD%E4%B8%8E%E6%9D%83%E9%99%90%E8%AE%A4%E8%AF%81/spire-k8s-workload-registar/">spire-k8s-workload-registar</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/06.%E8%BA%AB%E4%BB%BD%E4%B8%8E%E6%9D%83%E9%99%90%E8%AE%A4%E8%AF%81/svid/">svid</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idf759f23d388589b25d9dd92d16f640a5&#34;)" href="#idf759f23d388589b25d9dd92d16f640a5" aria-expanded="false" aria-controls="idf759f23d388589b25d9dd92d16f640a5" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/08.%E5%AD%98%E5%82%A8/">08.存储</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idf759f23d388589b25d9dd92d16f640a5" aria-expanded="false" aria-controls="idf759f23d388589b25d9dd92d16f640a5">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idf759f23d388589b25d9dd92d16f640a5"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idf759f23d388589b25d9dd92d16f640a5">
+      
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/08.%E5%AD%98%E5%82%A8/55.secret/">55.Secret</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/08.%E5%AD%98%E5%82%A8/56.configmap/">56.ConfigMap</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/08.%E5%AD%98%E5%82%A8/57.configmap-%E7%9A%84%E7%83%AD%E6%9B%B4%E6%96%B0/">57.ConfigMap 的热更新</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/08.%E5%AD%98%E5%82%A8/58.volume/">58.Volume</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/08.%E5%AD%98%E5%82%A8/59.%E6%8C%81%E4%B9%85%E5%8C%96%E5%8D%B7persistent-volume/">59.持久化卷（Persistent Volume）</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/08.%E5%AD%98%E5%82%A8/60.storage-class/">60.Storage Class</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/08.%E5%AD%98%E5%82%A8/61.%E6%9C%AC%E5%9C%B0%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8/">61.本地持久化存储</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+    
+  
+</nav>
+
+    </div>
+
+    
+    
+    <div class="d-none d-xl-block col-xl-2 docs-toc">
+      
+     
+      <ul class="nav toc-top">
+        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
+      </ul>
+     
+
+      <nav id="TableOfContents">
+  <ul>
+    <li><a href="#type-book">weight: 20
 title: Pod 中断与 PDB（Pod 中断预算）
 date: &ldquo;2022-05-21T00:00:00+08:00&rdquo;
-type: book</a></li><li><a href=#自愿中断和非自愿中断>自愿中断和非自愿中断</a></li><li><a href=#处理中断>处理中断</a></li><li><a href=#中断预算的工作原理>中断预算的工作原理</a></li><li><a href=#pdb-示例>PDB 示例</a></li><li><a href=#分离集群所有者和应用程序所有者角色>分离集群所有者和应用程序所有者角色</a></li><li><a href=#如何在集群上执行中断操作>如何在集群上执行中断操作</a></li><li><a href=#参考>参考</a></li></ul></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>pod-disruption-budget</h1><div class=article-style><hr><h2 id=type-book>weight: 20
+type: book</a></li>
+    <li><a href="#自愿中断和非自愿中断">自愿中断和非自愿中断</a></li>
+    <li><a href="#处理中断">处理中断</a></li>
+    <li><a href="#中断预算的工作原理">中断预算的工作原理</a></li>
+    <li><a href="#pdb-示例">PDB 示例</a></li>
+    <li><a href="#分离集群所有者和应用程序所有者角色">分离集群所有者和应用程序所有者角色</a></li>
+    <li><a href="#如何在集群上执行中断操作">如何在集群上执行中断操作</a></li>
+    <li><a href="#参考">参考</a></li>
+  </ul>
+</nav>
+
+      
+<div class="subscribe-module col-24 mt-1">
+    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
+</div>
+
+
+
+    </div>
+    
+
+    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
+
+      <article class="article">
+
+          
+
+          <h1>pod-disruption-budget</h1>
+
+          <div class="article-style">
+            <hr>
+<h2 id="type-book">weight: 20
 title: Pod 中断与 PDB（Pod 中断预算）
 date: &ldquo;2022-05-21T00:00:00+08:00&rdquo;
-type: book</h2><p>这篇文档适用于要构建高可用应用程序的所有者，因此他们需要了解 Pod 可能发生什么类型的中断。也适用于要执行自动集群操作的集群管理员，如升级和集群自动扩容。</p><h2 id=自愿中断和非自愿中断>自愿中断和非自愿中断</h2><p>Pod 不会消失，直到有人（人类或控制器）将其销毁，或者当出现不可避免的硬件或系统软件错误。</p><p>我们把这些不可避免的情况称为应用的非自愿性中断。例如：</p><ul><li>后端节点物理机的硬件故障</li><li>集群管理员错误地删除虚拟机（实例）</li><li>云提供商或管理程序故障使虚拟机消失</li><li>内核恐慌（kernel panic）</li><li>节点由于集群网络分区而从集群中消失</li><li>由于节点<a href=https://kubernetes.io/docs/tasks/administer-cluster/out-of-resource target=_blank rel=noopener>资源不足</a>而将容器逐出</li></ul><p>除资源不足的情况外，大多数用户应该都熟悉以下这些情况；它们不是特定于 Kubernetes 的。</p><p>我们称这些情况为”自愿中断“。包括由应用程序所有者发起的操作和由集群管理员发起的操作。典型的应用程序所有者操作包括：</p><ul><li>删除管理该 pod 的 Deployment 或其他控制器</li><li>更新了 Deployment 的 pod 模板导致 pod 重启</li><li>直接删除 pod（意外删除）</li></ul><p>集群管理员操作包括：</p><ul><li><a href=https://kubernetes.io/docs//tasks/administer-cluster/safely-drain-node target=_blank rel=noopener>排空（drain）节点</a>进行修复或升级。</li><li>从集群中排空节点以缩小集群。</li><li>从节点中移除一个 pod，以允许其他 pod 使用该节点。</li></ul><p>这些操作可能由集群管理员直接执行，也可能由集群管理员或集群托管提供商自动执行。</p><p>询问您的集群管理员或咨询您的云提供商或发行文档，以确定是否为您的集群启用了任何自动中断源。如果没有启用，您可以跳过创建 Pod Disruption Budget（Pod 中断预算）。</p><h2 id=处理中断>处理中断</h2><p>以下是一些减轻非自愿性中断的方法：</p><ul><li>确保您的 pod <a href=https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-ram-container target=_blank rel=noopener>请求所需的资源</a>。</li><li>如果您需要更高的可用性，请复制您的应用程序。（了解有关运行复制的<a href=https://kubernetes.io/docs/tasks/run-application/run-stateless-application-deployment target=_blank rel=noopener>无状态</a>和<a href=https://kubernetes.io/docs/tasks/run-application/run-replicated-stateful-application target=_blank rel=noopener>有状态</a>应用程序的信息。）</li><li>为了在运行复制应用程序时获得更高的可用性，请跨机架（使用<a href=https://kubernetes.io/docs/user-guide/node-selection/#inter-pod-affinity-and-anti-affinity-beta-feature target=_blank rel=noopener>反亲和性</a>）或跨区域（如果使用多区域集群）分布应用程序。</li></ul><p>自愿中断的频率各不相同。在 Kubernetes 集群上，根本没有自愿的中断。但是，您的集群管理员或托管提供商可能会运行一些导致自愿中断的附加服务。例如，节点软件更新可能导致自愿更新。另外，集群（节点）自动缩放的某些实现可能会导致碎片整理和紧缩节点的自愿中断。您的集群管理员或主机提供商应该已经记录了期望的自愿中断级别（如果有的话）。</p><p>Kubernetes 提供的功能可以满足在频繁地自动中断的同时运行高可用的应用程序。我们称之为“中断预算”。</p><h2 id=中断预算的工作原理>中断预算的工作原理</h2><p>应用程序所有者可以为每个应用程序创建一个 <code>PodDisruptionBudget</code> 对象（PDB）。PDB 将限制在同一时间自愿中断的复制应用程序中宕机的 Pod 的数量。例如，基于定额的应用程序希望确保运行的副本数量永远不会低于仲裁所需的数量。Web 前端可能希望确保提供负载的副本的数量永远不会低于总数的某个百分比。</p><p>集群管理器和托管提供商应使用遵循 <code>Pod Disruption Budgets</code> 的工具，方法是调用<a href=https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/#the-eviction-api target=_blank rel=noopener>Eviction API</a>而不是直接删除 Pod。例如 <code>kubectl drain</code> 命令和 Kubernetes-on-GCE 集群升级脚本（<code>cluster/gce/upgrade.sh</code>）。</p><p>当集群管理员想要排空节点时，可以使用 <code>kubectl drain</code> 命令。该命令会试图驱逐机器上的所有 pod。驱逐请求可能会暂时被拒绝，并且该工具会定期重试所有失败的请求，直到所有的 pod 都被终止，或者直到达到配置的超时时间。</p><p>PDB 指定应用程序可以容忍的副本的数量，相对于应该有多少副本。例如，具有 <code>spec.replicas：5</code> 的 Deployment 在任何给定的时间都应该有 5 个 Pod。如果其 PDB 允许在某一时刻有 4 个副本，那么驱逐 API 将只允许仅有一个而不是两个 Pod 自愿中断。</p><p>使用标签选择器来指定应用程序的一组 pod，这与应用程序的控制器（Deployment、StatefulSet 等）使用的相同。</p><p>Pod 控制器的 <code>.spec.replicas</code> 计算“预期的” pod 数量。使用对象的 <code>.metadata.ownerReferences</code> 值从控制器获取。</p><p>PDB 不能阻止<a href=https://kubernetes.io/docs/concepts/workloads/pods/disruptions/#voluntary-and-involuntary-disruptions target=_blank rel=noopener>非自愿中断</a>的发生，但是它们确实会影响预算。</p><p>由于应用程序的滚动升级而被删除或不可用的 Pod 确实会计入中断预算，但控制器（如 Deployment 和 StatefulSet）在进行滚动升级时不受 PDB 的限制——在应用程序更新期间的故障处理是在控制器的规格（spec）中配置（了解<a href=https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/#updating-your-application-without-a-service-outage target=_blank rel=noopener>更新 Deployment</a>）。</p><p>使用驱逐 API 驱逐 pod 时，pod 会被优雅地终止（请参阅 PodSpec 中的 <code>terminationGracePeriodSeconds</code>）。</p><h2 id=pdb-示例>PDB 示例</h2><p>假设集群有 3 个节点，<code>node-1</code> 到 <code>node-3</code>。集群中运行了一些应用，其中一个应用有 3 个副本，分别是 <code>pod-a</code>、<code>pod-b</code> 和 <code>pod-c</code>。另外，还有一个与它相关的不具有 PDB 的 pod，我们称为之为 <code>pod-x</code>。最初，所有 Pod 的分布如下：</p><table><thead><tr><th style=text-align:center>node-1</th><th style=text-align:center>node-2</th><th style=text-align:center>node-3</th></tr></thead><tbody><tr><td style=text-align:center>pod-a <em>available</em></td><td style=text-align:center>pod-b <em>available</em></td><td style=text-align:center>pod-c <em>available</em></td></tr><tr><td style=text-align:center>pod-x <em>available</em></td><td style=text-align:center></td><td style=text-align:center></td></tr></tbody></table><p>所有的 3 个 pod 都是 Deployment 中的一部分，并且它们共同拥有一个 PDB，要求至少有 3 个 pod 中的 2 个始终处于可用状态。</p><p>例如，假设集群管理员想要重启系统，升级内核版本来修复内核中的错误。集群管理员首先使用 <code>kubectl drain</code> 命令尝试排除 <code>node-1</code>。该工具试图驱逐 <code>pod-a</code> 和 <code>pod-x</code>。这立即成功。两个 Pod 同时进入终止状态。这时的集群处于这种状态：</p><table><thead><tr><th style=text-align:center>node-1 <em>draining</em></th><th style=text-align:center>node-2</th><th style=text-align:center>node-3</th></tr></thead><tbody><tr><td style=text-align:center>pod-a <em>terminating</em></td><td style=text-align:center>pod-b <em>available</em></td><td style=text-align:center>pod-c <em>available</em></td></tr><tr><td style=text-align:center>pod-x <em>terminating</em></td><td style=text-align:center></td><td style=text-align:center></td></tr></tbody></table><p>Deployment 注意到其中有一个 pod 处于正在终止，因此会创建了一个 <code>pod-d</code> 来替换。由于 <code>node-1</code> 被封锁（cordon），它落在另一个节点上。同时其它控制器也创建了 <code>pod-y</code> 作为 <code>pod-x</code> 的替代品。</p><p>（注意：对于 <code>StatefulSet</code>，<code>pod-a</code> 将被称为 <code>pod-1</code>，需要在替换之前完全终止，替代它的也称为 <code>pod-1</code>，但是具有不同的 UID，可以创建。否则，示例也适用于 StatefulSet。）</p><p>当前集群的状态如下：</p><table><thead><tr><th style=text-align:center>node-1 <em>draining</em></th><th style=text-align:center>node-2</th><th style=text-align:center>node-3</th></tr></thead><tbody><tr><td style=text-align:center>pod-a <em>terminating</em></td><td style=text-align:center>pod-b <em>available</em></td><td style=text-align:center>pod-c <em>available</em></td></tr><tr><td style=text-align:center>pod-x <em>terminating</em></td><td style=text-align:center>pod-d <em>starting</em></td><td style=text-align:center>pod-y</td></tr></tbody></table><p>在某一时刻，pod 被终止，集群看起来像下面这样子：</p><table><thead><tr><th style=text-align:center>node-1 <em>drained</em></th><th style=text-align:center>node-2</th><th style=text-align:center>node-3</th></tr></thead><tbody><tr><td style=text-align:center></td><td style=text-align:center>pod-b <em>available</em></td><td style=text-align:center>pod-c <em>available</em></td></tr><tr><td style=text-align:center></td><td style=text-align:center>pod-d <em>starting</em></td><td style=text-align:center>pod-y</td></tr></tbody></table><p>此时，如果一个急躁的集群管理员试图排空（drain）<code>node-2</code> 或 <code>node-3</code>，drain 命令将被阻塞，因为对于 Deployment 只有 2 个可用的 pod，并且其 PDB 至少需要 2 个。经过一段时间，<code>pod-d</code> 变得可用。</p><table><thead><tr><th style=text-align:center>node-1 <em>drained</em></th><th style=text-align:center>node-2</th><th style=text-align:center>node-3</th></tr></thead><tbody><tr><td style=text-align:center></td><td style=text-align:center>pod-b <em>available</em></td><td style=text-align:center>pod-c <em>available</em></td></tr><tr><td style=text-align:center></td><td style=text-align:center>pod-d <em>available</em></td><td style=text-align:center>pod-y</td></tr></tbody></table><p>现在，集群管理员尝试排空 <code>node-2</code>。drain 命令将尝试按照某种顺序驱逐两个 pod，假设先是 <code>pod-b</code>，然后再 <code>pod-d</code>。它将成功驱逐 <code>pod-b</code>。但是，当它试图驱逐 <code>pod-d</code> 时，将被拒绝，因为这样对 Deployment 来说将只剩下一个可用的 pod。</p><p>Deployment 将创建一个名为 <code>pod-e</code> 的 <code>pod-b</code> 的替代品。但是，集群中没有足够的资源来安排 <code>pod-e</code>。那么，drain 命令就会被阻塞。集群最终可能是这种状态：</p><table><thead><tr><th style=text-align:center>node-1 <em>drained</em></th><th style=text-align:center>node-2 <em>drained</em></th><th style=text-align:center>node-3</th><th style=text-align:center><em>no node</em></th></tr></thead><tbody><tr><td style=text-align:center></td><td style=text-align:center></td><td style=text-align:center>pod-c <em>available</em></td><td style=text-align:center>pod-e <em>pending</em></td></tr><tr><td style=text-align:center></td><td style=text-align:center>pod-d <em>available</em></td><td style=text-align:center>pod-y</td><td style=text-align:center></td></tr></tbody></table><p>此时，集群管理员需要向集群中添加回一个节点以继续升级操作。</p><p>您可以看到 Kubernetes 如何改变中断发生的速率，根据：</p><ul><li>应用程序需要多少副本</li><li>正常关闭实例需要多长时间</li><li>启动新实例需要多长时间</li><li>控制器的类型</li><li>集群的资源能力</li></ul><h2 id=分离集群所有者和应用程序所有者角色>分离集群所有者和应用程序所有者角色</h2><p>将集群管理者和应用程序所有者视为彼此知识有限的独立角色通常是很有用的。这种责任分离在这些情况下可能是有意义的：</p><ul><li>当有许多应用程序团队共享一个 Kubernetes 集群，并且有自然的专业角色</li><li>使用第三方工具或服务来自动化集群管理</li></ul><p>Pod Disruption Budget（Pod 中断预算） 通过在角色之间提供接口来支持这种角色分离。</p><p>如果您的组织中没有这样的职责分离，则可能不需要使用 Pod 中断预算。</p><h2 id=如何在集群上执行中断操作>如何在集群上执行中断操作</h2><p>如果您是集群管理员，要对集群的所有节点执行中断操作，例如节点或系统软件升级，则可以使用以下选择：</p><ul><li>在升级期间接受停机时间。</li><li>故障转移到另一个完整的副本集群。<ul><li>没有停机时间，但是对于重复的节点和人工协调成本可能是昂贵的。</li></ul></li><li>编写可容忍中断的应用程序和使用 PDB。<ul><li>没有停机时间。</li><li>最小的资源重复。</li><li>允许更多的集群管理自动化。</li><li>编写可容忍中断的应用程序是很棘手的，但对于可容忍自愿中断，和支持自动调整以容忍非自愿中断，两者在工作上有大量的重叠。</li></ul></li></ul><h2 id=参考>参考</h2><ul><li><p><a href=https://kubernetes.io/docs/concepts/workloads/pods/disruptions/ target=_blank rel=noopener>Disruptions - kubernetes.io</a></p></li><li><p>通过配置<a href=https://kubernetes.io/docs/tasks/run-application//configure-pdb target=_blank rel=noopener>Pod Disruption Budget（Pod 中断预算）</a>来执行保护应用程序的步骤。</p></li><li><p>了解更多关于<a href=https://kubernetes.io/docs/tasks/administer-cluster//safely-drain-node target=_blank rel=noopener>排空节点</a>的信息。</p></li></ul></div><div class=article-widget><div class="container-xl row post-nav"><div class="col-6 post-nav-item"><div class=meta-nav>上一页</div><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod/ rel=next>pod</a></div><div class="col-6 post-nav-item"><div class=meta-nav>下一页</div><a href=/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-hook/ rel=prev>pod-hook</a></div></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div><script type=text/javascript id=clstr_globe async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
-<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
-<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
-<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
-<script id=dsq-count-scr src=https://ngte.disqus.com/count.js async></script>
-<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
-<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
-<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
-<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>
+type: book</h2>
+<p>这篇文档适用于要构建高可用应用程序的所有者，因此他们需要了解 Pod 可能发生什么类型的中断。也适用于要执行自动集群操作的集群管理员，如升级和集群自动扩容。</p>
+<h2 id="自愿中断和非自愿中断">自愿中断和非自愿中断</h2>
+<p>Pod 不会消失，直到有人（人类或控制器）将其销毁，或者当出现不可避免的硬件或系统软件错误。</p>
+<p>我们把这些不可避免的情况称为应用的非自愿性中断。例如：</p>
+<ul>
+<li>后端节点物理机的硬件故障</li>
+<li>集群管理员错误地删除虚拟机（实例）</li>
+<li>云提供商或管理程序故障使虚拟机消失</li>
+<li>内核恐慌（kernel panic）</li>
+<li>节点由于集群网络分区而从集群中消失</li>
+<li>由于节点<a href="https://kubernetes.io/docs/tasks/administer-cluster/out-of-resource" target="_blank" rel="noopener">资源不足</a>而将容器逐出</li>
+</ul>
+<p>除资源不足的情况外，大多数用户应该都熟悉以下这些情况；它们不是特定于 Kubernetes 的。</p>
+<p>我们称这些情况为”自愿中断“。包括由应用程序所有者发起的操作和由集群管理员发起的操作。典型的应用程序所有者操作包括：</p>
+<ul>
+<li>删除管理该 pod 的 Deployment 或其他控制器</li>
+<li>更新了 Deployment 的 pod 模板导致 pod 重启</li>
+<li>直接删除 pod（意外删除）</li>
+</ul>
+<p>集群管理员操作包括：</p>
+<ul>
+<li><a href="https://kubernetes.io/docs//tasks/administer-cluster/safely-drain-node" target="_blank" rel="noopener">排空（drain）节点</a>进行修复或升级。</li>
+<li>从集群中排空节点以缩小集群。</li>
+<li>从节点中移除一个 pod，以允许其他 pod 使用该节点。</li>
+</ul>
+<p>这些操作可能由集群管理员直接执行，也可能由集群管理员或集群托管提供商自动执行。</p>
+<p>询问您的集群管理员或咨询您的云提供商或发行文档，以确定是否为您的集群启用了任何自动中断源。如果没有启用，您可以跳过创建 Pod Disruption Budget（Pod 中断预算）。</p>
+<h2 id="处理中断">处理中断</h2>
+<p>以下是一些减轻非自愿性中断的方法：</p>
+<ul>
+<li>确保您的 pod <a href="https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-ram-container" target="_blank" rel="noopener">请求所需的资源</a>。</li>
+<li>如果您需要更高的可用性，请复制您的应用程序。（了解有关运行复制的<a href="https://kubernetes.io/docs/tasks/run-application/run-stateless-application-deployment" target="_blank" rel="noopener">无状态</a>和<a href="https://kubernetes.io/docs/tasks/run-application/run-replicated-stateful-application" target="_blank" rel="noopener">有状态</a>应用程序的信息。）</li>
+<li>为了在运行复制应用程序时获得更高的可用性，请跨机架（使用<a href="https://kubernetes.io/docs/user-guide/node-selection/#inter-pod-affinity-and-anti-affinity-beta-feature" target="_blank" rel="noopener">反亲和性</a>）或跨区域（如果使用多区域集群）分布应用程序。</li>
+</ul>
+<p>自愿中断的频率各不相同。在 Kubernetes 集群上，根本没有自愿的中断。但是，您的集群管理员或托管提供商可能会运行一些导致自愿中断的附加服务。例如，节点软件更新可能导致自愿更新。另外，集群（节点）自动缩放的某些实现可能会导致碎片整理和紧缩节点的自愿中断。您的集群管理员或主机提供商应该已经记录了期望的自愿中断级别（如果有的话）。</p>
+<p>Kubernetes 提供的功能可以满足在频繁地自动中断的同时运行高可用的应用程序。我们称之为“中断预算”。</p>
+<h2 id="中断预算的工作原理">中断预算的工作原理</h2>
+<p>应用程序所有者可以为每个应用程序创建一个 <code>PodDisruptionBudget</code> 对象（PDB）。PDB 将限制在同一时间自愿中断的复制应用程序中宕机的 Pod 的数量。例如，基于定额的应用程序希望确保运行的副本数量永远不会低于仲裁所需的数量。Web 前端可能希望确保提供负载的副本的数量永远不会低于总数的某个百分比。</p>
+<p>集群管理器和托管提供商应使用遵循 <code>Pod Disruption Budgets</code> 的工具，方法是调用<a href="https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/#the-eviction-api" target="_blank" rel="noopener">Eviction API</a>而不是直接删除 Pod。例如 <code>kubectl drain</code> 命令和 Kubernetes-on-GCE 集群升级脚本（<code>cluster/gce/upgrade.sh</code>）。</p>
+<p>当集群管理员想要排空节点时，可以使用 <code>kubectl drain</code> 命令。该命令会试图驱逐机器上的所有 pod。驱逐请求可能会暂时被拒绝，并且该工具会定期重试所有失败的请求，直到所有的 pod 都被终止，或者直到达到配置的超时时间。</p>
+<p>PDB 指定应用程序可以容忍的副本的数量，相对于应该有多少副本。例如，具有 <code>spec.replicas：5</code> 的 Deployment 在任何给定的时间都应该有 5 个 Pod。如果其 PDB 允许在某一时刻有 4 个副本，那么驱逐 API 将只允许仅有一个而不是两个 Pod 自愿中断。</p>
+<p>使用标签选择器来指定应用程序的一组 pod，这与应用程序的控制器（Deployment、StatefulSet 等）使用的相同。</p>
+<p>Pod 控制器的 <code>.spec.replicas</code> 计算“预期的” pod 数量。使用对象的 <code>.metadata.ownerReferences</code> 值从控制器获取。</p>
+<p>PDB 不能阻止<a href="https://kubernetes.io/docs/concepts/workloads/pods/disruptions/#voluntary-and-involuntary-disruptions" target="_blank" rel="noopener">非自愿中断</a>的发生，但是它们确实会影响预算。</p>
+<p>由于应用程序的滚动升级而被删除或不可用的 Pod 确实会计入中断预算，但控制器（如 Deployment 和 StatefulSet）在进行滚动升级时不受 PDB 的限制——在应用程序更新期间的故障处理是在控制器的规格（spec）中配置（了解<a href="https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/#updating-your-application-without-a-service-outage" target="_blank" rel="noopener">更新 Deployment</a>）。</p>
+<p>使用驱逐 API 驱逐 pod 时，pod 会被优雅地终止（请参阅 PodSpec 中的 <code>terminationGracePeriodSeconds</code>）。</p>
+<h2 id="pdb-示例">PDB 示例</h2>
+<p>假设集群有 3 个节点，<code>node-1</code> 到 <code>node-3</code>。集群中运行了一些应用，其中一个应用有 3 个副本，分别是 <code>pod-a</code>、<code>pod-b</code> 和 <code>pod-c</code>。另外，还有一个与它相关的不具有 PDB 的 pod，我们称为之为 <code>pod-x</code>。最初，所有 Pod 的分布如下：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">node-1</th>
+<th style="text-align:center">node-2</th>
+<th style="text-align:center">node-3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">pod-a <em>available</em></td>
+<td style="text-align:center">pod-b <em>available</em></td>
+<td style="text-align:center">pod-c <em>available</em></td>
+</tr>
+<tr>
+<td style="text-align:center">pod-x <em>available</em></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+</tr>
+</tbody>
+</table>
+<p>所有的 3 个 pod 都是 Deployment 中的一部分，并且它们共同拥有一个 PDB，要求至少有 3 个 pod 中的 2 个始终处于可用状态。</p>
+<p>例如，假设集群管理员想要重启系统，升级内核版本来修复内核中的错误。集群管理员首先使用 <code>kubectl drain</code> 命令尝试排除 <code>node-1</code>。该工具试图驱逐 <code>pod-a</code> 和 <code>pod-x</code>。这立即成功。两个 Pod 同时进入终止状态。这时的集群处于这种状态：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">node-1 <em>draining</em></th>
+<th style="text-align:center">node-2</th>
+<th style="text-align:center">node-3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">pod-a <em>terminating</em></td>
+<td style="text-align:center">pod-b <em>available</em></td>
+<td style="text-align:center">pod-c <em>available</em></td>
+</tr>
+<tr>
+<td style="text-align:center">pod-x <em>terminating</em></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+</tr>
+</tbody>
+</table>
+<p>Deployment 注意到其中有一个 pod 处于正在终止，因此会创建了一个 <code>pod-d</code> 来替换。由于 <code>node-1</code> 被封锁（cordon），它落在另一个节点上。同时其它控制器也创建了 <code>pod-y</code> 作为 <code>pod-x</code> 的替代品。</p>
+<p>（注意：对于 <code>StatefulSet</code>，<code>pod-a</code> 将被称为 <code>pod-1</code>，需要在替换之前完全终止，替代它的也称为 <code>pod-1</code>，但是具有不同的 UID，可以创建。否则，示例也适用于 StatefulSet。）</p>
+<p>当前集群的状态如下：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">node-1 <em>draining</em></th>
+<th style="text-align:center">node-2</th>
+<th style="text-align:center">node-3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">pod-a <em>terminating</em></td>
+<td style="text-align:center">pod-b <em>available</em></td>
+<td style="text-align:center">pod-c <em>available</em></td>
+</tr>
+<tr>
+<td style="text-align:center">pod-x <em>terminating</em></td>
+<td style="text-align:center">pod-d <em>starting</em></td>
+<td style="text-align:center">pod-y</td>
+</tr>
+</tbody>
+</table>
+<p>在某一时刻，pod 被终止，集群看起来像下面这样子：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">node-1 <em>drained</em></th>
+<th style="text-align:center">node-2</th>
+<th style="text-align:center">node-3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">pod-b <em>available</em></td>
+<td style="text-align:center">pod-c <em>available</em></td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">pod-d <em>starting</em></td>
+<td style="text-align:center">pod-y</td>
+</tr>
+</tbody>
+</table>
+<p>此时，如果一个急躁的集群管理员试图排空（drain）<code>node-2</code> 或 <code>node-3</code>，drain 命令将被阻塞，因为对于 Deployment 只有 2 个可用的 pod，并且其 PDB 至少需要 2 个。经过一段时间，<code>pod-d</code> 变得可用。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">node-1 <em>drained</em></th>
+<th style="text-align:center">node-2</th>
+<th style="text-align:center">node-3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">pod-b <em>available</em></td>
+<td style="text-align:center">pod-c <em>available</em></td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">pod-d <em>available</em></td>
+<td style="text-align:center">pod-y</td>
+</tr>
+</tbody>
+</table>
+<p>现在，集群管理员尝试排空 <code>node-2</code>。drain 命令将尝试按照某种顺序驱逐两个 pod，假设先是 <code>pod-b</code>，然后再 <code>pod-d</code>。它将成功驱逐 <code>pod-b</code>。但是，当它试图驱逐 <code>pod-d</code> 时，将被拒绝，因为这样对 Deployment 来说将只剩下一个可用的 pod。</p>
+<p>Deployment 将创建一个名为 <code>pod-e</code> 的 <code>pod-b</code> 的替代品。但是，集群中没有足够的资源来安排 <code>pod-e</code>。那么，drain 命令就会被阻塞。集群最终可能是这种状态：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">node-1 <em>drained</em></th>
+<th style="text-align:center">node-2 <em>drained</em></th>
+<th style="text-align:center">node-3</th>
+<th style="text-align:center"><em>no node</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center">pod-c <em>available</em></td>
+<td style="text-align:center">pod-e <em>pending</em></td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">pod-d <em>available</em></td>
+<td style="text-align:center">pod-y</td>
+<td style="text-align:center"></td>
+</tr>
+</tbody>
+</table>
+<p>此时，集群管理员需要向集群中添加回一个节点以继续升级操作。</p>
+<p>您可以看到 Kubernetes 如何改变中断发生的速率，根据：</p>
+<ul>
+<li>应用程序需要多少副本</li>
+<li>正常关闭实例需要多长时间</li>
+<li>启动新实例需要多长时间</li>
+<li>控制器的类型</li>
+<li>集群的资源能力</li>
+</ul>
+<h2 id="分离集群所有者和应用程序所有者角色">分离集群所有者和应用程序所有者角色</h2>
+<p>将集群管理者和应用程序所有者视为彼此知识有限的独立角色通常是很有用的。这种责任分离在这些情况下可能是有意义的：</p>
+<ul>
+<li>当有许多应用程序团队共享一个 Kubernetes 集群，并且有自然的专业角色</li>
+<li>使用第三方工具或服务来自动化集群管理</li>
+</ul>
+<p>Pod Disruption Budget（Pod 中断预算） 通过在角色之间提供接口来支持这种角色分离。</p>
+<p>如果您的组织中没有这样的职责分离，则可能不需要使用 Pod 中断预算。</p>
+<h2 id="如何在集群上执行中断操作">如何在集群上执行中断操作</h2>
+<p>如果您是集群管理员，要对集群的所有节点执行中断操作，例如节点或系统软件升级，则可以使用以下选择：</p>
+<ul>
+<li>在升级期间接受停机时间。</li>
+<li>故障转移到另一个完整的副本集群。
+<ul>
+<li>没有停机时间，但是对于重复的节点和人工协调成本可能是昂贵的。</li>
+</ul>
+</li>
+<li>编写可容忍中断的应用程序和使用 PDB。
+<ul>
+<li>没有停机时间。</li>
+<li>最小的资源重复。</li>
+<li>允许更多的集群管理自动化。</li>
+<li>编写可容忍中断的应用程序是很棘手的，但对于可容忍自愿中断，和支持自动调整以容忍非自愿中断，两者在工作上有大量的重叠。</li>
+</ul>
+</li>
+</ul>
+<h2 id="参考">参考</h2>
+<ul>
+<li>
+<p><a href="https://kubernetes.io/docs/concepts/workloads/pods/disruptions/" target="_blank" rel="noopener">Disruptions - kubernetes.io</a></p>
+</li>
+<li>
+<p>通过配置<a href="https://kubernetes.io/docs/tasks/run-application//configure-pdb" target="_blank" rel="noopener">Pod Disruption Budget（Pod 中断预算）</a>来执行保护应用程序的步骤。</p>
+</li>
+<li>
+<p>了解更多关于<a href="https://kubernetes.io/docs/tasks/administer-cluster//safely-drain-node" target="_blank" rel="noopener">排空节点</a>的信息。</p>
+</li>
+</ul>
+
+          </div>
+
+          
+
+
+
+          
+          
+          <div class="article-widget">
+            
+<div class="container-xl row post-nav">
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">上一页</div>
+    <a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod/" rel="next">pod</a>
+  </div>
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">下一页</div>
+    <a href="/books/k8s-notes/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2020-jimmysong-kubernetes-%E5%9F%BA%E7%A1%80%E6%95%99%E7%A8%8B/02.%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1/pod-hook/" rel="prev">pod-hook</a>
+  </div>
+  
+</div>
+
+          </div>
+          
+
+        <div class="body-footer">
+          <p>最近更新于 0001-01-01</p>
+
+          
+
+
+
+          
+
+
+  
+  
+  
+
+  
+
+  
+  <section id="comments" class="mb-3 pt-0">
+    
+<div id="disqus_thread"></div>
+<script>
+  var disqus_config = function () {
+    
+    
+    
+  };
+  (function() {
+    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+      return;
+    }
+    var d = document, s = d.createElement('script'); 
+    s.async = true;
+    s.src = 'https://' + "ngte" + '.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </section>
+  
+
+
+
+          
+
+
+        </div>
+
+      </article>
+
+      <footer class="site-footer">
+
+  
+
+
+
+  
+
+  
+  <div class="copyright py-4 bg-footer">
+      <div class="row justify-content-center">
+        <div class="text-center footer-color">
+          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
+        </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" id="clstr_globe" async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script>
+  
+</footer>
+
+
+    </main>
+  </div>
+</div>
+<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
+<script>
+  const heti = new Heti('.article');
+  heti.autoSpacing();
+</script>
+<script type="text/javascript">
+  window.$crisp = [];
+  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
+  (function () {
+    setTimeout(function() {
+      d = document;
+      s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    }, 2500);
+  })();
+</script>
+  </div>
+
+  <div class="page-footer">
+    
+    
+  </div>
+
+      
+
+    
+    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
+
+    
+    
+    
+      
+
+      
+      
+
+      
+
+      
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
+        
+        
+      
+
+    
+
+    
+    
+    
+
+    
+    
+    
+      
+      <script id="search-hit-algolia-template" type="text/html">
+        <div class="search-hit">
+          <div class="search-hit-content">
+            <div class="search-hit-name">
+              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
+            </div>
+            <div class="article-metadata search-hit-type">{{type}}</div>
+            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
+          </div>
+        </div>
+      </script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
+      
+      
+    
+
+    
+    
+
+    
+    
+    
+    
+      <script id="dsq-count-scr" src="https://ngte.disqus.com/count.js" async></script>
+      
+    
+
+    
+    
+      
+      
+      
+      
+      
+      
+      
+    
+
+    
+    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
+    
+
+    
+    
+    
+    <script id="page-data" type="application/json">{"use_headroom":false}</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
+
+    
+    
+    
+    
+    
+    
+    <script>
+
+var mybutton = document.getElementById("backTopBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+}
+</script>
+
+
+    
+
+    
+    
+    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+    <script>
+      anchors.add();
+    </script>
+    
+
+    
+    <script>
+
+
+
+(function() {
+  'use strict';
+
+  if(!document.queryCommandSupported('copy')) {
+    return;
+  }
+
+  function flashCopyMessage(el, msg) {
+    el.className = "highlight-copy-btn";
+    el.textContent = msg;
+    setTimeout(function() {
+      el.textContent = "";
+      el.className = "highlight-copy-btn fa fa-copy";
+    }, 1000);
+  }
+
+  function selectText(node) {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection;
+  }
+
+  function addCopyButton(containerEl) {
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "highlight-copy-btn fa fa-copy";
+    copyBtn.textContent = "";
+
+    var codeEl = containerEl.firstElementChild;
+    copyBtn.addEventListener('click', function() {
+      try {
+        var selection = selectText(codeEl);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        
+        flashCopyMessage(copyBtn, '已复制')
+        
+      } catch(e) {
+        console && console.log(e);
+        flashCopyMessage(copyBtn, 'Failed :\'(')
+      }
+    });
+
+    containerEl.appendChild(copyBtn);
+  }
+
+  
+  var highlightBlocks = document.getElementsByClassName('highlight');
+  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
+})();
+</script>
+
+    
+
+
+</body>
+</html>

@@ -1,194 +1,1885 @@
-<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="变量内存分配 make 与 new Go 语言中 new 和 make 是两个内置函数，主要用来创建并分配类型的内存。在我们定义变量的时候，可能会觉得有点迷惑，不知道应该使用哪个函数来声明变量，其实他们的规则很简单，new 只分配内存，而 make 只"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.fab3cd1900ae35687457073b2d518207.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D/"><meta property="og:title" content="内存分配 | Next-gen Tech Edu"><meta property="og:description" content="变量内存分配 make 与 new Go 语言中 new 和 make 是两个内置函数，主要用来创建并分配类型的内存。在我们定义变量的时候，可能会觉得有点迷惑，不知道应该使用哪个函数来声明变量，其实他们的规则很简单，new 只分配内存，而 make 只"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>内存分配 | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=f2362740abf1a683134dc60da64fdb11><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
-<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
-<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
-<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
-<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
-<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">变量操作</span>
-<span><i class="fas fa-chevron-down"></i></span></div></button>
-<button class="form-control sidebar-search js-search d-none d-md-flex">
-<i class="fas fa-search pr-2"></i>
-<span class=sidebar-search-text>搜索...</span>
-<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
-Back</a>
-<span>|</span>
-<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
-Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id9f3f745015603467034399f5db335296")' href=#id9f3f745015603467034399f5db335296 aria-expanded=false aria-controls=id9f3f745015603467034399f5db335296 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/>01.语法基础</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id9f3f745015603467034399f5db335296 aria-expanded=false aria-controls=id9f3f745015603467034399f5db335296><i class="fa-solid fa-angle-down" id=caret-id9f3f745015603467034399f5db335296></i></a></div><ul class="nav docs-sidenav collapse show" id=id9f3f745015603467034399f5db335296><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id9595d05dd9aae9d296bfef0dd4136d95")' href=#id9595d05dd9aae9d296bfef0dd4136d95 aria-expanded=false aria-controls=id9595d05dd9aae9d296bfef0dd4136d95 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/1.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/>1.快速开始</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id9595d05dd9aae9d296bfef0dd4136d95 aria-expanded=false aria-controls=id9595d05dd9aae9d296bfef0dd4136d95><i class="fa-solid fa-angle-right" id=caret-id9595d05dd9aae9d296bfef0dd4136d95></i></a></div><ul class="nav docs-sidenav collapse" id=id9595d05dd9aae9d296bfef0dd4136d95><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/1.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/web-%E5%BA%94%E7%94%A8/>Web 应用</a></li><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id1b53907697d68a31ab594b0453d2ae31")' href=#id1b53907697d68a31ab594b0453d2ae31 aria-expanded=false aria-controls=id1b53907697d68a31ab594b0453d2ae31 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/1.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/>开发环境</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id1b53907697d68a31ab594b0453d2ae31 aria-expanded=false aria-controls=id1b53907697d68a31ab594b0453d2ae31><i class="fa-solid fa-angle-right" id=caret-id1b53907697d68a31ab594b0453d2ae31></i></a></div><ul class="nav docs-sidenav collapse" id=id1b53907697d68a31ab594b0453d2ae31><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/1.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/delve/>Delve</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/1.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/%E5%B7%A5%E5%85%B7%E9%93%BE/>工具链</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/1.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/%E5%86%85%E7%BD%AE%E5%91%BD%E4%BB%A4/>内置命令</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id083e63c3e18847d313e4f381dd45d4d2")' href=#id083e63c3e18847d313e4f381dd45d4d2 aria-expanded=false aria-controls=id083e63c3e18847d313e4f381dd45d4d2 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/1.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%91%BD%E4%BB%A4%E8%A1%8C%E5%BA%94%E7%94%A8/>命令行应用</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id083e63c3e18847d313e4f381dd45d4d2 aria-expanded=false aria-controls=id083e63c3e18847d313e4f381dd45d4d2><i class="fa-solid fa-angle-right" id=caret-id083e63c3e18847d313e4f381dd45d4d2></i></a></div><ul class="nav docs-sidenav collapse" id=id083e63c3e18847d313e4f381dd45d4d2><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/1.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%91%BD%E4%BB%A4%E8%A1%8C%E5%BA%94%E7%94%A8/cobra/>Cobra</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/1.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%91%BD%E4%BB%A4%E8%A1%8C%E5%BA%94%E7%94%A8/urfave-cli/>urfave-cli</a></li></ul></div></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id9b4cd25441d864f0565feb80198e4ee9")' href=#id9b4cd25441d864f0565feb80198e4ee9 aria-expanded=false aria-controls=id9b4cd25441d864f0565feb80198e4ee9 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/2.%E8%83%8C%E6%99%AF%E4%B8%8E%E7%89%B9%E6%80%A7/>2.背景与特性</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id9b4cd25441d864f0565feb80198e4ee9 aria-expanded=false aria-controls=id9b4cd25441d864f0565feb80198e4ee9><i class="fa-solid fa-angle-right" id=caret-id9b4cd25441d864f0565feb80198e4ee9></i></a></div><ul class="nav docs-sidenav collapse" id=id9b4cd25441d864f0565feb80198e4ee9><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/2.%E8%83%8C%E6%99%AF%E4%B8%8E%E7%89%B9%E6%80%A7/go-%E7%AE%80%E5%8F%B2/>Go 简史</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id9dc509b759d34dfc302e4f7fc6bb2719")' href=#id9dc509b759d34dfc302e4f7fc6bb2719 aria-expanded=false aria-controls=id9dc509b759d34dfc302e4f7fc6bb2719 aria-hidden=false data-toggle=collapse></div></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id86e1347d051f154213dd8a8bbaf8aa07")' href=#id86e1347d051f154213dd8a8bbaf8aa07 aria-expanded=false aria-controls=id86e1347d051f154213dd8a8bbaf8aa07 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8C%85%E4%B8%8E%E6%A8%A1%E5%9D%97/>包与模块</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id86e1347d051f154213dd8a8bbaf8aa07 aria-expanded=false aria-controls=id86e1347d051f154213dd8a8bbaf8aa07><i class="fa-solid fa-angle-right" id=caret-id86e1347d051f154213dd8a8bbaf8aa07></i></a></div><ul class="nav docs-sidenav collapse" id=id86e1347d051f154213dd8a8bbaf8aa07><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8C%85%E4%B8%8E%E6%A8%A1%E5%9D%97/go-modules/>Go Modules</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8C%85%E4%B8%8E%E6%A8%A1%E5%9D%97/%E5%8C%85/>包</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idb0fd1ade250cba5b897f722284baff54")' href=#idb0fd1ade250cba5b897f722284baff54 aria-expanded=false aria-controls=idb0fd1ade250cba5b897f722284baff54 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/>变量操作</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idb0fd1ade250cba5b897f722284baff54 aria-expanded=false aria-controls=idb0fd1ade250cba5b897f722284baff54><i class="fa-solid fa-angle-down" id=caret-idb0fd1ade250cba5b897f722284baff54></i></a></div><ul class="nav docs-sidenav collapse show" id=idb0fd1ade250cba5b897f722284baff54><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/%E5%8F%98%E9%87%8F/>变量</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/%E5%B8%B8%E9%87%8F/>常量</a></li><li class="child level active"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D/>内存分配</a></li><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idddf7e71ef8b8d0d103c546a1c692096b")' href=#idddf7e71ef8b8d0d103c546a1c692096b aria-expanded=false aria-controls=idddf7e71ef8b8d0d103c546a1c692096b aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/%E6%8C%87%E9%92%88/>指针</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idddf7e71ef8b8d0d103c546a1c692096b aria-expanded=false aria-controls=idddf7e71ef8b8d0d103c546a1c692096b><i class="fa-solid fa-angle-right" id=caret-idddf7e71ef8b8d0d103c546a1c692096b></i></a></div><ul class="nav docs-sidenav collapse" id=idddf7e71ef8b8d0d103c546a1c692096b><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/%E6%8C%87%E9%92%88/go-%E4%B8%AD%E6%8C%87%E9%92%88%E4%B8%8E%E5%BC%95%E7%94%A8%E6%8E%A2%E8%AE%A8/>Go 中指针与引用探讨</a></li></ul></div></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idba8e555004651e7aa2a7dce9e31df328")' href=#idba8e555004651e7aa2a7dce9e31df328 aria-expanded=false aria-controls=idba8e555004651e7aa2a7dce9e31df328 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%87%BD%E6%95%B0/>函数</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idba8e555004651e7aa2a7dce9e31df328 aria-expanded=false aria-controls=idba8e555004651e7aa2a7dce9e31df328><i class="fa-solid fa-angle-right" id=caret-idba8e555004651e7aa2a7dce9e31df328></i></a></div><ul class="nav docs-sidenav collapse" id=idba8e555004651e7aa2a7dce9e31df328><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%87%BD%E6%95%B0/%E9%97%AD%E5%8C%85/>闭包</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%87%BD%E6%95%B0/%E5%87%BD%E6%95%B0%E5%AE%9A%E4%B9%89/>函数定义</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%87%BD%E6%95%B0/%E5%87%BD%E6%95%B0%E6%89%A7%E8%A1%8C/>函数执行</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id52afad2111352d384426646e0c23fac5")' href=#id52afad2111352d384426646e0c23fac5 aria-expanded=false aria-controls=id52afad2111352d384426646e0c23fac5 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%8E%A5%E5%8F%A3/>接口</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id52afad2111352d384426646e0c23fac5 aria-expanded=false aria-controls=id52afad2111352d384426646e0c23fac5><i class="fa-solid fa-angle-right" id=caret-id52afad2111352d384426646e0c23fac5></i></a></div><ul class="nav docs-sidenav collapse" id=id52afad2111352d384426646e0c23fac5><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%8E%A5%E5%8F%A3/%E5%86%85%E5%B5%8C/>内嵌</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id61f62c036ac6d703861edd7eb09d2df1")' href=#id61f62c036ac6d703861edd7eb09d2df1 aria-expanded=false aria-controls=id61f62c036ac6d703861edd7eb09d2df1 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%93%E6%9E%84%E4%BD%93/>结构体</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id61f62c036ac6d703861edd7eb09d2df1 aria-expanded=false aria-controls=id61f62c036ac6d703861edd7eb09d2df1><i class="fa-solid fa-angle-right" id=caret-id61f62c036ac6d703861edd7eb09d2df1></i></a></div><ul class="nav docs-sidenav collapse" id=id61f62c036ac6d703861edd7eb09d2df1><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%93%E6%9E%84%E4%BD%93/%E5%AE%9A%E4%B9%89/>定义</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%93%E6%9E%84%E4%BD%93/%E5%AF%B9%E8%B1%A1/>对象</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%93%E6%9E%84%E4%BD%93/%E6%96%B9%E6%B3%95/>方法</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id382b529e6794f010ac25879d578dfb1a")' href=#id382b529e6794f010ac25879d578dfb1a aria-expanded=false aria-controls=id382b529e6794f010ac25879d578dfb1a aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%B5%81%E7%A8%8B%E6%8E%A7%E5%88%B6/>流程控制</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id382b529e6794f010ac25879d578dfb1a aria-expanded=false aria-controls=id382b529e6794f010ac25879d578dfb1a><i class="fa-solid fa-angle-right" id=caret-id382b529e6794f010ac25879d578dfb1a></i></a></div><ul class="nav docs-sidenav collapse" id=id382b529e6794f010ac25879d578dfb1a><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%B5%81%E7%A8%8B%E6%8E%A7%E5%88%B6/%E6%9D%A1%E4%BB%B6%E9%80%89%E6%8B%A9/>条件选择</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%B5%81%E7%A8%8B%E6%8E%A7%E5%88%B6/%E5%BE%AA%E7%8E%AF/>循环</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idf3b966ee203616d744350a04be0187ae")' href=#idf3b966ee203616d744350a04be0187ae aria-expanded=false aria-controls=idf3b966ee203616d744350a04be0187ae aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/>数据类型</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idf3b966ee203616d744350a04be0187ae aria-expanded=false aria-controls=idf3b966ee203616d744350a04be0187ae><i class="fa-solid fa-angle-right" id=caret-idf3b966ee203616d744350a04be0187ae></i></a></div><ul class="nav docs-sidenav collapse" id=idf3b966ee203616d744350a04be0187ae><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E6%B3%9B%E5%9E%8B/>泛型</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B/>基础类型</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E6%9E%9A%E4%B8%BE/>枚举</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E6%97%B6%E9%97%B4%E4%B8%8E%E6%97%A5%E6%9C%9F/>时间与日期</a></li><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-ida200af2069e623e98ce3378a7c82ffc4")' href=#ida200af2069e623e98ce3378a7c82ffc4 aria-expanded=false aria-controls=ida200af2069e623e98ce3378a7c82ffc4 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E5%AD%97%E7%AC%A6%E4%B8%B2/>字符串</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#ida200af2069e623e98ce3378a7c82ffc4 aria-expanded=false aria-controls=ida200af2069e623e98ce3378a7c82ffc4><i class="fa-solid fa-angle-right" id=caret-ida200af2069e623e98ce3378a7c82ffc4></i></a></div><ul class="nav docs-sidenav collapse" id=ida200af2069e623e98ce3378a7c82ffc4><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E5%AD%97%E7%AC%A6%E4%B8%B2/strings/>strings</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E5%AD%97%E7%AC%A6%E4%B8%B2/template/>Template</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E5%AD%97%E7%AC%A6%E4%B8%B2/%E6%AD%A3%E5%88%99%E5%8C%B9%E9%85%8D/>正则匹配</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E5%AD%97%E7%AC%A6%E4%B8%B2/%E5%AD%97%E7%AC%A6%E4%B8%B2/>字符串</a></li></ul></div></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id4601ea2b51a2a11011d45bba4e219645")' href=#id4601ea2b51a2a11011d45bba4e219645 aria-expanded=false aria-controls=id4601ea2b51a2a11011d45bba4e219645 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BA%8F%E5%88%97%E5%8C%96/>序列化</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id4601ea2b51a2a11011d45bba4e219645 aria-expanded=false aria-controls=id4601ea2b51a2a11011d45bba4e219645><i class="fa-solid fa-angle-right" id=caret-id4601ea2b51a2a11011d45bba4e219645></i></a></div><ul class="nav docs-sidenav collapse" id=id4601ea2b51a2a11011d45bba4e219645><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BA%8F%E5%88%97%E5%8C%96/grpc/>gRPC</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BA%8F%E5%88%97%E5%8C%96/json/>Json</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BA%8F%E5%88%97%E5%8C%96/xml/>Xml</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-ide947bc91d50aa3e39f213d173f70c6d6")' href=#ide947bc91d50aa3e39f213d173f70c6d6 aria-expanded=false aria-controls=ide947bc91d50aa3e39f213d173f70c6d6 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/>异常处理</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#ide947bc91d50aa3e39f213d173f70c6d6 aria-expanded=false aria-controls=ide947bc91d50aa3e39f213d173f70c6d6><i class="fa-solid fa-angle-right" id=caret-ide947bc91d50aa3e39f213d173f70c6d6></i></a></div><ul class="nav docs-sidenav collapse" id=ide947bc91d50aa3e39f213d173f70c6d6><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/errgroup/>errgroup</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/error/>Error</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/panic/>panic</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/panic-%E5%8E%9F%E7%90%86/>panic 原理</a></li><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/%E9%94%99%E8%AF%AF%E7%B1%BB%E5%9E%8B/>错误类型</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id69cfa13f800d88afb096d31964a3693b")' href=#id69cfa13f800d88afb096d31964a3693b aria-expanded=false aria-controls=id69cfa13f800d88afb096d31964a3693b aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%85%83%E7%BC%96%E7%A8%8B/>元编程</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id69cfa13f800d88afb096d31964a3693b aria-expanded=false aria-controls=id69cfa13f800d88afb096d31964a3693b><i class="fa-solid fa-angle-right" id=caret-id69cfa13f800d88afb096d31964a3693b></i></a></div><ul class="nav docs-sidenav collapse" id=id69cfa13f800d88afb096d31964a3693b><li class="child level"><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%85%83%E7%BC%96%E7%A8%8B/%E5%8F%8D%E5%B0%84/>反射</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents><ul><li><a href=#new>new</a></li><li><a href=#make>make</a></li><li><a href=#总结>总结</a></li></ul><ul><li><a href=#逃逸分析escape-analysis>逃逸分析（Escape analysis）</a></li><li><a href=#指针逃逸>指针逃逸</a></li><li><a href=#栈空间不足逃逸空间开辟过大>栈空间不足逃逸（空间开辟过大）</a></li><li><a href=#动态类型逃逸不确定长度大小>动态类型逃逸（不确定长度大小）</a></li><li><a href=#闭包引用对象逃逸>闭包引用对象逃逸</a></li></ul></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>内存分配</h1><div class=article-style><h1 id=变量内存分配>变量内存分配</h1><h1 id=make-与-new>make 与 new</h1><p>Go 语言中 new 和 make 是两个内置函数，主要用来创建并分配类型的内存。在我们定义变量的时候，可能会觉得有点迷惑，不知道应该使用哪个函数来声明变量，其实他们的规则很简单，new 只分配内存，而 make 只能用于 slice、map 和 channel 的初始化。</p><h2 id=new>new</h2><p>在 Go 语言中，new 函数描述如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=c1>// The new built-in function allocates memory. The first argument is a type,
-</span></span></span><span class=line><span class=cl><span class=c1>// not a value, and the value returned is a pointer to a newly
-</span></span></span><span class=line><span class=cl><span class=c1>// allocated zero value of that type.
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kd>func</span> <span class=nb>new</span><span class=p>(</span><span class=nx>Type</span><span class=p>)</span> <span class=o>*</span><span class=nx>Type</span>
-</span></span></code></pre></div><p>从上面的代码可以看出，new 函数只接受一个参数，这个参数是一个类型，并且返回一个指向该类型内存地址的指针。同时 new 函数会把分配的内存置为零，也就是类型的零值。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>var</span> <span class=nx>sum</span> <span class=o>*</span><span class=kt>int</span>
-</span></span><span class=line><span class=cl><span class=nx>sum</span> <span class=p>=</span> <span class=nb>new</span><span class=p>(</span><span class=kt>int</span><span class=p>)</span> <span class=c1>//分配空间
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=o>*</span><span class=nx>sum</span> <span class=p>=</span> <span class=mi>98</span>
-</span></span><span class=line><span class=cl><span class=nx>fmt</span><span class=p>.</span><span class=nf>Println</span><span class=p>(</span><span class=o>*</span><span class=nx>sum</span><span class=p>)</span>
-</span></span></code></pre></div><p>当然，new 函数不仅仅能够为系统默认的数据类型，分配空间，自定义类型也可以使用 new 函数来分配空间，如下所示：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span> <span class=nx>Student</span> <span class=kd>struct</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>   <span class=nx>name</span> <span class=kt>string</span>
-</span></span><span class=line><span class=cl>   <span class=nx>age</span> <span class=kt>int</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=kd>var</span> <span class=nx>s</span> <span class=o>*</span><span class=nx>Student</span>
-</span></span><span class=line><span class=cl><span class=nx>s</span> <span class=p>=</span> <span class=nb>new</span><span class=p>(</span><span class=nx>Student</span><span class=p>)</span> <span class=c1>// 分配空间
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=nx>s</span><span class=p>.</span><span class=nx>name</span> <span class=p>=</span><span class=s>&#34;dequan&#34;</span>
-</span></span><span class=line><span class=cl><span class=nx>fmt</span><span class=p>.</span><span class=nf>Println</span><span class=p>(</span><span class=nx>s</span><span class=p>)</span>
-</span></span></code></pre></div><p>这里如果我们不使用 new 函数为自定义类型分配空间（将第 7 行注释），就会报错：</p><pre tabindex=0><code>panic: runtime error: invalid memory address or nil pointer dereference
+<!DOCTYPE html><html lang="zh" >
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  
+  
+    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+
+  
+  
+  
+    
+      
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    
+  
+
+  
+    <meta name="google-site-verification" content="google69a5cccb61297807" />
+    <meta name="baidu-site-verification" content="cqmZHEleVh" />
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+    
+  
+  <meta name="description" content="变量内存分配 make 与 new Go 语言中 new 和 make 是两个内置函数，主要用来创建并分配类型的内存。在我们定义变量的时候，可能会觉得有点迷惑，不知道应该使用哪个函数来声明变量，其实他们的规则很简单，new 只分配内存，而 make 只" />
+
+  
+  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D/" />
+
+  
+  
+  
+    <meta name="theme-color" content="#0a55a7" />
+  
+
+  
+  
+
+  
+
+  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
+
+  
+  
+  
+    
+    
+
+    
+    
+    
+    
+      
+      
+    
+    
+    
+
+    
+    
+    
+      
+    
+    
+      
+      
+        
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
+        
+      
+    
+
+    
+    
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
+    
+
+    
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+        
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+  
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/wowchemy.0d97305106da5efa530e28b021b4c580.css" />
+
+  
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', "G-40NYXJ8823");
+</script>
+
+
+  
+
+
+  
+
+
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+  
+  
+  
+
+  
+
+  
+    <link rel="manifest" href="/manifest.webmanifest" />
+  
+
+  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
+  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
+
+  <link rel="canonical" href="https://ng-tech.icu/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D/" />
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+
+  
+  
+    
+    
+  
+  <meta property="twitter:card" content="summary_large_image" />
+  
+    <meta property="twitter:site" content="@wx-chevalier" />
+    <meta property="twitter:creator" content="@wx-chevalier" />
+  
+  <meta property="og:site_name" content="Next-gen Tech Edu" />
+  <meta property="og:url" content="https://ng-tech.icu/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D/" />
+  <meta property="og:title" content="内存分配 | Next-gen Tech Edu" />
+  <meta property="og:description" content="变量内存分配 make 与 new Go 语言中 new 和 make 是两个内置函数，主要用来创建并分配类型的内存。在我们定义变量的时候，可能会觉得有点迷惑，不知道应该使用哪个函数来声明变量，其实他们的规则很简单，new 只分配内存，而 make 只" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
+    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
+  
+    
+    
+  
+
+  
+
+
+
+  
+
+  
+
+  
+
+
+
+
+
+  <title>内存分配 | Next-gen Tech Edu</title>
+</head>
+
+
+<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="f2362740abf1a683134dc60da64fdb11" >
+  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
+
+  
+
+
+<aside class="search-modal" id="search">
+  <div class="container">
+    <section class="search-header">
+
+      <div class="row no-gutters justify-content-between mb-3">
+        <div class="col-6 search-title">
+          <p>搜索</p>
+        </div>
+        <div class="col-6 col-search-close">
+          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+      <div id="search-box">
+        
+        
+        
+      </div>
+
+      
+      
+
+      
+    </section>
+    <section class="section-search-results">
+
+      <div id="search-hits">
+        
+      </div>
+
+      <div id="search-common-queries">
+        
+      </div>
+
+    </section>
+  </div>
+</aside>
+
+
+
+  <div class="page-header">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="header--fixed">
+  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
+    <div class="container-xl">
+
+      
+      <div class="d-none d-lg-inline-flex">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      <button type="button" class="navbar-toggler" data-toggle="collapse"
+              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
+      <span><i class="fas fa-bars"></i></span>
+      </button>
+      
+
+      
+      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      
+      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
+
+        
+        <ul class="navbar-nav d-md-inline-flex">
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
+          </li>
+
+          
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+              
+              
+              
+                
+              
+              
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
+              
+                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
+              
+                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+        
+
+          
+        </ul>
+      </div>
+
+      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
+
+        
+        
+        
+        <li class="nav-item">
+          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        <li class="nav-item">
+            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        
+
+        
+        
+        
+        <div></div>
+        
+        <style>
+        @media only screen and (max-width: 600px) {
+          .jimmysong-template {
+            display: none!important;
+          }
+        }
+        </style>
+        
+        <li class="jimmysong-template" style="color: white;font-size: 12px;">
+          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+</header>
+
+
+  </div>
+
+  <div class="page-body">
+    
+    
+    
+
+    
+
+
+
+
+<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
+<div class="container-xl docs">
+  <div class="row flex-xl-nowrap">
+    <div class="docs-sidebar">
+      <form class="docs-search d-flex align-items-center">
+  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    <div class="d-flex">
+      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
+        
+          变量操作
+        
+      </span>
+      <span><i class="fas fa-chevron-down"></i></span>
+    </div>
+  </button>
+
+  
+  <button class="form-control sidebar-search js-search d-none d-md-flex">
+    <i class="fas fa-search pr-2"></i>
+    <span class="sidebar-search-text">搜索...</span>
+    <span class="sidebar-search-shortcut">/</span>
+  </button>
+  
+</form>
+
+<nav class="collapse docs-links" id="docs-nav">
+  
+  
+  
+  
+  
+  
+
+  
+  
+    
+
+    
+      
+
+      <ul class="nav docs-sidenav">
+        <li style="display: inline-flex">
+          <a style="cursor: pointer;" onclick="window.history.back()">
+            <i class="fas fa-arrow-left pr-1"></i>
+            Back
+          </a>
+          <span>|</span>
+          <a href="/books/">
+            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
+            Books
+          </a>
+        </li>
+      </ul>
+
+      
+      
+        
+          
+        
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id9f3f745015603467034399f5db335296&#34;)" href="#id9f3f745015603467034399f5db335296" aria-expanded="false" aria-controls="id9f3f745015603467034399f5db335296" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/">01.语法基础</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id9f3f745015603467034399f5db335296" aria-expanded="false" aria-controls="id9f3f745015603467034399f5db335296">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id9f3f745015603467034399f5db335296"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id9f3f745015603467034399f5db335296">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id00eb3103d90e6ccf2e8d4e3c7f2ef192&#34;)" href="#id00eb3103d90e6ccf2e8d4e3c7f2ef192" aria-expanded="false" aria-controls="id00eb3103d90e6ccf2e8d4e3c7f2ef192" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/01.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/">01.快速开始</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id00eb3103d90e6ccf2e8d4e3c7f2ef192" aria-expanded="false" aria-controls="id00eb3103d90e6ccf2e8d4e3c7f2ef192">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id00eb3103d90e6ccf2e8d4e3c7f2ef192"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id00eb3103d90e6ccf2e8d4e3c7f2ef192">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id5949d673e7cd39b0f3db1d83b8c2b0f4&#34;)" href="#id5949d673e7cd39b0f3db1d83b8c2b0f4" aria-expanded="false" aria-controls="id5949d673e7cd39b0f3db1d83b8c2b0f4" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/01.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/">99.参考资料</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id5949d673e7cd39b0f3db1d83b8c2b0f4" aria-expanded="false" aria-controls="id5949d673e7cd39b0f3db1d83b8c2b0f4">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id5949d673e7cd39b0f3db1d83b8c2b0f4"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id5949d673e7cd39b0f3db1d83b8c2b0f4">
+      
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/01.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/how-to-start-a-go-project-in-2023/">How to start a Go project in 2023</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/01.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/web-%E5%BA%94%E7%94%A8/">Web 应用</a></li>
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id4a31bffa5a8f0efc62818239b39a5fde&#34;)" href="#id4a31bffa5a8f0efc62818239b39a5fde" aria-expanded="false" aria-controls="id4a31bffa5a8f0efc62818239b39a5fde" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/01.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/">开发环境</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id4a31bffa5a8f0efc62818239b39a5fde" aria-expanded="false" aria-controls="id4a31bffa5a8f0efc62818239b39a5fde">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id4a31bffa5a8f0efc62818239b39a5fde"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id4a31bffa5a8f0efc62818239b39a5fde">
+      
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/01.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/delve/">Delve</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/01.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/%E5%B7%A5%E5%85%B7%E9%93%BE/">工具链</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/01.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/%E5%86%85%E7%BD%AE%E5%91%BD%E4%BB%A4/">内置命令</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id984b936cc61300d164b64781a2cfd885&#34;)" href="#id984b936cc61300d164b64781a2cfd885" aria-expanded="false" aria-controls="id984b936cc61300d164b64781a2cfd885" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/01.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%91%BD%E4%BB%A4%E8%A1%8C%E5%BA%94%E7%94%A8/">命令行应用</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id984b936cc61300d164b64781a2cfd885" aria-expanded="false" aria-controls="id984b936cc61300d164b64781a2cfd885">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id984b936cc61300d164b64781a2cfd885"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id984b936cc61300d164b64781a2cfd885">
+      
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/01.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%91%BD%E4%BB%A4%E8%A1%8C%E5%BA%94%E7%94%A8/cobra/">Cobra</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/01.%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E5%91%BD%E4%BB%A4%E8%A1%8C%E5%BA%94%E7%94%A8/urfave-cli/">urfave-cli</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id8b2eb856d0beb2bc22293f49615a7bf9&#34;)" href="#id8b2eb856d0beb2bc22293f49615a7bf9" aria-expanded="false" aria-controls="id8b2eb856d0beb2bc22293f49615a7bf9" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/02.%E8%83%8C%E6%99%AF%E4%B8%8E%E7%89%B9%E6%80%A7/">02.背景与特性</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id8b2eb856d0beb2bc22293f49615a7bf9" aria-expanded="false" aria-controls="id8b2eb856d0beb2bc22293f49615a7bf9">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id8b2eb856d0beb2bc22293f49615a7bf9"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id8b2eb856d0beb2bc22293f49615a7bf9">
+      
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/02.%E8%83%8C%E6%99%AF%E4%B8%8E%E7%89%B9%E6%80%A7/go-%E7%AE%80%E5%8F%B2/">Go 简史</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id9dc509b759d34dfc302e4f7fc6bb2719&#34;)" href="#id9dc509b759d34dfc302e4f7fc6bb2719" aria-expanded="false" aria-controls="id9dc509b759d34dfc302e4f7fc6bb2719" aria-hidden="false" data-toggle="collapse">
+    
+    </div>
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id86e1347d051f154213dd8a8bbaf8aa07&#34;)" href="#id86e1347d051f154213dd8a8bbaf8aa07" aria-expanded="false" aria-controls="id86e1347d051f154213dd8a8bbaf8aa07" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8C%85%E4%B8%8E%E6%A8%A1%E5%9D%97/">包与模块</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id86e1347d051f154213dd8a8bbaf8aa07" aria-expanded="false" aria-controls="id86e1347d051f154213dd8a8bbaf8aa07">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id86e1347d051f154213dd8a8bbaf8aa07"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id86e1347d051f154213dd8a8bbaf8aa07">
+      
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8C%85%E4%B8%8E%E6%A8%A1%E5%9D%97/go-modules/">Go Modules</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8C%85%E4%B8%8E%E6%A8%A1%E5%9D%97/%E5%8C%85/">包</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idb0fd1ade250cba5b897f722284baff54&#34;)" href="#idb0fd1ade250cba5b897f722284baff54" aria-expanded="false" aria-controls="idb0fd1ade250cba5b897f722284baff54" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/">变量操作</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idb0fd1ade250cba5b897f722284baff54" aria-expanded="false" aria-controls="idb0fd1ade250cba5b897f722284baff54">
+    
+    <i class="fa-solid fa-angle-down" id="caret-idb0fd1ade250cba5b897f722284baff54"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="idb0fd1ade250cba5b897f722284baff54">
+      
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/%E5%8F%98%E9%87%8F/">变量</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/%E5%B8%B8%E9%87%8F/">常量</a></li>
+
+
+
+
+  <li class="child level active"><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D/">内存分配</a></li>
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idddf7e71ef8b8d0d103c546a1c692096b&#34;)" href="#idddf7e71ef8b8d0d103c546a1c692096b" aria-expanded="false" aria-controls="idddf7e71ef8b8d0d103c546a1c692096b" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/%E6%8C%87%E9%92%88/">指针</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idddf7e71ef8b8d0d103c546a1c692096b" aria-expanded="false" aria-controls="idddf7e71ef8b8d0d103c546a1c692096b">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idddf7e71ef8b8d0d103c546a1c692096b"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idddf7e71ef8b8d0d103c546a1c692096b">
+      
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/%E6%8C%87%E9%92%88/go-%E4%B8%AD%E6%8C%87%E9%92%88%E4%B8%8E%E5%BC%95%E7%94%A8%E6%8E%A2%E8%AE%A8/">Go 中指针与引用探讨</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idba8e555004651e7aa2a7dce9e31df328&#34;)" href="#idba8e555004651e7aa2a7dce9e31df328" aria-expanded="false" aria-controls="idba8e555004651e7aa2a7dce9e31df328" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%87%BD%E6%95%B0/">函数</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idba8e555004651e7aa2a7dce9e31df328" aria-expanded="false" aria-controls="idba8e555004651e7aa2a7dce9e31df328">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idba8e555004651e7aa2a7dce9e31df328"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idba8e555004651e7aa2a7dce9e31df328">
+      
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%87%BD%E6%95%B0/%E9%97%AD%E5%8C%85/">闭包</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%87%BD%E6%95%B0/%E5%87%BD%E6%95%B0%E5%AE%9A%E4%B9%89/">函数定义</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%87%BD%E6%95%B0/%E5%87%BD%E6%95%B0%E6%89%A7%E8%A1%8C/">函数执行</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id52afad2111352d384426646e0c23fac5&#34;)" href="#id52afad2111352d384426646e0c23fac5" aria-expanded="false" aria-controls="id52afad2111352d384426646e0c23fac5" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%8E%A5%E5%8F%A3/">接口</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id52afad2111352d384426646e0c23fac5" aria-expanded="false" aria-controls="id52afad2111352d384426646e0c23fac5">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id52afad2111352d384426646e0c23fac5"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id52afad2111352d384426646e0c23fac5">
+      
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%8E%A5%E5%8F%A3/%E5%86%85%E5%B5%8C/">内嵌</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id61f62c036ac6d703861edd7eb09d2df1&#34;)" href="#id61f62c036ac6d703861edd7eb09d2df1" aria-expanded="false" aria-controls="id61f62c036ac6d703861edd7eb09d2df1" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%93%E6%9E%84%E4%BD%93/">结构体</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id61f62c036ac6d703861edd7eb09d2df1" aria-expanded="false" aria-controls="id61f62c036ac6d703861edd7eb09d2df1">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id61f62c036ac6d703861edd7eb09d2df1"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id61f62c036ac6d703861edd7eb09d2df1">
+      
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%93%E6%9E%84%E4%BD%93/%E5%AE%9A%E4%B9%89/">定义</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%93%E6%9E%84%E4%BD%93/%E5%AF%B9%E8%B1%A1/">对象</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%93%E6%9E%84%E4%BD%93/%E6%96%B9%E6%B3%95/">方法</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id382b529e6794f010ac25879d578dfb1a&#34;)" href="#id382b529e6794f010ac25879d578dfb1a" aria-expanded="false" aria-controls="id382b529e6794f010ac25879d578dfb1a" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%B5%81%E7%A8%8B%E6%8E%A7%E5%88%B6/">流程控制</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id382b529e6794f010ac25879d578dfb1a" aria-expanded="false" aria-controls="id382b529e6794f010ac25879d578dfb1a">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id382b529e6794f010ac25879d578dfb1a"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id382b529e6794f010ac25879d578dfb1a">
+      
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%B5%81%E7%A8%8B%E6%8E%A7%E5%88%B6/%E6%9D%A1%E4%BB%B6%E9%80%89%E6%8B%A9/">条件选择</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%B5%81%E7%A8%8B%E6%8E%A7%E5%88%B6/%E5%BE%AA%E7%8E%AF/">循环</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idf3b966ee203616d744350a04be0187ae&#34;)" href="#idf3b966ee203616d744350a04be0187ae" aria-expanded="false" aria-controls="idf3b966ee203616d744350a04be0187ae" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/">数据类型</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idf3b966ee203616d744350a04be0187ae" aria-expanded="false" aria-controls="idf3b966ee203616d744350a04be0187ae">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idf3b966ee203616d744350a04be0187ae"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idf3b966ee203616d744350a04be0187ae">
+      
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E6%B3%9B%E5%9E%8B/">泛型</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B/">基础类型</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E6%9E%9A%E4%B8%BE/">枚举</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E6%97%B6%E9%97%B4%E4%B8%8E%E6%97%A5%E6%9C%9F/">时间与日期</a></li>
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-ida200af2069e623e98ce3378a7c82ffc4&#34;)" href="#ida200af2069e623e98ce3378a7c82ffc4" aria-expanded="false" aria-controls="ida200af2069e623e98ce3378a7c82ffc4" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E5%AD%97%E7%AC%A6%E4%B8%B2/">字符串</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#ida200af2069e623e98ce3378a7c82ffc4" aria-expanded="false" aria-controls="ida200af2069e623e98ce3378a7c82ffc4">
+    
+        <i class="fa-solid fa-angle-right" id="caret-ida200af2069e623e98ce3378a7c82ffc4"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="ida200af2069e623e98ce3378a7c82ffc4">
+      
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E5%AD%97%E7%AC%A6%E4%B8%B2/strings/">strings</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E5%AD%97%E7%AC%A6%E4%B8%B2/template/">Template</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E5%AD%97%E7%AC%A6%E4%B8%B2/%E6%AD%A3%E5%88%99%E5%8C%B9%E9%85%8D/">正则匹配</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E5%AD%97%E7%AC%A6%E4%B8%B2/%E5%AD%97%E7%AC%A6%E4%B8%B2/">字符串</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id4601ea2b51a2a11011d45bba4e219645&#34;)" href="#id4601ea2b51a2a11011d45bba4e219645" aria-expanded="false" aria-controls="id4601ea2b51a2a11011d45bba4e219645" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BA%8F%E5%88%97%E5%8C%96/">序列化</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id4601ea2b51a2a11011d45bba4e219645" aria-expanded="false" aria-controls="id4601ea2b51a2a11011d45bba4e219645">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id4601ea2b51a2a11011d45bba4e219645"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id4601ea2b51a2a11011d45bba4e219645">
+      
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BA%8F%E5%88%97%E5%8C%96/grpc/">gRPC</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BA%8F%E5%88%97%E5%8C%96/json/">Json</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BA%8F%E5%88%97%E5%8C%96/xml/">Xml</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-ide947bc91d50aa3e39f213d173f70c6d6&#34;)" href="#ide947bc91d50aa3e39f213d173f70c6d6" aria-expanded="false" aria-controls="ide947bc91d50aa3e39f213d173f70c6d6" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/">异常处理</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#ide947bc91d50aa3e39f213d173f70c6d6" aria-expanded="false" aria-controls="ide947bc91d50aa3e39f213d173f70c6d6">
+    
+        <i class="fa-solid fa-angle-right" id="caret-ide947bc91d50aa3e39f213d173f70c6d6"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="ide947bc91d50aa3e39f213d173f70c6d6">
+      
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/errgroup/">errgroup</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/error/">Error</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/panic/">panic</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/panic-%E5%8E%9F%E7%90%86/">panic 原理</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/%E9%94%99%E8%AF%AF%E7%B1%BB%E5%9E%8B/">错误类型</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id69cfa13f800d88afb096d31964a3693b&#34;)" href="#id69cfa13f800d88afb096d31964a3693b" aria-expanded="false" aria-controls="id69cfa13f800d88afb096d31964a3693b" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%85%83%E7%BC%96%E7%A8%8B/">元编程</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id69cfa13f800d88afb096d31964a3693b" aria-expanded="false" aria-controls="id69cfa13f800d88afb096d31964a3693b">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id69cfa13f800d88afb096d31964a3693b"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id69cfa13f800d88afb096d31964a3693b">
+      
+
+
+
+  <li class="child level "><a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%85%83%E7%BC%96%E7%A8%8B/%E5%8F%8D%E5%B0%84/">反射</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+    
+  
+</nav>
+
+    </div>
+
+    
+    
+    <div class="d-none d-xl-block col-xl-2 docs-toc">
+      
+     
+      <ul class="nav toc-top">
+        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
+      </ul>
+     
+
+      <nav id="TableOfContents">
+  <ul>
+    <li><a href="#new">new</a></li>
+    <li><a href="#make">make</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#逃逸分析escape-analysis">逃逸分析（Escape analysis）</a></li>
+    <li><a href="#指针逃逸">指针逃逸</a></li>
+    <li><a href="#栈空间不足逃逸空间开辟过大">栈空间不足逃逸（空间开辟过大）</a></li>
+    <li><a href="#动态类型逃逸不确定长度大小">动态类型逃逸（不确定长度大小）</a></li>
+    <li><a href="#闭包引用对象逃逸">闭包引用对象逃逸</a></li>
+  </ul>
+</nav>
+
+      
+<div class="subscribe-module col-24 mt-1">
+    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
+</div>
+
+
+
+    </div>
+    
+
+    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
+
+      <article class="article">
+
+          
+
+          <h1>内存分配</h1>
+
+          <div class="article-style">
+            <h1 id="变量内存分配">变量内存分配</h1>
+<h1 id="make-与-new">make 与 new</h1>
+<p>Go 语言中 new 和 make 是两个内置函数，主要用来创建并分配类型的内存。在我们定义变量的时候，可能会觉得有点迷惑，不知道应该使用哪个函数来声明变量，其实他们的规则很简单，new 只分配内存，而 make 只能用于 slice、map 和 channel 的初始化。</p>
+<h2 id="new">new</h2>
+<p>在 Go 语言中，new 函数描述如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// The new built-in function allocates memory. The first argument is a type,
+</span></span></span><span class="line"><span class="cl"><span class="c1">// not a value, and the value returned is a pointer to a newly
+</span></span></span><span class="line"><span class="cl"><span class="c1">// allocated zero value of that type.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="nb">new</span><span class="p">(</span><span class="nx">Type</span><span class="p">)</span> <span class="o">*</span><span class="nx">Type</span>
+</span></span></code></pre></div><p>从上面的代码可以看出，new 函数只接受一个参数，这个参数是一个类型，并且返回一个指向该类型内存地址的指针。同时 new 函数会把分配的内存置为零，也就是类型的零值。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">var</span> <span class="nx">sum</span> <span class="o">*</span><span class="kt">int</span>
+</span></span><span class="line"><span class="cl"><span class="nx">sum</span> <span class="p">=</span> <span class="nb">new</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="c1">//分配空间
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="o">*</span><span class="nx">sum</span> <span class="p">=</span> <span class="mi">98</span>
+</span></span><span class="line"><span class="cl"><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="o">*</span><span class="nx">sum</span><span class="p">)</span>
+</span></span></code></pre></div><p>当然，new 函数不仅仅能够为系统默认的数据类型，分配空间，自定义类型也可以使用 new 函数来分配空间，如下所示：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">Student</span> <span class="kd">struct</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">   <span class="nx">name</span> <span class="kt">string</span>
+</span></span><span class="line"><span class="cl">   <span class="nx">age</span> <span class="kt">int</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="kd">var</span> <span class="nx">s</span> <span class="o">*</span><span class="nx">Student</span>
+</span></span><span class="line"><span class="cl"><span class="nx">s</span> <span class="p">=</span> <span class="nb">new</span><span class="p">(</span><span class="nx">Student</span><span class="p">)</span> <span class="c1">// 分配空间
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nx">s</span><span class="p">.</span><span class="nx">name</span> <span class="p">=</span><span class="s">&#34;dequan&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">s</span><span class="p">)</span>
+</span></span></code></pre></div><p>这里如果我们不使用 new 函数为自定义类型分配空间（将第 7 行注释），就会报错：</p>
+<pre tabindex="0"><code>panic: runtime error: invalid memory address or nil pointer dereference
 [signal SIGSEGV: segmentation violation code=0x1 addr=0x0 pc=0x80bd277]
 goroutine 1 [running]:
-</code></pre><p>这就是 new 函数，它返回的永远是类型的指针，指针指向分配类型的内存地址。内置函数 new 会在编译期的 SSA 代码生成阶段经过 callnew 函数的处理，如果请求创建的类型大小是 0，那么就会返回一个表示空指针的 zerobase 变量，在遇到其他情况时会将关键字转换成 newobject：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>func</span> <span class=nf>callnew</span><span class=p>(</span><span class=nx>t</span> <span class=o>*</span><span class=nx>types</span><span class=p>.</span><span class=nx>Type</span><span class=p>)</span> <span class=o>*</span><span class=nx>Node</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=nx>t</span><span class=p>.</span><span class=nf>NotInHeap</span><span class=p>()</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>        <span class=nf>yyerror</span><span class=p>(</span><span class=s>&#34;%v is go:notinheap; heap allocation disallowed&#34;</span><span class=p>,</span> <span class=nx>t</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span>
-</span></span><span class=line><span class=cl>    <span class=nf>dowidth</span><span class=p>(</span><span class=nx>t</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=nx>t</span><span class=p>.</span><span class=nf>Size</span><span class=p>()</span> <span class=o>==</span> <span class=mi>0</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>        <span class=nx>z</span> <span class=o>:=</span> <span class=nf>newname</span><span class=p>(</span><span class=nx>Runtimepkg</span><span class=p>.</span><span class=nf>Lookup</span><span class=p>(</span><span class=s>&#34;zerobase&#34;</span><span class=p>))</span>
-</span></span><span class=line><span class=cl>        <span class=nx>z</span><span class=p>.</span><span class=nf>SetClass</span><span class=p>(</span><span class=nx>PEXTERN</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>        <span class=nx>z</span><span class=p>.</span><span class=nx>Type</span> <span class=p>=</span> <span class=nx>t</span>
-</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nf>typecheck</span><span class=p>(</span><span class=nf>nod</span><span class=p>(</span><span class=nx>OADDR</span><span class=p>,</span> <span class=nx>z</span><span class=p>,</span> <span class=kc>nil</span><span class=p>),</span> <span class=nx>ctxExpr</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span>
-</span></span><span class=line><span class=cl>    <span class=nx>fn</span> <span class=o>:=</span> <span class=nf>syslook</span><span class=p>(</span><span class=s>&#34;newobject&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>    <span class=nx>fn</span> <span class=p>=</span> <span class=nf>substArgTypes</span><span class=p>(</span><span class=nx>fn</span><span class=p>,</span> <span class=nx>t</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>    <span class=nx>v</span> <span class=o>:=</span> <span class=nf>mkcall1</span><span class=p>(</span><span class=nx>fn</span><span class=p>,</span> <span class=nx>types</span><span class=p>.</span><span class=nf>NewPtr</span><span class=p>(</span><span class=nx>t</span><span class=p>),</span> <span class=kc>nil</span><span class=p>,</span> <span class=nf>typename</span><span class=p>(</span><span class=nx>t</span><span class=p>))</span>
-</span></span><span class=line><span class=cl>    <span class=nx>v</span><span class=p>.</span><span class=nf>SetNonNil</span><span class=p>(</span><span class=kc>true</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=nx>v</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><p>需要提到的是，哪怕当前变量是使用 var 进行初始化，在这一阶段也可能会被转换成 newobject 的函数调用并在堆上申请内存：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>func</span> <span class=nf>walkstmt</span><span class=p>(</span><span class=nx>n</span> <span class=o>*</span><span class=nx>Node</span><span class=p>)</span> <span class=o>*</span><span class=nx>Node</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=k>switch</span> <span class=nx>n</span><span class=p>.</span><span class=nx>Op</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=k>case</span> <span class=nx>ODCL</span><span class=p>:</span>
-</span></span><span class=line><span class=cl>        <span class=nx>v</span> <span class=o>:=</span> <span class=nx>n</span><span class=p>.</span><span class=nx>Left</span>
-</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=nx>v</span><span class=p>.</span><span class=nf>Class</span><span class=p>()</span> <span class=o>==</span> <span class=nx>PAUTOHEAP</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=nx>prealloc</span><span class=p>[</span><span class=nx>v</span><span class=p>]</span> <span class=o>==</span> <span class=kc>nil</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>                <span class=nx>prealloc</span><span class=p>[</span><span class=nx>v</span><span class=p>]</span> <span class=p>=</span> <span class=nf>callnew</span><span class=p>(</span><span class=nx>v</span><span class=p>.</span><span class=nx>Type</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>            <span class=p>}</span>
-</span></span><span class=line><span class=cl>            <span class=nx>nn</span> <span class=o>:=</span> <span class=nf>nod</span><span class=p>(</span><span class=nx>OAS</span><span class=p>,</span> <span class=nx>v</span><span class=p>.</span><span class=nx>Name</span><span class=p>.</span><span class=nx>Param</span><span class=p>.</span><span class=nx>Heapaddr</span><span class=p>,</span> <span class=nx>prealloc</span><span class=p>[</span><span class=nx>v</span><span class=p>])</span>
-</span></span><span class=line><span class=cl>            <span class=nx>nn</span><span class=p>.</span><span class=nf>SetColas</span><span class=p>(</span><span class=kc>true</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>            <span class=nx>nn</span> <span class=p>=</span> <span class=nf>typecheck</span><span class=p>(</span><span class=nx>nn</span><span class=p>,</span> <span class=nx>ctxStmt</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=nf>walkstmt</span><span class=p>(</span><span class=nx>nn</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>        <span class=p>}</span>
-</span></span><span class=line><span class=cl>    <span class=k>case</span> <span class=nx>ONEW</span><span class=p>:</span>
-</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=nx>n</span><span class=p>.</span><span class=nx>Esc</span> <span class=o>==</span> <span class=nx>EscNone</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>            <span class=nx>r</span> <span class=o>:=</span> <span class=nf>temp</span><span class=p>(</span><span class=nx>n</span><span class=p>.</span><span class=nx>Type</span><span class=p>.</span><span class=nf>Elem</span><span class=p>())</span>
-</span></span><span class=line><span class=cl>            <span class=nx>r</span> <span class=p>=</span> <span class=nf>nod</span><span class=p>(</span><span class=nx>OAS</span><span class=p>,</span> <span class=nx>r</span><span class=p>,</span> <span class=kc>nil</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>            <span class=nx>r</span> <span class=p>=</span> <span class=nf>typecheck</span><span class=p>(</span><span class=nx>r</span><span class=p>,</span> <span class=nx>ctxStmt</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>            <span class=nx>init</span><span class=p>.</span><span class=nf>Append</span><span class=p>(</span><span class=nx>r</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>            <span class=nx>r</span> <span class=p>=</span> <span class=nf>nod</span><span class=p>(</span><span class=nx>OADDR</span><span class=p>,</span> <span class=nx>r</span><span class=p>.</span><span class=nx>Left</span><span class=p>,</span> <span class=kc>nil</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>            <span class=nx>r</span> <span class=p>=</span> <span class=nf>typecheck</span><span class=p>(</span><span class=nx>r</span><span class=p>,</span> <span class=nx>ctxExpr</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>            <span class=nx>n</span> <span class=p>=</span> <span class=nx>r</span>
-</span></span><span class=line><span class=cl>        <span class=p>}</span> <span class=k>else</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>            <span class=nx>n</span> <span class=p>=</span> <span class=nf>callnew</span><span class=p>(</span><span class=nx>n</span><span class=p>.</span><span class=nx>Type</span><span class=p>.</span><span class=nf>Elem</span><span class=p>())</span>
-</span></span><span class=line><span class=cl>        <span class=p>}</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><p>当然这也不是绝对的，如果当前声明的变量或者参数不需要在当前作用域外生存，那么其实就不会被初始化在堆上，而是会初始化在当前函数的栈中并随着函数调用的结束而被销毁。newobject 函数的工作就是获取传入类型的大小并调用 mallocgc 在堆上申请一片大小合适的内存空间并返回指向这片内存空间的指针：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>func</span> <span class=nf>newobject</span><span class=p>(</span><span class=nx>typ</span> <span class=o>*</span><span class=nx>_type</span><span class=p>)</span> <span class=nx>unsafe</span><span class=p>.</span><span class=nx>Pointer</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=nf>mallocgc</span><span class=p>(</span><span class=nx>typ</span><span class=p>.</span><span class=nx>size</span><span class=p>,</span> <span class=nx>typ</span><span class=p>,</span> <span class=kc>true</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><h2 id=make>make</h2><p>make 也是用于内存分配的，但是和 new 不同，它只用于 chan、map 以及 slice 的内存创建，而且它返回的类型就是这三个类型本身，而不是他们的指针类型，因为这三种类型就是引用类型，所以就没有必要返回他们的指针了。</p><p>在 Go 语言中，make 函数的描述如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=c1>// The make built-in function allocates and initializes an object of type
-</span></span></span><span class=line><span class=cl><span class=c1>// slice, map, or chan (only). Like new, the first argument is a type, not a
-</span></span></span><span class=line><span class=cl><span class=c1>// value. Unlike new, make&#39;s return type is the same as the type of its
-</span></span></span><span class=line><span class=cl><span class=c1>// argument, not a pointer to it. The specification of the result depends on
-</span></span></span><span class=line><span class=cl><span class=c1>// the type:
-</span></span></span><span class=line><span class=cl><span class=c1>// Slice: The size specifies the length. The capacity of the slice is
-</span></span></span><span class=line><span class=cl><span class=c1>// equal to its length. A second integer argument may be provided to
-</span></span></span><span class=line><span class=cl><span class=c1>// specify a different capacity; it must be no smaller than the
-</span></span></span><span class=line><span class=cl><span class=c1>// length, so make([]int, 0, 10) allocates a slice of length 0 and
-</span></span></span><span class=line><span class=cl><span class=c1>// capacity 10.
-</span></span></span><span class=line><span class=cl><span class=c1>// Map: An empty map is allocated with enough space to hold the
-</span></span></span><span class=line><span class=cl><span class=c1>// specified number of elements. The size may be omitted, in which case
-</span></span></span><span class=line><span class=cl><span class=c1>// a small starting size is allocated.
-</span></span></span><span class=line><span class=cl><span class=c1>// Channel: The channel&#39;s buffer is initialized with the specified
-</span></span></span><span class=line><span class=cl><span class=c1>// buffer capacity. If zero, or the size is omitted, the channel is
-</span></span></span><span class=line><span class=cl><span class=c1>// unbuffered.
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kd>func</span> <span class=nb>make</span><span class=p>(</span><span class=nx>t</span> <span class=nx>Type</span><span class=p>,</span> <span class=nx>size</span> <span class=o>...</span><span class=nx>IntegerType</span><span class=p>)</span> <span class=nx>Type</span>
-</span></span></code></pre></div><p>通过上面的代码可以看出 make 函数的 t 参数必须是 chan（通道）、map（字典）、slice（切片）中的一个，并且返回值也是类型本身。如果想要获得一个显式的指针，可以使用 new 函数进行分配，或者显式地使用一个变量的地址。</p><p>在编译期的类型检查阶段，Go 语言其实就将代表 make 关键字的 OMAKE 节点根据参数类型的不同转换成了 OMAKESLICE、OMAKEMAP 和 OMAKECHAN 三种不同类型的节点，这些节点最终也会调用不同的运行时函数来初始化数据结构。</p><h2 id=总结>总结</h2><p>Go 语言中的 new 和 make 主要区别如下：</p><ul><li>make 只能用来分配及初始化类型为 slice、map、chan 的数据。new 可以分配任意类型的数据；</li><li>new 分配返回的是指针，即类型 <code>*Type</code>。make 返回引用，即 Type；</li><li>new 分配的空间被清零。make 分配空间后，会进行初始化；</li></ul><h1 id=内存分配逃逸>内存分配逃逸</h1><p>如前文介绍，栈可以简单得理解成一次函数调用内部申请到的内存，它们会随着函数的返回把内存还给系统。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>func</span> <span class=nf>F</span><span class=p>()</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>	<span class=nx>temp</span> <span class=o>:=</span> <span class=nb>make</span><span class=p>([]</span><span class=kt>int</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>20</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>	<span class=o>...</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><p>类似于上面代码里面的 temp 变量，只是内函数内部申请的临时变量，并不会作为返回值返回，它就是被编译器申请到栈里面。申请到栈内存好处：函数返回直接释放，不会引起垃圾回收，对性能没有影响。再来看看堆得情况之一如下代码：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>func</span> <span class=nf>F</span><span class=p>()</span> <span class=p>[]</span><span class=kt>int</span><span class=p>{</span>
-</span></span><span class=line><span class=cl>	<span class=nx>a</span> <span class=o>:=</span> <span class=nb>make</span><span class=p>([]</span><span class=kt>int</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>20</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>	<span class=k>return</span> <span class=nx>a</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><p>而上面这段代码，申请的代码一模一样，但是申请后作为返回值返回了，编译器会认为变量之后还会被使用，当函数返回之后并不会将其内存归还，那么它就会被申请到堆上面了。申请到堆上面的内存才会引起垃圾回收，如果这个过程（特指垃圾回收不断被触发）过于高频就会导致 gc 压力过大，程序性能出问题。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>func</span> <span class=nf>F</span><span class=p>()</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>	<span class=nx>a</span> <span class=o>:=</span> <span class=nb>make</span><span class=p>([]</span><span class=kt>int</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>20</span><span class=p>)</span>     <span class=c1>// 栈 空间小
-</span></span></span><span class=line><span class=cl><span class=c1></span>	<span class=nx>b</span> <span class=o>:=</span> <span class=nb>make</span><span class=p>([]</span><span class=kt>int</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>20000</span><span class=p>)</span> <span class=c1>// 堆 空间过大
-</span></span></span><span class=line><span class=cl><span class=c1></span>
-</span></span><span class=line><span class=cl>	<span class=nx>l</span> <span class=o>:=</span> <span class=mi>20</span>
-</span></span><span class=line><span class=cl>	<span class=nx>c</span> <span class=o>:=</span> <span class=nb>make</span><span class=p>([]</span><span class=kt>int</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=nx>l</span><span class=p>)</span> <span class=c1>// 堆 动态分配不定空间
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>}</span>
-</span></span></code></pre></div><p>像是 b 这种 即使是临时变量，申请过大也会在堆上面申请。对于 c 编译器对于这种不定长度的申请方式，也会在堆上面申请，即使申请的长度很短。</p><h2 id=逃逸分析escape-analysis>逃逸分析（Escape analysis）</h2><p>所谓逃逸分析（Escape analysis）是指由编译器决定内存分配的位置，不需要程序员指定。在函数中申请一个新的对象：</p><ul><li>如果分配在栈中，则函数执行结束可自动将内存回收；</li><li>如果分配在堆中，则函数执行结束可交给 GC（垃圾回收）处理;</li></ul><p>注意，对于函数外部没有引用的对象，也有可能放到堆中，比如内存过大超过栈的存储能力。我们知道传递指针可以减少底层值的拷贝，可以提高效率，但是如果拷贝的数据量小，由于指针传递会产生逃逸，可能会使用堆，也可能会增加 GC 的负担，所以传递指针不一定是高效的。</p><p>逃逸分析的作用是什么呢？</p><ul><li>逃逸分析的好处是为了减少 gc 的压力，不逃逸的对象分配在栈上，当函数返回时就回收了资源，不需要 gc 标记清除。</li><li>逃逸分析完后可以确定哪些变量可以分配在栈上，栈的分配比堆快，性能好(逃逸的局部变量会在堆上分配 ,而没有发生逃逸的则有编译器在栈上分配)。</li><li>同步消除，如果你定义的对象的方法上有同步锁，但在运行时，却只有一个线程在访问，此时逃逸分析后的机器码，会去掉同步锁运行。</li></ul><h2 id=指针逃逸>指针逃逸</h2><p>Go 可以返回局部变量指针，这其实是一个典型的变量逃逸案例，示例代码如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kn>package</span> <span class=nx>main</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kd>type</span> <span class=nx>Student</span> <span class=kd>struct</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nx>Name</span> <span class=kt>string</span>
-</span></span><span class=line><span class=cl>    <span class=nx>Age</span>  <span class=kt>int</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kd>func</span> <span class=nf>StudentRegister</span><span class=p>(</span><span class=nx>name</span> <span class=kt>string</span><span class=p>,</span> <span class=nx>age</span> <span class=kt>int</span><span class=p>)</span> <span class=o>*</span><span class=nx>Student</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nx>s</span> <span class=o>:=</span> <span class=nb>new</span><span class=p>(</span><span class=nx>Student</span><span class=p>)</span> <span class=c1>//局部变量s逃逸到堆
-</span></span></span><span class=line><span class=cl><span class=c1></span>
-</span></span><span class=line><span class=cl>    <span class=nx>s</span><span class=p>.</span><span class=nx>Name</span> <span class=p>=</span> <span class=nx>name</span>
-</span></span><span class=line><span class=cl>    <span class=nx>s</span><span class=p>.</span><span class=nx>Age</span> <span class=p>=</span> <span class=nx>age</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=nx>s</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kd>func</span> <span class=nf>main</span><span class=p>()</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nf>StudentRegister</span><span class=p>(</span><span class=s>&#34;Jim&#34;</span><span class=p>,</span> <span class=mi>18</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><p>虽然在函数 StudentRegister() 内部 s 为局部变量，其值通过函数返回值返回，s 本身为一指针，其指向的内存地址不会是栈而是堆，这就是典型的逃逸案例。终端运行命令查看逃逸分析日志：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>go build -gcflags<span class=o>=</span>-m
-</span></span></code></pre></div><p>可见在 StudentRegister()函数中，也即代码第 9 行显示”escapes to heap”，代表该行内存分配发生了逃逸现象。</p><h2 id=栈空间不足逃逸空间开辟过大>栈空间不足逃逸（空间开辟过大）</h2><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kn>package</span> <span class=nx>main</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kd>func</span> <span class=nf>Slice</span><span class=p>()</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nx>s</span> <span class=o>:=</span> <span class=nb>make</span><span class=p>([]</span><span class=kt>int</span><span class=p>,</span> <span class=mi>1000</span><span class=p>,</span> <span class=mi>1000</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=nx>index</span><span class=p>,</span> <span class=nx>_</span> <span class=o>:=</span> <span class=k>range</span> <span class=nx>s</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>        <span class=nx>s</span><span class=p>[</span><span class=nx>index</span><span class=p>]</span> <span class=p>=</span> <span class=nx>index</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kd>func</span> <span class=nf>main</span><span class=p>()</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nf>Slice</span><span class=p>()</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><p>上面代码 Slice()函数中分配了一个 1000 个长度的切片，是否逃逸取决于栈空间是否足够大。</p><h2 id=动态类型逃逸不确定长度大小>动态类型逃逸（不确定长度大小）</h2><p>很多函数参数为 interface 类型，比如 fmt.Println(a …interface{})，编译期间很难确定其参数的具体类型，也能产生逃逸。如下代码所示：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kn>package</span> <span class=nx>main</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=s>&#34;fmt&#34;</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kd>func</span> <span class=nf>main</span><span class=p>()</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nx>s</span> <span class=o>:=</span> <span class=s>&#34;Escape&#34;</span>
-</span></span><span class=line><span class=cl>    <span class=nx>fmt</span><span class=p>.</span><span class=nf>Println</span><span class=p>(</span><span class=nx>s</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><h2 id=闭包引用对象逃逸>闭包引用对象逃逸</h2><p>Fibonacci 数列的函数：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kn>package</span> <span class=nx>main</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=s>&#34;fmt&#34;</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kd>func</span> <span class=nf>Fibonacci</span><span class=p>()</span> <span class=kd>func</span><span class=p>()</span> <span class=kt>int</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nx>a</span><span class=p>,</span> <span class=nx>b</span> <span class=o>:=</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span>
-</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=kd>func</span><span class=p>()</span> <span class=kt>int</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>        <span class=nx>a</span><span class=p>,</span> <span class=nx>b</span> <span class=p>=</span> <span class=nx>b</span><span class=p>,</span> <span class=nx>a</span><span class=o>+</span><span class=nx>b</span>
-</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nx>a</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kd>func</span> <span class=nf>main</span><span class=p>()</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nx>f</span> <span class=o>:=</span> <span class=nf>Fibonacci</span><span class=p>()</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=nx>i</span> <span class=o>:=</span> <span class=mi>0</span><span class=p>;</span> <span class=nx>i</span> <span class=p>&lt;</span> <span class=mi>10</span><span class=p>;</span> <span class=nx>i</span><span class=o>++</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>        <span class=nx>fmt</span><span class=p>.</span><span class=nf>Printf</span><span class=p>(</span><span class=s>&#34;Fibonacci: %d\n&#34;</span><span class=p>,</span> <span class=nf>f</span><span class=p>())</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></div><p>输出如下：</p><pre tabindex=0><code> ~/go/src/gitHub/test/pool  go run main.go
+</code></pre><p>这就是 new 函数，它返回的永远是类型的指针，指针指向分配类型的内存地址。内置函数 new 会在编译期的 SSA 代码生成阶段经过 callnew 函数的处理，如果请求创建的类型大小是 0，那么就会返回一个表示空指针的 zerobase 变量，在遇到其他情况时会将关键字转换成 newobject：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">callnew</span><span class="p">(</span><span class="nx">t</span> <span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Type</span><span class="p">)</span> <span class="o">*</span><span class="nx">Node</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="nx">t</span><span class="p">.</span><span class="nf">NotInHeap</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nf">yyerror</span><span class="p">(</span><span class="s">&#34;%v is go:notinheap; heap allocation disallowed&#34;</span><span class="p">,</span> <span class="nx">t</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">dowidth</span><span class="p">(</span><span class="nx">t</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="nx">t</span><span class="p">.</span><span class="nf">Size</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">z</span> <span class="o">:=</span> <span class="nf">newname</span><span class="p">(</span><span class="nx">Runtimepkg</span><span class="p">.</span><span class="nf">Lookup</span><span class="p">(</span><span class="s">&#34;zerobase&#34;</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">z</span><span class="p">.</span><span class="nf">SetClass</span><span class="p">(</span><span class="nx">PEXTERN</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">z</span><span class="p">.</span><span class="nx">Type</span> <span class="p">=</span> <span class="nx">t</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nf">typecheck</span><span class="p">(</span><span class="nf">nod</span><span class="p">(</span><span class="nx">OADDR</span><span class="p">,</span> <span class="nx">z</span><span class="p">,</span> <span class="kc">nil</span><span class="p">),</span> <span class="nx">ctxExpr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">fn</span> <span class="o">:=</span> <span class="nf">syslook</span><span class="p">(</span><span class="s">&#34;newobject&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">fn</span> <span class="p">=</span> <span class="nf">substArgTypes</span><span class="p">(</span><span class="nx">fn</span><span class="p">,</span> <span class="nx">t</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">v</span> <span class="o">:=</span> <span class="nf">mkcall1</span><span class="p">(</span><span class="nx">fn</span><span class="p">,</span> <span class="nx">types</span><span class="p">.</span><span class="nf">NewPtr</span><span class="p">(</span><span class="nx">t</span><span class="p">),</span> <span class="kc">nil</span><span class="p">,</span> <span class="nf">typename</span><span class="p">(</span><span class="nx">t</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">v</span><span class="p">.</span><span class="nf">SetNonNil</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nx">v</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>需要提到的是，哪怕当前变量是使用 var 进行初始化，在这一阶段也可能会被转换成 newobject 的函数调用并在堆上申请内存：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">walkstmt</span><span class="p">(</span><span class="nx">n</span> <span class="o">*</span><span class="nx">Node</span><span class="p">)</span> <span class="o">*</span><span class="nx">Node</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">switch</span> <span class="nx">n</span><span class="p">.</span><span class="nx">Op</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">case</span> <span class="nx">ODCL</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">v</span> <span class="o">:=</span> <span class="nx">n</span><span class="p">.</span><span class="nx">Left</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="nx">v</span><span class="p">.</span><span class="nf">Class</span><span class="p">()</span> <span class="o">==</span> <span class="nx">PAUTOHEAP</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="nx">prealloc</span><span class="p">[</span><span class="nx">v</span><span class="p">]</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nx">prealloc</span><span class="p">[</span><span class="nx">v</span><span class="p">]</span> <span class="p">=</span> <span class="nf">callnew</span><span class="p">(</span><span class="nx">v</span><span class="p">.</span><span class="nx">Type</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">nn</span> <span class="o">:=</span> <span class="nf">nod</span><span class="p">(</span><span class="nx">OAS</span><span class="p">,</span> <span class="nx">v</span><span class="p">.</span><span class="nx">Name</span><span class="p">.</span><span class="nx">Param</span><span class="p">.</span><span class="nx">Heapaddr</span><span class="p">,</span> <span class="nx">prealloc</span><span class="p">[</span><span class="nx">v</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">nn</span><span class="p">.</span><span class="nf">SetColas</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">nn</span> <span class="p">=</span> <span class="nf">typecheck</span><span class="p">(</span><span class="nx">nn</span><span class="p">,</span> <span class="nx">ctxStmt</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="nf">walkstmt</span><span class="p">(</span><span class="nx">nn</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">case</span> <span class="nx">ONEW</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="nx">n</span><span class="p">.</span><span class="nx">Esc</span> <span class="o">==</span> <span class="nx">EscNone</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">r</span> <span class="o">:=</span> <span class="nf">temp</span><span class="p">(</span><span class="nx">n</span><span class="p">.</span><span class="nx">Type</span><span class="p">.</span><span class="nf">Elem</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">r</span> <span class="p">=</span> <span class="nf">nod</span><span class="p">(</span><span class="nx">OAS</span><span class="p">,</span> <span class="nx">r</span><span class="p">,</span> <span class="kc">nil</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">r</span> <span class="p">=</span> <span class="nf">typecheck</span><span class="p">(</span><span class="nx">r</span><span class="p">,</span> <span class="nx">ctxStmt</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">init</span><span class="p">.</span><span class="nf">Append</span><span class="p">(</span><span class="nx">r</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">r</span> <span class="p">=</span> <span class="nf">nod</span><span class="p">(</span><span class="nx">OADDR</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">Left</span><span class="p">,</span> <span class="kc">nil</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">r</span> <span class="p">=</span> <span class="nf">typecheck</span><span class="p">(</span><span class="nx">r</span><span class="p">,</span> <span class="nx">ctxExpr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">n</span> <span class="p">=</span> <span class="nx">r</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">n</span> <span class="p">=</span> <span class="nf">callnew</span><span class="p">(</span><span class="nx">n</span><span class="p">.</span><span class="nx">Type</span><span class="p">.</span><span class="nf">Elem</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>当然这也不是绝对的，如果当前声明的变量或者参数不需要在当前作用域外生存，那么其实就不会被初始化在堆上，而是会初始化在当前函数的栈中并随着函数调用的结束而被销毁。newobject 函数的工作就是获取传入类型的大小并调用 mallocgc 在堆上申请一片大小合适的内存空间并返回指向这片内存空间的指针：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">newobject</span><span class="p">(</span><span class="nx">typ</span> <span class="o">*</span><span class="nx">_type</span><span class="p">)</span> <span class="nx">unsafe</span><span class="p">.</span><span class="nx">Pointer</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nf">mallocgc</span><span class="p">(</span><span class="nx">typ</span><span class="p">.</span><span class="nx">size</span><span class="p">,</span> <span class="nx">typ</span><span class="p">,</span> <span class="kc">true</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="make">make</h2>
+<p>make 也是用于内存分配的，但是和 new 不同，它只用于 chan、map 以及 slice 的内存创建，而且它返回的类型就是这三个类型本身，而不是他们的指针类型，因为这三种类型就是引用类型，所以就没有必要返回他们的指针了。</p>
+<p>在 Go 语言中，make 函数的描述如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// The make built-in function allocates and initializes an object of type
+</span></span></span><span class="line"><span class="cl"><span class="c1">// slice, map, or chan (only). Like new, the first argument is a type, not a
+</span></span></span><span class="line"><span class="cl"><span class="c1">// value. Unlike new, make&#39;s return type is the same as the type of its
+</span></span></span><span class="line"><span class="cl"><span class="c1">// argument, not a pointer to it. The specification of the result depends on
+</span></span></span><span class="line"><span class="cl"><span class="c1">// the type:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Slice: The size specifies the length. The capacity of the slice is
+</span></span></span><span class="line"><span class="cl"><span class="c1">// equal to its length. A second integer argument may be provided to
+</span></span></span><span class="line"><span class="cl"><span class="c1">// specify a different capacity; it must be no smaller than the
+</span></span></span><span class="line"><span class="cl"><span class="c1">// length, so make([]int, 0, 10) allocates a slice of length 0 and
+</span></span></span><span class="line"><span class="cl"><span class="c1">// capacity 10.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Map: An empty map is allocated with enough space to hold the
+</span></span></span><span class="line"><span class="cl"><span class="c1">// specified number of elements. The size may be omitted, in which case
+</span></span></span><span class="line"><span class="cl"><span class="c1">// a small starting size is allocated.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Channel: The channel&#39;s buffer is initialized with the specified
+</span></span></span><span class="line"><span class="cl"><span class="c1">// buffer capacity. If zero, or the size is omitted, the channel is
+</span></span></span><span class="line"><span class="cl"><span class="c1">// unbuffered.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="nb">make</span><span class="p">(</span><span class="nx">t</span> <span class="nx">Type</span><span class="p">,</span> <span class="nx">size</span> <span class="o">...</span><span class="nx">IntegerType</span><span class="p">)</span> <span class="nx">Type</span>
+</span></span></code></pre></div><p>通过上面的代码可以看出 make 函数的 t 参数必须是 chan（通道）、map（字典）、slice（切片）中的一个，并且返回值也是类型本身。如果想要获得一个显式的指针，可以使用 new 函数进行分配，或者显式地使用一个变量的地址。</p>
+<p>在编译期的类型检查阶段，Go 语言其实就将代表 make 关键字的 OMAKE 节点根据参数类型的不同转换成了 OMAKESLICE、OMAKEMAP 和 OMAKECHAN 三种不同类型的节点，这些节点最终也会调用不同的运行时函数来初始化数据结构。</p>
+<h2 id="总结">总结</h2>
+<p>Go 语言中的 new 和 make 主要区别如下：</p>
+<ul>
+<li>make 只能用来分配及初始化类型为 slice、map、chan 的数据。new 可以分配任意类型的数据；</li>
+<li>new 分配返回的是指针，即类型 <code>*Type</code>。make 返回引用，即 Type；</li>
+<li>new 分配的空间被清零。make 分配空间后，会进行初始化；</li>
+</ul>
+<h1 id="内存分配逃逸">内存分配逃逸</h1>
+<p>如前文介绍，栈可以简单得理解成一次函数调用内部申请到的内存，它们会随着函数的返回把内存还给系统。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">F</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">temp</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">([]</span><span class="kt">int</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="o">...</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>类似于上面代码里面的 temp 变量，只是内函数内部申请的临时变量，并不会作为返回值返回，它就是被编译器申请到栈里面。申请到栈内存好处：函数返回直接释放，不会引起垃圾回收，对性能没有影响。再来看看堆得情况之一如下代码：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">F</span><span class="p">()</span> <span class="p">[]</span><span class="kt">int</span><span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">a</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">([]</span><span class="kt">int</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">a</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>而上面这段代码，申请的代码一模一样，但是申请后作为返回值返回了，编译器会认为变量之后还会被使用，当函数返回之后并不会将其内存归还，那么它就会被申请到堆上面了。申请到堆上面的内存才会引起垃圾回收，如果这个过程（特指垃圾回收不断被触发）过于高频就会导致 gc 压力过大，程序性能出问题。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">F</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">a</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">([]</span><span class="kt">int</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>     <span class="c1">// 栈 空间小
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">b</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">([]</span><span class="kt">int</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">20000</span><span class="p">)</span> <span class="c1">// 堆 空间过大
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">	<span class="nx">l</span> <span class="o">:=</span> <span class="mi">20</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">c</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">([]</span><span class="kt">int</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nx">l</span><span class="p">)</span> <span class="c1">// 堆 动态分配不定空间
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div><p>像是 b 这种 即使是临时变量，申请过大也会在堆上面申请。对于 c 编译器对于这种不定长度的申请方式，也会在堆上面申请，即使申请的长度很短。</p>
+<h2 id="逃逸分析escape-analysis">逃逸分析（Escape analysis）</h2>
+<p>所谓逃逸分析（Escape analysis）是指由编译器决定内存分配的位置，不需要程序员指定。在函数中申请一个新的对象：</p>
+<ul>
+<li>如果分配在栈中，则函数执行结束可自动将内存回收；</li>
+<li>如果分配在堆中，则函数执行结束可交给 GC（垃圾回收）处理;</li>
+</ul>
+<p>注意，对于函数外部没有引用的对象，也有可能放到堆中，比如内存过大超过栈的存储能力。我们知道传递指针可以减少底层值的拷贝，可以提高效率，但是如果拷贝的数据量小，由于指针传递会产生逃逸，可能会使用堆，也可能会增加 GC 的负担，所以传递指针不一定是高效的。</p>
+<p>逃逸分析的作用是什么呢？</p>
+<ul>
+<li>逃逸分析的好处是为了减少 gc 的压力，不逃逸的对象分配在栈上，当函数返回时就回收了资源，不需要 gc 标记清除。</li>
+<li>逃逸分析完后可以确定哪些变量可以分配在栈上，栈的分配比堆快，性能好(逃逸的局部变量会在堆上分配 ,而没有发生逃逸的则有编译器在栈上分配)。</li>
+<li>同步消除，如果你定义的对象的方法上有同步锁，但在运行时，却只有一个线程在访问，此时逃逸分析后的机器码，会去掉同步锁运行。</li>
+</ul>
+<h2 id="指针逃逸">指针逃逸</h2>
+<p>Go 可以返回局部变量指针，这其实是一个典型的变量逃逸案例，示例代码如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span> <span class="nx">main</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">Student</span> <span class="kd">struct</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">Name</span> <span class="kt">string</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">Age</span>  <span class="kt">int</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">StudentRegister</span><span class="p">(</span><span class="nx">name</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">age</span> <span class="kt">int</span><span class="p">)</span> <span class="o">*</span><span class="nx">Student</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">s</span> <span class="o">:=</span> <span class="nb">new</span><span class="p">(</span><span class="nx">Student</span><span class="p">)</span> <span class="c1">//局部变量s逃逸到堆
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">    <span class="nx">s</span><span class="p">.</span><span class="nx">Name</span> <span class="p">=</span> <span class="nx">name</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">s</span><span class="p">.</span><span class="nx">Age</span> <span class="p">=</span> <span class="nx">age</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nx">s</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">StudentRegister</span><span class="p">(</span><span class="s">&#34;Jim&#34;</span><span class="p">,</span> <span class="mi">18</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>虽然在函数 StudentRegister() 内部 s 为局部变量，其值通过函数返回值返回，s 本身为一指针，其指向的内存地址不会是栈而是堆，这就是典型的逃逸案例。终端运行命令查看逃逸分析日志：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">go build -gcflags<span class="o">=</span>-m
+</span></span></code></pre></div><p>可见在 StudentRegister()函数中，也即代码第 9 行显示”escapes to heap”，代表该行内存分配发生了逃逸现象。</p>
+<h2 id="栈空间不足逃逸空间开辟过大">栈空间不足逃逸（空间开辟过大）</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span> <span class="nx">main</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">Slice</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">s</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">([]</span><span class="kt">int</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="nx">index</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">s</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">s</span><span class="p">[</span><span class="nx">index</span><span class="p">]</span> <span class="p">=</span> <span class="nx">index</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">Slice</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>上面代码 Slice()函数中分配了一个 1000 个长度的切片，是否逃逸取决于栈空间是否足够大。</p>
+<h2 id="动态类型逃逸不确定长度大小">动态类型逃逸（不确定长度大小）</h2>
+<p>很多函数参数为 interface 类型，比如 fmt.Println(a …interface{})，编译期间很难确定其参数的具体类型，也能产生逃逸。如下代码所示：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span> <span class="nx">main</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="s">&#34;fmt&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">s</span> <span class="o">:=</span> <span class="s">&#34;Escape&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">s</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="闭包引用对象逃逸">闭包引用对象逃逸</h2>
+<p>Fibonacci 数列的函数：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span> <span class="nx">main</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="s">&#34;fmt&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">Fibonacci</span><span class="p">()</span> <span class="kd">func</span><span class="p">()</span> <span class="kt">int</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">a</span><span class="p">,</span> <span class="nx">b</span> <span class="o">:=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="kd">func</span><span class="p">()</span> <span class="kt">int</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">a</span><span class="p">,</span> <span class="nx">b</span> <span class="p">=</span> <span class="nx">b</span><span class="p">,</span> <span class="nx">a</span><span class="o">+</span><span class="nx">b</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nx">a</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">f</span> <span class="o">:=</span> <span class="nf">Fibonacci</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="nx">i</span> <span class="o">:=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="p">&lt;</span> <span class="mi">10</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Fibonacci: %d\n&#34;</span><span class="p">,</span> <span class="nf">f</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>输出如下：</p>
+<pre tabindex="0"><code> ~/go/src/gitHub/test/pool  go run main.go
 Fibonacci: 1
 Fibonacci: 1
 Fibonacci: 2
@@ -199,7 +1890,8 @@ Fibonacci: 13
 Fibonacci: 21
 Fibonacci: 34
 Fibonacci: 55
-</code></pre><p>逃逸如下：</p><pre tabindex=0><code> ~/go/src/gitHub/test/pool  go build -gcflags=-m
+</code></pre><p>逃逸如下：</p>
+<pre tabindex="0"><code> ~/go/src/gitHub/test/pool  go build -gcflags=-m
 # gitHub/test/pool
 ./main.go:7:9: can inline Fibonacci.func1
 ./main.go:7:9: func literal escapes to heap
@@ -210,12 +1902,330 @@ Fibonacci: 55
 ./main.go:6:2: moved to heap: a
 ./main.go:17:34: f() escapes to heap
 ./main.go:17:13: main ... argument does not escape
-</code></pre><p>Fibonacci()函数中原本属于局部变量的 a 和 b 由于闭包的引用，不得不将二者放到堆上，以致产生逃逸。</p></div><div class=article-widget><div class="container-xl row post-nav"><div class="col-6 post-nav-item"><div class=meta-nav>上一页</div><a href=/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/%E5%B8%B8%E9%87%8F/ rel=next>常量</a></div></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div><script type=text/javascript id=clstr_globe async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
-<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
-<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
-<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
-<script id=dsq-count-scr src=https://ngte.disqus.com/count.js async></script>
-<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
-<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
-<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
-<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>
+</code></pre><p>Fibonacci()函数中原本属于局部变量的 a 和 b 由于闭包的引用，不得不将二者放到堆上，以致产生逃逸。</p>
+
+          </div>
+
+          
+
+
+
+          
+          
+          <div class="article-widget">
+            
+<div class="container-xl row post-nav">
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">上一页</div>
+    <a href="/books/go-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%8F%98%E9%87%8F%E6%93%8D%E4%BD%9C/%E5%B8%B8%E9%87%8F/" rel="next">常量</a>
+  </div>
+  
+  
+</div>
+
+          </div>
+          
+
+        <div class="body-footer">
+          <p>最近更新于 0001-01-01</p>
+
+          
+
+
+
+          
+
+
+  
+  
+  
+
+  
+
+  
+  <section id="comments" class="mb-3 pt-0">
+    
+<div id="disqus_thread"></div>
+<script>
+  var disqus_config = function () {
+    
+    
+    
+  };
+  (function() {
+    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+      return;
+    }
+    var d = document, s = d.createElement('script'); 
+    s.async = true;
+    s.src = 'https://' + "ngte" + '.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </section>
+  
+
+
+
+          
+
+
+        </div>
+
+      </article>
+
+      <footer class="site-footer">
+
+  
+
+
+
+  
+
+  
+  <div class="copyright py-4 bg-footer">
+      <div class="row justify-content-center">
+        <div class="text-center footer-color">
+          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
+        </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" id="clstr_globe" async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script>
+  
+</footer>
+
+
+    </main>
+  </div>
+</div>
+<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
+<script>
+  const heti = new Heti('.article');
+  heti.autoSpacing();
+</script>
+<script type="text/javascript">
+  window.$crisp = [];
+  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
+  (function () {
+    setTimeout(function() {
+      d = document;
+      s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    }, 2500);
+  })();
+</script>
+  </div>
+
+  <div class="page-footer">
+    
+    
+  </div>
+
+      
+
+    
+    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
+
+    
+    
+    
+      
+
+      
+      
+
+      
+
+      
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
+        
+        
+      
+
+    
+
+    
+    
+    
+
+    
+    
+    
+      
+      <script id="search-hit-algolia-template" type="text/html">
+        <div class="search-hit">
+          <div class="search-hit-content">
+            <div class="search-hit-name">
+              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
+            </div>
+            <div class="article-metadata search-hit-type">{{type}}</div>
+            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
+          </div>
+        </div>
+      </script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
+      
+      
+    
+
+    
+    
+
+    
+    
+    
+    
+      <script id="dsq-count-scr" src="https://ngte.disqus.com/count.js" async></script>
+      
+    
+
+    
+    
+      
+      
+      
+      
+      
+      
+      
+    
+
+    
+    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
+    
+
+    
+    
+    
+    <script id="page-data" type="application/json">{"use_headroom":false}</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
+
+    
+    
+    
+    
+    
+    
+    <script>
+
+var mybutton = document.getElementById("backTopBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+}
+</script>
+
+
+    
+
+    
+    
+    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+    <script>
+      anchors.add();
+    </script>
+    
+
+    
+    <script>
+
+
+
+(function() {
+  'use strict';
+
+  if(!document.queryCommandSupported('copy')) {
+    return;
+  }
+
+  function flashCopyMessage(el, msg) {
+    el.className = "highlight-copy-btn";
+    el.textContent = msg;
+    setTimeout(function() {
+      el.textContent = "";
+      el.className = "highlight-copy-btn fa fa-copy";
+    }, 1000);
+  }
+
+  function selectText(node) {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection;
+  }
+
+  function addCopyButton(containerEl) {
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "highlight-copy-btn fa fa-copy";
+    copyBtn.textContent = "";
+
+    var codeEl = containerEl.firstElementChild;
+    copyBtn.addEventListener('click', function() {
+      try {
+        var selection = selectText(codeEl);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        
+        flashCopyMessage(copyBtn, '已复制')
+        
+      } catch(e) {
+        console && console.log(e);
+        flashCopyMessage(copyBtn, 'Failed :\'(')
+      }
+    });
+
+    containerEl.appendChild(copyBtn);
+  }
+
+  
+  var highlightBlocks = document.getElementsByClassName('highlight');
+  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
+})();
+</script>
+
+    
+
+
+</body>
+</html>

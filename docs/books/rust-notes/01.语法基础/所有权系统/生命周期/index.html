@@ -1,104 +1,1579 @@
-<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=generator content="Wowchemy 5.5.0 for Hugo"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media=print onload='this.media="all"'><meta name=google-site-verification content="google69a5cccb61297807"><meta name=baidu-site-verification content="cqmZHEleVh"><meta name=description content="生命周期（Lifetime） 在 Rust 绑定的生命周期中，我们会涉及以下对象： Owner: 资源的所有者 a Borrower: 资源的借用者 x Scope: 作用域，资源被借用/引用的有效期 无论是资源的所有者还是资源的借用/引用，都存在在一个有效的存活时"><link rel=alternate hreflang=zh href=https://ng-tech.icu/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%89%80%E6%9C%89%E6%9D%83%E7%B3%BB%E7%BB%9F/%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/><meta name=theme-color content="#0a55a7"><link rel=stylesheet href=/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css crossorigin=anonymous title=hl-light media=print onload='this.media="all"'><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css crossorigin=anonymous title=hl-dark media=print onload='this.media="all"' disabled><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin=anonymous><link rel=stylesheet href=/css/wowchemy.fab3cd1900ae35687457073b2d518207.css><script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-40NYXJ8823")</script><script>var _hmt=_hmt||[];(function(){var e,t=document.createElement("script");t.src="https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6",e=document.getElementsByTagName("script")[0],e.parentNode.insertBefore(t,e)})()</script><link rel=manifest href=/manifest.webmanifest><link rel=icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png><link rel=apple-touch-icon type=image/png href=/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png><link rel=canonical href=https://ng-tech.icu/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%89%80%E6%9C%89%E6%9D%83%E7%B3%BB%E7%BB%9F/%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/><meta property="twitter:card" content="summary_large_image"><meta property="twitter:site" content="@wx-chevalier"><meta property="twitter:creator" content="@wx-chevalier"><meta property="og:site_name" content="Next-gen Tech Edu"><meta property="og:url" content="https://ng-tech.icu/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%89%80%E6%9C%89%E6%9D%83%E7%B3%BB%E7%BB%9F/%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/"><meta property="og:title" content="生命周期 | Next-gen Tech Edu"><meta property="og:description" content="生命周期（Lifetime） 在 Rust 绑定的生命周期中，我们会涉及以下对象： Owner: 资源的所有者 a Borrower: 资源的借用者 x Scope: 作用域，资源被借用/引用的有效期 无论是资源的所有者还是资源的借用/引用，都存在在一个有效的存活时"><meta property="og:image" content="https://ng-tech.icu/media/sharing.png"><meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png"><meta property="og:locale" content="zh"><title>生命周期 | Next-gen Tech Edu</title></head><body id=top data-spy=scroll data-offset=70 data-target=#TableOfContents class=page-wrapper data-wc-page-id=fb3fc61924ebb1394096df7c2532ac2a><button onclick=topFunction() id=backTopBtn title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden=true></i></button>
-<script src=/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js></script><aside class=search-modal id=search><div class=container><section class=search-header><div class="row no-gutters justify-content-between mb-3"><div class="col-6 search-title"><p>搜索</p></div><div class="col-6 col-search-close"><a class=js-search href=# aria-label=关闭><i class="fas fa-times-circle text-muted" aria-hidden=true></i></a></div></div><div id=search-box></div></section><section class=section-search-results><div id=search-hits></div><div id=search-common-queries></div></section></div></aside><div class=page-header><header class=header--fixed><nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id=navbar-main><div class=container-xl><div class="d-none d-lg-inline-flex"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><button type=button class=navbar-toggler data-toggle=collapse data-target=#navbar-content aria-controls=navbar-content aria-expanded=false aria-label=切换导航>
-<span><i class="fas fa-bars"></i></span></button><div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none"><a class=navbar-brand href=/>Next-gen Tech Edu</a></div><div class="navbar-collapse main-menu-item collapse justify-content-start" id=navbar-content><ul class="navbar-nav d-md-inline-flex"><li class=nav-item><a class=nav-link href=/books-gallery><span>笔记（万篇）</span></a></li><li class=nav-item><a class=nav-link href=/#knowledge-map><span>知识图谱</span></a></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>实验室</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=/galaxy-home/gh-craft><span>Craft 方块世界</span></a>
-<a class=dropdown-item href=/galaxy-home/glossary-cards><span>3D 知识卡牌</span></a></div></li><style>.dropdown-item{display:inline-flex}</style><li class="nav-item dropdown"><a href=# class="nav-link dropdown-toggle" data-toggle=dropdown aria-haspopup=true><span>其他阅读渠道</span><span class=caret></span></a><div class=dropdown-menu><a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png></img><span>知乎</span></a>
-<a class=dropdown-item href=https://segmentfault.com/blog/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png></img><span>SegmentFault</span></a>
-<a class=dropdown-item href=https://zhuanlan.zhihu.com/wxyyxc1992><img style=width:16px;height:16px;display:inline-block;margin-right:8px src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png></img><span>掘金</span></a></div></li></ul></div><ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2"><li class=nav-item><a class="nav-link js-search" href=# aria-label=搜索><i class="fas fa-search" aria-hidden=true></i></a></li><li class=nav-item><a class=nav-link href=https://github.com/wx-chevalier aria-label=GitHub><i class="fa-brands fa-github" aria-hidden=true></i></a></li><div></div><style>@media only screen and (max-width:600px){.jimmysong-template{display:none!important}}</style><li class=jimmysong-template style=color:#fff;font-size:12px><a href=https://jimmysong.io style=color:#fff>By Jimmy Song's Template</a></li></ul></div></nav></header></div><div class=page-body><link rel=stylesheet href=//unpkg.com/heti/umd/heti.min.css><div class="container-xl docs"><div class="row flex-xl-nowrap"><div class=docs-sidebar><form class="docs-search d-flex align-items-center"><button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type=button data-toggle=collapse data-target=#docs-nav aria-controls=docs-nav aria-expanded=false aria-label="Toggle section navigation"><div class=d-flex><span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">所有权系统</span>
-<span><i class="fas fa-chevron-down"></i></span></div></button>
-<button class="form-control sidebar-search js-search d-none d-md-flex">
-<i class="fas fa-search pr-2"></i>
-<span class=sidebar-search-text>搜索...</span>
-<span class=sidebar-search-shortcut>/</span></button></form><nav class="collapse docs-links" id=docs-nav><ul class="nav docs-sidenav"><li style=display:inline-flex><a style=cursor:pointer onclick=window.history.back()><i class="fas fa-arrow-left pr-1"></i>
-Back</a>
-<span>|</span>
-<a href=/books/><i class="fa-solid fa-house" style=margin-right:4px></i>
-Books</a></li></ul><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id8adfb3db6114d0e999d9fef1056f4600")' href=#id8adfb3db6114d0e999d9fef1056f4600 aria-expanded=false aria-controls=id8adfb3db6114d0e999d9fef1056f4600 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/>01.语法基础</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id8adfb3db6114d0e999d9fef1056f4600 aria-expanded=false aria-controls=id8adfb3db6114d0e999d9fef1056f4600><i class="fa-solid fa-angle-down" id=caret-id8adfb3db6114d0e999d9fef1056f4600></i></a></div><ul class="nav docs-sidenav collapse show" id=id8adfb3db6114d0e999d9fef1056f4600><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id1af082a544cdf7770bfb7b2a93f87544")' href=#id1af082a544cdf7770bfb7b2a93f87544 aria-expanded=false aria-controls=id1af082a544cdf7770bfb7b2a93f87544 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%91%E5%AE%9A%E4%B8%8E%E5%BC%95%E7%94%A8/>绑定与引用</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id1af082a544cdf7770bfb7b2a93f87544 aria-expanded=false aria-controls=id1af082a544cdf7770bfb7b2a93f87544><i class="fa-solid fa-angle-right" id=caret-id1af082a544cdf7770bfb7b2a93f87544></i></a></div><ul class="nav docs-sidenav collapse" id=id1af082a544cdf7770bfb7b2a93f87544><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%91%E5%AE%9A%E4%B8%8E%E5%BC%95%E7%94%A8/%E5%8F%98%E9%87%8F%E7%BB%91%E5%AE%9A/>变量绑定</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%91%E5%AE%9A%E4%B8%8E%E5%BC%95%E7%94%A8/%E5%B8%B8%E9%87%8F/>常量</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%91%E5%AE%9A%E4%B8%8E%E5%BC%95%E7%94%A8/%E8%B5%8B%E5%80%BC%E4%B8%8E%E8%A7%A3%E6%9E%84/>赋值与解构</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%91%E5%AE%9A%E4%B8%8E%E5%BC%95%E7%94%A8/%E5%BC%95%E7%94%A8/>引用</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id2a1fc125fcabf551ce24df91b907d825")' href=#id2a1fc125fcabf551ce24df91b907d825 aria-expanded=false aria-controls=id2a1fc125fcabf551ce24df91b907d825 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/>错误处理</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id2a1fc125fcabf551ce24df91b907d825 aria-expanded=false aria-controls=id2a1fc125fcabf551ce24df91b907d825><i class="fa-solid fa-angle-right" id=caret-id2a1fc125fcabf551ce24df91b907d825></i></a></div><ul class="nav docs-sidenav collapse" id=id2a1fc125fcabf551ce24df91b907d825><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idd30b4d73b8a81e9a5188d4776d24dbeb")' href=#idd30b4d73b8a81e9a5188d4776d24dbeb aria-expanded=false aria-controls=idd30b4d73b8a81e9a5188d4776d24dbeb aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/>99.参考资料</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idd30b4d73b8a81e9a5188d4776d24dbeb aria-expanded=false aria-controls=idd30b4d73b8a81e9a5188d4776d24dbeb><i class="fa-solid fa-angle-right" id=caret-idd30b4d73b8a81e9a5188d4776d24dbeb></i></a></div><ul class="nav docs-sidenav collapse" id=idd30b4d73b8a81e9a5188d4776d24dbeb><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2023-modular-errors-in-rust/>2023-Modular Errors in Rust</a></li></ul></div><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/panic/>panic!</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/result/>Result</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/%E5%A4%84%E7%90%86%E5%8E%9F%E5%88%99/>处理原则</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id2307df28245e799982e27fa2fee855bb")' href=#id2307df28245e799982e27fa2fee855bb aria-expanded=false aria-controls=id2307df28245e799982e27fa2fee855bb aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%B3%9B%E5%9E%8B%E4%B8%8E%E5%A4%9A%E6%80%81/>泛型与多态</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id2307df28245e799982e27fa2fee855bb aria-expanded=false aria-controls=id2307df28245e799982e27fa2fee855bb><i class="fa-solid fa-angle-right" id=caret-id2307df28245e799982e27fa2fee855bb></i></a></div><ul class="nav docs-sidenav collapse" id=id2307df28245e799982e27fa2fee855bb><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%B3%9B%E5%9E%8B%E4%B8%8E%E5%A4%9A%E6%80%81/%E6%B3%9B%E5%9E%8B%E5%A3%B0%E6%98%8E/>泛型声明</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%B3%9B%E5%9E%8B%E4%B8%8E%E5%A4%9A%E6%80%81/%E7%B1%BB%E5%9E%8B%E9%99%90%E5%AE%9A/>类型限定</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idc1da03450695ddfab74ff5aeed42802a")' href=#idc1da03450695ddfab74ff5aeed42802a aria-expanded=false aria-controls=idc1da03450695ddfab74ff5aeed42802a aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%87%BD%E6%95%B0/>函数</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idc1da03450695ddfab74ff5aeed42802a aria-expanded=false aria-controls=idc1da03450695ddfab74ff5aeed42802a><i class="fa-solid fa-angle-right" id=caret-idc1da03450695ddfab74ff5aeed42802a></i></a></div><ul class="nav docs-sidenav collapse" id=idc1da03450695ddfab74ff5aeed42802a><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%87%BD%E6%95%B0/%E9%97%AD%E5%8C%85%E4%B8%8E%E5%8C%BF%E5%90%8D%E5%87%BD%E6%95%B0/>闭包与匿名函数</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%87%BD%E6%95%B0/%E9%AB%98%E9%98%B6%E5%87%BD%E6%95%B0/>高阶函数</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%87%BD%E6%95%B0/%E5%87%BD%E6%95%B0%E5%AE%9A%E4%B9%89/>函数定义</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idf346a7aefe0ed9bb7edf8dca3ad9d733")' href=#idf346a7aefe0ed9bb7edf8dca3ad9d733 aria-expanded=false aria-controls=idf346a7aefe0ed9bb7edf8dca3ad9d733 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%93%E6%9E%84%E4%BD%93/>结构体</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idf346a7aefe0ed9bb7edf8dca3ad9d733 aria-expanded=false aria-controls=idf346a7aefe0ed9bb7edf8dca3ad9d733><i class="fa-solid fa-angle-right" id=caret-idf346a7aefe0ed9bb7edf8dca3ad9d733></i></a></div><ul class="nav docs-sidenav collapse" id=idf346a7aefe0ed9bb7edf8dca3ad9d733><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%93%E6%9E%84%E4%BD%93/%E6%96%B9%E6%B3%95/>方法</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%93%E6%9E%84%E4%BD%93/%E7%BB%93%E6%9E%84%E4%BD%93%E5%AE%9A%E4%B9%89/>结构体定义</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id06232ad1eab53a3412304508cc501352")' href=#id06232ad1eab53a3412304508cc501352 aria-expanded=false aria-controls=id06232ad1eab53a3412304508cc501352 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%8E%A7%E5%88%B6%E6%B5%81/>控制流</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id06232ad1eab53a3412304508cc501352 aria-expanded=false aria-controls=id06232ad1eab53a3412304508cc501352><i class="fa-solid fa-angle-right" id=caret-id06232ad1eab53a3412304508cc501352></i></a></div><ul class="nav docs-sidenav collapse" id=id06232ad1eab53a3412304508cc501352><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%8E%A7%E5%88%B6%E6%B5%81/if/>if</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%8E%A7%E5%88%B6%E6%B5%81/loop/>loop</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%8E%A7%E5%88%B6%E6%B5%81/%E8%BF%AD%E4%BB%A3%E5%99%A8/>迭代器</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id4e823044d49c896f1215a6a9bbe1021d")' href=#id4e823044d49c896f1215a6a9bbe1021d aria-expanded=false aria-controls=id4e823044d49c896f1215a6a9bbe1021d aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/>快速开始</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id4e823044d49c896f1215a6a9bbe1021d aria-expanded=false aria-controls=id4e823044d49c896f1215a6a9bbe1021d><i class="fa-solid fa-angle-right" id=caret-id4e823044d49c896f1215a6a9bbe1021d></i></a></div><ul class="nav docs-sidenav collapse" id=id4e823044d49c896f1215a6a9bbe1021d><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/cargo/>Cargo</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/hello-world/>Hello World</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E6%B3%A8%E9%87%8A/>注释</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id3ba9963165057a363a249aa4ac66eb57")' href=#id3ba9963165057a363a249aa4ac66eb57 aria-expanded=false aria-controls=id3ba9963165057a363a249aa4ac66eb57 aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%9E%9A%E4%B8%BE%E4%B8%8E%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/>枚举与模式匹配</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id3ba9963165057a363a249aa4ac66eb57 aria-expanded=false aria-controls=id3ba9963165057a363a249aa4ac66eb57><i class="fa-solid fa-angle-right" id=caret-id3ba9963165057a363a249aa4ac66eb57></i></a></div><ul class="nav docs-sidenav collapse" id=id3ba9963165057a363a249aa4ac66eb57><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%9E%9A%E4%B8%BE%E4%B8%8E%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/enum/>Enum</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%9E%9A%E4%B8%BE%E4%B8%8E%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/match/>match</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%9E%9A%E4%B8%BE%E4%B8%8E%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/option/>Option</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-ida95894543deccd96320baddf906d0ade")' href=#ida95894543deccd96320baddf906d0ade aria-expanded=false aria-controls=ida95894543deccd96320baddf906d0ade aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%A8%A1%E5%9D%97%E6%9C%BA%E5%88%B6/>模块机制</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#ida95894543deccd96320baddf906d0ade aria-expanded=false aria-controls=ida95894543deccd96320baddf906d0ade><i class="fa-solid fa-angle-right" id=caret-ida95894543deccd96320baddf906d0ade></i></a></div><ul class="nav docs-sidenav collapse" id=ida95894543deccd96320baddf906d0ade><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%A8%A1%E5%9D%97%E6%9C%BA%E5%88%B6/%E6%A8%A1%E5%9D%97%E6%9A%B4%E9%9C%B2/>模块暴露</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%A8%A1%E5%9D%97%E6%9C%BA%E5%88%B6/%E6%A8%A1%E5%9D%97%E5%B1%82%E7%BA%A7/>模块层级</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%A8%A1%E5%9D%97%E6%9C%BA%E5%88%B6/%E6%A8%A1%E5%9D%97%E5%AE%9A%E4%B9%89/>模块定义</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%A8%A1%E5%9D%97%E6%9C%BA%E5%88%B6/%E6%A8%A1%E5%9D%97%E4%BD%BF%E7%94%A8/>模块使用</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id24c9810daac15236dcd72f716c99804a")' href=#id24c9810daac15236dcd72f716c99804a aria-expanded=false aria-controls=id24c9810daac15236dcd72f716c99804a aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%89%80%E6%9C%89%E6%9D%83%E7%B3%BB%E7%BB%9F/>所有权系统</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id24c9810daac15236dcd72f716c99804a aria-expanded=false aria-controls=id24c9810daac15236dcd72f716c99804a><i class="fa-solid fa-angle-down" id=caret-id24c9810daac15236dcd72f716c99804a></i></a></div><ul class="nav docs-sidenav collapse show" id=id24c9810daac15236dcd72f716c99804a><li class="child level active"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%89%80%E6%9C%89%E6%9D%83%E7%B3%BB%E7%BB%9F/%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/>生命周期</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%89%80%E6%9C%89%E6%9D%83%E7%B3%BB%E7%BB%9F/%E6%89%80%E6%9C%89%E6%9D%83/>所有权</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%89%80%E6%9C%89%E6%9D%83%E7%B3%BB%E7%BB%9F/%E5%BC%95%E7%94%A8%E4%B8%8E%E5%80%9F%E7%94%A8/>引用与借用</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-id8bd7ed135687b24474c6bd18e638cedb")' href=#id8bd7ed135687b24474c6bd18e638cedb aria-expanded=false aria-controls=id8bd7ed135687b24474c6bd18e638cedb aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%89%B9%E6%80%A7/>特性</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#id8bd7ed135687b24474c6bd18e638cedb aria-expanded=false aria-controls=id8bd7ed135687b24474c6bd18e638cedb><i class="fa-solid fa-angle-right" id=caret-id8bd7ed135687b24474c6bd18e638cedb></i></a></div><ul class="nav docs-sidenav collapse" id=id8bd7ed135687b24474c6bd18e638cedb><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%89%B9%E6%80%A7/trait/>Trait</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%89%B9%E6%80%A7/%E5%B8%B8%E7%94%A8-trait/>常用 Trait</a></li></ul></div><div class="docs-toc-item has-child"><div class="parent-node d-flex justify-content-between" onclick='Collapse("caret-idae7743b768024abdc996fed05297c11e")' href=#idae7743b768024abdc996fed05297c11e aria-expanded=false aria-controls=idae7743b768024abdc996fed05297c11e aria-hidden=false data-toggle=collapse><a class="d-inline docs-toc-link" href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E8%AF%AD%E5%8F%A5%E4%B8%8E%E6%93%8D%E4%BD%9C%E7%AC%A6/>语句与操作符</a>
-<a class="nav-toogle d-inline level" aria-hidden=false data-toggle=collapse href=#idae7743b768024abdc996fed05297c11e aria-expanded=false aria-controls=idae7743b768024abdc996fed05297c11e><i class="fa-solid fa-angle-right" id=caret-idae7743b768024abdc996fed05297c11e></i></a></div><ul class="nav docs-sidenav collapse" id=idae7743b768024abdc996fed05297c11e><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E8%AF%AD%E5%8F%A5%E4%B8%8E%E6%93%8D%E4%BD%9C%E7%AC%A6/%E6%93%8D%E4%BD%9C%E7%AC%A6/>操作符</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E8%AF%AD%E5%8F%A5%E4%B8%8E%E6%93%8D%E4%BD%9C%E7%AC%A6/%E5%AE%8F/>宏</a></li><li class="child level"><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E8%AF%AD%E5%8F%A5%E4%B8%8E%E6%93%8D%E4%BD%9C%E7%AC%A6/%E8%AF%AD%E5%8F%A5%E4%B8%8E%E8%A1%A8%E8%BE%BE%E5%BC%8F/>语句与表达式</a></li></ul></div></ul></div></nav></div><div class="d-none d-xl-block col-xl-2 docs-toc"><ul class="nav toc-top"><li><a href=# id=back_to_top class=docs-toc-title>目录</a></li></ul><nav id=TableOfContents><ul><li><a href=#隐式-lifetime>隐式 Lifetime</a></li><li><a href=#显式-lifetime>显式 Lifetime</a></li><li><a href=#生命周期规则>生命周期规则</a></li><li><a href=#多个-lifetime-标识符>多个 Lifetime 标识符</a></li></ul></nav><div class="subscribe-module col-24 mt-1"><img src=https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png alt=image title=王下邀月熊的微信公众号></div></div><main class="py-md-3 pl-md-3 docs-content col-xl-8" role=main><article class=article><h1>生命周期</h1><div class=article-style><h1 id=生命周期lifetime>生命周期（Lifetime）</h1><p>在 Rust 绑定的生命周期中，我们会涉及以下对象：</p><ul><li><strong>Owner</strong>: 资源的所有者 <code>a</code></li><li><strong>Borrower</strong>: 资源的借用者 <code>x</code></li><li><strong>Scope</strong>: 作用域，资源被借用/引用的有效期</li></ul><p>无论是资源的所有者还是资源的借用/引用，都存在在一个有效的存活时间或区间，这个时间区间称为<strong>生命周期</strong>，也可以直接以<strong>Scope 作用域</strong>去理解。下面是一个资源借用的例子：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=line><span class=cl><span class=k>fn</span> <span class=nf>main</span><span class=p>()</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=kd>let</span><span class=w> </span><span class=n>a</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>100_</span><span class=k>i32</span><span class=p>;</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=kd>let</span><span class=w> </span><span class=n>x</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=o>&amp;</span><span class=n>a</span><span class=p>;</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>}</span><span class=w>  </span><span class=c1>// x 作用域结束
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>	</span><span class=fm>println!</span><span class=p>(</span><span class=s>&#34;{}&#34;</span><span class=p>,</span><span class=w> </span><span class=n>x</span><span class=p>);</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><p>编译时，我们会看到一个严重的错误提示：</p><blockquote><p>error: unresolved name <code>x</code>.</p></blockquote><p>错误的意思是“无法解析 <code>x</code> 标识符”，也就是找不到 <code>x</code>, 这是因为像很多编程语言一样，Rust 中也存在作用域概念，当资源离开离开作用域后，资源的内存就会被释放回收，当借用/引用离开作用域后也会被销毁，所以 <code>x</code> 在离开自己的作用域后，无法在作用域之外访问。上例子代码中的生命周期/作用域图示如下：</p><pre tabindex=0><code>            {    a    {    x    }    *    }
+<!DOCTYPE html><html lang="zh" >
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  
+  
+    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+
+  
+  
+  
+    
+      
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    
+  
+
+  
+    <meta name="google-site-verification" content="google69a5cccb61297807" />
+    <meta name="baidu-site-verification" content="cqmZHEleVh" />
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+    
+  
+  <meta name="description" content="生命周期（Lifetime） 在 Rust 绑定的生命周期中，我们会涉及以下对象： Owner: 资源的所有者 a Borrower: 资源的借用者 x Scope: 作用域，资源被借用/引用的有效期 无论是资源的所有者还是资源的借用/引用，都存在在一个有效的存活时" />
+
+  
+  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%89%80%E6%9C%89%E6%9D%83%E7%B3%BB%E7%BB%9F/%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/" />
+
+  
+  
+  
+    <meta name="theme-color" content="#0a55a7" />
+  
+
+  
+  
+
+  
+
+  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
+
+  
+  
+  
+    
+    
+
+    
+    
+    
+    
+      
+      
+    
+    
+    
+
+    
+    
+    
+      
+    
+    
+      
+      
+        
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
+        
+      
+    
+
+    
+    
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
+    
+
+    
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+        
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+  
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/wowchemy.0d97305106da5efa530e28b021b4c580.css" />
+
+  
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', "G-40NYXJ8823");
+</script>
+
+
+  
+
+
+  
+
+
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+  
+  
+  
+
+  
+
+  
+    <link rel="manifest" href="/manifest.webmanifest" />
+  
+
+  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
+  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
+
+  <link rel="canonical" href="https://ng-tech.icu/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%89%80%E6%9C%89%E6%9D%83%E7%B3%BB%E7%BB%9F/%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/" />
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+
+  
+  
+    
+    
+  
+  <meta property="twitter:card" content="summary_large_image" />
+  
+    <meta property="twitter:site" content="@wx-chevalier" />
+    <meta property="twitter:creator" content="@wx-chevalier" />
+  
+  <meta property="og:site_name" content="Next-gen Tech Edu" />
+  <meta property="og:url" content="https://ng-tech.icu/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%89%80%E6%9C%89%E6%9D%83%E7%B3%BB%E7%BB%9F/%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/" />
+  <meta property="og:title" content="生命周期 | Next-gen Tech Edu" />
+  <meta property="og:description" content="生命周期（Lifetime） 在 Rust 绑定的生命周期中，我们会涉及以下对象： Owner: 资源的所有者 a Borrower: 资源的借用者 x Scope: 作用域，资源被借用/引用的有效期 无论是资源的所有者还是资源的借用/引用，都存在在一个有效的存活时" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
+    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
+  
+    
+    
+  
+
+  
+
+
+
+  
+
+  
+
+  
+
+
+
+
+
+  <title>生命周期 | Next-gen Tech Edu</title>
+</head>
+
+
+<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="fb3fc61924ebb1394096df7c2532ac2a" >
+  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
+
+  
+
+
+<aside class="search-modal" id="search">
+  <div class="container">
+    <section class="search-header">
+
+      <div class="row no-gutters justify-content-between mb-3">
+        <div class="col-6 search-title">
+          <p>搜索</p>
+        </div>
+        <div class="col-6 col-search-close">
+          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+      <div id="search-box">
+        
+        
+        
+      </div>
+
+      
+      
+
+      
+    </section>
+    <section class="section-search-results">
+
+      <div id="search-hits">
+        
+      </div>
+
+      <div id="search-common-queries">
+        
+      </div>
+
+    </section>
+  </div>
+</aside>
+
+
+
+  <div class="page-header">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="header--fixed">
+  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
+    <div class="container-xl">
+
+      
+      <div class="d-none d-lg-inline-flex">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      <button type="button" class="navbar-toggler" data-toggle="collapse"
+              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
+      <span><i class="fas fa-bars"></i></span>
+      </button>
+      
+
+      
+      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      
+      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
+
+        
+        <ul class="navbar-nav d-md-inline-flex">
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
+          </li>
+
+          
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+              
+              
+              
+                
+              
+              
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
+              
+                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
+              
+                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+        
+
+          
+        </ul>
+      </div>
+
+      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
+
+        
+        
+        
+        <li class="nav-item">
+          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        <li class="nav-item">
+            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        
+
+        
+        
+        
+        <div></div>
+        
+        <style>
+        @media only screen and (max-width: 600px) {
+          .jimmysong-template {
+            display: none!important;
+          }
+        }
+        </style>
+        
+        <li class="jimmysong-template" style="color: white;font-size: 12px;">
+          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+</header>
+
+
+  </div>
+
+  <div class="page-body">
+    
+    
+    
+
+    
+
+
+
+
+<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
+<div class="container-xl docs">
+  <div class="row flex-xl-nowrap">
+    <div class="docs-sidebar">
+      <form class="docs-search d-flex align-items-center">
+  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    <div class="d-flex">
+      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
+        
+          所有权系统
+        
+      </span>
+      <span><i class="fas fa-chevron-down"></i></span>
+    </div>
+  </button>
+
+  
+  <button class="form-control sidebar-search js-search d-none d-md-flex">
+    <i class="fas fa-search pr-2"></i>
+    <span class="sidebar-search-text">搜索...</span>
+    <span class="sidebar-search-shortcut">/</span>
+  </button>
+  
+</form>
+
+<nav class="collapse docs-links" id="docs-nav">
+  
+  
+  
+  
+  
+  
+
+  
+  
+    
+
+    
+      
+
+      <ul class="nav docs-sidenav">
+        <li style="display: inline-flex">
+          <a style="cursor: pointer;" onclick="window.history.back()">
+            <i class="fas fa-arrow-left pr-1"></i>
+            Back
+          </a>
+          <span>|</span>
+          <a href="/books/">
+            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
+            Books
+          </a>
+        </li>
+      </ul>
+
+      
+      
+        
+          
+        
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id8adfb3db6114d0e999d9fef1056f4600&#34;)" href="#id8adfb3db6114d0e999d9fef1056f4600" aria-expanded="false" aria-controls="id8adfb3db6114d0e999d9fef1056f4600" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/">01.语法基础</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id8adfb3db6114d0e999d9fef1056f4600" aria-expanded="false" aria-controls="id8adfb3db6114d0e999d9fef1056f4600">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id8adfb3db6114d0e999d9fef1056f4600"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id8adfb3db6114d0e999d9fef1056f4600">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id1af082a544cdf7770bfb7b2a93f87544&#34;)" href="#id1af082a544cdf7770bfb7b2a93f87544" aria-expanded="false" aria-controls="id1af082a544cdf7770bfb7b2a93f87544" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%91%E5%AE%9A%E4%B8%8E%E5%BC%95%E7%94%A8/">绑定与引用</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id1af082a544cdf7770bfb7b2a93f87544" aria-expanded="false" aria-controls="id1af082a544cdf7770bfb7b2a93f87544">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id1af082a544cdf7770bfb7b2a93f87544"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id1af082a544cdf7770bfb7b2a93f87544">
+      
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%91%E5%AE%9A%E4%B8%8E%E5%BC%95%E7%94%A8/%E5%8F%98%E9%87%8F%E7%BB%91%E5%AE%9A/">变量绑定</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%91%E5%AE%9A%E4%B8%8E%E5%BC%95%E7%94%A8/%E5%B8%B8%E9%87%8F/">常量</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%91%E5%AE%9A%E4%B8%8E%E5%BC%95%E7%94%A8/%E8%B5%8B%E5%80%BC%E4%B8%8E%E8%A7%A3%E6%9E%84/">赋值与解构</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%91%E5%AE%9A%E4%B8%8E%E5%BC%95%E7%94%A8/%E5%BC%95%E7%94%A8/">引用</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id2a1fc125fcabf551ce24df91b907d825&#34;)" href="#id2a1fc125fcabf551ce24df91b907d825" aria-expanded="false" aria-controls="id2a1fc125fcabf551ce24df91b907d825" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/">错误处理</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id2a1fc125fcabf551ce24df91b907d825" aria-expanded="false" aria-controls="id2a1fc125fcabf551ce24df91b907d825">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id2a1fc125fcabf551ce24df91b907d825"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id2a1fc125fcabf551ce24df91b907d825">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idd30b4d73b8a81e9a5188d4776d24dbeb&#34;)" href="#idd30b4d73b8a81e9a5188d4776d24dbeb" aria-expanded="false" aria-controls="idd30b4d73b8a81e9a5188d4776d24dbeb" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/">99.参考资料</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idd30b4d73b8a81e9a5188d4776d24dbeb" aria-expanded="false" aria-controls="idd30b4d73b8a81e9a5188d4776d24dbeb">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idd30b4d73b8a81e9a5188d4776d24dbeb"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idd30b4d73b8a81e9a5188d4776d24dbeb">
+      
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2023-modular-errors-in-rust/">2023-Modular Errors in Rust</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/panic/">panic!</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/result/">Result</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/%E5%A4%84%E7%90%86%E5%8E%9F%E5%88%99/">处理原则</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id2307df28245e799982e27fa2fee855bb&#34;)" href="#id2307df28245e799982e27fa2fee855bb" aria-expanded="false" aria-controls="id2307df28245e799982e27fa2fee855bb" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%B3%9B%E5%9E%8B%E4%B8%8E%E5%A4%9A%E6%80%81/">泛型与多态</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id2307df28245e799982e27fa2fee855bb" aria-expanded="false" aria-controls="id2307df28245e799982e27fa2fee855bb">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id2307df28245e799982e27fa2fee855bb"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id2307df28245e799982e27fa2fee855bb">
+      
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%B3%9B%E5%9E%8B%E4%B8%8E%E5%A4%9A%E6%80%81/%E6%B3%9B%E5%9E%8B%E5%A3%B0%E6%98%8E/">泛型声明</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%B3%9B%E5%9E%8B%E4%B8%8E%E5%A4%9A%E6%80%81/%E7%B1%BB%E5%9E%8B%E9%99%90%E5%AE%9A/">类型限定</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idc1da03450695ddfab74ff5aeed42802a&#34;)" href="#idc1da03450695ddfab74ff5aeed42802a" aria-expanded="false" aria-controls="idc1da03450695ddfab74ff5aeed42802a" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%87%BD%E6%95%B0/">函数</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idc1da03450695ddfab74ff5aeed42802a" aria-expanded="false" aria-controls="idc1da03450695ddfab74ff5aeed42802a">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idc1da03450695ddfab74ff5aeed42802a"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idc1da03450695ddfab74ff5aeed42802a">
+      
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%87%BD%E6%95%B0/%E9%97%AD%E5%8C%85%E4%B8%8E%E5%8C%BF%E5%90%8D%E5%87%BD%E6%95%B0/">闭包与匿名函数</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%87%BD%E6%95%B0/%E9%AB%98%E9%98%B6%E5%87%BD%E6%95%B0/">高阶函数</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%87%BD%E6%95%B0/%E5%87%BD%E6%95%B0%E5%AE%9A%E4%B9%89/">函数定义</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idf346a7aefe0ed9bb7edf8dca3ad9d733&#34;)" href="#idf346a7aefe0ed9bb7edf8dca3ad9d733" aria-expanded="false" aria-controls="idf346a7aefe0ed9bb7edf8dca3ad9d733" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%93%E6%9E%84%E4%BD%93/">结构体</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idf346a7aefe0ed9bb7edf8dca3ad9d733" aria-expanded="false" aria-controls="idf346a7aefe0ed9bb7edf8dca3ad9d733">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idf346a7aefe0ed9bb7edf8dca3ad9d733"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idf346a7aefe0ed9bb7edf8dca3ad9d733">
+      
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%93%E6%9E%84%E4%BD%93/%E6%96%B9%E6%B3%95/">方法</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%BB%93%E6%9E%84%E4%BD%93/%E7%BB%93%E6%9E%84%E4%BD%93%E5%AE%9A%E4%B9%89/">结构体定义</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id06232ad1eab53a3412304508cc501352&#34;)" href="#id06232ad1eab53a3412304508cc501352" aria-expanded="false" aria-controls="id06232ad1eab53a3412304508cc501352" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%8E%A7%E5%88%B6%E6%B5%81/">控制流</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id06232ad1eab53a3412304508cc501352" aria-expanded="false" aria-controls="id06232ad1eab53a3412304508cc501352">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id06232ad1eab53a3412304508cc501352"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id06232ad1eab53a3412304508cc501352">
+      
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%8E%A7%E5%88%B6%E6%B5%81/if/">if</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%8E%A7%E5%88%B6%E6%B5%81/loop/">loop</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%8E%A7%E5%88%B6%E6%B5%81/%E8%BF%AD%E4%BB%A3%E5%99%A8/">迭代器</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id4e823044d49c896f1215a6a9bbe1021d&#34;)" href="#id4e823044d49c896f1215a6a9bbe1021d" aria-expanded="false" aria-controls="id4e823044d49c896f1215a6a9bbe1021d" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/">快速开始</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id4e823044d49c896f1215a6a9bbe1021d" aria-expanded="false" aria-controls="id4e823044d49c896f1215a6a9bbe1021d">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id4e823044d49c896f1215a6a9bbe1021d"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id4e823044d49c896f1215a6a9bbe1021d">
+      
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/cargo/">Cargo</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/hello-world/">Hello World</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B/%E6%B3%A8%E9%87%8A/">注释</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id3ba9963165057a363a249aa4ac66eb57&#34;)" href="#id3ba9963165057a363a249aa4ac66eb57" aria-expanded="false" aria-controls="id3ba9963165057a363a249aa4ac66eb57" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%9E%9A%E4%B8%BE%E4%B8%8E%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/">枚举与模式匹配</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id3ba9963165057a363a249aa4ac66eb57" aria-expanded="false" aria-controls="id3ba9963165057a363a249aa4ac66eb57">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id3ba9963165057a363a249aa4ac66eb57"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id3ba9963165057a363a249aa4ac66eb57">
+      
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%9E%9A%E4%B8%BE%E4%B8%8E%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/enum/">Enum</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%9E%9A%E4%B8%BE%E4%B8%8E%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/match/">match</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%9E%9A%E4%B8%BE%E4%B8%8E%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/option/">Option</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-ida95894543deccd96320baddf906d0ade&#34;)" href="#ida95894543deccd96320baddf906d0ade" aria-expanded="false" aria-controls="ida95894543deccd96320baddf906d0ade" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%A8%A1%E5%9D%97%E6%9C%BA%E5%88%B6/">模块机制</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#ida95894543deccd96320baddf906d0ade" aria-expanded="false" aria-controls="ida95894543deccd96320baddf906d0ade">
+    
+        <i class="fa-solid fa-angle-right" id="caret-ida95894543deccd96320baddf906d0ade"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="ida95894543deccd96320baddf906d0ade">
+      
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%A8%A1%E5%9D%97%E6%9C%BA%E5%88%B6/%E6%A8%A1%E5%9D%97%E6%9A%B4%E9%9C%B2/">模块暴露</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%A8%A1%E5%9D%97%E6%9C%BA%E5%88%B6/%E6%A8%A1%E5%9D%97%E5%B1%82%E7%BA%A7/">模块层级</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%A8%A1%E5%9D%97%E6%9C%BA%E5%88%B6/%E6%A8%A1%E5%9D%97%E5%AE%9A%E4%B9%89/">模块定义</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%A8%A1%E5%9D%97%E6%9C%BA%E5%88%B6/%E6%A8%A1%E5%9D%97%E4%BD%BF%E7%94%A8/">模块使用</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id24c9810daac15236dcd72f716c99804a&#34;)" href="#id24c9810daac15236dcd72f716c99804a" aria-expanded="false" aria-controls="id24c9810daac15236dcd72f716c99804a" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%89%80%E6%9C%89%E6%9D%83%E7%B3%BB%E7%BB%9F/">所有权系统</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id24c9810daac15236dcd72f716c99804a" aria-expanded="false" aria-controls="id24c9810daac15236dcd72f716c99804a">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id24c9810daac15236dcd72f716c99804a"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id24c9810daac15236dcd72f716c99804a">
+      
+
+
+
+  <li class="child level active"><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%89%80%E6%9C%89%E6%9D%83%E7%B3%BB%E7%BB%9F/%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">生命周期</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%89%80%E6%9C%89%E6%9D%83%E7%B3%BB%E7%BB%9F/%E6%89%80%E6%9C%89%E6%9D%83/">所有权</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%89%80%E6%9C%89%E6%9D%83%E7%B3%BB%E7%BB%9F/%E5%BC%95%E7%94%A8%E4%B8%8E%E5%80%9F%E7%94%A8/">引用与借用</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id8bd7ed135687b24474c6bd18e638cedb&#34;)" href="#id8bd7ed135687b24474c6bd18e638cedb" aria-expanded="false" aria-controls="id8bd7ed135687b24474c6bd18e638cedb" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%89%B9%E6%80%A7/">特性</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id8bd7ed135687b24474c6bd18e638cedb" aria-expanded="false" aria-controls="id8bd7ed135687b24474c6bd18e638cedb">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id8bd7ed135687b24474c6bd18e638cedb"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id8bd7ed135687b24474c6bd18e638cedb">
+      
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%89%B9%E6%80%A7/trait/">Trait</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E7%89%B9%E6%80%A7/%E5%B8%B8%E7%94%A8-trait/">常用 Trait</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idae7743b768024abdc996fed05297c11e&#34;)" href="#idae7743b768024abdc996fed05297c11e" aria-expanded="false" aria-controls="idae7743b768024abdc996fed05297c11e" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E8%AF%AD%E5%8F%A5%E4%B8%8E%E6%93%8D%E4%BD%9C%E7%AC%A6/">语句与操作符</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idae7743b768024abdc996fed05297c11e" aria-expanded="false" aria-controls="idae7743b768024abdc996fed05297c11e">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idae7743b768024abdc996fed05297c11e"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idae7743b768024abdc996fed05297c11e">
+      
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E8%AF%AD%E5%8F%A5%E4%B8%8E%E6%93%8D%E4%BD%9C%E7%AC%A6/%E6%93%8D%E4%BD%9C%E7%AC%A6/">操作符</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E8%AF%AD%E5%8F%A5%E4%B8%8E%E6%93%8D%E4%BD%9C%E7%AC%A6/%E5%AE%8F/">宏</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E8%AF%AD%E5%8F%A5%E4%B8%8E%E6%93%8D%E4%BD%9C%E7%AC%A6/%E8%AF%AD%E5%8F%A5%E4%B8%8E%E8%A1%A8%E8%BE%BE%E5%BC%8F/">语句与表达式</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+    
+  
+</nav>
+
+    </div>
+
+    
+    
+    <div class="d-none d-xl-block col-xl-2 docs-toc">
+      
+     
+      <ul class="nav toc-top">
+        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
+      </ul>
+     
+
+      <nav id="TableOfContents">
+  <ul>
+    <li><a href="#隐式-lifetime">隐式 Lifetime</a></li>
+    <li><a href="#显式-lifetime">显式 Lifetime</a></li>
+    <li><a href="#生命周期规则">生命周期规则</a></li>
+    <li><a href="#多个-lifetime-标识符">多个 Lifetime 标识符</a></li>
+  </ul>
+</nav>
+
+      
+<div class="subscribe-module col-24 mt-1">
+    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
+</div>
+
+
+
+    </div>
+    
+
+    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
+
+      <article class="article">
+
+          
+
+          <h1>生命周期</h1>
+
+          <div class="article-style">
+            <h1 id="生命周期lifetime">生命周期（Lifetime）</h1>
+<p>在 Rust 绑定的生命周期中，我们会涉及以下对象：</p>
+<ul>
+<li><strong>Owner</strong>: 资源的所有者 <code>a</code></li>
+<li><strong>Borrower</strong>: 资源的借用者 <code>x</code></li>
+<li><strong>Scope</strong>: 作用域，资源被借用/引用的有效期</li>
+</ul>
+<p>无论是资源的所有者还是资源的借用/引用，都存在在一个有效的存活时间或区间，这个时间区间称为<strong>生命周期</strong>，也可以直接以<strong>Scope 作用域</strong>去理解。下面是一个资源借用的例子：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-rust" data-lang="rust"><span class="line"><span class="cl"><span class="k">fn</span> <span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="kd">let</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">100_</span><span class="k">i32</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="kd">let</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">&amp;</span><span class="n">a</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">  </span><span class="c1">// x 作用域结束
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="w">	</span><span class="fm">println!</span><span class="p">(</span><span class="s">&#34;{}&#34;</span><span class="p">,</span><span class="w"> </span><span class="n">x</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>编译时，我们会看到一个严重的错误提示：</p>
+<blockquote>
+<p>error: unresolved name <code>x</code>.</p>
+</blockquote>
+<p>错误的意思是“无法解析 <code>x</code> 标识符”，也就是找不到 <code>x</code>, 这是因为像很多编程语言一样，Rust 中也存在作用域概念，当资源离开离开作用域后，资源的内存就会被释放回收，当借用/引用离开作用域后也会被销毁，所以 <code>x</code> 在离开自己的作用域后，无法在作用域之外访问。上例子代码中的生命周期/作用域图示如下：</p>
+<pre tabindex="0"><code>            {    a    {    x    }    *    }
 所有者 a:         |________________________|
 借用者 x:                   |____|            x = &amp;a
   访问 x:                             |       失败：访问 x
-</code></pre><p>可以看到，借用者 <code>x</code> 的生命周期是资源所有者 <code>a</code> 的生命周期的<strong>子集</strong>。但是 <code>x</code> 的生命周期在第一个 <code>}</code> 时结束并销毁，在接下来的 <code>println!</code> 中再次访问便会发生严重的错误。</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=line><span class=cl><span class=k>fn</span> <span class=nf>main</span><span class=p>()</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=kd>let</span><span class=w> </span><span class=n>a</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>100_</span><span class=k>i32</span><span class=p>;</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=kd>let</span><span class=w> </span><span class=n>x</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=o>&amp;</span><span class=n>a</span><span class=p>;</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=fm>println!</span><span class=p>(</span><span class=s>&#34;{}&#34;</span><span class=p>,</span><span class=w> </span><span class=n>x</span><span class=p>);</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>}</span><span class=w>  </span><span class=c1>// x 作用域结束
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><p>这里我们仅仅把 <code>println!</code> 放到了中间的 <code>{}</code>, 这样就可以在 <code>x</code>的生命周期内正常的访问 <code>x</code>，此时的 Lifetime 图示如下：</p><pre tabindex=0><code>            {    a    {    x    *    }    }
+</code></pre><p>可以看到，借用者 <code>x</code> 的生命周期是资源所有者 <code>a</code> 的生命周期的<strong>子集</strong>。但是 <code>x</code> 的生命周期在第一个 <code>}</code> 时结束并销毁，在接下来的 <code>println!</code> 中再次访问便会发生严重的错误。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-rust" data-lang="rust"><span class="line"><span class="cl"><span class="k">fn</span> <span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="kd">let</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">100_</span><span class="k">i32</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="kd">let</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">&amp;</span><span class="n">a</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="fm">println!</span><span class="p">(</span><span class="s">&#34;{}&#34;</span><span class="p">,</span><span class="w"> </span><span class="n">x</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">  </span><span class="c1">// x 作用域结束
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>这里我们仅仅把 <code>println!</code> 放到了中间的 <code>{}</code>, 这样就可以在 <code>x</code>的生命周期内正常的访问 <code>x</code>，此时的 Lifetime 图示如下：</p>
+<pre tabindex="0"><code>            {    a    {    x    *    }    }
 所有者 a:         |________________________|
 借用者 x:                   |_________|       x = &amp;a
   访问 x:                        |            OK：访问 x
-</code></pre><h1 id=生命周期推导>生命周期推导</h1><h2 id=隐式-lifetime>隐式 Lifetime</h2><p>我们经常会遇到参数或者返回值为引用类型的函数：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=line><span class=cl><span class=k>fn</span> <span class=nf>foo</span><span class=p>(</span><span class=n>x</span>: <span class=kp>&amp;</span><span class=kt>str</span><span class=p>)</span><span class=w> </span>-&gt; <span class=kp>&amp;</span><span class=kt>str</span> <span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=n>x</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><p>上面函数在实际应用中并没有太多用处，<code>foo</code> 函数仅仅接受一个 <code>&str</code> 类型的参数（<code>x</code>为对某个<code>string</code>类型资源<code>Something</code>的借用），并返回对资源<code>Something</code>的一个新的借用。</p><p>上面函数在实际应用中并没有太多用处，<code>foo</code> 函数仅仅接受一个 <code>&str</code> 类型的参数（<code>x</code>为对某个<code>string</code>类型资源<code>Something</code>的借用），并返回对资源<code>Something</code>的一个新的借用。实际上，上面函数包含该了隐性的生命周期命名，这是由编译器自动推导的，相当于：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=line><span class=cl><span class=k>fn</span> <span class=nf>foo</span><span class=o>&lt;&#39;</span><span class=na>a</span><span class=o>&gt;</span><span class=p>(</span><span class=n>x</span>: <span class=kp>&amp;</span><span class=o>&#39;</span><span class=na>a</span> <span class=kt>str</span><span class=p>)</span><span class=w> </span>-&gt; <span class=kp>&amp;</span><span class=o>&#39;</span><span class=na>a</span> <span class=kt>str</span> <span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=n>x</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><p>在这里，约束返回值的 Lifetime 必须大于或等于参数<code>x</code>的 Lifetime。下面函数写法也是合法的：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=line><span class=cl><span class=k>fn</span> <span class=nf>foo</span><span class=o>&lt;&#39;</span><span class=na>a</span><span class=o>&gt;</span><span class=p>(</span><span class=n>x</span>: <span class=kp>&amp;</span><span class=o>&#39;</span><span class=na>a</span> <span class=kt>str</span><span class=p>)</span><span class=w> </span>-&gt; <span class=kp>&amp;</span><span class=o>&#39;</span><span class=na>a</span> <span class=kt>str</span> <span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=s>&#34;hello, world!&#34;</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><p>为什么呢？这是因为字符串"hello, world!&ldquo;的类型是<code>&'static str</code>，我们知道<code>static</code>类型的 Lifetime 是整个程序的运行周期，所以她比任意传入的参数的 Lifetime<code>'a</code>都要长，即 <code>'static >= 'a</code> 满足。</p><p>在上例中 Rust 可以自动推导 Lifetime，所以并不需要程序员显式指定 Lifetime <code>'a</code> 。<code>'a</code>是什么呢？它是 Lifetime 的标识符，这里的<code>a</code>也可以用<code>b</code>、<code>c</code>、<code>d</code>、<code>e</code>、&mldr;，甚至可以用<code>this_is_a_long_name</code>等，当然实际编程中并不建议用这种冗长的标识符，这样会严重降低程序的可读性。<code>foo</code>后面的<code>&lt;'a></code>为 Lifetime 的声明，可以声明多个，如<code>&lt;'a, 'b></code>等等。</p><p>另外，除非编译器无法自动推导出 Lifetime，否则不建议显式指定 Lifetime 标识符，会降低程序的可读性。</p><h2 id=显式-lifetime>显式 Lifetime</h2><p>当输入参数为多个借用/引用时会发生什么呢？</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=line><span class=cl><span class=k>fn</span> <span class=nf>foo</span><span class=p>(</span><span class=n>x</span>: <span class=kp>&amp;</span><span class=kt>str</span><span class=p>,</span><span class=w> </span><span class=n>y</span>: <span class=kp>&amp;</span><span class=kt>str</span><span class=p>)</span><span class=w> </span>-&gt; <span class=kp>&amp;</span><span class=kt>str</span> <span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>if</span><span class=w> </span><span class=kc>true</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=n>x</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>}</span><span class=w> </span><span class=k>else</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=n>y</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><p>这时候再编译，就没那么幸运了：</p><pre tabindex=0><code>error: missing lifetime specifier [E0106]
+</code></pre><h1 id="生命周期推导">生命周期推导</h1>
+<h2 id="隐式-lifetime">隐式 Lifetime</h2>
+<p>我们经常会遇到参数或者返回值为引用类型的函数：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-rust" data-lang="rust"><span class="line"><span class="cl"><span class="k">fn</span> <span class="nf">foo</span><span class="p">(</span><span class="n">x</span>: <span class="kp">&amp;</span><span class="kt">str</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="kp">&amp;</span><span class="kt">str</span> <span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="n">x</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>上面函数在实际应用中并没有太多用处，<code>foo</code> 函数仅仅接受一个 <code>&amp;str </code> 类型的参数（<code>x</code>为对某个<code>string</code>类型资源<code>Something</code>的借用），并返回对资源<code>Something</code>的一个新的借用。</p>
+<p>上面函数在实际应用中并没有太多用处，<code>foo</code> 函数仅仅接受一个 <code>&amp;str </code> 类型的参数（<code>x</code>为对某个<code>string</code>类型资源<code>Something</code>的借用），并返回对资源<code>Something</code>的一个新的借用。实际上，上面函数包含该了隐性的生命周期命名，这是由编译器自动推导的，相当于：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-rust" data-lang="rust"><span class="line"><span class="cl"><span class="k">fn</span> <span class="nf">foo</span><span class="o">&lt;&#39;</span><span class="na">a</span><span class="o">&gt;</span><span class="p">(</span><span class="n">x</span>: <span class="kp">&amp;</span><span class="o">&#39;</span><span class="na">a</span> <span class="kt">str</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="kp">&amp;</span><span class="o">&#39;</span><span class="na">a</span> <span class="kt">str</span> <span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="n">x</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>在这里，约束返回值的 Lifetime 必须大于或等于参数<code>x</code>的 Lifetime。下面函数写法也是合法的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-rust" data-lang="rust"><span class="line"><span class="cl"><span class="k">fn</span> <span class="nf">foo</span><span class="o">&lt;&#39;</span><span class="na">a</span><span class="o">&gt;</span><span class="p">(</span><span class="n">x</span>: <span class="kp">&amp;</span><span class="o">&#39;</span><span class="na">a</span> <span class="kt">str</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="kp">&amp;</span><span class="o">&#39;</span><span class="na">a</span> <span class="kt">str</span> <span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="s">&#34;hello, world!&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>为什么呢？这是因为字符串&quot;hello, world!&ldquo;的类型是<code>&amp;'static str</code>，我们知道<code>static</code>类型的 Lifetime 是整个程序的运行周期，所以她比任意传入的参数的 Lifetime<code>'a</code>都要长，即 <code>'static &gt;= 'a</code> 满足。</p>
+<p>在上例中 Rust 可以自动推导 Lifetime，所以并不需要程序员显式指定 Lifetime <code>'a</code> 。<code>'a</code>是什么呢？它是 Lifetime 的标识符，这里的<code>a</code>也可以用<code>b</code>、<code>c</code>、<code>d</code>、<code>e</code>、&hellip;，甚至可以用<code>this_is_a_long_name</code>等，当然实际编程中并不建议用这种冗长的标识符，这样会严重降低程序的可读性。<code>foo</code>后面的<code>&lt;'a&gt;</code>为 Lifetime 的声明，可以声明多个，如<code>&lt;'a, 'b&gt;</code>等等。</p>
+<p>另外，除非编译器无法自动推导出 Lifetime，否则不建议显式指定 Lifetime 标识符，会降低程序的可读性。</p>
+<h2 id="显式-lifetime">显式 Lifetime</h2>
+<p>当输入参数为多个借用/引用时会发生什么呢？</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-rust" data-lang="rust"><span class="line"><span class="cl"><span class="k">fn</span> <span class="nf">foo</span><span class="p">(</span><span class="n">x</span>: <span class="kp">&amp;</span><span class="kt">str</span><span class="p">,</span><span class="w"> </span><span class="n">y</span>: <span class="kp">&amp;</span><span class="kt">str</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="kp">&amp;</span><span class="kt">str</span> <span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="n">x</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="n">y</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>这时候再编译，就没那么幸运了：</p>
+<pre tabindex="0"><code>error: missing lifetime specifier [E0106]
 fn foo(x: &amp;str, y: &amp;str) -&gt; &amp;str {
                             ^~~~
-</code></pre><p>编译器告诉我们，需要我们显式指定 Lifetime 标识符，因为这个时候，编译器无法推导出返回值的 Lifetime 应该是比 <code>x</code> 长，还是比 <code>y</code> 长。虽然我们在函数中中用了 <code>if true</code> 确认一定可以返回<code>x</code>，但是要知道，编译器是在编译时候检查，而不是运行时，所以编译期间会同时检查所有的输入参数和返回值。</p><p>修复后的代码如下：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=line><span class=cl><span class=k>fn</span> <span class=nf>foo</span><span class=o>&lt;&#39;</span><span class=na>a</span><span class=o>&gt;</span><span class=p>(</span><span class=n>x</span>: <span class=kp>&amp;</span><span class=o>&#39;</span><span class=na>a</span> <span class=kt>str</span><span class=p>,</span><span class=w> </span><span class=n>y</span>: <span class=kp>&amp;</span><span class=o>&#39;</span><span class=na>a</span> <span class=kt>str</span><span class=p>)</span><span class=w> </span>-&gt; <span class=kp>&amp;</span><span class=o>&#39;</span><span class=na>a</span> <span class=kt>str</span> <span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>if</span><span class=w> </span><span class=kc>true</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=n>x</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>}</span><span class=w> </span><span class=k>else</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=n>y</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><h2 id=生命周期规则>生命周期规则</h2><p>要推导 Lifetime 是否合法，先明确两点：</p><ul><li>输出值（也称为返回值）依赖哪些输入值</li><li>输入值的 Lifetime 大于或等于输出值的 Lifetime (准确来说：子集，而不是大于或等于)</li></ul><p><strong>Lifetime 推导公式：</strong>：当输出值 R 依赖输入值 X Y Z &mldr;，当且仅当输出值的 Lifetime 为所有输入值的 Lifetime 交集的子集时，生命周期合法。</p><pre tabindex=0><code>Lifetime(R) ⊆ ( Lifetime(X) ∩ Lifetime(Y) ∩ Lifetime(Z) ∩ Lifetime(...) )
-</code></pre><p>对于例子 1：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=line><span class=cl><span class=k>fn</span> <span class=nf>foo</span><span class=o>&lt;&#39;</span><span class=na>a</span><span class=o>&gt;</span><span class=p>(</span><span class=n>x</span>: <span class=kp>&amp;</span><span class=o>&#39;</span><span class=na>a</span> <span class=kt>str</span><span class=p>,</span><span class=w> </span><span class=n>y</span>: <span class=kp>&amp;</span><span class=o>&#39;</span><span class=na>a</span> <span class=kt>str</span><span class=p>)</span><span class=w> </span>-&gt; <span class=kp>&amp;</span><span class=o>&#39;</span><span class=na>a</span> <span class=kt>str</span> <span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>if</span><span class=w> </span><span class=kc>true</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=n>x</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>}</span><span class=w> </span><span class=k>else</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=n>y</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><p>因为返回值同时依赖输入参数<code>x</code>和<code>y</code>，所以</p><pre tabindex=0><code>Lifetime(返回值) ⊆ ( Lifetime(x) ∩ Lifetime(y) )
+</code></pre><p>编译器告诉我们，需要我们显式指定 Lifetime 标识符，因为这个时候，编译器无法推导出返回值的 Lifetime 应该是比 <code>x</code> 长，还是比 <code>y</code> 长。虽然我们在函数中中用了 <code>if true</code> 确认一定可以返回<code>x</code>，但是要知道，编译器是在编译时候检查，而不是运行时，所以编译期间会同时检查所有的输入参数和返回值。</p>
+<p>修复后的代码如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-rust" data-lang="rust"><span class="line"><span class="cl"><span class="k">fn</span> <span class="nf">foo</span><span class="o">&lt;&#39;</span><span class="na">a</span><span class="o">&gt;</span><span class="p">(</span><span class="n">x</span>: <span class="kp">&amp;</span><span class="o">&#39;</span><span class="na">a</span> <span class="kt">str</span><span class="p">,</span><span class="w"> </span><span class="n">y</span>: <span class="kp">&amp;</span><span class="o">&#39;</span><span class="na">a</span> <span class="kt">str</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="kp">&amp;</span><span class="o">&#39;</span><span class="na">a</span> <span class="kt">str</span> <span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="n">x</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="n">y</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h2 id="生命周期规则">生命周期规则</h2>
+<p>要推导 Lifetime 是否合法，先明确两点：</p>
+<ul>
+<li>输出值（也称为返回值）依赖哪些输入值</li>
+<li>输入值的 Lifetime 大于或等于输出值的 Lifetime (准确来说：子集，而不是大于或等于)</li>
+</ul>
+<p><strong>Lifetime 推导公式：</strong>：当输出值 R 依赖输入值 X Y Z &hellip;，当且仅当输出值的 Lifetime 为所有输入值的 Lifetime 交集的子集时，生命周期合法。</p>
+<pre tabindex="0"><code>Lifetime(R) ⊆ ( Lifetime(X) ∩ Lifetime(Y) ∩ Lifetime(Z) ∩ Lifetime(...) )
+</code></pre><p>对于例子 1：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-rust" data-lang="rust"><span class="line"><span class="cl"><span class="k">fn</span> <span class="nf">foo</span><span class="o">&lt;&#39;</span><span class="na">a</span><span class="o">&gt;</span><span class="p">(</span><span class="n">x</span>: <span class="kp">&amp;</span><span class="o">&#39;</span><span class="na">a</span> <span class="kt">str</span><span class="p">,</span><span class="w"> </span><span class="n">y</span>: <span class="kp">&amp;</span><span class="o">&#39;</span><span class="na">a</span> <span class="kt">str</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="kp">&amp;</span><span class="o">&#39;</span><span class="na">a</span> <span class="kt">str</span> <span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="n">x</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="n">y</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>因为返回值同时依赖输入参数<code>x</code>和<code>y</code>，所以</p>
+<pre tabindex="0"><code>Lifetime(返回值) ⊆ ( Lifetime(x) ∩ Lifetime(y) )
 
 即：
 
 &#39;a ⊆ (&#39;a ∩ &#39;a)  // 成立
-</code></pre><h2 id=多个-lifetime-标识符>多个 Lifetime 标识符</h2><p>那我们继续看个更复杂的例子，定义多个 Lifetime 标识符：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=line><span class=cl><span class=k>fn</span> <span class=nf>foo</span><span class=o>&lt;&#39;</span><span class=na>a</span><span class=p>,</span><span class=w> </span><span class=o>&#39;</span><span class=na>b</span><span class=o>&gt;</span><span class=p>(</span><span class=n>x</span>: <span class=kp>&amp;</span><span class=o>&#39;</span><span class=na>a</span> <span class=kt>str</span><span class=p>,</span><span class=w> </span><span class=n>y</span>: <span class=kp>&amp;</span><span class=o>&#39;</span><span class=na>b</span> <span class=kt>str</span><span class=p>)</span><span class=w> </span>-&gt; <span class=kp>&amp;</span><span class=o>&#39;</span><span class=na>a</span> <span class=kt>str</span> <span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>if</span><span class=w> </span><span class=kc>true</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=n>x</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>}</span><span class=w> </span><span class=k>else</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=n>y</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><p>先看下编译，又报错了：</p><pre tabindex=0><code>&lt;anon&gt;:5:3: 5:4 error: cannot infer an appropriate lifetime for automatic coercion due to conflicting requirements [E0495]
+</code></pre><h2 id="多个-lifetime-标识符">多个 Lifetime 标识符</h2>
+<p>那我们继续看个更复杂的例子，定义多个 Lifetime 标识符：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-rust" data-lang="rust"><span class="line"><span class="cl"><span class="k">fn</span> <span class="nf">foo</span><span class="o">&lt;&#39;</span><span class="na">a</span><span class="p">,</span><span class="w"> </span><span class="o">&#39;</span><span class="na">b</span><span class="o">&gt;</span><span class="p">(</span><span class="n">x</span>: <span class="kp">&amp;</span><span class="o">&#39;</span><span class="na">a</span> <span class="kt">str</span><span class="p">,</span><span class="w"> </span><span class="n">y</span>: <span class="kp">&amp;</span><span class="o">&#39;</span><span class="na">b</span> <span class="kt">str</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="kp">&amp;</span><span class="o">&#39;</span><span class="na">a</span> <span class="kt">str</span> <span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="n">x</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="n">y</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>先看下编译，又报错了：</p>
+<pre tabindex="0"><code>&lt;anon&gt;:5:3: 5:4 error: cannot infer an appropriate lifetime for automatic coercion due to conflicting requirements [E0495]
 &lt;anon&gt;:5 		y
          		^
 &lt;anon&gt;:1:1: 7:2 help: consider using an explicit lifetime parameter as shown: fn foo&lt;&#39;a&gt;(x: &amp;&#39;a str, y: &amp;&#39;a str) -&gt; &amp;&#39;a str
@@ -108,82 +1583,419 @@ fn foo(x: &amp;str, y: &amp;str) -&gt; &amp;str {
 &lt;anon&gt;:4 	} else {
 &lt;anon&gt;:5 		y
 &lt;anon&gt;:6 	}
-</code></pre><p>编译器说自己无法正确地推导返回值的 Lifetime，读者可能会疑问，“我们不是已经指定返回值的 Lifetime 为<code>'a</code>了吗？"。
-这儿我们同样可以通过生命周期推导公式推导：因为返回值同时依赖<code>x</code>和<code>y</code>，所以</p><pre tabindex=0><code>	Lifetime(返回值) ⊆ ( Lifetime(x) ∩ Lifetime(y) )
+</code></pre><p>编译器说自己无法正确地推导返回值的 Lifetime，读者可能会疑问，“我们不是已经指定返回值的 Lifetime 为<code>'a</code>了吗？&quot;。
+这儿我们同样可以通过生命周期推导公式推导：因为返回值同时依赖<code>x</code>和<code>y</code>，所以</p>
+<pre tabindex="0"><code>	Lifetime(返回值) ⊆ ( Lifetime(x) ∩ Lifetime(y) )
 
 	即：
 
 	&#39;a ⊆ (&#39;a ∩ &#39;b)  //不成立
-</code></pre><p>很显然，上面我们根本没法保证成立。所以，这种情况下，我们可以显式地告诉编译器 <code>'b</code> 比 <code>'a</code> 长（<code>'a</code> 是 <code>'b</code> 的子集），只需要在定义 Lifetime 的时候, 在 <code>'b</code> 的后面加上 <code>: 'a</code>, 意思是 <code>'b</code> 比<code>'a</code> 长，<code>'a</code> 是 <code>'b</code> 的子集:</p><pre tabindex=0><code>fn foo&lt;&#39;a, &#39;b: &#39;a&gt;(x: &amp;&#39;a str, y: &amp;&#39;b str) -&gt; &amp;&#39;a str {
+</code></pre><p>很显然，上面我们根本没法保证成立。所以，这种情况下，我们可以显式地告诉编译器 <code>'b</code> 比 <code>'a</code> 长（<code>'a</code> 是 <code>'b</code> 的子集），只需要在定义 Lifetime 的时候, 在 <code>'b</code> 的后面加上 <code>: 'a</code>, 意思是 <code>'b</code> 比<code>'a</code> 长，<code>'a</code> 是 <code>'b</code> 的子集:</p>
+<pre tabindex="0"><code>fn foo&lt;&#39;a, &#39;b: &#39;a&gt;(x: &amp;&#39;a str, y: &amp;&#39;b str) -&gt; &amp;&#39;a str {
 	if true {
 		x
 	} else {
 		y
 	}
 }
-</code></pre><p>这里我们根据公式继续推导：</p><pre tabindex=0><code>条件：Lifetime(x) ⊆ Lifetime(y)
+</code></pre><p>这里我们根据公式继续推导：</p>
+<pre tabindex="0"><code>条件：Lifetime(x) ⊆ Lifetime(y)
 推导：Lifetime(返回值) ⊆ ( Lifetime(x) ∩ Lifetime(y) )
 
 即：
 
 条件：&#39;a ⊆ &#39;b
 推导：&#39;a ⊆ (&#39;a ∩ &#39;b) // 成立
-</code></pre><p>上面是成立的，所以可以编译通过。</p><h1 id=结构体中的生命周期>结构体中的生命周期</h1><p>上面我们更多讨论了函数中 Lifetime 的应用，在<code>struct</code>中 Lifetime 同样重要。</p><p>我们来定义一个<code>Person</code>结构体：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=line><span class=cl><span class=k>struct</span> <span class=nc>Person</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=n>age</span>: <span class=kp>&amp;</span><span class=kt>u8</span><span class=p>,</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><p>编译时我们会得到一个 error：</p><pre tabindex=0><code>&lt;anon&gt;:2:8: 2:12 error: missing lifetime specifier [E0106]
+</code></pre><p>上面是成立的，所以可以编译通过。</p>
+<h1 id="结构体中的生命周期">结构体中的生命周期</h1>
+<p>上面我们更多讨论了函数中 Lifetime 的应用，在<code>struct</code>中 Lifetime 同样重要。</p>
+<p>我们来定义一个<code>Person</code>结构体：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-rust" data-lang="rust"><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Person</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="n">age</span>: <span class="kp">&amp;</span><span class="kt">u8</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>编译时我们会得到一个 error：</p>
+<pre tabindex="0"><code>&lt;anon&gt;:2:8: 2:12 error: missing lifetime specifier [E0106]
 &lt;anon&gt;:2 	age: &amp;str,
-</code></pre><p>之所以会报错，这是因为 Rust 要确保 <code>Person</code> 的 Lifetime 不会比它的 <code>age</code> 借用长，不然会出现 <code>Dangling Pointer</code> 的严重内存问题。所以我们需要为 <code>age</code> 借用声明 Lifetime：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=line><span class=cl><span class=k>struct</span> <span class=nc>Person</span><span class=o>&lt;&#39;</span><span class=na>a</span><span class=o>&gt;</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=n>age</span>: <span class=kp>&amp;</span><span class=o>&#39;</span><span class=na>a</span> <span class=kt>u8</span><span class=p>,</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><p>不需要对 <code>Person</code> 后面的 <code>&lt;'a></code> 感到疑惑，这里的 <code>'a</code> 并不是指 <code>Person</code> 这个<code>struct</code> 的 Lifetime，仅仅是一个泛型参数而已，<code>struct</code> 可以有多个 Lifetime 参数用来约束不同的 <code>field</code>，实际的 Lifetime 应该是所有 <code>field</code> Lifetime 交集的子集。例如：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-rs data-lang=rs><span class=line><span class=cl><span class=k>fn</span> <span class=nf>main</span><span class=p>()</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=kd>let</span><span class=w> </span><span class=n>x</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>20_</span><span class=k>u8</span><span class=p>;</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=kd>let</span><span class=w> </span><span class=n>stormgbs</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>Person</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>						</span><span class=n>age</span>: <span class=kp>&amp;</span><span class=nc>x</span><span class=p>,</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>					 </span><span class=p>};</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><p>这里，生命周期/Scope 的示意图如下：</p><pre tabindex=0><code>                  {   x    stormgbs      *     }
+</code></pre><p>之所以会报错，这是因为 Rust 要确保 <code>Person</code> 的 Lifetime 不会比它的 <code>age</code> 借用长，不然会出现 <code>Dangling Pointer</code> 的严重内存问题。所以我们需要为 <code>age</code> 借用声明 Lifetime：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-rust" data-lang="rust"><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Person</span><span class="o">&lt;&#39;</span><span class="na">a</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="n">age</span>: <span class="kp">&amp;</span><span class="o">&#39;</span><span class="na">a</span> <span class="kt">u8</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>不需要对 <code>Person</code> 后面的 <code>&lt;'a&gt;</code> 感到疑惑，这里的 <code>'a</code> 并不是指 <code>Person</code> 这个<code>struct</code> 的 Lifetime，仅仅是一个泛型参数而已，<code>struct</code> 可以有多个 Lifetime 参数用来约束不同的 <code>field</code>，实际的 Lifetime 应该是所有 <code>field</code> Lifetime 交集的子集。例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-rs" data-lang="rs"><span class="line"><span class="cl"><span class="k">fn</span> <span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="kd">let</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">20_</span><span class="k">u8</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="kd">let</span><span class="w"> </span><span class="n">stormgbs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Person</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">						</span><span class="n">age</span>: <span class="kp">&amp;</span><span class="nc">x</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">					 </span><span class="p">};</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>这里，生命周期/Scope 的示意图如下：</p>
+<pre tabindex="0"><code>                  {   x    stormgbs      *     }
 所有者 x:              |________________________|
 所有者 stormgbs:                |_______________|  &#39;a
 借用者 stormgbs.age:            |_______________|  stormgbs.age = &amp;x
-</code></pre><p>既然<code>&lt;'a></code>作为<code>Person</code>的泛型参数，所以在为<code>Person</code>实现方法时也需要加上<code>&lt;'a></code>，不然：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=line><span class=cl><span class=k>impl</span><span class=w> </span><span class=n>Person</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>fn</span> <span class=nf>print_age</span><span class=p>(</span><span class=o>&amp;</span><span class=bp>self</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=fm>println!</span><span class=p>(</span><span class=s>&#34;Person.age = {}&#34;</span><span class=p>,</span><span class=w> </span><span class=bp>self</span><span class=p>.</span><span class=n>age</span><span class=p>);</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><p>报错：</p><pre tabindex=0><code>&lt;anon&gt;:5:6: 5:12 error: wrong number of lifetime parameters: expected 1, found 0 [E0107]
+</code></pre><p>既然<code>&lt;'a&gt;</code>作为<code>Person</code>的泛型参数，所以在为<code>Person</code>实现方法时也需要加上<code>&lt;'a&gt;</code>，不然：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-rust" data-lang="rust"><span class="line"><span class="cl"><span class="k">impl</span><span class="w"> </span><span class="n">Person</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">fn</span> <span class="nf">print_age</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="fm">println!</span><span class="p">(</span><span class="s">&#34;Person.age = {}&#34;</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">age</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>报错：</p>
+<pre tabindex="0"><code>&lt;anon&gt;:5:6: 5:12 error: wrong number of lifetime parameters: expected 1, found 0 [E0107]
 &lt;anon&gt;:5 impl Person {
               ^~~~~~
-</code></pre><p><strong>正确的做法是</strong>：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=line><span class=cl><span class=k>impl</span><span class=o>&lt;&#39;</span><span class=na>a</span><span class=o>&gt;</span><span class=w> </span><span class=n>Person</span><span class=o>&lt;&#39;</span><span class=na>a</span><span class=o>&gt;</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>fn</span> <span class=nf>print_age</span><span class=p>(</span><span class=o>&amp;</span><span class=bp>self</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=fm>println!</span><span class=p>(</span><span class=s>&#34;Person.age = {}&#34;</span><span class=p>,</span><span class=w> </span><span class=bp>self</span><span class=p>.</span><span class=n>age</span><span class=p>);</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><p>这样加上<code>&lt;'a></code>后就可以了。读者可能会疑问，为什么<code>print_age</code>中不需要加上<code>'a</code>？这是个好问题。因为<code>print_age</code>的输出参数为<code>()</code>，也就是可以不依赖任何输入参数, 所以编译器此时可以不必关心和推导 Lifetime。即使是<code>fn print_age(&self, other_age: &i32) {...}</code>也可以编译通过。</p><p><strong>如果<code>Person</code>的方法存在输出值（借用）呢？</strong></p><div class=highlight><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=line><span class=cl><span class=k>impl</span><span class=o>&lt;&#39;</span><span class=na>a</span><span class=o>&gt;</span><span class=w> </span><span class=n>Person</span><span class=o>&lt;&#39;</span><span class=na>a</span><span class=o>&gt;</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>fn</span> <span class=nf>get_age</span><span class=p>(</span><span class=o>&amp;</span><span class=bp>self</span><span class=p>)</span><span class=w> </span>-&gt; <span class=kp>&amp;</span><span class=kt>u8</span> <span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=bp>self</span><span class=p>.</span><span class=n>age</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><p><code>get_age</code> 方法的输出值依赖一个输入值 <code>&self</code>，这种情况下，Rust 编译器可以自动推导为：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=line><span class=cl><span class=k>impl</span><span class=o>&lt;&#39;</span><span class=na>a</span><span class=o>&gt;</span><span class=w> </span><span class=n>Person</span><span class=o>&lt;&#39;</span><span class=na>a</span><span class=o>&gt;</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>fn</span> <span class=nf>get_age</span><span class=p>(</span><span class=o>&amp;&#39;</span><span class=na>a</span><span class=w> </span><span class=bp>self</span><span class=p>)</span><span class=w> </span>-&gt; <span class=kp>&amp;</span><span class=o>&#39;</span><span class=na>a</span> <span class=kt>u8</span> <span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=bp>self</span><span class=p>.</span><span class=n>age</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><p><strong>如果输出值（借用）依赖了多个输入值呢？</strong></p><div class=highlight><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=line><span class=cl><span class=k>impl</span><span class=o>&lt;&#39;</span><span class=na>a</span><span class=p>,</span><span class=w> </span><span class=o>&#39;</span><span class=na>b</span><span class=o>&gt;</span><span class=w> </span><span class=n>Person</span><span class=o>&lt;&#39;</span><span class=na>a</span><span class=o>&gt;</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>fn</span> <span class=nf>get_max_age</span><span class=p>(</span><span class=o>&amp;&#39;</span><span class=na>a</span><span class=w> </span><span class=bp>self</span><span class=p>,</span><span class=w> </span><span class=n>p</span>: <span class=kp>&amp;</span><span class=o>&#39;</span><span class=na>a</span> <span class=nc>Person</span><span class=p>)</span><span class=w> </span>-&gt; <span class=kp>&amp;</span><span class=o>&#39;</span><span class=na>a</span> <span class=kt>u8</span> <span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=k>if</span><span class=w> </span><span class=bp>self</span><span class=p>.</span><span class=n>age</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=n>p</span><span class=p>.</span><span class=n>age</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>			</span><span class=bp>self</span><span class=p>.</span><span class=n>age</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=p>}</span><span class=w> </span><span class=k>else</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>			</span><span class=n>p</span><span class=p>.</span><span class=n>age</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><p>类似之前的 Lifetime 推导章节，当返回值（借用）依赖多个输入值时，需显示声明 Lifetime。和函数 Lifetime 同理。</p><p><strong>其他</strong></p><p>无论在函数还是在<code>struct</code>中，甚至在<code>enum</code>中，Lifetime 理论知识都是一样的。希望大家可以慢慢体会和吸收，做到举一反三。</p></div><div class=article-widget><div class="container-xl row post-nav"><div class="col-6 post-nav-item"><div class=meta-nav>下一页</div><a href=/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%89%80%E6%9C%89%E6%9D%83%E7%B3%BB%E7%BB%9F/%E6%89%80%E6%9C%89%E6%9D%83/ rel=prev>所有权</a></div></div></div><div class=body-footer><p>最近更新于 0001-01-01</p><section id=comments class="mb-3 pt-0"><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="https://ngte.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section></div></article><footer class=site-footer><div class="copyright py-4 bg-footer"><div class="row justify-content-center"><div class="text-center footer-color"><p class=mb-0>© 2017-2022 NGTE all rights reserved</p></div></div></div><script type=text/javascript id=clstr_globe async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script></footer></main></div></div><script src=//unpkg.com/heti/umd/heti-addon.min.js></script>
-<script>const heti=new Heti(".article");heti.autoSpacing()</script><script type=text/javascript>window.$crisp=[],window.CRISP_WEBSITE_ID="12adcc35-9621-4313-8262-62dc654b29d8",function(){setTimeout(function(){d=document,s=d.createElement("script"),s.src="https://client.crisp.chat/l.js",s.async=1,d.getElementsByTagName("head")[0].appendChild(s)},2500)}()</script></div><div class=page-footer></div><script src=/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js></script>
-<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin=anonymous></script>
-<script id=search-hit-algolia-template type=text/html><div class=search-hit><div class=search-hit-content><div class=search-hit-name><a href={{relpermalink}}>{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a></div><div class="article-metadata search-hit-type">{{type}}</div><p class=search-hit-description>{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p></div></div></script><script src=https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js crossorigin=anonymous></script>
-<script id=dsq-count-scr src=https://ngte.disqus.com/count.js async></script>
-<script src=/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js type=module></script>
-<script id=page-data type=application/json>{"use_headroom":false}</script><script src=/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js></script>
-<script>var mybutton=document.getElementById("backTopBtn");window.onscroll=function(){scrollFunction()};function scrollFunction(){document.body.scrollTop>20||document.documentElement.scrollTop>20?mybutton.style.display="block":mybutton.style.display="none"}function topFunction(){document.body.scrollTop=0,document.documentElement.scrollTop=0}</script><script src=https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin=anonymous></script>
-<script>anchors.add()</script><script>(function(){"use strict";if(!document.queryCommandSupported("copy"))return;function e(e,t){e.className="highlight-copy-btn",e.textContent=t,setTimeout(function(){e.textContent="",e.className="highlight-copy-btn fa fa-copy"},1e3)}function t(e){var t=window.getSelection(),n=document.createRange();return n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n),t}function n(n){var o,s=document.createElement("button");s.className="highlight-copy-btn fa fa-copy",s.textContent="",o=n.firstElementChild,s.addEventListener("click",function(){try{var n=t(o);document.execCommand("copy"),n.removeAllRanges(),e(s,"已复制")}catch(t){console&&console.log(t),e(s,"Failed :'(")}}),n.appendChild(s)}var s=document.getElementsByClassName("highlight");Array.prototype.forEach.call(s,n)})()</script></body></html>
+</code></pre><p><strong>正确的做法是</strong>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-rust" data-lang="rust"><span class="line"><span class="cl"><span class="k">impl</span><span class="o">&lt;&#39;</span><span class="na">a</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Person</span><span class="o">&lt;&#39;</span><span class="na">a</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">fn</span> <span class="nf">print_age</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="fm">println!</span><span class="p">(</span><span class="s">&#34;Person.age = {}&#34;</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">age</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>这样加上<code>&lt;'a&gt;</code>后就可以了。读者可能会疑问，为什么<code>print_age</code>中不需要加上<code>'a</code>？这是个好问题。因为<code>print_age</code>的输出参数为<code>()</code>，也就是可以不依赖任何输入参数, 所以编译器此时可以不必关心和推导 Lifetime。即使是<code>fn print_age(&amp;self, other_age: &amp;i32) {...}</code>也可以编译通过。</p>
+<p><strong>如果<code>Person</code>的方法存在输出值（借用）呢？</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-rust" data-lang="rust"><span class="line"><span class="cl"><span class="k">impl</span><span class="o">&lt;&#39;</span><span class="na">a</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Person</span><span class="o">&lt;&#39;</span><span class="na">a</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">fn</span> <span class="nf">get_age</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="kp">&amp;</span><span class="kt">u8</span> <span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="bp">self</span><span class="p">.</span><span class="n">age</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p><code>get_age</code> 方法的输出值依赖一个输入值 <code>&amp;self</code>，这种情况下，Rust 编译器可以自动推导为：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-rust" data-lang="rust"><span class="line"><span class="cl"><span class="k">impl</span><span class="o">&lt;&#39;</span><span class="na">a</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Person</span><span class="o">&lt;&#39;</span><span class="na">a</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">fn</span> <span class="nf">get_age</span><span class="p">(</span><span class="o">&amp;&#39;</span><span class="na">a</span><span class="w"> </span><span class="bp">self</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="kp">&amp;</span><span class="o">&#39;</span><span class="na">a</span> <span class="kt">u8</span> <span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="bp">self</span><span class="p">.</span><span class="n">age</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p><strong>如果输出值（借用）依赖了多个输入值呢？</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-rust" data-lang="rust"><span class="line"><span class="cl"><span class="k">impl</span><span class="o">&lt;&#39;</span><span class="na">a</span><span class="p">,</span><span class="w"> </span><span class="o">&#39;</span><span class="na">b</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Person</span><span class="o">&lt;&#39;</span><span class="na">a</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">fn</span> <span class="nf">get_max_age</span><span class="p">(</span><span class="o">&amp;&#39;</span><span class="na">a</span><span class="w"> </span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">p</span>: <span class="kp">&amp;</span><span class="o">&#39;</span><span class="na">a</span> <span class="nc">Person</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="kp">&amp;</span><span class="o">&#39;</span><span class="na">a</span> <span class="kt">u8</span> <span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">age</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">p</span><span class="p">.</span><span class="n">age</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">			</span><span class="bp">self</span><span class="p">.</span><span class="n">age</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">			</span><span class="n">p</span><span class="p">.</span><span class="n">age</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>类似之前的 Lifetime 推导章节，当返回值（借用）依赖多个输入值时，需显示声明 Lifetime。和函数 Lifetime 同理。</p>
+<p><strong>其他</strong></p>
+<p>无论在函数还是在<code>struct</code>中，甚至在<code>enum</code>中，Lifetime 理论知识都是一样的。希望大家可以慢慢体会和吸收，做到举一反三。</p>
+
+          </div>
+
+          
+
+
+
+          
+          
+          <div class="article-widget">
+            
+<div class="container-xl row post-nav">
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">下一页</div>
+    <a href="/books/rust-notes/01.%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80/%E6%89%80%E6%9C%89%E6%9D%83%E7%B3%BB%E7%BB%9F/%E6%89%80%E6%9C%89%E6%9D%83/" rel="prev">所有权</a>
+  </div>
+  
+</div>
+
+          </div>
+          
+
+        <div class="body-footer">
+          <p>最近更新于 0001-01-01</p>
+
+          
+
+
+
+          
+
+
+  
+  
+  
+
+  
+
+  
+  <section id="comments" class="mb-3 pt-0">
+    
+<div id="disqus_thread"></div>
+<script>
+  var disqus_config = function () {
+    
+    
+    
+  };
+  (function() {
+    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+      return;
+    }
+    var d = document, s = d.createElement('script'); 
+    s.async = true;
+    s.src = 'https://' + "ngte" + '.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </section>
+  
+
+
+
+          
+
+
+        </div>
+
+      </article>
+
+      <footer class="site-footer">
+
+  
+
+
+
+  
+
+  
+  <div class="copyright py-4 bg-footer">
+      <div class="row justify-content-center">
+        <div class="text-center footer-color">
+          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
+        </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" id="clstr_globe" async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script>
+  
+</footer>
+
+
+    </main>
+  </div>
+</div>
+<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
+<script>
+  const heti = new Heti('.article');
+  heti.autoSpacing();
+</script>
+<script type="text/javascript">
+  window.$crisp = [];
+  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
+  (function () {
+    setTimeout(function() {
+      d = document;
+      s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    }, 2500);
+  })();
+</script>
+  </div>
+
+  <div class="page-footer">
+    
+    
+  </div>
+
+      
+
+    
+    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
+
+    
+    
+    
+      
+
+      
+      
+
+      
+
+      
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
+        
+        
+      
+
+    
+
+    
+    
+    
+
+    
+    
+    
+      
+      <script id="search-hit-algolia-template" type="text/html">
+        <div class="search-hit">
+          <div class="search-hit-content">
+            <div class="search-hit-name">
+              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
+            </div>
+            <div class="article-metadata search-hit-type">{{type}}</div>
+            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
+          </div>
+        </div>
+      </script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
+      
+      
+    
+
+    
+    
+
+    
+    
+    
+    
+      <script id="dsq-count-scr" src="https://ngte.disqus.com/count.js" async></script>
+      
+    
+
+    
+    
+      
+      
+      
+      
+      
+      
+      
+    
+
+    
+    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
+    
+
+    
+    
+    
+    <script id="page-data" type="application/json">{"use_headroom":false}</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
+
+    
+    
+    
+    
+    
+    
+    <script>
+
+var mybutton = document.getElementById("backTopBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+}
+</script>
+
+
+    
+
+    
+    
+    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+    <script>
+      anchors.add();
+    </script>
+    
+
+    
+    <script>
+
+
+
+(function() {
+  'use strict';
+
+  if(!document.queryCommandSupported('copy')) {
+    return;
+  }
+
+  function flashCopyMessage(el, msg) {
+    el.className = "highlight-copy-btn";
+    el.textContent = msg;
+    setTimeout(function() {
+      el.textContent = "";
+      el.className = "highlight-copy-btn fa fa-copy";
+    }, 1000);
+  }
+
+  function selectText(node) {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection;
+  }
+
+  function addCopyButton(containerEl) {
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "highlight-copy-btn fa fa-copy";
+    copyBtn.textContent = "";
+
+    var codeEl = containerEl.firstElementChild;
+    copyBtn.addEventListener('click', function() {
+      try {
+        var selection = selectText(codeEl);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        
+        flashCopyMessage(copyBtn, '已复制')
+        
+      } catch(e) {
+        console && console.log(e);
+        flashCopyMessage(copyBtn, 'Failed :\'(')
+      }
+    });
+
+    containerEl.appendChild(copyBtn);
+  }
+
+  
+  var highlightBlocks = document.getElementsByClassName('highlight');
+  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
+})();
+</script>
+
+    
+
+
+</body>
+</html>

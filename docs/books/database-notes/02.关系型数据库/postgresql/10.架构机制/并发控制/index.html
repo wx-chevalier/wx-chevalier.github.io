@@ -1,0 +1,2141 @@
+<!DOCTYPE html><html lang="zh" >
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  
+  
+  
+    <meta name="generator" content="Wowchemy 5.5.0 for Hugo" />
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+
+  
+  
+  
+    
+      
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
+    
+  
+
+  
+    <meta name="google-site-verification" content="google69a5cccb61297807" />
+    <meta name="baidu-site-verification" content="cqmZHEleVh" />
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+    
+  
+  <meta name="description" content="深入解析 PostgreSQL 系列整理自 The Internals of PostgreSQL 等系列文章，从碎片化地阅读到体系化地学习，感觉对数据库有了更深入地了解；触类旁通，相互印证，也是有利于掌握 MySQL 等其他的关系型数据库或者 NoSQL 数据库。 深入解析 PostgreSQL 系列之并发控制与事务" />
+
+  
+  <link rel="alternate" hreflang="zh" href="https://ng-tech.icu/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/10.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" />
+
+  
+  
+  
+    <meta name="theme-color" content="#0a55a7" />
+  
+
+  
+  
+
+  
+
+  <link rel="stylesheet" href="/css/vendor-bundle.min.c7b8d9abd591ba2253ea42747e3ac3f5.css" media="print" onload="this.media='all'">
+
+  
+  
+  
+    
+    
+
+    
+    
+    
+    
+      
+      
+    
+    
+    
+
+    
+    
+    
+      
+    
+    
+      
+      
+        
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/github.min.css" crossorigin="anonymous" title="hl-light" media="print" onload="this.media='all'">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/styles/dracula.min.css" crossorigin="anonymous" title="hl-dark" media="print" onload="this.media='all'" disabled>
+        
+      
+    
+
+    
+    
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7.4.5/themes/satellite-min.css" integrity="sha256-TehzF/2QvNKhGQrrNpoOb2Ck4iGZ1J/DI4pkd2oUsBc=" crossorigin="anonymous">
+    
+
+    
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+        
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+      
+      
+
+      
+      
+
+      
+    
+  
+
+  
+  
+  
+  
+  
+  <link rel="stylesheet" href="/css/wowchemy.0d97305106da5efa530e28b021b4c580.css" />
+
+  
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-40NYXJ8823"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', "G-40NYXJ8823");
+</script>
+
+
+  
+
+
+  
+
+
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?56df1177bce405601b0ecdd7208f75c6";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+  
+  
+  
+
+  
+
+  
+    <link rel="manifest" href="/manifest.webmanifest" />
+  
+
+  <link rel="icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_32x32_fill_lanczos_center_3.png" />
+  <link rel="apple-touch-icon" type="image/png" href="/media/icon_hu0f7d075e895d6f5f1f5fdbc1e33dc138_10087_180x180_fill_lanczos_center_3.png" />
+
+  <link rel="canonical" href="https://ng-tech.icu/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/10.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" />
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+
+  
+  
+    
+    
+  
+  <meta property="twitter:card" content="summary_large_image" />
+  
+    <meta property="twitter:site" content="@wx-chevalier" />
+    <meta property="twitter:creator" content="@wx-chevalier" />
+  
+  <meta property="og:site_name" content="Next-gen Tech Edu" />
+  <meta property="og:url" content="https://ng-tech.icu/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/10.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" />
+  <meta property="og:title" content="并发控制 | Next-gen Tech Edu" />
+  <meta property="og:description" content="深入解析 PostgreSQL 系列整理自 The Internals of PostgreSQL 等系列文章，从碎片化地阅读到体系化地学习，感觉对数据库有了更深入地了解；触类旁通，相互印证，也是有利于掌握 MySQL 等其他的关系型数据库或者 NoSQL 数据库。 深入解析 PostgreSQL 系列之并发控制与事务" /><meta property="og:image" content="https://ng-tech.icu/media/sharing.png" />
+    <meta property="twitter:image" content="https://ng-tech.icu/media/sharing.png" /><meta property="og:locale" content="zh" />
+  
+    
+    
+  
+
+  
+
+
+
+  
+
+  
+
+  
+
+
+
+
+
+  <title>并发控制 | Next-gen Tech Edu</title>
+</head>
+
+
+<body id="top" data-spy="scroll" data-offset="70" data-target="#TableOfContents" class="page-wrapper   " data-wc-page-id="96bef9ff559f83324defc76fd94727c8" >
+  <button onclick="topFunction()" id="backTopBtn" title="Go to top"><i class="fa-solid fa-circle-up" aria-hidden="true"></i></button>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script src="/js/wowchemy-init.min.14a0ed61c6dbd594b9c75193b25be179.js"></script>
+
+  
+
+
+<aside class="search-modal" id="search">
+  <div class="container">
+    <section class="search-header">
+
+      <div class="row no-gutters justify-content-between mb-3">
+        <div class="col-6 search-title">
+          <p>搜索</p>
+        </div>
+        <div class="col-6 col-search-close">
+          <a class="js-search" href="#" aria-label="关闭"><i class="fas fa-times-circle text-muted" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+      <div id="search-box">
+        
+        
+        
+      </div>
+
+      
+      
+
+      
+    </section>
+    <section class="section-search-results">
+
+      <div id="search-hits">
+        
+      </div>
+
+      <div id="search-common-queries">
+        
+      </div>
+
+    </section>
+  </div>
+</aside>
+
+
+
+  <div class="page-header">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="header--fixed">
+  <nav class="navbar navbar-expand-lg navbar-light compensate-for-scrollbar" id="navbar-main">
+    <div class="container-xl">
+
+      
+      <div class="d-none d-lg-inline-flex">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      <button type="button" class="navbar-toggler" data-toggle="collapse"
+              data-target="#navbar-content" aria-controls="navbar-content" aria-expanded="false" aria-label="切换导航">
+      <span><i class="fas fa-bars"></i></span>
+      </button>
+      
+
+      
+      <div class="navbar-brand-mobile-wrapper d-inline-flex d-lg-none">
+        <a class="navbar-brand" href="/">Next-gen Tech Edu</a>
+      </div>
+      
+
+      
+      
+      <div class="navbar-collapse main-menu-item collapse justify-content-start" id="navbar-content">
+
+        
+        <ul class="navbar-nav d-md-inline-flex">
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/books-gallery"><span>笔记（万篇）</span></a>
+          </li>
+
+          
+          
+
+          
+
+          
+          
+          
+            
+          
+
+          
+
+          
+          
+          
+          
+
+          
+            
+              
+              
+            
+            
+              
+              
+              
+                
+              
+              
+            
+          
+
+          <li class="nav-item">
+            <a class="nav-link " href="/#knowledge-map"><span>知识图谱</span></a>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>实验室</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="/galaxy-home/gh-craft"><span>Craft 方块世界</span></a>
+              
+                <a class="dropdown-item" href="/galaxy-home/glossary-cards"><span>3D 知识卡牌</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+          
+          <style>
+            .dropdown-item{
+              display: inline-flex;
+            }
+          </style>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span>其他阅读渠道</span><span class="caret"></span>
+            </a>
+            <div class="dropdown-menu">
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230218234451.png"></img><span>知乎</span></a>
+              
+                <a class="dropdown-item" href="https://segmentfault.com/blog/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113556.png"></img><span>SegmentFault</span></a>
+              
+                <a class="dropdown-item" href="https://zhuanlan.zhihu.com/wxyyxc1992"><img style="width:16px;height:16px;display:inline-block;margin-right:8px" src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230219113519.png"></img><span>掘金</span></a>
+              
+            </div>
+          </li>
+
+          
+          
+
+        
+
+          
+        </ul>
+      </div>
+
+      <ul class="nav-icons navbar-nav flex-row ml-auto d-flex pl-md-2">
+
+        
+        
+        
+        <li class="nav-item">
+          <a class="nav-link js-search" href="#" aria-label="搜索"><i class="fas fa-search" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        <li class="nav-item">
+            <a class="nav-link" href="https://github.com/wx-chevalier" aria-label="GitHub"><i class="fa-brands fa-github" aria-hidden="true"></i></a>
+        </li>
+        
+
+        
+        
+        
+
+        
+        
+        
+        <div></div>
+        
+        <style>
+        @media only screen and (max-width: 600px) {
+          .jimmysong-template {
+            display: none!important;
+          }
+        }
+        </style>
+        
+        <li class="jimmysong-template" style="color: white;font-size: 12px;">
+          <a href="https://jimmysong.io" style="color: white">By Jimmy Song's Template</a>
+        </li>
+      </ul>
+
+    </div>
+  </nav>
+</header>
+
+
+  </div>
+
+  <div class="page-body">
+    
+    
+    
+
+    
+
+
+
+
+<link rel="stylesheet" href="//unpkg.com/heti/umd/heti.min.css">
+<div class="container-xl docs">
+  <div class="row flex-xl-nowrap">
+    <div class="docs-sidebar">
+      <form class="docs-search d-flex align-items-center">
+  <button class="btn docs-toggle d-md-none p-0 mr-md-3 w-100" type="button" data-toggle="collapse" data-target="#docs-nav" aria-controls="docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    <div class="d-flex">
+      <span class="d-md-none pl-1 flex-grow-1 text-left overflow-hidden">
+        
+          10.架构机制
+        
+      </span>
+      <span><i class="fas fa-chevron-down"></i></span>
+    </div>
+  </button>
+
+  
+  <button class="form-control sidebar-search js-search d-none d-md-flex">
+    <i class="fas fa-search pr-2"></i>
+    <span class="sidebar-search-text">搜索...</span>
+    <span class="sidebar-search-shortcut">/</span>
+  </button>
+  
+</form>
+
+<nav class="collapse docs-links" id="docs-nav">
+  
+  
+  
+  
+  
+  
+
+  
+  
+    
+
+    
+      
+
+      <ul class="nav docs-sidenav">
+        <li style="display: inline-flex">
+          <a style="cursor: pointer;" onclick="window.history.back()">
+            <i class="fas fa-arrow-left pr-1"></i>
+            Back
+          </a>
+          <span>|</span>
+          <a href="/books/">
+            <i class="fa-solid fa-house" style="margin-right: 4px"></i>
+            Books
+          </a>
+        </li>
+      </ul>
+
+      
+      
+        
+          
+        
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id2654bd64980278ad436f8f16963c7aa0&#34;)" href="#id2654bd64980278ad436f8f16963c7aa0" aria-expanded="false" aria-controls="id2654bd64980278ad436f8f16963c7aa0" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/">PostgreSQL</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id2654bd64980278ad436f8f16963c7aa0" aria-expanded="false" aria-controls="id2654bd64980278ad436f8f16963c7aa0">
+    
+    <i class="fa-solid fa-angle-down" id="caret-id2654bd64980278ad436f8f16963c7aa0"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="id2654bd64980278ad436f8f16963c7aa0">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id74e65e0567f78dfc31daee6f27bed1dd&#34;)" href="#id74e65e0567f78dfc31daee6f27bed1dd" aria-expanded="false" aria-controls="id74e65e0567f78dfc31daee6f27bed1dd" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/01.%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/">01.部署与配置</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id74e65e0567f78dfc31daee6f27bed1dd" aria-expanded="false" aria-controls="id74e65e0567f78dfc31daee6f27bed1dd">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id74e65e0567f78dfc31daee6f27bed1dd"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id74e65e0567f78dfc31daee6f27bed1dd">
+      
+
+
+
+  <li class="child level "><a href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/01.%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/">部署与配置</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/01.%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/%E6%95%B0%E6%8D%AE%E5%BA%93%E7%AE%A1%E7%90%86/">数据库管理</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id842b08e26481a86f2b15fb490e1aafcf&#34;)" href="#id842b08e26481a86f2b15fb490e1aafcf" aria-expanded="false" aria-controls="id842b08e26481a86f2b15fb490e1aafcf" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/02.%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/">02.数据类型</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id842b08e26481a86f2b15fb490e1aafcf" aria-expanded="false" aria-controls="id842b08e26481a86f2b15fb490e1aafcf">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id842b08e26481a86f2b15fb490e1aafcf"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id842b08e26481a86f2b15fb490e1aafcf">
+      
+
+
+
+  <li class="child level "><a href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/02.%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B/%E6%97%B6%E9%97%B4%E4%B8%8E%E6%97%A5%E6%9C%9F/">时间与日期</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idc2cf80534b17cffc0b39400c08cd36c0&#34;)" href="#idc2cf80534b17cffc0b39400c08cd36c0" aria-expanded="false" aria-controls="idc2cf80534b17cffc0b39400c08cd36c0" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/09.%E6%8F%92%E4%BB%B6/">09.插件</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idc2cf80534b17cffc0b39400c08cd36c0" aria-expanded="false" aria-controls="idc2cf80534b17cffc0b39400c08cd36c0">
+    
+        <i class="fa-solid fa-angle-right" id="caret-idc2cf80534b17cffc0b39400c08cd36c0"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="idc2cf80534b17cffc0b39400c08cd36c0">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id603945b59440f7cc6ad0646e2ae7fb25&#34;)" href="#id603945b59440f7cc6ad0646e2ae7fb25" aria-expanded="false" aria-controls="id603945b59440f7cc6ad0646e2ae7fb25" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/09.%E6%8F%92%E4%BB%B6/pgvector/">pgvector</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id603945b59440f7cc6ad0646e2ae7fb25" aria-expanded="false" aria-controls="id603945b59440f7cc6ad0646e2ae7fb25">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id603945b59440f7cc6ad0646e2ae7fb25"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id603945b59440f7cc6ad0646e2ae7fb25">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-ide0bd2441f6ddb4fd3dad73e3ba654bfc&#34;)" href="#ide0bd2441f6ddb4fd3dad73e3ba654bfc" aria-expanded="false" aria-controls="ide0bd2441f6ddb4fd3dad73e3ba654bfc" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/09.%E6%8F%92%E4%BB%B6/pgvector/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/">99.参考资料</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#ide0bd2441f6ddb4fd3dad73e3ba654bfc" aria-expanded="false" aria-controls="ide0bd2441f6ddb4fd3dad73e3ba654bfc">
+    
+        <i class="fa-solid fa-angle-right" id="caret-ide0bd2441f6ddb4fd3dad73e3ba654bfc"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="ide0bd2441f6ddb4fd3dad73e3ba654bfc">
+      
+
+
+
+  <li class="child level "><a href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/09.%E6%8F%92%E4%BB%B6/pgvector/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2023-ai-%E5%A4%A7%E6%A8%A1%E5%9E%8B%E4%B8%8E%E5%90%91%E9%87%8F%E6%95%B0%E6%8D%AE%E5%BA%93-pgvector/">2023-AI 大模型与向量数据库 PGVECTOR</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-idf795fa6116abe4ea5926584c695c6be0&#34;)" href="#idf795fa6116abe4ea5926584c695c6be0" aria-expanded="false" aria-controls="idf795fa6116abe4ea5926584c695c6be0" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/10.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/">10.架构机制</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#idf795fa6116abe4ea5926584c695c6be0" aria-expanded="false" aria-controls="idf795fa6116abe4ea5926584c695c6be0">
+    
+    <i class="fa-solid fa-angle-down" id="caret-idf795fa6116abe4ea5926584c695c6be0"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  show " id="idf795fa6116abe4ea5926584c695c6be0">
+      
+
+
+
+  <li class="child level active"><a href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/10.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/">并发控制</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/10.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E6%9F%A5%E8%AF%A2%E5%A4%84%E7%90%86/">查询处理</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/10.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E6%8C%81%E4%B9%85%E5%8C%96%E4%B8%8E%E7%BC%93%E5%86%B2%E5%8C%BA%E7%AE%A1%E7%90%86/">持久化与缓冲区管理</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/10.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E6%97%A5%E5%BF%97%E5%A4%87%E4%BB%BD%E4%B8%8E%E6%81%A2%E5%A4%8D/">日志备份与恢复</a></li>
+
+
+
+
+  <li class="child level "><a href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/10.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%9E%B6%E6%9E%84/">数据库架构</a></li>
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id0b3cbf930e053b278a7a31ca492be866&#34;)" href="#id0b3cbf930e053b278a7a31ca492be866" aria-expanded="false" aria-controls="id0b3cbf930e053b278a7a31ca492be866" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/10.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E7%B4%A2%E5%BC%95/">索引</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id0b3cbf930e053b278a7a31ca492be866" aria-expanded="false" aria-controls="id0b3cbf930e053b278a7a31ca492be866">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id0b3cbf930e053b278a7a31ca492be866"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id0b3cbf930e053b278a7a31ca492be866">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id38c9231201a248fa6b116d0772f1b40e&#34;)" href="#id38c9231201a248fa6b116d0772f1b40e" aria-expanded="false" aria-controls="id38c9231201a248fa6b116d0772f1b40e" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/10.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E7%B4%A2%E5%BC%95/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/">99.参考资料</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id38c9231201a248fa6b116d0772f1b40e" aria-expanded="false" aria-controls="id38c9231201a248fa6b116d0772f1b40e">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id38c9231201a248fa6b116d0772f1b40e"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id38c9231201a248fa6b116d0772f1b40e">
+      
+
+
+
+  <li class="child level "><a href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/10.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E7%B4%A2%E5%BC%95/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2023-understanding-database-indexes-in-postgresql/">2023-Understanding database Indexes in PostgreSQL</a></li>
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id55fa318e855af39dae2b8429ed56ded8&#34;)" href="#id55fa318e855af39dae2b8429ed56ded8" aria-expanded="false" aria-controls="id55fa318e855af39dae2b8429ed56ded8" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/">99.参考资料</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id55fa318e855af39dae2b8429ed56ded8" aria-expanded="false" aria-controls="id55fa318e855af39dae2b8429ed56ded8">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id55fa318e855af39dae2b8429ed56ded8"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id55fa318e855af39dae2b8429ed56ded8">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id731460f02365de5a7bff49b17058d3b8&#34;)" href="#id731460f02365de5a7bff49b17058d3b8" aria-expanded="false" aria-controls="id731460f02365de5a7bff49b17058d3b8" aria-hidden="false" data-toggle="collapse">
+    
+    <a class="d-inline docs-toc-link " href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/99.%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99/2016-postgresql-%E6%8A%80%E6%9C%AF%E5%86%85%E5%B9%95%E5%8E%9F%E7%90%86%E6%8E%A2%E7%B4%A2/">2016-《PostgreSQL 技术内幕：原理探索》</a>
+    <a class="nav-toogle d-inline level" aria-hidden="false" data-toggle="collapse" href="#id731460f02365de5a7bff49b17058d3b8" aria-expanded="false" aria-controls="id731460f02365de5a7bff49b17058d3b8">
+    
+        <i class="fa-solid fa-angle-right" id="caret-id731460f02365de5a7bff49b17058d3b8"></i>
+    
+    </a>
+    
+    </div>
+    
+      
+      <ul class="nav docs-sidenav collapse  " id="id731460f02365de5a7bff49b17058d3b8">
+      
+
+
+
+  
+    
+    
+    
+    
+      
+    
+    
+
+    
+    
+    
+    <div class="docs-toc-item has-child">
+    <div class="parent-node d-flex justify-content-between" onClick="Collapse(&#34;caret-id2a0e0a42bde3ba151e7c430fde0fd2f0&#34;)" href="#id2a0e0a42bde3ba151e7c430fde0fd2f0" aria-expanded="false" aria-controls="id2a0e0a42bde3ba151e7c430fde0fd2f0" aria-hidden="false" data-toggle="collapse">
+    
+    </div>
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+      
+        </ul>
+      
+    
+
+    
+      </div>
+    
+
+    
+  
+</nav>
+
+    </div>
+
+    
+    
+    <div class="d-none d-xl-block col-xl-2 docs-toc">
+      
+     
+      <ul class="nav toc-top">
+        <li><a href="#" id="back_to_top" class="docs-toc-title">目录</a></li>
+      </ul>
+     
+
+      <nav id="TableOfContents">
+  <ul>
+    <li><a href="#transaction-id">Transaction ID</a></li>
+    <li><a href="#heaptupleheaderdata">HeapTupleHeaderData</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#插入">插入</a></li>
+    <li><a href="#删除">删除</a></li>
+    <li><a href="#更新">更新</a></li>
+    <li><a href="#free-space-map">Free Space Map</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#transaction-snapshot--事务快照">Transaction Snapshot | 事务快照</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#rules--可见性检测规则">Rules | 可见性检测规则</a>
+      <ul>
+        <li><a href="#t_xmin-对应事务的状态为-aborted">t_xmin 对应事务的状态为 ABORTED</a></li>
+        <li><a href="#t_xmin-对应事务的状态为-in_progress">t_xmin 对应事务的状态为 IN_PROGRESS</a></li>
+        <li><a href="#t_xmin-对应事务的状态为-committed">t_xmin 对应事务的状态为 COMMITTED</a></li>
+      </ul>
+    </li>
+    <li><a href="#可见性检测流程">可见性检测流程</a></li>
+  </ul>
+</nav>
+
+      
+<div class="subscribe-module col-24 mt-1">
+    <img src="https://ngte-superbed.oss-cn-beijing.aliyuncs.com/item/20230220172727.png" alt="image" title="王下邀月熊的微信公众号"/>
+</div>
+
+
+
+    </div>
+    
+
+    <main class="py-md-3 pl-md-3 docs-content col-xl-8" role="main">
+
+      <article class="article">
+
+          
+
+          <h1>并发控制</h1>
+
+          <div class="article-style">
+            <ul>
+<li><a href="https://parg.co/rp7" target="_blank" rel="noopener">深入解析 PostgreSQL 系列</a>整理自 <a href="http://www.interdb.jp/pg/index.html" target="_blank" rel="noopener">The Internals of PostgreSQL</a> 等系列文章，从碎片化地阅读到体系化地学习，感觉对数据库有了更深入地了解；触类旁通，相互印证，也是有利于掌握 MySQL 等其他的关系型数据库或者 NoSQL 数据库。</li>
+</ul>
+<h1 id="深入解析-postgresql-系列之并发控制与事务机制">深入解析 PostgreSQL 系列之并发控制与事务机制</h1>
+<p>并发控制旨在针对数据库中对事务并行的场景，保证 ACID 中的一致性（Consistency）与隔离（Isolation）。数据库技术中主流的三种并发控制技术分别是：Multi-version Concurrency Control (MVCC), Strict Two-Phase Locking (S2PL), 以及 Optimistic Concurrency Control (OCC)，每种技术也都有很多的变种。在 MVCC 中，每次写操作都会在旧的版本之上创建新的版本，并且会保留旧的版本。当某个事务需要读取数据时，数据库系统会从所有的版本中选取出符合该事务隔离级别要求的版本。MVCC 的最大优势在于读并不会阻塞写，写也不会阻塞读；而像 S2PL 这样的系统，写事务会事先获取到排他锁，从而会阻塞读事务。</p>
+<p>PostgreSQL 以及 Oracle 等 RDBMS 实际使用了所谓的 Snapshot Isolation（SI）这个 MVCC 技术的变种。Oracle 引入了额外的 Rollback Segments，当写入新的数据时，老版本的数据会被写入到 Rollback Segment 中，随后再被覆写到实际的数据块。PostgreSQL 则是使用了相对简单的实现方式，新的数据对象会被直接插入到关联的 Table Page 中；而在读取表数据的时候，PostgreSQL 会通过可见性检测规则（Visibility Check Rules）来选择合适的版本。</p>
+<p>SI 能够避免 ANSI SQL-92 标准中定义的三个反常现象：脏读（Dirty Reads），不可重复读（Non-Repeatable Reads）以及幻读（Phantom Reads）；在 9.1 版本后引入的 Serializable Snapshot Isolation（SSI）则能够提供真正的顺序读写的能力。</p>
+<table>
+<thead>
+<tr>
+<th>Isolation Level</th>
+<th>Dirty Reads</th>
+<th>Non-repeatable Read</th>
+<th>Phantom Read</th>
+<th>Serialization Anomaly</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>READ COMMITTED</td>
+<td>Not possible</td>
+<td>Possible</td>
+<td>Possible</td>
+<td>Possible</td>
+</tr>
+<tr>
+<td>REPEATABLE READ</td>
+<td>Not possible</td>
+<td>Not possible</td>
+<td>Not possible in PG; See <a href="http://www.interdb.jp/pg/pgsql05.html#_5.7.2." target="_blank" rel="noopener">Section 5.7.2.</a> (Possible in ANSI SQL)</td>
+<td>Possible</td>
+</tr>
+<tr>
+<td>SERIALIZABLE</td>
+<td>Not possible</td>
+<td>Not possible</td>
+<td>Not possible</td>
+<td>Not possible</td>
+</tr>
+</tbody>
+</table>
+<h1 id="tuple-结构">Tuple 结构</h1>
+<h2 id="transaction-id">Transaction ID</h2>
+<p>当某个事务开启时，PostgreSQL 内置的 Transaction Manager 会为它分配唯一的 Transaction ID(txid)；txid 是 32 位无类型整型值，可以通过 <code>txid_current()</code> 函数来获取当前的 txid：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl"><span class="nv">testdb</span><span class="o">=</span><span class="c1"># BEGIN;</span>
+</span></span><span class="line"><span class="cl">BEGIN
+</span></span><span class="line"><span class="cl"><span class="nv">testdb</span><span class="o">=</span><span class="c1"># SELECT txid_current();</span>
+</span></span><span class="line"><span class="cl"> txid_current
+</span></span><span class="line"><span class="cl">--------------
+</span></span><span class="line"><span class="cl">          <span class="m">100</span>
+</span></span><span class="line"><span class="cl"><span class="o">(</span><span class="m">1</span> row<span class="o">)</span>
+</span></span></code></pre></div><p>PostgreSQL 还保留了三个关键 txid 值作特殊标记：0 表示无效的 txid，1 表示启动时的 txid，仅在 Database Cluster 启动时使用；2 代表了被冻结的（Frozen）txid，用于在序列化事务时候使用。PostgreSQL 选择数值类型作为 txid，也是为了方便进行比较；对于 txid 值为 100 的事务而言，所有小于 100 的事务是发生在过去的，可见的；而所有大于 100 的事务，是发生在未来，即不可见的。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://user-images.githubusercontent.com/5803001/51909334-57ec8480-2407-11e9-965d-68ee0427ef03.png" alt="image" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>鉴于实际系统中的 txid 数目的需要可能会超过最大值，PostgreSQL 实际是将这些 txid 作为环来看待。</p>
+<h2 id="heaptupleheaderdata">HeapTupleHeaderData</h2>
+<p>Table Pages 中的 Heap Tuples 往往包含三个部分：HeapTupleHeaderData 结构，NULL bitmap 以及用户数据。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://user-images.githubusercontent.com/5803001/51910630-bebf6d00-240a-11e9-99aa-fb94a3cb9941.png" alt="image" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>其中 HeapTupleHeaderData 与事物处理强相关的属性有：</p>
+<ul>
+<li>(TransactionId)t_xmin: 存放插入该 Tuple 时的 txid</li>
+<li>(TransactionId)t_xmax: 存放删除或者更新该 Tuple 时的 txid，如果还没更新或者删除，那么置 0，表示无效</li>
+<li>(CommandId)t_cid: 存放 Command ID，即 创建该 Tuple 的命令在该事务内执行的所有 SQL 命令中的编号；譬如 <code>BEGIN; INSERT; INSERT; INSERT; COMMIT;</code> 这个事务，如果是首个 INSERT 命令创建的 Tuple，那么其 t_cid 值为 0，第二个就是 1</li>
+<li>(ItemPointerData)t_ctid: 当某个 Tuple 更新时，该值就指向新创建的 Tuple，否则指向自己</li>
+</ul>
+<h1 id="tuple-的插入删除与更新">Tuple 的插入、删除与更新</h1>
+<p>如上所述，Table Pages 中的 Tuples 呈如下布局：</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://user-images.githubusercontent.com/5803001/51994715-5ba60700-24ec-11e9-89d3-37af876d4751.png" alt="image" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<h2 id="插入">插入</h2>
+<p>在执行插入操作时，PostgreSQL 会直接将某个新的 Tuple 插入到目标表的某个页中：</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://user-images.githubusercontent.com/5803001/51994854-96a83a80-24ec-11e9-840e-e1bd2211d9ed.png" alt="image" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>假如某个 txid 为 99 的事务插入了新的 Tuple，那么该 Tuple 的头域会被设置为如下值：</p>
+<ul>
+<li>t_xmin 与创建该 Tuple 的事务的 txid 保持一致，即 99</li>
+<li>t_xmax 被设置为 0，因为其还未被删除或者更新</li>
+<li>t_cid 被设置为 0，因为该 Tuple 是由事务中的首个 Insert 命令创建的</li>
+<li>t_ctid 被设置为了 <code>(0, 1)</code>，即指向了自己</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl"><span class="nv">testdb</span><span class="o">=</span><span class="c1"># CREATE EXTENSION pageinspect;</span>
+</span></span><span class="line"><span class="cl">CREATE EXTENSION
+</span></span><span class="line"><span class="cl"><span class="nv">testdb</span><span class="o">=</span><span class="c1"># CREATE TABLE tbl (data text);</span>
+</span></span><span class="line"><span class="cl">CREATE TABLE
+</span></span><span class="line"><span class="cl"><span class="nv">testdb</span><span class="o">=</span><span class="c1"># INSERT INTO tbl VALUES(&#39;A&#39;);</span>
+</span></span><span class="line"><span class="cl">INSERT <span class="m">0</span> <span class="m">1</span>
+</span></span><span class="line"><span class="cl"><span class="nv">testdb</span><span class="o">=</span><span class="c1"># SELECT lp as tuple, t_xmin, t_xmax, t_field3 as t_cid, t_ctid</span>
+</span></span><span class="line"><span class="cl">                FROM heap_page_items<span class="o">(</span>get_raw_page<span class="o">(</span><span class="s1">&#39;tbl&#39;</span>, 0<span class="o">))</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"> tuple <span class="p">|</span> t_xmin <span class="p">|</span> t_xmax <span class="p">|</span> t_cid <span class="p">|</span> t_ctid
+</span></span><span class="line"><span class="cl">-------+--------+--------+-------+--------
+</span></span><span class="line"><span class="cl">     <span class="m">1</span> <span class="p">|</span>     <span class="m">99</span> <span class="p">|</span>      <span class="m">0</span> <span class="p">|</span>     <span class="m">0</span> <span class="p">|</span> <span class="o">(</span>0,1<span class="o">)</span>
+</span></span></code></pre></div><h2 id="删除">删除</h2>
+<p>在删除操作中，目标 Tuple 会被先逻辑删除，即将 t_xmax 的值设置为当前删除该 Tuple 的事务的 txid 值。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://user-images.githubusercontent.com/5803001/51995164-25b55280-24ed-11e9-88dc-bcc0c52f5733.png" alt="image" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>当该事务被提交之后，PostgreSQL 会将该 Tuple 标记为 Dead Tuple，并随后在 VACUUM 处理过程中被彻底清除。</p>
+<h2 id="更新">更新</h2>
+<p>在更新操作时，PostgreSQL 会首先逻辑删除最新的 Tuple，然后插入新的 Tuple：</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://user-images.githubusercontent.com/5803001/52027410-4c53a780-2546-11e9-9187-4ff043cc71ce.png" alt="image" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>上图所示的行被 txid 为 99 的事务插入，被 txid 为 100 的事务连续更新两次；在该事务提交之后，Tuple_2 与 Tuple_3 就会被标记为 Dead Tuples。</p>
+<h2 id="free-space-map">Free Space Map</h2>
+<p>当插入某个 Heap Tuple 或者 Index Tuple 时，PostgreSQL 使用相关表的 FSM 来决定应该选择哪个 Page 来进行具体的插入操作。每个 FSM 都存放着表或者索引文件相关的剩余空间容量的信息，可以使用如下方式查看：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl"><span class="nv">testdb</span><span class="o">=</span><span class="c1"># CREATE EXTENSION pg_freespacemap;</span>
+</span></span><span class="line"><span class="cl">CREATE EXTENSION
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">testdb</span><span class="o">=</span><span class="c1"># SELECT *, round(100 * avail/8192 ,2) as &#34;freespace ratio&#34;</span>
+</span></span><span class="line"><span class="cl">                FROM pg_freespace<span class="o">(</span><span class="s1">&#39;accounts&#39;</span><span class="o">)</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"> blkno <span class="p">|</span> avail <span class="p">|</span> freespace ratio
+</span></span><span class="line"><span class="cl">-------+-------+-----------------
+</span></span><span class="line"><span class="cl">     <span class="m">0</span> <span class="p">|</span>  <span class="m">7904</span> <span class="p">|</span>           96.00
+</span></span><span class="line"><span class="cl">     <span class="m">1</span> <span class="p">|</span>  <span class="m">7520</span> <span class="p">|</span>           91.00
+</span></span><span class="line"><span class="cl">     <span class="m">2</span> <span class="p">|</span>  <span class="m">7136</span> <span class="p">|</span>           87.00
+</span></span><span class="line"><span class="cl">     <span class="m">3</span> <span class="p">|</span>  <span class="m">7136</span> <span class="p">|</span>           87.00
+</span></span><span class="line"><span class="cl">     <span class="m">4</span> <span class="p">|</span>  <span class="m">7136</span> <span class="p">|</span>           87.00
+</span></span><span class="line"><span class="cl">     <span class="m">5</span> <span class="p">|</span>  <span class="m">7136</span> <span class="p">|</span>           87.00
+</span></span><span class="line"><span class="cl">....
+</span></span></code></pre></div><h1 id="commit-log">Commit Log</h1>
+<p>PostgreSQL 使用 Commit Log，亦称 clog 来存放事务的状态；clog 存放于 Shared Memory 中，在整个事务处理的生命周期中都起到了重要的作用。PostgreSQL 定义了四种不同的事务状态：IN_PROGRESS, COMMITTED, ABORTED, 以及 SUB_COMMITTED。Clog 有 Shared Memory 中多个 8KB 大小的页构成，其逻辑上表现为类数组结构，数组下标即是关联的事务的 txid，而值就是当前事务的状态：</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://user-images.githubusercontent.com/5803001/52032886-ea06a100-255d-11e9-8b80-58e73292b2d6.png" alt="image" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>如果当前的 txid 超过了当前 clog 页可承载的最大范围，那么 PostgreSQL 会自动创建新页。而在 PostgreSQL 停止或者 Checkpoint 进程运行的时候，clog 的数据会被持久化存储到 pg_xact 子目录下，以 0000，0001 依次顺序命名，单个文件的最大尺寸为 256KB。而当 PostgreSQL 重启的时候，存放在 pg_xact 目录下的文件会被重新加载到内存中。而随着 PostgreSQL 的持续运行，clog 中势必会累计很多的过时或者无用的数据，Vacuum 处理过程中同样会清除这些无用的数据。</p>
+<h2 id="transaction-snapshot--事务快照">Transaction Snapshot | 事务快照</h2>
+<p>事务快照即是存放了当前全部事务是否为激活状态信息的数据结构，PostgreSQL 内部将快照表示为简单的文本结构，<code>xmin:xmax:xip_list’</code>；譬如 &ldquo;100:100:&quot;，其意味着所有 txid 小于或者等于 99 的事务是非激活状态，而大于等于 100 的事务是处在了激活状态。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl"><span class="nv">testdb</span><span class="o">=</span><span class="c1"># SELECT txid_current_snapshot();</span>
+</span></span><span class="line"><span class="cl"> txid_current_snapshot
+</span></span><span class="line"><span class="cl">-----------------------
+</span></span><span class="line"><span class="cl"> 100:104:100,102
+</span></span><span class="line"><span class="cl"><span class="o">(</span><span class="m">1</span> row<span class="o">)</span>
+</span></span></code></pre></div><ul>
+<li>xmin: 最早的仍处在激活状态的 txid，所有更早之前的事务要么处于被提交之后的可见态，要么就是被回滚之后的假死态。</li>
+<li>xmax: 首个至今仍未分配的事务编号，所有 txid 大于或者等于该值的事务，相对于该快照归属的事务都是尚未发生的，因此是不可见的。</li>
+<li>xip_list: 快照时候处于激活状态的 txids，仅会包含在 xmin 与 xmax 之间的 txids。</li>
+</ul>
+<p>以 <code>100:104:100,102</code> 为例，其示意图如下所示：</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://user-images.githubusercontent.com/5803001/52041337-0e21ac80-2575-11e9-98ab-c4455dfd242d.png" alt="image" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>事务快照主要由事务管理器（Transaction Manager）提供，在 READ COMMITTED 这个隔离级别，无论是否有 SQL 命令执行，该事务都会被分配到某个快照；而对于 REPEATABLE READ 或者 SERIALIZABLE 隔离级别的事务而言，仅当首个 SQL 语句被执行的时候，才会被分配到某个事务快照用于进行可见性检测。事务快照的意义在于，当某个快照进行可见性判断时，无论目标事务是否已经被提交或者放弃，只要他在快照中被标记为 Active，那么其就会被当做 IN_PROGRESS 状态的事务来处理。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://user-images.githubusercontent.com/5803001/52042264-bafd2900-2577-11e9-8a33-677188f2be9a.png" alt="image" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>事务管理器始终保存有关当前运行的事务的信息。假设三个事务一个接一个地开始，并且 Transaction_A 和 Transaction_B 的隔离级别是 READ COMMITTED，Transaction_C 的隔离级别是 REPEATABLE READ。</p>
+<ul>
+<li>
+<p>T1：</p>
+<ul>
+<li>Transaction_A 启动并执行第一个 SELECT 命令。执行第一个命令时，Transaction_A 请求此刻的 txid 和快照。在这种情况下，事务管理器分配 txid 200，并返回事务快照'200：200：&rsquo;。</li>
+</ul>
+</li>
+<li>
+<p>T2：</p>
+<ul>
+<li>Transaction_B 启动并执行第一个 SELECT 命令。事务管理器分配 txid 201，并返回事务快照'200：200：&rsquo;，因为 Transaction_A（txid 200）正在进行中。因此，无法从 Transaction_B 中看到 Transaction_A。</li>
+</ul>
+</li>
+<li>
+<p>T3：</p>
+<ul>
+<li>Transaction_C 启动并执行第一个 SELECT 命令。事务管理器分配 txid 202，并返回事务快照'200：200：&rsquo;，因此，Transaction_A 和 Transaction_B 不能从 Transaction_C 中看到。</li>
+</ul>
+</li>
+<li>
+<p>T4：</p>
+<ul>
+<li>Transaction_A 已提交。事务管理器删除有关此事务的信息。</li>
+</ul>
+</li>
+<li>
+<p>T5：</p>
+<ul>
+<li>Transaction_B 和 Transaction_C 执行各自的 SELECT 命令。</li>
+<li>Transaction_B 需要事务快照，因为它处于 READ COMMITTED 级别。在这种情况下，Transaction_B 获取新快照'201：201：&rsquo;，因为 Transaction_A（txid 200）已提交。因此，Transaction_B 不再是 Transaction_B 中不可见的。</li>
+<li>Transaction_C 不需要事务快照，因为它处于 REPEATABLE READ 级别并使用获得的快照，即'200：200：&rsquo;。因此，Transaction_A 仍然是 Transaction_C 不可见的。</li>
+</ul>
+</li>
+</ul>
+<h1 id="visibility-check--可见性检测">Visibility Check | 可见性检测</h1>
+<h2 id="rules--可见性检测规则">Rules | 可见性检测规则</h2>
+<p>可见性检测的规则用于根据 Tuple 的 t_xmin 与 t_xmax，clog 以及自身分配到的事务快照来决定某个 Tuple 相对于某个事务是否可见。</p>
+<h3 id="t_xmin-对应事务的状态为-aborted">t_xmin 对应事务的状态为 ABORTED</h3>
+<p>当某个 Tuple 的 t_xmin 值对应的事务的状态为 ABORTED 时候，该 Tuple 永远是不可见的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cm">/* t_xmin status = ABORTED */</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// Rule 1: If Status(t_xmin) = ABORTED ⇒ Invisible
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">Rule</span> <span class="mi">1</span><span class="o">:</span> <span class="n">IF</span> <span class="n">t_xmin</span> <span class="n">status</span> <span class="n">is</span> <span class="err">&#39;</span><span class="n">ABORTED</span><span class="err">&#39;</span> <span class="n">THEN</span>
+</span></span><span class="line"><span class="cl">                  <span class="n">RETURN</span> <span class="err">&#39;</span><span class="n">Invisible</span><span class="err">&#39;</span>
+</span></span><span class="line"><span class="cl">            <span class="n">END</span> <span class="n">IF</span>
+</span></span></code></pre></div><h3 id="t_xmin-对应事务的状态为-in_progress">t_xmin 对应事务的状态为 IN_PROGRESS</h3>
+<p>对于非插入该 Tuple 的事务之外的其他事务关联的 Tuple 而言，该 Tuple 永远是不可见的；仅对于与该 Tuple 同属一事务的 Tuple 可见（此时该 Tuple 未被删除或者更新的）。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"> <span class="cm">/* t_xmin status = IN_PROGRESS */</span>
+</span></span><span class="line"><span class="cl">              <span class="n">IF</span> <span class="n">t_xmin</span> <span class="n">status</span> <span class="n">is</span> <span class="err">&#39;</span><span class="n">IN_PROGRESS</span><span class="err">&#39;</span> <span class="n">THEN</span>
+</span></span><span class="line"><span class="cl">            	   <span class="n">IF</span> <span class="n">t_xmin</span> <span class="o">=</span> <span class="n">current_txid</span> <span class="n">THEN</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// Rule 2: If Status(t_xmin) = IN_PROGRESS ∧ t_xmin = current_txid ∧ t_xmax = INVAILD ⇒ Visible
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">Rule</span> <span class="mi">2</span><span class="o">:</span>              <span class="n">IF</span> <span class="n">t_xmax</span> <span class="o">=</span> <span class="n">INVALID</span> <span class="n">THEN</span>
+</span></span><span class="line"><span class="cl">			      <span class="n">RETURN</span> <span class="err">&#39;</span><span class="n">Visible</span><span class="err">&#39;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// Rule 3: If Status(t_xmin) = IN_PROGRESS ∧ t_xmin = current_txid ∧ t_xmax ≠ INVAILD ⇒ Invisible
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="n">Rule</span> <span class="mi">3</span><span class="o">:</span>              <span class="n">ELSE</span>  <span class="cm">/* this tuple has been deleted or updated by the current transaction itself. */</span>
+</span></span><span class="line"><span class="cl">			      <span class="n">RETURN</span> <span class="err">&#39;</span><span class="n">Invisible</span><span class="err">&#39;</span>
+</span></span><span class="line"><span class="cl">                         <span class="n">END</span> <span class="n">IF</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// Rule 4: If Status(t_xmin) = IN_PROGRESS ∧ t_xmin ≠ current_txid ⇒ Invisible
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">Rule</span> <span class="mi">4</span><span class="o">:</span>        <span class="n">ELSE</span>   <span class="cm">/* t_xmin ≠ current_txid */</span>
+</span></span><span class="line"><span class="cl">		          <span class="n">RETURN</span> <span class="err">&#39;</span><span class="n">Invisible</span><span class="err">&#39;</span>
+</span></span><span class="line"><span class="cl">                   <span class="n">END</span> <span class="n">IF</span>
+</span></span><span class="line"><span class="cl">             <span class="n">END</span> <span class="n">IF</span>
+</span></span></code></pre></div><h3 id="t_xmin-对应事务的状态为-committed">t_xmin 对应事务的状态为 COMMITTED</h3>
+<p>此时该 Tuple 在大部分情况下都是可见的，除了该 Tuple 被更新或者删除。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"> <span class="cm">/* t_xmin status = COMMITTED */</span>
+</span></span><span class="line"><span class="cl">            <span class="n">IF</span> <span class="n">t_xmin</span> <span class="n">status</span> <span class="n">is</span> <span class="err">&#39;</span><span class="n">COMMITTED</span><span class="err">&#39;</span> <span class="n">THEN</span>
+</span></span><span class="line"><span class="cl"><span class="c1">//  If Status(t_xmin) = COMMITTED ∧ Snapshot(t_xmin) = active ⇒ Invisible
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">Rule</span> <span class="mi">5</span><span class="o">:</span>      <span class="n">IF</span> <span class="n">t_xmin</span> <span class="n">is</span> <span class="n">active</span> <span class="n">in</span> <span class="n">the</span> <span class="n">obtained</span> <span class="n">transaction</span> <span class="n">snapshot</span> <span class="n">THEN</span>
+</span></span><span class="line"><span class="cl">                      <span class="n">RETURN</span> <span class="err">&#39;</span><span class="n">Invisible</span><span class="err">&#39;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// If Status(t_xmin) = COMMITTED ∧ (t_xmax = INVALID ∨ Status(t_xmax) = ABORTED) ⇒ Visible
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">Rule</span> <span class="mi">6</span><span class="o">:</span>      <span class="n">ELSE</span> <span class="n">IF</span> <span class="n">t_xmax</span> <span class="o">=</span> <span class="n">INVALID</span> <span class="n">OR</span> <span class="n">status</span> <span class="n">of</span> <span class="n">t_xmax</span> <span class="n">is</span> <span class="err">&#39;</span><span class="n">ABORTED</span><span class="err">&#39;</span> <span class="n">THEN</span>
+</span></span><span class="line"><span class="cl">                      <span class="n">RETURN</span> <span class="err">&#39;</span><span class="n">Visible</span><span class="err">&#39;</span>
+</span></span><span class="line"><span class="cl">            	 <span class="n">ELSE</span> <span class="n">IF</span> <span class="n">t_xmax</span> <span class="n">status</span> <span class="n">is</span> <span class="err">&#39;</span><span class="n">IN_PROGRESS</span><span class="err">&#39;</span> <span class="n">THEN</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// If Status(t_xmin) = COMMITTED ∧ Status(t_xmax) = IN_PROGRESS ∧ t_xmax = current_txid ⇒ Invisible
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">Rule</span> <span class="mi">7</span><span class="o">:</span>           <span class="n">IF</span> <span class="n">t_xmax</span> <span class="o">=</span>  <span class="n">current_txid</span> <span class="n">THEN</span>
+</span></span><span class="line"><span class="cl">                            <span class="n">RETURN</span> <span class="err">&#39;</span><span class="n">Invisible</span><span class="err">&#39;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// If Status(t_xmin) = COMMITTED ∧ Status(t_xmax) = IN_PROGRESS ∧ t_xmax ≠ current_txid ⇒ Visible
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">Rule</span> <span class="mi">8</span><span class="o">:</span>           <span class="n">ELSE</span>  <span class="cm">/* t_xmax ≠ current_txid */</span>
+</span></span><span class="line"><span class="cl">                            <span class="n">RETURN</span> <span class="err">&#39;</span><span class="n">Visible</span><span class="err">&#39;</span>
+</span></span><span class="line"><span class="cl">                      <span class="n">END</span> <span class="n">IF</span>
+</span></span><span class="line"><span class="cl">            	 <span class="n">ELSE</span> <span class="n">IF</span> <span class="n">t_xmax</span> <span class="n">status</span> <span class="n">is</span> <span class="err">&#39;</span><span class="n">COMMITTED</span><span class="err">&#39;</span> <span class="n">THEN</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// If Status(t_xmin) = COMMITTED ∧ Status(t_xmax) = COMMITTED ∧ Snapshot(t_xmax) = active ⇒ Visible
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">Rule</span> <span class="mi">9</span><span class="o">:</span>           <span class="n">IF</span> <span class="n">t_xmax</span> <span class="n">is</span> <span class="n">active</span> <span class="n">in</span> <span class="n">the</span> <span class="n">obtained</span> <span class="n">transaction</span> <span class="n">snapshot</span> <span class="n">THEN</span>
+</span></span><span class="line"><span class="cl">                            <span class="n">RETURN</span> <span class="err">&#39;</span><span class="n">Visible</span><span class="err">&#39;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// If Status(t_xmin) = COMMITTED ∧ Status(t_xmax) = COMMITTED ∧ Snapshot(t_xmax) ≠ active ⇒ Invisible
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">Rule</span> <span class="mi">10</span><span class="o">:</span>         <span class="n">ELSE</span>
+</span></span><span class="line"><span class="cl">                            <span class="n">RETURN</span> <span class="err">&#39;</span><span class="n">Invisible</span><span class="err">&#39;</span>
+</span></span><span class="line"><span class="cl">                      <span class="n">END</span> <span class="n">IF</span>
+</span></span><span class="line"><span class="cl">            	 <span class="n">END</span> <span class="n">IF</span>
+</span></span><span class="line"><span class="cl">            <span class="n">END</span> <span class="n">IF</span>
+</span></span></code></pre></div><h2 id="可见性检测流程">可见性检测流程</h2>
+<p>以简单的双事务更新与查询为例：</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://user-images.githubusercontent.com/5803001/52044845-1205fc80-257e-11e9-98d9-253120ce1726.png" alt="image" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>上图中 txid 200 的事务的隔离级别是 READ COMMITED，txid 201 的隔离级别为 READ COMMITED 或者 REPEATABLE READ。</p>
+<ul>
+<li>当在 T3 时刻执行 SELECT 命令时：</li>
+</ul>
+<p>根据 Rule 6，此时仅有 <code>Tuple_1</code> 是处于可见状态：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="o">#</span><span class="w"> </span><span class="n">Rule6</span><span class="p">(</span><span class="n">Tuple_1</span><span class="p">)</span><span class="w"> </span><span class="err">⇒</span><span class="w"> </span><span class="n">Status</span><span class="p">(</span><span class="n">t_xmin</span><span class="p">:</span><span class="mi">199</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">COMMITTED</span><span class="w"> </span><span class="err">∧</span><span class="w"> </span><span class="n">t_xmax</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">INVALID</span><span class="w"> </span><span class="err">⇒</span><span class="w"> </span><span class="n">Visible</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">testdb</span><span class="o">=#</span><span class="w"> </span><span class="c1">-- txid 200
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">testdb</span><span class="o">=#</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">tbl</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="n">name</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">--------
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="w"> </span><span class="n">Jekyll</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="k">row</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">testdb</span><span class="o">=#</span><span class="w"> </span><span class="c1">-- txid 201
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">testdb</span><span class="o">=#</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">tbl</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="n">name</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">--------
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="w"> </span><span class="n">Jekyll</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="k">row</span><span class="p">)</span><span class="w">
+</span></span></span></code></pre></div><ul>
+<li>当在 T5 时刻执行 SELECT 命令时：</li>
+</ul>
+<p>对于 txid 200 的事务而言，根据 Rule 7 与 Rule 2 可知，<code>Tuple_1</code> 可见而 <code>Tuple_2</code> 不可见：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl"><span class="c1"># Rule7(Tuple_1): Status(t_xmin:199) = COMMITTED ∧ Status(t_xmax:200) = IN_PROGRESS ∧ t_xmax:200 = current_txid:200 ⇒ Invisible</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Rule2(Tuple_2): Status(t_xmin:200) = IN_PROGRESS ∧ t_xmin:200 = current_txid:200 ∧ t_xmax = INVAILD ⇒ Visible</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">testdb</span><span class="o">=</span><span class="c1"># -- txid 200</span>
+</span></span><span class="line"><span class="cl"><span class="nv">testdb</span><span class="o">=</span><span class="c1"># SELECT * FROM tbl;</span>
+</span></span><span class="line"><span class="cl"> name
+</span></span><span class="line"><span class="cl">------
+</span></span><span class="line"><span class="cl"> Hyde
+</span></span><span class="line"><span class="cl"><span class="o">(</span><span class="m">1</span> row<span class="o">)</span>
+</span></span></code></pre></div><p>而对于 txid 201 的事务而言，<code>Tuple_1</code> 是可见的，<code>Tuple_2</code> 是不可见的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl"><span class="c1"># Rule8(Tuple_1): Status(t_xmin:199) = COMMITTED ∧ Status(t_xmax:200) = IN_PROGRESS ∧ t_xmax:200 ≠ current_txid:201 ⇒ Visible</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Rule4(Tuple_2): Status(t_xmin:200) = IN_PROGRESS ∧ t_xmin:200 ≠ current_txid:201 ⇒ Invisible</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">testdb</span><span class="o">=</span><span class="c1"># -- txid 201</span>
+</span></span><span class="line"><span class="cl"><span class="nv">testdb</span><span class="o">=</span><span class="c1"># SELECT * FROM tbl;</span>
+</span></span><span class="line"><span class="cl">  name
+</span></span><span class="line"><span class="cl">--------
+</span></span><span class="line"><span class="cl"> Jekyll
+</span></span><span class="line"><span class="cl"><span class="o">(</span><span class="m">1</span> row<span class="o">)</span>
+</span></span></code></pre></div><ul>
+<li>当在 T7 时刻执行 SELECT 命令时：</li>
+</ul>
+<p>如果此时 txid 201 的事务处于 READ COMMITED 的隔离级别，那么 txid 200 会被当做 COMMITTED 来处理，因为此时获取到的事务快照是 <code>201:201:</code>，因此 <code>Tuple_1</code> 是不可见的，而 <code>Tuple_2</code> 是可见的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl"><span class="c1"># Rule10(Tuple_1): Status(t_xmin:199) = COMMITTED ∧ Status(t_xmax:200) = COMMITTED ∧ Snapshot(t_xmax:200) ≠ active ⇒ Invisible</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Rule6(Tuple_2): Status(t_xmin:200) = COMMITTED ∧ t_xmax = INVALID ⇒ Visible</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">testdb</span><span class="o">=</span><span class="c1"># -- txid 201 (READ COMMITTED)</span>
+</span></span><span class="line"><span class="cl"><span class="nv">testdb</span><span class="o">=</span><span class="c1"># SELECT * FROM tbl;</span>
+</span></span><span class="line"><span class="cl"> name
+</span></span><span class="line"><span class="cl">------
+</span></span><span class="line"><span class="cl"> Hyde
+</span></span><span class="line"><span class="cl"><span class="o">(</span><span class="m">1</span> row<span class="o">)</span>
+</span></span></code></pre></div><p>如果此时 txid 201 的事务处于 REPEATABLE READ 的隔离级别，此时获取到的事务快照还是 <code>200:200:</code>，那么 txid 200 的事务必须被当做 IN_PROGRESS 状态来处理；因此此时 <code>Tuple_1</code> 是可见的，而 <code>Tuple_2</code> 是不可见的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl"><span class="c1"># Rule9(Tuple_1): Status(t_xmin:199) = COMMITTED ∧ Status(t_xmax:200) = COMMITTED ∧ Snapshot(t_xmax:200) = active ⇒ Visible</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Rule5(Tuple_2): Status(t_xmin:200) = COMMITTED ∧ Snapshot(t_xmin:200) = active ⇒ Invisible</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">testdb</span><span class="o">=</span><span class="c1"># -- txid 201 (REPEATABLE READ)</span>
+</span></span><span class="line"><span class="cl"><span class="nv">testdb</span><span class="o">=</span><span class="c1"># SELECT * FROM tbl;</span>
+</span></span><span class="line"><span class="cl">  name
+</span></span><span class="line"><span class="cl">--------
+</span></span><span class="line"><span class="cl"> Jekyll
+</span></span><span class="line"><span class="cl"><span class="o">(</span><span class="m">1</span> row<span class="o">)</span>
+</span></span></code></pre></div><h1 id="preventing-lost-updates--避免更新丢失">Preventing Lost Updates | 避免更新丢失</h1>
+<p>所谓的更新丢失（Lost Update），也就是写冲突（ww-conflict），其出现在两个事务同时更新相同的行；在 PostgreSQL 中，REPEATABLE READ 与 SERIALIZABLE 这两个级别都需要规避这种异常现象。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl"><span class="o">(</span>1<span class="o">)</span>  FOR each row that will be updated by this UPDATE <span class="nb">command</span>
+</span></span><span class="line"><span class="cl"><span class="o">(</span>2<span class="o">)</span>       WHILE <span class="nb">true</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">               /* The First Block */
+</span></span><span class="line"><span class="cl"><span class="o">(</span>3<span class="o">)</span>            IF the target row is being updated THEN
+</span></span><span class="line"><span class="cl"><span class="o">(</span>4<span class="o">)</span>	              WAIT <span class="k">for</span> the termination of the transaction that updated the target row
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">(</span>5<span class="o">)</span>	              IF <span class="o">(</span>the status of the terminated transaction is COMMITTED<span class="o">)</span>
+</span></span><span class="line"><span class="cl">   	                   AND <span class="o">(</span>the isolation level of this transaction is REPEATABLE READ or SERIALIZABLE<span class="o">)</span> THEN
+</span></span><span class="line"><span class="cl"><span class="o">(</span>6<span class="o">)</span>	                       ABORT this transaction  /* First-Updater-Win */
+</span></span><span class="line"><span class="cl">	              ELSE
+</span></span><span class="line"><span class="cl"><span class="o">(</span>7<span class="o">)</span>                           GOTO step <span class="o">(</span>2<span class="o">)</span>
+</span></span><span class="line"><span class="cl">	              END IF
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">               /* The Second Block */
+</span></span><span class="line"><span class="cl"><span class="o">(</span>8<span class="o">)</span>            ELSE IF the target row has been updated by another concurrent transaction THEN
+</span></span><span class="line"><span class="cl"><span class="o">(</span>9<span class="o">)</span>	              IF <span class="o">(</span>the isolation level of this transaction is READ COMMITTED THEN
+</span></span><span class="line"><span class="cl"><span class="o">(</span>10<span class="o">)</span>	                       UPDATE the target row
+</span></span><span class="line"><span class="cl">	              ELSE
+</span></span><span class="line"><span class="cl"><span class="o">(</span>11<span class="o">)</span>	                       ABORT this transaction  /* First-Updater-Win */
+</span></span><span class="line"><span class="cl">	              END IF
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">               /* The Third Block */
+</span></span><span class="line"><span class="cl">                ELSE  /* The target row is not yet modified or has been updated by a terminated transaction. */
+</span></span><span class="line"><span class="cl"><span class="o">(</span>12<span class="o">)</span>	              UPDATE the target row
+</span></span><span class="line"><span class="cl">                END IF
+</span></span><span class="line"><span class="cl">           END WHILE
+</span></span><span class="line"><span class="cl">      END FOR
+</span></span></code></pre></div><p>在上述流程中，UPDATE 命令会遍历每个待更新行，当发现该行正在被其他事务更新时进入等待状态直到该行被解除锁定。如果该行已经被更新，并且隔离级别为 REPEATABLE 或者 SERIALIZABLE，则放弃更新。</p>
+<p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <figure  >
+    <div class="d-flex justify-content-center">
+      <div class="w-100" ><img src="https://user-images.githubusercontent.com/5803001/52051263-fb67a180-258d-11e9-9b2c-af56c7b6a3ed.png" alt="image" loading="lazy" data-zoomable /></div>
+    </div></figure></p>
+<p>Being updated 意味着该行由另一个并发事务更新，并且其事务尚未终止。因为 PostgreSQL 的 SI 使用 first-updater-win 方案，在这种情况下，当前事务必须等待更新目标行的事务的终止。假设事务 Tx_A 和 Tx_B 同时运行，并且 Tx_B 尝试更新行；但是 Tx_A 已更新它并且仍在进行中，Tx_B 等待 Tx_A 的终止。在更新目标行提交的事务之后，继续当前事务的更新操作。如果当前事务处于 READ COMMITTED 级别，则将更新目标行; 否则 REPEATABLE READ 或 SERIALIZABLE，当前事务立即中止以防止丢失更新。</p>
+<h1 id="空间整理">空间整理</h1>
+<p>PostgreSQL 的并发控制机制还依赖于以下的维护流程：</p>
+<ul>
+<li>移除那些被标记为 Dead 的 Tuples 与 Index Tuples</li>
+<li>移除 clog 中过时的部分</li>
+<li>冻结旧的 txids</li>
+<li>更新 FSM，VM 以及其他统计信息</li>
+</ul>
+<p>首先讨论下 txid 环绕式处理的问题，假设 txid 100 的事务插入了某个 <code>Tuple_1</code>，则该 Tuple 对应的 t_xmin 值为 100；而后服务器又运行了许久，<code>Tuple_1</code> 期间并未被改变。直到 txid 为 <code>2^31 + 101</code> 时，对于该事务而言，其执行 SELECT 命令时，是无法看到 <code>Tuple_1</code> 的，因为 txid 为 100 的事务相对于其是发生在未来的，由其创建的 Tuple 自然也就是不可见的。</p>
+<p>为了解决这个问题，PostgreSQL 引入了所谓的 frozen txid（被冻结的 txid），并且设置了 FREEZE 进程来具体处理该问题。前文提及到 txid 2 是保留值，专门表征那些被冻结的 Tuple，这些 Tuple 永远是非激活的、可见的。FREEZE 进程同样由 Vacuum 进程统一调用，它会扫描所有的表文件，将那些与当前 txid 差值超过 vacuum_freeze_min_age 定义的 Tuple 的 t_xmin 域设置为 2。在 9.4 版本之后，则是将 t_infomask 域中的 XMIN_FROZEN 位设置来表征该 Tuple 为冻结状态。</p>
+
+          </div>
+
+          
+
+
+
+          
+          
+          <div class="article-widget">
+            
+<div class="container-xl row post-nav">
+  
+  
+  
+  <div class="col-6 post-nav-item">
+    <div class="meta-nav">下一页</div>
+    <a href="/books/database-notes/02.%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/postgresql/10.%E6%9E%B6%E6%9E%84%E6%9C%BA%E5%88%B6/%E6%9F%A5%E8%AF%A2%E5%A4%84%E7%90%86/" rel="prev">查询处理</a>
+  </div>
+  
+</div>
+
+          </div>
+          
+
+        <div class="body-footer">
+          <p>最近更新于 0001-01-01</p>
+
+          
+
+
+
+          
+
+
+  
+  
+  
+
+  
+
+  
+  <section id="comments" class="mb-3 pt-0">
+    
+<div id="disqus_thread"></div>
+<script>
+  var disqus_config = function () {
+    
+    
+    
+  };
+  (function() {
+    if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+      document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+      return;
+    }
+    var d = document, s = d.createElement('script'); 
+    s.async = true;
+    s.src = 'https://' + "ngte" + '.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+  </section>
+  
+
+
+
+          
+
+
+        </div>
+
+      </article>
+
+      <footer class="site-footer">
+
+  
+
+
+
+  
+
+  
+  <div class="copyright py-4 bg-footer">
+      <div class="row justify-content-center">
+        <div class="text-center footer-color">
+          <p class="mb-0">© 2017-2022 NGTE all rights reserved</p>
+        </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" id="clstr_globe" async src="//clustrmaps.com/globe.js?d=kgpJG5sWZQpKujBmD-uW1B54-WBPol-DuDtrB2KFjKs"></script>
+  
+</footer>
+
+
+    </main>
+  </div>
+</div>
+<script src="//unpkg.com/heti/umd/heti-addon.min.js"></script>
+<script>
+  const heti = new Heti('.article');
+  heti.autoSpacing();
+</script>
+<script type="text/javascript">
+  window.$crisp = [];
+  window.CRISP_WEBSITE_ID = "12adcc35-9621-4313-8262-62dc654b29d8";
+  (function () {
+    setTimeout(function() {
+      d = document;
+      s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = 1;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    }, 2500);
+  })();
+</script>
+  </div>
+
+  <div class="page-footer">
+    
+    
+  </div>
+
+      
+
+    
+    <script src="/js/vendor-bundle.min.d26509351aa0ff874abbee824e982e9b.js"></script>
+
+    
+    
+    
+      
+
+      
+      
+
+      
+
+      
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.1/highlight.min.js" integrity="sha512-Ypjm0o7jOxAd4hpdoppSEN0TQOC19UtPAqD+4s5AlXmUvbmmS/YMxYqAqarQYyxTnB6/rqip9qcxlNB/3U9Wdg==" crossorigin="anonymous"></script>
+        
+        
+      
+
+    
+
+    
+    
+    
+
+    
+    
+    
+      
+      <script id="search-hit-algolia-template" type="text/html">
+        <div class="search-hit">
+          <div class="search-hit-content">
+            <div class="search-hit-name">
+              <a href="{{relpermalink}}">{{#helpers.highlight}}{ "attribute": "title" }{{/helpers.highlight}}</a>
+            </div>
+            <div class="article-metadata search-hit-type">{{type}}</div>
+            <p class="search-hit-description">{{#helpers.highlight}}{ "attribute": "summary" }{{/helpers.highlight}}</p>
+          </div>
+        </div>
+      </script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js" crossorigin="anonymous"></script>
+      
+      
+    
+
+    
+    
+
+    
+    
+    
+    
+      <script id="dsq-count-scr" src="https://ngte.disqus.com/count.js" async></script>
+      
+    
+
+    
+    
+      
+      
+      
+      
+      
+      
+      
+    
+
+    
+    <script src="/zh/js/algolia-search-built.min.4387d694ca1258194aaf562b8cd1c400.js" type="module"></script>
+    
+
+    
+    
+    
+    <script id="page-data" type="application/json">{"use_headroom":false}</script>
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <script src="/zh/js/wowchemy.min.d1673c7a11d1238516cbe12a1e84257f.js"></script>
+
+    
+    
+    
+    
+    
+    
+    <script>
+
+var mybutton = document.getElementById("backTopBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+
+function topFunction() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+}
+</script>
+
+
+    
+
+    
+    
+    <script src="https://cdn.jsdelivr.net/gh/bryanbraun/anchorjs@4.2.2/anchor.min.js" integrity="sha512-I7w3ZdSFzw5j3jU3ZkNikBNeIrl3i+hEuEdwNmqUJvwNcaBUNcijnP2gd9DtGlgVYDplfjGoD8vTNsID+lCjqg==" crossorigin="anonymous"></script>
+    <script>
+      anchors.add();
+    </script>
+    
+
+    
+    <script>
+
+
+
+(function() {
+  'use strict';
+
+  if(!document.queryCommandSupported('copy')) {
+    return;
+  }
+
+  function flashCopyMessage(el, msg) {
+    el.className = "highlight-copy-btn";
+    el.textContent = msg;
+    setTimeout(function() {
+      el.textContent = "";
+      el.className = "highlight-copy-btn fa fa-copy";
+    }, 1000);
+  }
+
+  function selectText(node) {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection;
+  }
+
+  function addCopyButton(containerEl) {
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "highlight-copy-btn fa fa-copy";
+    copyBtn.textContent = "";
+
+    var codeEl = containerEl.firstElementChild;
+    copyBtn.addEventListener('click', function() {
+      try {
+        var selection = selectText(codeEl);
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        
+        flashCopyMessage(copyBtn, '已复制')
+        
+      } catch(e) {
+        console && console.log(e);
+        flashCopyMessage(copyBtn, 'Failed :\'(')
+      }
+    });
+
+    containerEl.appendChild(copyBtn);
+  }
+
+  
+  var highlightBlocks = document.getElementsByClassName('highlight');
+  Array.prototype.forEach.call(highlightBlocks, addCopyButton);
+})();
+</script>
+
+    
+
+
+</body>
+</html>
